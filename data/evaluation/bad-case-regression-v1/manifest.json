@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "dataset_id": "bad-case-regression",
+  "version": "1.0.0",
+  "status": "frozen",
+  "generated_at": "2026-08-02T13:40:36.450445Z",
+  "records": 6,
+  "candidate_records": 7,
+  "review_status_counts": {
+    "accepted": 6,
+    "pending": 1
+  },
+  "source_type_counts": {
+    "evaluation_failure": 6,
+    "test_failure": 1
+  },
+  "cases_file": "cases.jsonl",
+  "cases_sha256": "83fcc1ca83ff35eeece6a884b22586c0d23ef46d910a178a1fbf9feaf5fcad34",
+  "candidates_file": "candidates.jsonl",
+  "candidates_sha256": "4bfc88dce9f195aa0477d47a3b012667cc37687d7dc99ee41db70d2988623b9c",
+  "source_artifacts": {
+    "phase5_result": {
+      "path": "reports/evaluation-runs/phase5-fault-recovery-20260802/fault-recovery-evaluation-result.json",
+      "sha256": "d6f74a9c164a7e508a26975fde7f9b3abfcfeba8959181258949f681f217ab1b"
+    },
+    "fault_cases": {
+      "path": "data/evaluation/fault-eval-v1/cases.jsonl",
+      "sha256": "e39b9918a4085cac1e7f599bebf5311e7c749e4694cd9f159a3e8e1b2013a901"
+    },
+    "manual_intake": {
+      "path": "evals/intake/manual-bad-cases-v1.jsonl",
+      "sha256": "1cd259f90ca10874603a34d1789c34a915386fd8127076c901ed3037eff45912"
+    }
+  },
+  "deduplication_fields": [
+    "input_hash",
+    "failure_signature",
+    "trace_pattern_hash",
+    "deduplication_key"
+  ],
+  "limitations": [
+    "D6 v1 contains synthetic fixtures only; production inputs are not copied.",
+    "The authentication candidate remains pending and is excluded from release gates.",
+    "Accepted D5 cases rely on expectations frozen before execution, not model labels."
+  ]
+}

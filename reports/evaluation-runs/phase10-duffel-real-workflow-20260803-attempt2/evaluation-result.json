@@ -1,0 +1,44 @@
+{
+  "schema_version": 1,
+  "run_id": "phase10-duffel-real-workflow-20260803-attempt2",
+  "evaluation_mode": "deterministic_live_provider",
+  "provider": "duffel",
+  "provider_mode": "test",
+  "dataset": {
+    "id": "duffel-real-workflow-smoke-v1",
+    "version": "1.0.0",
+    "sha256": "2a672f4a12e79f2908fdac4c1ef05081b29e67eadc1ee3566a8d625b14b694e5",
+    "case_id": "duffel-real-lhr-jfk-search"
+  },
+  "started_at": "2026-08-03T07:23:13.846939+00:00",
+  "completed_at": "2026-08-03T07:23:17.581042+00:00",
+  "duration_ms": 3734.08,
+  "external_calls": 1,
+  "task_state": "WAITING_FOR_USER",
+  "option_count": 3,
+  "booking_intent_created": false,
+  "raw_http_response_archived": true,
+  "provider_notices": [
+    "duffel-flight-e243f5ff1aa45708: Duffel Test Mode sandbox inventory; schedules and prices are not production data",
+    "duffel-flight-e243f5ff1aa45708: Duffel response was capped at 50 normalized offers"
+  ],
+  "snapshots": [
+    {
+      "snapshot_id": "duffel-flight-e243f5ff1aa45708",
+      "source_type": "AUTHORIZED_API",
+      "item_count": 44,
+      "raw_payload_sha256": "ee0c99a6770f80fad6a27c65b729f299ebd1e9b82e6ac2afb53fc552beee72df",
+      "raw_response_archived": true
+    }
+  ],
+  "checks": {
+    "exactly_one_provider_call": true,
+    "authorized_api_snapshot": true,
+    "expected_final_state": true,
+    "minimum_options": true,
+    "booking_not_created": true,
+    "test_mode_disclosed": true
+  },
+  "passed": true,
+  "failure": null
+}

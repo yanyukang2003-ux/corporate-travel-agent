@@ -1,0 +1,263 @@
+{
+  "started_at": "2026-08-19T15:26:27.810354+00:00",
+  "passed": 8,
+  "total": 8,
+  "cases": [
+    {
+      "case_id": "I-01",
+      "title": "Child ticket is disclosed and does not search",
+      "passed": true,
+      "checks": [
+        {
+          "name": "not_oos",
+          "ok": true,
+          "detail": "NEEDS_CLARIFICATION"
+        },
+        {
+          "name": "clarify",
+          "ok": true,
+          "detail": "NEEDS_CLARIFICATION"
+        },
+        {
+          "name": "no_search",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "no_options",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "code",
+          "ok": true,
+          "detail": "['children']"
+        },
+        {
+          "name": "disclose",
+          "ok": true,
+          "detail": "1. [能力边界] 当前不支持儿童/婴儿票，只规划单人成人差旅，不会按带儿童去搜索。\n\n请直接回复选项字母/标签，或用自然语言补充信息。"
+        }
+      ]
+    },
+    {
+      "case_id": "I-02",
+      "title": "Visa is disclosed and does not search",
+      "passed": true,
+      "checks": [
+        {
+          "name": "not_oos",
+          "ok": true,
+          "detail": "NEEDS_CLARIFICATION"
+        },
+        {
+          "name": "clarify",
+          "ok": true,
+          "detail": "NEEDS_CLARIFICATION"
+        },
+        {
+          "name": "no_search",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "no_options",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "code",
+          "ok": true,
+          "detail": "['visa']"
+        },
+        {
+          "name": "disclose",
+          "ok": true,
+          "detail": "1. [能力边界] 当前不支持签证或护照办理，不会把它当成已安排的行程条件。\n\n请直接回复选项字母/标签，或用自然语言补充信息。"
+        }
+      ]
+    },
+    {
+      "case_id": "I-03",
+      "title": "Seat selection and mileage are disclosed and do not search",
+      "passed": true,
+      "checks": [
+        {
+          "name": "not_oos",
+          "ok": true,
+          "detail": "NEEDS_CLARIFICATION"
+        },
+        {
+          "name": "clarify",
+          "ok": true,
+          "detail": "NEEDS_CLARIFICATION"
+        },
+        {
+          "name": "no_search",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "no_options",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "code",
+          "ok": true,
+          "detail": "['seat_mileage']"
+        },
+        {
+          "name": "disclose",
+          "ok": true,
+          "detail": "1. [时间] 还缺最晚到达时间。直接填写几点，或选一个当天截止时间；不会改已识别的出发/返回日。\n  A. 当天 18:00 前到 — 按已识别出发日，最晚傍晚抵达\n  B. 当天 21:00 前到 — 按已识别出发日，最晚晚上抵达\n2. [能力边界] 当前不支持选座或里程卡/常旅客积分，搜索结果不含指定座位或积分兑"
+        }
+      ]
+    },
+    {
+      "case_id": "I-04",
+      "title": "Open-jaw is not collapsed into a round-trip search",
+      "passed": true,
+      "checks": [
+        {
+          "name": "not_oos",
+          "ok": true,
+          "detail": "NEEDS_CLARIFICATION"
+        },
+        {
+          "name": "clarify",
+          "ok": true,
+          "detail": "NEEDS_CLARIFICATION"
+        },
+        {
+          "name": "no_search",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "no_options",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "code",
+          "ok": true,
+          "detail": "['open_jaw']"
+        },
+        {
+          "name": "disclose",
+          "ok": true,
+          "detail": "1. [时间] 还缺最晚到达时间。直接填写几点，或选一个当天截止时间；不会改已识别的出发/返回日。\n  A. 当天 18:00 前到 — 按已识别出发日，最晚傍晚抵达\n  B. 当天 21:00 前到 — 按已识别出发日，最晚晚上抵达\n2. [能力边界] 当前不支持开口票、缺口程或多城市串访，不会改成单段往返来凑合。\n"
+        }
+      ]
+    },
+    {
+      "case_id": "I-05",
+      "title": "Already-ticketed change does not search new inventory",
+      "passed": true,
+      "checks": [
+        {
+          "name": "not_oos",
+          "ok": true,
+          "detail": "NEEDS_CLARIFICATION"
+        },
+        {
+          "name": "clarify",
+          "ok": true,
+          "detail": "NEEDS_CLARIFICATION"
+        },
+        {
+          "name": "no_search",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "no_options",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "code",
+          "ok": true,
+          "detail": "['ticket_change']"
+        },
+        {
+          "name": "disclose",
+          "ok": true,
+          "detail": "1. [时间] 还缺最晚到达时间。直接填写几点，或选一个当天截止时间；不会改已识别的出发/返回日。\n  A. 当天 18:00 前到 — 按已识别出发日，最晚傍晚抵达\n  B. 当天 21:00 前到 — 按已识别出发日，最晚晚上抵达\n2. [能力边界] 当前不支持已出票改签或退票，不会用新库存搜索代替退改。\n\n请直接"
+        }
+      ]
+    },
+    {
+      "case_id": "I-06",
+      "title": "Pets / accessibility are disclosed and do not search",
+      "passed": true,
+      "checks": [
+        {
+          "name": "not_oos",
+          "ok": true,
+          "detail": "NEEDS_CLARIFICATION"
+        },
+        {
+          "name": "clarify",
+          "ok": true,
+          "detail": "NEEDS_CLARIFICATION"
+        },
+        {
+          "name": "no_search",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "no_options",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "code",
+          "ok": true,
+          "detail": "['accessibility_pet']"
+        },
+        {
+          "name": "disclose",
+          "ok": true,
+          "detail": "1. [时间] 还缺最晚到达时间。直接填写几点，或选一个当天截止时间；不会改已识别的出发/返回日。\n  A. 当天 18:00 前到 — 按已识别出发日，最晚傍晚抵达\n  B. 当天 21:00 前到 — 按已识别出发日，最晚晚上抵达\n2. [能力边界] 当前不支持无障碍座位或宠物随行预订，不会按普通成人票假装已满足。"
+        }
+      ]
+    },
+    {
+      "case_id": "I-00",
+      "title": "Ordinary trip without a boundary still searches",
+      "passed": true,
+      "checks": [
+        {
+          "name": "no_boundary",
+          "ok": true,
+          "detail": "[]"
+        },
+        {
+          "name": "searched_or_planned",
+          "ok": true,
+          "detail": "NO_FEASIBLE_OPTION"
+        }
+      ]
+    },
+    {
+      "case_id": "I-07",
+      "title": "Model may judge 签证中心 as a meeting place, not a visa request",
+      "passed": true,
+      "checks": [
+        {
+          "name": "no_visa",
+          "ok": true,
+          "detail": "[]"
+        },
+        {
+          "name": "not_blocked",
+          "ok": true,
+          "detail": "NO_FEASIBLE_OPTION"
+        }
+      ]
+    }
+  ]
+}

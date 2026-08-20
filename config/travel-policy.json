@@ -1,0 +1,273 @@
+{
+  "schema_version": 1,
+  "config_version": "company-travel-config-v1",
+  "timezone_name": "Asia/Shanghai",
+  "active_policy_snapshot_id": "policy-travel-v1-20260801",
+  "cities": [
+    {
+      "code": "CN-BJS",
+      "canonical_name": "Beijing",
+      "aliases": [
+        "beijing",
+        "北京",
+        "北京市"
+      ]
+    },
+    {
+      "code": "CN-SHA",
+      "canonical_name": "Shanghai",
+      "aliases": [
+        "shanghai",
+        "上海",
+        "上海市"
+      ]
+    },
+    {
+      "code": "HK-HKG",
+      "canonical_name": "Hong Kong",
+      "aliases": [
+        "hong kong",
+        "hongkong",
+        "香港",
+        "HKG"
+      ]
+    },
+    {
+      "code": "JP-TYO",
+      "canonical_name": "Tokyo",
+      "aliases": [
+        "tokyo",
+        "东京",
+        "東京",
+        "TYO"
+      ]
+    },
+    {
+      "code": "SG-SIN",
+      "canonical_name": "Singapore",
+      "aliases": [
+        "singapore",
+        "新加坡",
+        "SIN"
+      ]
+    },
+    {
+      "code": "US-NYC",
+      "canonical_name": "New York",
+      "aliases": [
+        "new york",
+        "newyork",
+        "nyc",
+        "纽约",
+        "紐約"
+      ]
+    },
+    {
+      "code": "US-PHL",
+      "canonical_name": "Philadelphia",
+      "aliases": [
+        "philadelphia",
+        "philly",
+        "费城",
+        "費城",
+        "PHL"
+      ]
+    },
+    {
+      "code": "US-LAX",
+      "canonical_name": "Los Angeles",
+      "aliases": [
+        "los angeles",
+        "losangeles",
+        "la",
+        "洛杉矶",
+        "洛杉磯",
+        "LAX"
+      ]
+    },
+    {
+      "code": "US-SFO",
+      "canonical_name": "San Francisco",
+      "aliases": [
+        "san francisco",
+        "sanfrancisco",
+        "sf",
+        "旧金山",
+        "三藩市",
+        "SFO"
+      ]
+    },
+    {
+      "code": "US-CHI",
+      "canonical_name": "Chicago",
+      "aliases": [
+        "chicago",
+        "芝加哥",
+        "CHI",
+        "ORD"
+      ]
+    },
+    {
+      "code": "US-BOS",
+      "canonical_name": "Boston",
+      "aliases": [
+        "boston",
+        "波士顿",
+        "波士頓",
+        "BOS"
+      ]
+    },
+    {
+      "code": "US-WAS",
+      "canonical_name": "Washington",
+      "aliases": [
+        "washington",
+        "washington dc",
+        "华盛顿",
+        "華盛頓",
+        "WAS"
+      ]
+    },
+    {
+      "code": "US-SEA",
+      "canonical_name": "Seattle",
+      "aliases": [
+        "seattle",
+        "西雅图",
+        "西雅圖",
+        "SEA"
+      ]
+    },
+    {
+      "code": "US-MIA",
+      "canonical_name": "Miami",
+      "aliases": [
+        "miami",
+        "迈阿密",
+        "邁阿密",
+        "MIA"
+      ]
+    },
+    {
+      "code": "GB-LON",
+      "canonical_name": "London",
+      "aliases": [
+        "london",
+        "伦敦",
+        "倫敦",
+        "LON",
+        "LHR"
+      ]
+    },
+    {
+      "code": "FR-PAR",
+      "canonical_name": "Paris",
+      "aliases": [
+        "paris",
+        "巴黎",
+        "PAR",
+        "CDG"
+      ]
+    },
+    {
+      "code": "DE-FRA",
+      "canonical_name": "Frankfurt",
+      "aliases": [
+        "frankfurt",
+        "法兰克福",
+        "法蘭克福",
+        "FRA"
+      ]
+    },
+    {
+      "code": "NL-AMS",
+      "canonical_name": "Amsterdam",
+      "aliases": [
+        "amsterdam",
+        "阿姆斯特丹",
+        "AMS"
+      ]
+    },
+    {
+      "code": "AE-DXB",
+      "canonical_name": "Dubai",
+      "aliases": [
+        "dubai",
+        "迪拜",
+        "DXB"
+      ]
+    },
+    {
+      "code": "AU-SYD",
+      "canonical_name": "Sydney",
+      "aliases": [
+        "sydney",
+        "悉尼",
+        "SYD"
+      ]
+    },
+    {
+      "code": "CA-YTO",
+      "canonical_name": "Toronto",
+      "aliases": [
+        "toronto",
+        "多伦多",
+        "多倫多",
+        "YYZ"
+      ]
+    }
+  ],
+  "approvers": [
+    {
+      "approver_id": "M2001",
+      "display_name": "Sales Manager"
+    }
+  ],
+  "employees": [
+    {
+      "snapshot_id": "employee-E1001-v1",
+      "employee_id": "E1001",
+      "profile_version": 1,
+      "level": "L3",
+      "department": "Sales",
+      "home_city_code": "CN-BJS",
+      "manager_id": "M2001"
+    }
+  ],
+  "policies": [
+    {
+      "snapshot_id": "policy-travel-v1-20260801",
+      "policy_version": "travel-policy-v1",
+      "currency": "USD",
+      "effective_from": "2026-01-01",
+      "effective_to": null,
+      "arrival_buffer_minutes": 60,
+      "level_rules": {
+        "L3": {
+          "allowed_flight_classes": [
+            "ECONOMY"
+          ],
+          "allowed_train_classes": [
+            "SECOND_CLASS"
+          ]
+        }
+      },
+      "hotel_city_caps": {
+        "CN-SHA": "600",
+        "US-NYC": "350",
+        "US-PHL": "280",
+        "US-LAX": "300",
+        "US-SFO": "320",
+        "GB-LON": "320",
+        "FR-PAR": "300",
+        "JP-TYO": "280",
+        "SG-SIN": "260",
+        "HK-HKG": "300"
+      },
+      "exception_allowed_rule_ids": [
+        "transport.flight.seat_class",
+        "hotel.city.nightly_cap"
+      ]
+    }
+  ]
+}

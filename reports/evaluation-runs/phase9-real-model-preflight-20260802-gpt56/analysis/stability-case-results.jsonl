@@ -1,0 +1,2 @@
+{"case_id":"open-train-missing-fields-0085","attempts":1,"passed_attempts":1,"all_passed":true,"any_passed":true,"mixed_pass_result":false,"output_consistent":true,"trajectory_consistent":true,"run_ids":["run-9ba5789e-46bb-4cc5-91c9-19439849c940"]}
+{"case_id":"prefer-intent-0001","attempts":1,"passed_attempts":0,"all_passed":false,"any_passed":false,"mixed_pass_result":false,"output_consistent":true,"trajectory_consistent":true,"run_ids":["run-842d0e9d-07b3-429b-a931-2acbc320e6e6"]}

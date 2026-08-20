@@ -1,0 +1,62 @@
+{
+  "schema_version": 1,
+  "registry_id": "corporate-travel-tool-registry-v1",
+  "tool_choice_exposure": "orchestrator_controlled",
+  "tools": [
+    {
+      "name": "provider.search_transport.outbound",
+      "required_parameters": ["origin", "destination", "depart_after", "arrive_before"],
+      "parameter_types": {
+        "origin": "string",
+        "destination": "string",
+        "depart_after": "datetime",
+        "arrive_before": "datetime"
+      },
+      "allowed_states": ["SEARCHING"],
+      "provenance": "Exact outbound route and window from the frozen case request."
+    },
+    {
+      "name": "provider.search_transport.inbound",
+      "required_parameters": ["origin", "destination", "depart_after", "arrive_before"],
+      "parameter_types": {
+        "origin": "string",
+        "destination": "string",
+        "depart_after": "datetime",
+        "arrive_before": "datetime"
+      },
+      "allowed_states": ["SEARCHING"],
+      "provenance": "Exact reverse route and return window from the frozen case request."
+    },
+    {
+      "name": "provider.search_hotels",
+      "required_parameters": ["city", "check_in", "check_out"],
+      "parameter_types": {
+        "city": "string",
+        "check_in": "date",
+        "check_out": "date"
+      },
+      "allowed_states": ["SEARCHING"],
+      "provenance": "Exact destination and hotel dates from the frozen case request."
+    },
+    {
+      "name": "provider.revalidate",
+      "required_parameters": ["refs"],
+      "parameter_types": {
+        "refs": "string_array"
+      },
+      "allowed_states": ["REVALIDATING"],
+      "provenance": "Exact selected inventory references, each previously returned by a successful search."
+    },
+    {
+      "name": "provider.create_deep_link",
+      "required_parameters": ["option_id", "option_version", "inventory_refs"],
+      "parameter_types": {
+        "option_id": "string",
+        "option_version": "positive_integer",
+        "inventory_refs": "string_array"
+      },
+      "allowed_states": ["REVALIDATING"],
+      "provenance": "Exact selected option and inventory references after successful revalidation."
+    }
+  ]
+}

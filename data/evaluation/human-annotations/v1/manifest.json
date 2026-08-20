@@ -1,0 +1,109 @@
+{
+  "schema_version": 1,
+  "packet_id": "human-annotations-v1",
+  "status": "unlabeled",
+  "original_frozen_datasets_modified": false,
+  "source_files": [
+    {
+      "path": "data/evaluation/derived-v2/intent-cases.jsonl",
+      "sha256": "d7fc86025e163f96075d1cac729bb1e417f72b858beba14e881b83415d880ee2"
+    },
+    {
+      "path": "data/evaluation/derived-v2/workflow-cases.jsonl",
+      "sha256": "9041eba5564c07dd3ca94dfa9e2d597d3bff59a67ee9e679b7ca529287e7dbfd"
+    },
+    {
+      "path": "data/evaluation/adversarial-v1/cases.jsonl",
+      "sha256": "a43bb9536b7c65f638f515362b44e0589533ac025b8ec98b068ada43e2a82df4"
+    },
+    {
+      "path": "data/evaluation/fault-eval-v1/cases.jsonl",
+      "sha256": "e39b9918a4085cac1e7f599bebf5311e7c749e4694cd9f159a3e8e1b2013a901"
+    },
+    {
+      "path": "data/evaluation/bad-case-regression-v1/candidates.jsonl",
+      "sha256": "4bfc88dce9f195aa0477d47a3b012667cc37687d7dc99ee41db70d2988623b9c"
+    },
+    {
+      "path": "evals/providers/duffel-provider-contract-v1.json",
+      "sha256": "02ba02a6ad1e9b5671d531eb8354b444d8e16b6dc8d7d9b092abfcef445a02a2"
+    },
+    {
+      "path": "evals/subsets/intent-model-smoke-v1.json",
+      "sha256": "185b2c90005dcad5d6a0457b1bbc1eea490a9cd9fbd8f3904e8aa0834587eb7f"
+    },
+    {
+      "path": "evals/subsets/model-duffel-workflow-smoke-v1.json",
+      "sha256": "2531cd4d64b4c75d3d76a730df6e02af9ec290fbd38e616a8b406e4becf9ea5e"
+    },
+    {
+      "path": "evals/calibration/output-quality-v1-case-ids.json",
+      "sha256": "2914197e3508bef98867c8dbce0fd9108bc9d73d2b9a1eeb86e8809f2421d9be"
+    },
+    {
+      "path": "reports/evaluation-runs/phase2-quality-20260802/judge-inputs.jsonl",
+      "sha256": "87c9d8119f280d85481edffe3d91032c862b4a3508397c364b7b5f9dde8f849f"
+    }
+  ],
+  "generated_files": [
+    {
+      "path": "to-label/01-intent-gold.jsonl",
+      "records": 26,
+      "sha256": "01006aa964330bc2c028bf04021b719c97225aa6327ca74c9fa42b776ad11903"
+    },
+    {
+      "path": "to-label/02-workflow-expected-gold.jsonl",
+      "records": 20,
+      "sha256": "d4fb75f3019c61b529bd3a9ede77b25fbff6b9349508692b5d80dab4530f088c"
+    },
+    {
+      "path": "to-label/03-output-quality.jsonl",
+      "records": 20,
+      "sha256": "075b632045f5d2baa5be3d76d8ca2cf437c8d874442d8c677af0b35458b5e925"
+    },
+    {
+      "path": "to-label/04-adversarial-safety.jsonl",
+      "records": 16,
+      "sha256": "edd6ce7962db50f1b9d690ec80e25f11065683bd3811f74f817a06f38b6b7e40"
+    },
+    {
+      "path": "to-label/05-fault-recovery.jsonl",
+      "records": 8,
+      "sha256": "f2a2b3eeea07102ee49a35463e539cb20cd8cfa877570ddf6bede9fbd8056690"
+    },
+    {
+      "path": "to-label/06-bad-case-review.jsonl",
+      "records": 7,
+      "sha256": "c90b29da9e9ed2136585c87177378f4db108fbe2d2a2f750254cbc6872019a4c"
+    },
+    {
+      "path": "to-label/07-duffel-contract-audit.jsonl",
+      "records": 4,
+      "sha256": "b9164650454a830e7174d2b1c9806cfa2d34dd8cca10b5d8b6799147d84b599d"
+    },
+    {
+      "path": "private/source-id-map.jsonl",
+      "records": 101,
+      "sha256": "570cbf797188d02339107d08acf96c720722ba7a6de01c3f32218110150706a2"
+    },
+    {
+      "path": "annotation-options.json",
+      "records": null,
+      "sha256": "383f8d791a5a1d9778cc18cfcb8ad57700aebb393a6ea14355a05f3bd302ceac"
+    },
+    {
+      "path": "README.md",
+      "records": null,
+      "sha256": "5d8eb8eca36a2d8862c9274090b2c210a639af88307acacaba7dbd1f92a59431"
+    }
+  ],
+  "record_counts": {
+    "intent_gold": 26,
+    "workflow_expected_gold": 20,
+    "output_quality": 20,
+    "adversarial_safety": 16,
+    "fault_recovery": 8,
+    "bad_case_review": 7,
+    "provider_contract_audit": 4
+  }
+}

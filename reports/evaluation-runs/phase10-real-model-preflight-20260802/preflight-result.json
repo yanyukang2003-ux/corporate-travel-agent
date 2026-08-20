@@ -1,0 +1,40 @@
+{
+  "schema_version": 1,
+  "protocol_version": "real-model-preflight-v1",
+  "generated_at": "2026-08-02T15:43:40.031781Z",
+  "status": "pass",
+  "requested_model": "gpt-5.6-terra",
+  "dataset_id": "intent-model-preflight-v1",
+  "dataset_sha256": "3a520cafc0d6d7a8b2768f4f2412f4cf9d1bb541e121f7b2144937454b3d6a98",
+  "case_ids": [
+    "prefer-intent-0001",
+    "open-train-missing-fields-0085"
+  ],
+  "expected_model_calls_max": 2,
+  "attempted_model_calls": 2,
+  "successful_structured_output_calls": 2,
+  "provider_calls": 0,
+  "completed_runs": 2,
+  "rule_quality_passed_runs": 1,
+  "rule_quality_smoke_rate": 0.5,
+  "trace_validation_passed": true,
+  "input_tokens_status": "measured",
+  "output_tokens_status": "measured",
+  "input_tokens_total": 2097,
+  "output_tokens_total": 818,
+  "latency_p95_ms": 9326.587,
+  "cost_status": "measured",
+  "estimated_cost_total": 0.01401,
+  "currency": "USD",
+  "price_table_version": "model-prices-openai-20260802-v1",
+  "price_table_sha256": "804a355ea50d87446cd84799226045fa21eec06495a910d142216e8634438bdd",
+  "contract_failures": [],
+  "source_run_summary_sha256": "594b9fd0adb43279b2b19aba067cb227d82658324eb25bbe5e2543286af29b31",
+  "performance_summary_sha256": "a7b9b43dd7b856fcfe3864519267bda63fc32ba1679034eba9def66c94824700",
+  "limitations": [
+    "Preflight contract pass does not establish production quality or stability.",
+    "Rule-quality results are a smoke signal only and do not block this connectivity qualification.",
+    "Air, rail, hotel, booking, payment, and policy providers remain deterministic Mock.",
+    "The formal real-model comparison still requires 24 frozen cases times 3 runs."
+  ]
+}

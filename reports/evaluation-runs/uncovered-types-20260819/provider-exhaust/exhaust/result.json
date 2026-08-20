@@ -1,0 +1,96 @@
+{
+  "scenario": "exhaust",
+  "passed": true,
+  "checks": {
+    "terminal_provider_failed": true,
+    "delayed_attempts_3": true,
+    "three_delayed_started_events": true,
+    "exhausted_event_present": true,
+    "no_booking_intent": true,
+    "all_rounds_processed_task": true
+  },
+  "final_state": "PROVIDER_FAILED",
+  "provider_retry": {
+    "status": "exhausted",
+    "resume_operation": "SEARCH",
+    "delayed_attempts_completed": 3,
+    "max_delayed_attempts": 3,
+    "next_retry_at": null,
+    "last_error_code": "INJECTED_OUTAGE",
+    "last_error_layer": "acceptance_harness",
+    "user_message": "供应商持续不可用，自动重试已用尽，请稍后手动重试。",
+    "circuit": {
+      "state": "OPEN",
+      "open_seconds": 60.0,
+      "opened_at": "2026-08-10T12:03:00+00:00",
+      "open_until": "2026-08-10T12:04:00+00:00"
+    }
+  },
+  "outbound_calls": 12,
+  "processed_rounds": [
+    [
+      "delayed-exhaust-acceptance"
+    ],
+    [
+      "delayed-exhaust-acceptance"
+    ],
+    [
+      "delayed-exhaust-acceptance"
+    ]
+  ],
+  "audit_events": [
+    "TASK_CREATED",
+    "STATE_TRANSITION",
+    "TOOL_CALL_STARTED",
+    "TOOL_CALL_FAILED",
+    "TOOL_CALL_RETRY_SCHEDULED",
+    "TOOL_CALL_STARTED",
+    "TOOL_CALL_FAILED",
+    "TOOL_CALL_RETRY_SCHEDULED",
+    "TOOL_CALL_STARTED",
+    "TOOL_CALL_FAILED",
+    "PROVIDER_SEARCH_ATTEMPTS_EXHAUSTED",
+    "STATE_TRANSITION",
+    "PROVIDER_DELAYED_RETRY_SCHEDULED",
+    "STATE_TRANSITION",
+    "PROVIDER_DELAYED_RETRY_STARTED",
+    "TOOL_CALL_STARTED",
+    "TOOL_CALL_FAILED",
+    "TOOL_CALL_RETRY_SCHEDULED",
+    "TOOL_CALL_STARTED",
+    "TOOL_CALL_FAILED",
+    "TOOL_CALL_RETRY_SCHEDULED",
+    "TOOL_CALL_STARTED",
+    "TOOL_CALL_FAILED",
+    "PROVIDER_SEARCH_ATTEMPTS_EXHAUSTED",
+    "STATE_TRANSITION",
+    "PROVIDER_DELAYED_RETRY_SCHEDULED",
+    "STATE_TRANSITION",
+    "PROVIDER_DELAYED_RETRY_STARTED",
+    "TOOL_CALL_STARTED",
+    "TOOL_CALL_FAILED",
+    "TOOL_CALL_RETRY_SCHEDULED",
+    "TOOL_CALL_STARTED",
+    "TOOL_CALL_FAILED",
+    "TOOL_CALL_RETRY_SCHEDULED",
+    "TOOL_CALL_STARTED",
+    "TOOL_CALL_FAILED",
+    "PROVIDER_SEARCH_ATTEMPTS_EXHAUSTED",
+    "STATE_TRANSITION",
+    "PROVIDER_DELAYED_RETRY_SCHEDULED",
+    "STATE_TRANSITION",
+    "PROVIDER_DELAYED_RETRY_STARTED",
+    "TOOL_CALL_STARTED",
+    "TOOL_CALL_FAILED",
+    "TOOL_CALL_RETRY_SCHEDULED",
+    "TOOL_CALL_STARTED",
+    "TOOL_CALL_FAILED",
+    "TOOL_CALL_RETRY_SCHEDULED",
+    "TOOL_CALL_STARTED",
+    "TOOL_CALL_FAILED",
+    "PROVIDER_SEARCH_ATTEMPTS_EXHAUSTED",
+    "STATE_TRANSITION",
+    "PROVIDER_DELAYED_RETRIES_EXHAUSTED"
+  ],
+  "tool_calls_used": 12
+}

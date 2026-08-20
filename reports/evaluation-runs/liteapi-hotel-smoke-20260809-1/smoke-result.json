@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "run_id": "liteapi-hotel-smoke-20260809-1",
+  "evaluation_mode": "deterministic_live_hotel_provider_smoke",
+  "provider": "liteapi",
+  "provider_mode": "sandbox-read-only",
+  "started_at": "2026-08-09T15:07:26.591003+00:00",
+  "completed_at": "2026-08-09T15:07:26.592684+00:00",
+  "duration_ms": 1.813,
+  "query": {
+    "city": "Shanghai",
+    "check_in": "2026-09-08",
+    "check_out": "2026-09-09"
+  },
+  "external_requests": [
+    {
+      "method": "POST",
+      "path": "/hotels/rates"
+    }
+  ],
+  "failure": "RetryableProviderError: LiteAPI request failed transiently: ConnectError",
+  "snapshot": null,
+  "checks": {
+    "request_succeeded": false,
+    "exactly_one_external_call": true,
+    "rates_endpoint_only": true,
+    "authorized_api_snapshot": false,
+    "hotel_inventory_returned": false,
+    "raw_response_archived": false,
+    "sandbox_disclosed": false,
+    "booking_and_payment_disabled": true,
+    "api_key_not_archived": true
+  },
+  "passed": false
+}

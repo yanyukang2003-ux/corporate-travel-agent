@@ -1,0 +1,40 @@
+{
+  "users": [
+    {
+      "user_id": "E1001",
+      "password_hash": "scrypt$16384$8$1$1ienqAN7rEqjbLovN66B0g$uikS_lWzJvfKlED63BchSg9EmBO4XZhyEXzPeCGHZzE",
+      "roles": [
+        "employee"
+      ],
+      "employee_id": "E1001",
+      "active": true
+    },
+    {
+      "user_id": "M2001",
+      "password_hash": "scrypt$16384$8$1$CTWSXED2Agu076XQkkZ_-g$RlRDp7MQnK6FnDazCIEdIYFtuOUl7HP2EiwftCzwhXk",
+      "roles": [
+        "approver"
+      ],
+      "employee_id": null,
+      "active": true
+    },
+    {
+      "user_id": "M9999",
+      "password_hash": "scrypt$16384$8$1$I4rLYhHzEdbLcCeHEND1Zw$dx1Fs9sbf7iBR8enr5xMdhqjeAX_ZTdIJGAfUHvTeT4",
+      "roles": [
+        "approver"
+      ],
+      "employee_id": null,
+      "active": true
+    },
+    {
+      "user_id": "A9001",
+      "password_hash": "scrypt$16384$8$1$taHj5bviOYD81xcv2lS2Gg$KUS7GWGNjZdLgADuau9cv_od2AlyLEFTwf2m4oR8btE",
+      "roles": [
+        "admin"
+      ],
+      "employee_id": null,
+      "active": true
+    }
+  ]
+}

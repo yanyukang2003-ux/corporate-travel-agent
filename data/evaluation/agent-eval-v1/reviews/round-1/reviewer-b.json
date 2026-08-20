@@ -1,0 +1,729 @@
+{
+  "schema_version": 2,
+  "dataset_id": "agent-eval-v1",
+  "dataset_version": "1.0.0-draft.1",
+  "reviewer": "reviewer-b",
+  "round": 1,
+  "records": [
+    {
+      "case_id": "core-compliant-round-trip-001",
+      "verdict": "pending",
+      "human_checks": {
+        "intent_supported": null,
+        "expected_behavior_correct": null,
+        "assertions_sufficient": null
+      },
+      "issue_codes": [],
+      "comment": "",
+      "reviewed_at": null
+    },
+    {
+      "case_id": "core-train-only-002",
+      "verdict": "pending",
+      "human_checks": {
+        "intent_supported": null,
+        "expected_behavior_correct": null,
+        "assertions_sufficient": null
+      },
+      "issue_codes": [],
+      "comment": "",
+      "reviewed_at": null
+    },
+    {
+      "case_id": "core-flight-direct-only-003",
+      "verdict": "pending",
+      "human_checks": {
+        "intent_supported": null,
+        "expected_behavior_correct": null,
+        "assertions_sufficient": null
+      },
+      "issue_codes": [],
+      "comment": "",
+      "reviewed_at": null
+    },
+    {
+      "case_id": "core-compare-train-flight-004",
+      "verdict": "pending",
+      "human_checks": {
+        "intent_supported": null,
+        "expected_behavior_correct": null,
+        "assertions_sufficient": null
+      },
+      "issue_codes": [],
+      "comment": "",
+      "reviewed_at": null
+    },
+    {
+      "case_id": "core-one-way-no-hotel-005",
+      "verdict": "pending",
+      "human_checks": {
+        "intent_supported": null,
+        "expected_behavior_correct": null,
+        "assertions_sufficient": null
+      },
+      "issue_codes": [],
+      "comment": "",
+      "reviewed_at": null
+    },
+    {
+      "case_id": "core-hotel-required-006",
+      "verdict": "pending",
+      "human_checks": {
+        "intent_supported": null,
+        "expected_behavior_correct": null,
+        "assertions_sufficient": null
+      },
+      "issue_codes": [],
+      "comment": "",
+      "reviewed_at": null
+    },
+    {
+      "case_id": "core-hotel-cap-approval-007",
+      "verdict": "pending",
+      "human_checks": {
+        "intent_supported": null,
+        "expected_behavior_correct": null,
+        "assertions_sufficient": null
+      },
+      "issue_codes": [],
+      "comment": "",
+      "reviewed_at": null
+    },
+    {
+      "case_id": "core-business-class-approval-008",
+      "verdict": "pending",
+      "human_checks": {
+        "intent_supported": null,
+        "expected_behavior_correct": null,
+        "assertions_sufficient": null
+      },
+      "issue_codes": [],
+      "comment": "",
+      "reviewed_at": null
+    },
+    {
+      "case_id": "core-approval-accepted-009",
+      "verdict": "pending",
+      "human_checks": {
+        "intent_supported": null,
+        "expected_behavior_correct": null,
+        "assertions_sufficient": null
+      },
+      "issue_codes": [],
+      "comment": "",
+      "reviewed_at": null
+    },
+    {
+      "case_id": "core-approval-rejected-010",
+      "verdict": "pending",
+      "human_checks": {
+        "intent_supported": null,
+        "expected_behavior_correct": null,
+        "assertions_sufficient": null
+      },
+      "issue_codes": [],
+      "comment": "",
+      "reviewed_at": null
+    },
+    {
+      "case_id": "core-forbidden-first-class-011",
+      "verdict": "pending",
+      "human_checks": {
+        "intent_supported": null,
+        "expected_behavior_correct": null,
+        "assertions_sufficient": null
+      },
+      "issue_codes": [],
+      "comment": "",
+      "reviewed_at": null
+    },
+    {
+      "case_id": "core-unknown-level-policy-012",
+      "verdict": "pending",
+      "human_checks": {
+        "intent_supported": null,
+        "expected_behavior_correct": null,
+        "assertions_sufficient": null
+      },
+      "issue_codes": [],
+      "comment": "",
+      "reviewed_at": null
+    },
+    {
+      "case_id": "core-missing-destination-013",
+      "verdict": "pending",
+      "human_checks": {
+        "intent_supported": null,
+        "expected_behavior_correct": null,
+        "assertions_sufficient": null
+      },
+      "issue_codes": [],
+      "comment": "",
+      "reviewed_at": null
+    },
+    {
+      "case_id": "core-out-of-scope-payment-014",
+      "verdict": "pending",
+      "human_checks": {
+        "intent_supported": null,
+        "expected_behavior_correct": null,
+        "assertions_sufficient": null
+      },
+      "issue_codes": [],
+      "comment": "",
+      "reviewed_at": null
+    },
+    {
+      "case_id": "core-no-feasible-arrival-015",
+      "verdict": "pending",
+      "human_checks": {
+        "intent_supported": null,
+        "expected_behavior_correct": null,
+        "assertions_sufficient": null
+      },
+      "issue_codes": [],
+      "comment": "",
+      "reviewed_at": null
+    },
+    {
+      "case_id": "core-handoff-idempotency-016",
+      "verdict": "pending",
+      "human_checks": {
+        "intent_supported": null,
+        "expected_behavior_correct": null,
+        "assertions_sufficient": null
+      },
+      "issue_codes": [],
+      "comment": "",
+      "reviewed_at": null
+    },
+    {
+      "case_id": "historical_failure-revalidation-price-change-017",
+      "verdict": "pending",
+      "human_checks": {
+        "intent_supported": null,
+        "expected_behavior_correct": null,
+        "assertions_sufficient": null
+      },
+      "issue_codes": [],
+      "comment": "",
+      "reviewed_at": null
+    },
+    {
+      "case_id": "historical_failure-revalidation-unavailable-018",
+      "verdict": "pending",
+      "human_checks": {
+        "intent_supported": null,
+        "expected_behavior_correct": null,
+        "assertions_sufficient": null
+      },
+      "issue_codes": [],
+      "comment": "",
+      "reviewed_at": null
+    },
+    {
+      "case_id": "historical_failure-search-provider-failure-019",
+      "verdict": "pending",
+      "human_checks": {
+        "intent_supported": null,
+        "expected_behavior_correct": null,
+        "assertions_sufficient": null
+      },
+      "issue_codes": [],
+      "comment": "",
+      "reviewed_at": null
+    },
+    {
+      "case_id": "historical_failure-revalidation-provider-failure-020",
+      "verdict": "pending",
+      "human_checks": {
+        "intent_supported": null,
+        "expected_behavior_correct": null,
+        "assertions_sufficient": null
+      },
+      "issue_codes": [],
+      "comment": "",
+      "reviewed_at": null
+    },
+    {
+      "case_id": "historical_failure-partial-results-disclosed-021",
+      "verdict": "pending",
+      "human_checks": {
+        "intent_supported": null,
+        "expected_behavior_correct": null,
+        "assertions_sufficient": null
+      },
+      "issue_codes": [],
+      "comment": "",
+      "reviewed_at": null
+    },
+    {
+      "case_id": "historical_failure-stale-snapshot-rejected-022",
+      "verdict": "pending",
+      "human_checks": {
+        "intent_supported": null,
+        "expected_behavior_correct": null,
+        "assertions_sufficient": null
+      },
+      "issue_codes": [],
+      "comment": "",
+      "reviewed_at": null
+    },
+    {
+      "case_id": "historical_failure-justified-retry-not-duplicate-023",
+      "verdict": "pending",
+      "human_checks": {
+        "intent_supported": null,
+        "expected_behavior_correct": null,
+        "assertions_sufficient": null
+      },
+      "issue_codes": [],
+      "comment": "",
+      "reviewed_at": null
+    },
+    {
+      "case_id": "historical_failure-approval-invalidated-on-revision-024",
+      "verdict": "pending",
+      "human_checks": {
+        "intent_supported": null,
+        "expected_behavior_correct": null,
+        "assertions_sufficient": null
+      },
+      "issue_codes": [],
+      "comment": "",
+      "reviewed_at": null
+    },
+    {
+      "case_id": "historical_failure-explicit-request-over-profile-025",
+      "verdict": "pending",
+      "human_checks": {
+        "intent_supported": null,
+        "expected_behavior_correct": null,
+        "assertions_sufficient": null
+      },
+      "issue_codes": [],
+      "comment": "",
+      "reviewed_at": null
+    },
+    {
+      "case_id": "historical_failure-clarification-budget-exhausted-026",
+      "verdict": "pending",
+      "human_checks": {
+        "intent_supported": null,
+        "expected_behavior_correct": null,
+        "assertions_sufficient": null
+      },
+      "issue_codes": [],
+      "comment": "",
+      "reviewed_at": null
+    },
+    {
+      "case_id": "historical_failure-empty-return-inventory-027",
+      "verdict": "pending",
+      "human_checks": {
+        "intent_supported": null,
+        "expected_behavior_correct": null,
+        "assertions_sufficient": null
+      },
+      "issue_codes": [],
+      "comment": "",
+      "reviewed_at": null
+    },
+    {
+      "case_id": "historical_failure-empty-hotel-inventory-028",
+      "verdict": "pending",
+      "human_checks": {
+        "intent_supported": null,
+        "expected_behavior_correct": null,
+        "assertions_sufficient": null
+      },
+      "issue_codes": [],
+      "comment": "",
+      "reviewed_at": null
+    },
+    {
+      "case_id": "boundary-hotel-cap-exact-029",
+      "verdict": "pending",
+      "human_checks": {
+        "intent_supported": null,
+        "expected_behavior_correct": null,
+        "assertions_sufficient": null
+      },
+      "issue_codes": [],
+      "comment": "",
+      "reviewed_at": null
+    },
+    {
+      "case_id": "boundary-hotel-cap-one-cent-over-030",
+      "verdict": "pending",
+      "human_checks": {
+        "intent_supported": null,
+        "expected_behavior_correct": null,
+        "assertions_sufficient": null
+      },
+      "issue_codes": [],
+      "comment": "",
+      "reviewed_at": null
+    },
+    {
+      "case_id": "boundary-arrival-buffer-exact-031",
+      "verdict": "pending",
+      "human_checks": {
+        "intent_supported": null,
+        "expected_behavior_correct": null,
+        "assertions_sufficient": null
+      },
+      "issue_codes": [],
+      "comment": "",
+      "reviewed_at": null
+    },
+    {
+      "case_id": "boundary-arrival-buffer-short-one-second-032",
+      "verdict": "pending",
+      "human_checks": {
+        "intent_supported": null,
+        "expected_behavior_correct": null,
+        "assertions_sufficient": null
+      },
+      "issue_codes": [],
+      "comment": "",
+      "reviewed_at": null
+    },
+    {
+      "case_id": "boundary-departure-window-exact-033",
+      "verdict": "pending",
+      "human_checks": {
+        "intent_supported": null,
+        "expected_behavior_correct": null,
+        "assertions_sufficient": null
+      },
+      "issue_codes": [],
+      "comment": "",
+      "reviewed_at": null
+    },
+    {
+      "case_id": "boundary-return-window-exact-034",
+      "verdict": "pending",
+      "human_checks": {
+        "intent_supported": null,
+        "expected_behavior_correct": null,
+        "assertions_sufficient": null
+      },
+      "issue_codes": [],
+      "comment": "",
+      "reviewed_at": null
+    },
+    {
+      "case_id": "boundary-one-night-hotel-035",
+      "verdict": "pending",
+      "human_checks": {
+        "intent_supported": null,
+        "expected_behavior_correct": null,
+        "assertions_sufficient": null
+      },
+      "issue_codes": [],
+      "comment": "",
+      "reviewed_at": null
+    },
+    {
+      "case_id": "boundary-invalid-same-day-checkout-036",
+      "verdict": "pending",
+      "human_checks": {
+        "intent_supported": null,
+        "expected_behavior_correct": null,
+        "assertions_sufficient": null
+      },
+      "issue_codes": [],
+      "comment": "",
+      "reviewed_at": null
+    },
+    {
+      "case_id": "boundary-policy-effective-from-exact-037",
+      "verdict": "pending",
+      "human_checks": {
+        "intent_supported": null,
+        "expected_behavior_correct": null,
+        "assertions_sufficient": null
+      },
+      "issue_codes": [],
+      "comment": "",
+      "reviewed_at": null
+    },
+    {
+      "case_id": "boundary-policy-expired-038",
+      "verdict": "pending",
+      "human_checks": {
+        "intent_supported": null,
+        "expected_behavior_correct": null,
+        "assertions_sufficient": null
+      },
+      "issue_codes": [],
+      "comment": "",
+      "reviewed_at": null
+    },
+    {
+      "case_id": "boundary-approval-expiry-exact-039",
+      "verdict": "pending",
+      "human_checks": {
+        "intent_supported": null,
+        "expected_behavior_correct": null,
+        "assertions_sufficient": null
+      },
+      "issue_codes": [],
+      "comment": "",
+      "reviewed_at": null
+    },
+    {
+      "case_id": "boundary-inventory-expiry-exact-040",
+      "verdict": "pending",
+      "human_checks": {
+        "intent_supported": null,
+        "expected_behavior_correct": null,
+        "assertions_sufficient": null
+      },
+      "issue_codes": [],
+      "comment": "",
+      "reviewed_at": null
+    },
+    {
+      "case_id": "boundary-handoff-expiry-exact-041",
+      "verdict": "pending",
+      "human_checks": {
+        "intent_supported": null,
+        "expected_behavior_correct": null,
+        "assertions_sufficient": null
+      },
+      "issue_codes": [],
+      "comment": "",
+      "reviewed_at": null
+    },
+    {
+      "case_id": "boundary-tool-budget-exact-042",
+      "verdict": "pending",
+      "human_checks": {
+        "intent_supported": null,
+        "expected_behavior_correct": null,
+        "assertions_sufficient": null
+      },
+      "issue_codes": [],
+      "comment": "",
+      "reviewed_at": null
+    },
+    {
+      "case_id": "boundary-tool-budget-one-short-043",
+      "verdict": "pending",
+      "human_checks": {
+        "intent_supported": null,
+        "expected_behavior_correct": null,
+        "assertions_sufficient": null
+      },
+      "issue_codes": [],
+      "comment": "",
+      "reviewed_at": null
+    },
+    {
+      "case_id": "boundary-timezone-cross-date-044",
+      "verdict": "pending",
+      "human_checks": {
+        "intent_supported": null,
+        "expected_behavior_correct": null,
+        "assertions_sufficient": null
+      },
+      "issue_codes": [],
+      "comment": "",
+      "reviewed_at": null
+    },
+    {
+      "case_id": "adversarial-bypass-approval-request-045",
+      "verdict": "pending",
+      "human_checks": {
+        "intent_supported": null,
+        "expected_behavior_correct": null,
+        "assertions_sufficient": null
+      },
+      "issue_codes": [],
+      "comment": "",
+      "reviewed_at": null
+    },
+    {
+      "case_id": "adversarial-fake-manager-approval-046",
+      "verdict": "pending",
+      "human_checks": {
+        "intent_supported": null,
+        "expected_behavior_correct": null,
+        "assertions_sufficient": null
+      },
+      "issue_codes": [],
+      "comment": "",
+      "reviewed_at": null
+    },
+    {
+      "case_id": "adversarial-hotel-name-prompt-injection-047",
+      "verdict": "pending",
+      "human_checks": {
+        "intent_supported": null,
+        "expected_behavior_correct": null,
+        "assertions_sufficient": null
+      },
+      "issue_codes": [],
+      "comment": "",
+      "reviewed_at": null
+    },
+    {
+      "case_id": "adversarial-provider-warning-injection-048",
+      "verdict": "pending",
+      "human_checks": {
+        "intent_supported": null,
+        "expected_behavior_correct": null,
+        "assertions_sufficient": null
+      },
+      "issue_codes": [],
+      "comment": "",
+      "reviewed_at": null
+    },
+    {
+      "case_id": "adversarial-force-payment-049",
+      "verdict": "pending",
+      "human_checks": {
+        "intent_supported": null,
+        "expected_behavior_correct": null,
+        "assertions_sufficient": null
+      },
+      "issue_codes": [],
+      "comment": "",
+      "reviewed_at": null
+    },
+    {
+      "case_id": "adversarial-executive-claim-050",
+      "verdict": "pending",
+      "human_checks": {
+        "intent_supported": null,
+        "expected_behavior_correct": null,
+        "assertions_sufficient": null
+      },
+      "issue_codes": [],
+      "comment": "",
+      "reviewed_at": null
+    },
+    {
+      "case_id": "adversarial-employee-impersonation-051",
+      "verdict": "pending",
+      "human_checks": {
+        "intent_supported": null,
+        "expected_behavior_correct": null,
+        "assertions_sufficient": null
+      },
+      "issue_codes": [],
+      "comment": "",
+      "reviewed_at": null
+    },
+    {
+      "case_id": "adversarial-other-employee-data-052",
+      "verdict": "pending",
+      "human_checks": {
+        "intent_supported": null,
+        "expected_behavior_correct": null,
+        "assertions_sufficient": null
+      },
+      "issue_codes": [],
+      "comment": "",
+      "reviewed_at": null
+    },
+    {
+      "case_id": "adversarial-reveal-hidden-policy-prompt-053",
+      "verdict": "pending",
+      "human_checks": {
+        "intent_supported": null,
+        "expected_behavior_correct": null,
+        "assertions_sufficient": null
+      },
+      "issue_codes": [],
+      "comment": "",
+      "reviewed_at": null
+    },
+    {
+      "case_id": "adversarial-malicious-inventory-reference-054",
+      "verdict": "pending",
+      "human_checks": {
+        "intent_supported": null,
+        "expected_behavior_correct": null,
+        "assertions_sufficient": null
+      },
+      "issue_codes": [],
+      "comment": "",
+      "reviewed_at": null
+    },
+    {
+      "case_id": "adversarial-replayed-approval-event-055",
+      "verdict": "pending",
+      "human_checks": {
+        "intent_supported": null,
+        "expected_behavior_correct": null,
+        "assertions_sufficient": null
+      },
+      "issue_codes": [],
+      "comment": "",
+      "reviewed_at": null
+    },
+    {
+      "case_id": "adversarial-stale-approval-different-option-056",
+      "verdict": "pending",
+      "human_checks": {
+        "intent_supported": null,
+        "expected_behavior_correct": null,
+        "assertions_sufficient": null
+      },
+      "issue_codes": [],
+      "comment": "",
+      "reviewed_at": null
+    },
+    {
+      "case_id": "adversarial-provider-claims-compliance-057",
+      "verdict": "pending",
+      "human_checks": {
+        "intent_supported": null,
+        "expected_behavior_correct": null,
+        "assertions_sufficient": null
+      },
+      "issue_codes": [],
+      "comment": "",
+      "reviewed_at": null
+    },
+    {
+      "case_id": "adversarial-fabricate-lower-price-058",
+      "verdict": "pending",
+      "human_checks": {
+        "intent_supported": null,
+        "expected_behavior_correct": null,
+        "assertions_sufficient": null
+      },
+      "issue_codes": [],
+      "comment": "",
+      "reviewed_at": null
+    },
+    {
+      "case_id": "adversarial-tool-result-secret-request-059",
+      "verdict": "pending",
+      "human_checks": {
+        "intent_supported": null,
+        "expected_behavior_correct": null,
+        "assertions_sufficient": null
+      },
+      "issue_codes": [],
+      "comment": "",
+      "reviewed_at": null
+    },
+    {
+      "case_id": "adversarial-conflicting-hard-constraints-060",
+      "verdict": "pending",
+      "human_checks": {
+        "intent_supported": null,
+        "expected_behavior_correct": null,
+        "assertions_sufficient": null
+      },
+      "issue_codes": [],
+      "comment": "",
+      "reviewed_at": null
+    }
+  ]
+}

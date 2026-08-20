@@ -1,0 +1,289 @@
+{
+  "schema_version": 1,
+  "run_id": "liteapi-hotel-smoke-20260809-2",
+  "evaluation_mode": "deterministic_live_hotel_provider_smoke",
+  "provider": "liteapi",
+  "provider_mode": "sandbox-read-only",
+  "started_at": "2026-08-09T15:07:56.140546+00:00",
+  "completed_at": "2026-08-09T15:08:03.798211+00:00",
+  "duration_ms": 7658.27,
+  "query": {
+    "city": "Shanghai",
+    "check_in": "2026-09-08",
+    "check_out": "2026-09-09"
+  },
+  "external_requests": [
+    {
+      "method": "POST",
+      "path": "/hotels/rates"
+    }
+  ],
+  "failure": null,
+  "snapshot": {
+    "snapshot_id": "liteapi-hotel-b9daa1d21374ab59",
+    "provider": "liteapi",
+    "source_type": "AUTHORIZED_API",
+    "captured_at": "2026-08-09T15:08:03.793131+00:00",
+    "valid_until": "2026-08-09T15:18:03.793131+00:00",
+    "raw_payload_sha256": "d0ce52ac91b5204c8f1800940467d18901c76f35d00cb69c197e097ab5896cfe",
+    "warnings": [
+      "LiteAPI/Nuitee Connect Sandbox hotel rates; availability and prices are test data",
+      "LiteAPI hotel rates are search quotes only; no prebook, booking, or payment was created",
+      "LiteAPI does not provide client-office commute time; commute_minutes=1440 marks this evidence as unknown"
+    ],
+    "offers": [
+      {
+        "ref_id": "litehotel_b3c2a8ade88e5a6ae03896b2",
+        "name": "Waldorf Astoria Shanghai on the Bund",
+        "city": "Shanghai",
+        "nightly_price": "3107.16",
+        "currency": "CNY",
+        "commute_minutes": 1440
+      },
+      {
+        "ref_id": "litehotel_8f1600e1b5893c7f6718d030",
+        "name": "Waldorf Astoria Shanghai on the Bund",
+        "city": "Shanghai",
+        "nightly_price": "3107.16",
+        "currency": "CNY",
+        "commute_minutes": 1440
+      },
+      {
+        "ref_id": "litehotel_7428f3a26d07c82ada9e6c43",
+        "name": "Waldorf Astoria Shanghai on the Bund",
+        "city": "Shanghai",
+        "nightly_price": "3142.61",
+        "currency": "CNY",
+        "commute_minutes": 1440
+      },
+      {
+        "ref_id": "litehotel_08c5bf3b1114c235802e9d6b",
+        "name": "Pudong Shangri-La Shanghai",
+        "city": "Shanghai",
+        "nightly_price": "1399.07",
+        "currency": "CNY",
+        "commute_minutes": 1440
+      },
+      {
+        "ref_id": "litehotel_4869bf65d8105018dd36da70",
+        "name": "Pudong Shangri-La Shanghai",
+        "city": "Shanghai",
+        "nightly_price": "1399.98",
+        "currency": "CNY",
+        "commute_minutes": 1440
+      },
+      {
+        "ref_id": "litehotel_0f45b72f8c9f94547a652592",
+        "name": "Pudong Shangri-La Shanghai",
+        "city": "Shanghai",
+        "nightly_price": "1399.98",
+        "currency": "CNY",
+        "commute_minutes": 1440
+      },
+      {
+        "ref_id": "litehotel_89c86cefc6c1665a17e827e9",
+        "name": "The Ritz-Carlton Shanghai, Pudong",
+        "city": "Shanghai",
+        "nightly_price": "2473.02",
+        "currency": "CNY",
+        "commute_minutes": 1440
+      },
+      {
+        "ref_id": "litehotel_53a90b3707e0e042a9d5d742",
+        "name": "The Ritz-Carlton Shanghai, Pudong",
+        "city": "Shanghai",
+        "nightly_price": "2614.29",
+        "currency": "CNY",
+        "commute_minutes": 1440
+      },
+      {
+        "ref_id": "litehotel_2d327b191be70f5429a7d24a",
+        "name": "The Ritz-Carlton Shanghai, Pudong",
+        "city": "Shanghai",
+        "nightly_price": "2614.29",
+        "currency": "CNY",
+        "commute_minutes": 1440
+      },
+      {
+        "ref_id": "litehotel_4791bd7cd026ca19b4cac6b7",
+        "name": "Radisson Blu Hotel Shanghai New World",
+        "city": "Shanghai",
+        "nightly_price": "938.70",
+        "currency": "CNY",
+        "commute_minutes": 1440
+      },
+      {
+        "ref_id": "litehotel_f4b46da7dc443e7c298ee59e",
+        "name": "Radisson Blu Hotel Shanghai New World",
+        "city": "Shanghai",
+        "nightly_price": "942.64",
+        "currency": "CNY",
+        "commute_minutes": 1440
+      },
+      {
+        "ref_id": "litehotel_01bb9de8dcbf4d0b122f4efd",
+        "name": "Radisson Blu Hotel Shanghai New World",
+        "city": "Shanghai",
+        "nightly_price": "973.33",
+        "currency": "CNY",
+        "commute_minutes": 1440
+      },
+      {
+        "ref_id": "litehotel_984d8ee40f333065461fce6e",
+        "name": "Mandarin Oriental Pudong, Shanghai",
+        "city": "Shanghai",
+        "nightly_price": "1770.99",
+        "currency": "CNY",
+        "commute_minutes": 1440
+      },
+      {
+        "ref_id": "litehotel_647bbf65af5bc52a67684a34",
+        "name": "Mandarin Oriental Pudong, Shanghai",
+        "city": "Shanghai",
+        "nightly_price": "1770.99",
+        "currency": "CNY",
+        "commute_minutes": 1440
+      },
+      {
+        "ref_id": "litehotel_dae8cedc5a996a50aede8020",
+        "name": "Mandarin Oriental Pudong, Shanghai",
+        "city": "Shanghai",
+        "nightly_price": "1796.92",
+        "currency": "CNY",
+        "commute_minutes": 1440
+      },
+      {
+        "ref_id": "litehotel_bbcd49b84ea8cc29721e41f8",
+        "name": "Shanghai Marriott Marquis City Centre",
+        "city": "Shanghai",
+        "nightly_price": "1303.76",
+        "currency": "CNY",
+        "commute_minutes": 1440
+      },
+      {
+        "ref_id": "litehotel_8a08558d33113cacf79cbb2d",
+        "name": "Shanghai Marriott Marquis City Centre",
+        "city": "Shanghai",
+        "nightly_price": "1303.76",
+        "currency": "CNY",
+        "commute_minutes": 1440
+      },
+      {
+        "ref_id": "litehotel_5b5e6a49caac32a22346359f",
+        "name": "Shanghai Marriott Marquis City Centre",
+        "city": "Shanghai",
+        "nightly_price": "1327.70",
+        "currency": "CNY",
+        "commute_minutes": 1440
+      },
+      {
+        "ref_id": "litehotel_bc3ea2da5e7264fb5e7bd387",
+        "name": "W Shanghai - The Bund",
+        "city": "Shanghai",
+        "nightly_price": "2437.90",
+        "currency": "CNY",
+        "commute_minutes": 1440
+      },
+      {
+        "ref_id": "litehotel_df3c4bc58ec639aff2503787",
+        "name": "W Shanghai - The Bund",
+        "city": "Shanghai",
+        "nightly_price": "2453.00",
+        "currency": "CNY",
+        "commute_minutes": 1440
+      },
+      {
+        "ref_id": "litehotel_dcb6270a166f8020b65878ae",
+        "name": "W Shanghai - The Bund",
+        "city": "Shanghai",
+        "nightly_price": "2453.00",
+        "currency": "CNY",
+        "commute_minutes": 1440
+      },
+      {
+        "ref_id": "litehotel_f4a1f1105a3b471d63395f76",
+        "name": "Radisson Collection Hyland Shanghai",
+        "city": "Shanghai",
+        "nightly_price": "828.89",
+        "currency": "CNY",
+        "commute_minutes": 1440
+      },
+      {
+        "ref_id": "litehotel_d0735e6bcc7b90436b262994",
+        "name": "Radisson Collection Hyland Shanghai",
+        "city": "Shanghai",
+        "nightly_price": "828.89",
+        "currency": "CNY",
+        "commute_minutes": 1440
+      },
+      {
+        "ref_id": "litehotel_90ba9e3543369444c05015af",
+        "name": "Radisson Collection Hyland Shanghai",
+        "city": "Shanghai",
+        "nightly_price": "906.20",
+        "currency": "CNY",
+        "commute_minutes": 1440
+      },
+      {
+        "ref_id": "litehotel_2b121f2562532d6d98bf7848",
+        "name": "Dorsett Shanghai",
+        "city": "Shanghai",
+        "nightly_price": "959.81",
+        "currency": "CNY",
+        "commute_minutes": 1440
+      },
+      {
+        "ref_id": "litehotel_c18d5f51a7935b985686aa79",
+        "name": "Dorsett Shanghai",
+        "city": "Shanghai",
+        "nightly_price": "959.81",
+        "currency": "CNY",
+        "commute_minutes": 1440
+      },
+      {
+        "ref_id": "litehotel_84c691de8cbbcf21977580ea",
+        "name": "Dorsett Shanghai",
+        "city": "Shanghai",
+        "nightly_price": "959.81",
+        "currency": "CNY",
+        "commute_minutes": 1440
+      },
+      {
+        "ref_id": "litehotel_a167e6bd4d39bfd56623ed2c",
+        "name": "The Langham, Shanghai, Xintiandi",
+        "city": "Shanghai",
+        "nightly_price": "2090.00",
+        "currency": "CNY",
+        "commute_minutes": 1440
+      },
+      {
+        "ref_id": "litehotel_827c09c705ed4f0915abf781",
+        "name": "The Langham, Shanghai, Xintiandi",
+        "city": "Shanghai",
+        "nightly_price": "2090.00",
+        "currency": "CNY",
+        "commute_minutes": 1440
+      },
+      {
+        "ref_id": "litehotel_3076453e8b4451f3eb57ff2d",
+        "name": "The Langham, Shanghai, Xintiandi",
+        "city": "Shanghai",
+        "nightly_price": "2111.83",
+        "currency": "CNY",
+        "commute_minutes": 1440
+      }
+    ]
+  },
+  "checks": {
+    "request_succeeded": true,
+    "exactly_one_external_call": true,
+    "rates_endpoint_only": true,
+    "authorized_api_snapshot": true,
+    "hotel_inventory_returned": true,
+    "raw_response_archived": true,
+    "sandbox_disclosed": true,
+    "booking_and_payment_disabled": true,
+    "api_key_not_archived": true
+  },
+  "passed": true
+}

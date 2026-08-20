@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "price_table_version": "model-prices-unconfigured-v1",
+  "status": "unconfigured",
+  "currency": "USD",
+  "unit": "per_1m_tokens",
+  "effective_at": "2026-08-02",
+  "source": "No billable model run was authorized; add a new version from the provider's official pricing page before a live evaluation.",
+  "models": {}
+}

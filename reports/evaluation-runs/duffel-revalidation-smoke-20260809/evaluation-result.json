@@ -1,0 +1,97 @@
+{
+  "schema_version": 1,
+  "run_id": "duffel-revalidation-smoke-20260809",
+  "evaluation_mode": "deterministic_live_provider",
+  "provider": "duffel",
+  "provider_mode": "test",
+  "dataset": {
+    "id": "duffel-real-revalidation-smoke-v1",
+    "version": "1.0.0",
+    "sha256": "b995025f8b44c170b06eabc3102f7378a0e8625b52a628038cc64dd640dfffd9",
+    "case_id": "duffel-real-lhr-jfk-search-select-revalidate"
+  },
+  "started_at": "2026-08-09T09:40:19.146674+00:00",
+  "completed_at": "2026-08-09T09:40:22.821672+00:00",
+  "duration_ms": 3672.865,
+  "workflow_action": "search_select_revalidate",
+  "external_calls": 2,
+  "external_requests": [
+    {
+      "method": "POST",
+      "path": "/air/offer_requests"
+    },
+    {
+      "method": "GET",
+      "path": "/air/offers/off_0000B9ByNSSqUrYDIzF4ho"
+    }
+  ],
+  "provider_tool_calls": [
+    "provider.search_transport.outbound",
+    "provider.revalidate",
+    "provider.create_deep_link"
+  ],
+  "initial_task_state": "WAITING_FOR_USER",
+  "task_state": "READY_FOR_HANDOFF",
+  "option_count": 3,
+  "selected_option_id": "opt-off_0000B9ByNSSqUrYDIzF4ho",
+  "selected_offer_ref": "off_0000B9ByNSSqUrYDIzF4ho",
+  "selection_error": null,
+  "booking_intent_created": true,
+  "handoff_instructions": "Test Mode only; no order was created. Re-open the Duffel test flow for off_0000B9ByNSSqUrYDIzF4ho",
+  "raw_http_response_archived": true,
+  "revalidation": {
+    "status": "UNCHANGED",
+    "checked_at": "2026-08-09T09:40:22.445149+00:00",
+    "current_prices": {
+      "off_0000B9ByNSSqUrYDIzF4ho": "221.76"
+    },
+    "unavailable_refs": [],
+    "warnings": []
+  },
+  "revalidation_raw_responses": [
+    {
+      "sha256": "28207efc71c24e299add40ff16d1809bf4ee0d703b171bb412ac815fb531ea94",
+      "size_bytes": 5571,
+      "content_type": "application/json",
+      "stored_at": "2026-08-09T09:40:22.819654+00:00",
+      "retention_until": "2026-11-07T09:40:22.819654+00:00",
+      "access_policy": "SYSTEM_REPLAY_OR_AUDIT_ADMIN"
+    }
+  ],
+  "provider_notices": [
+    "duffel-flight-0cbd36f38651423c: Duffel Test Mode sandbox inventory; schedules and prices are not production data",
+    "duffel-flight-0cbd36f38651423c: Duffel response was capped at 50 normalized offers"
+  ],
+  "snapshots": [
+    {
+      "snapshot_id": "duffel-flight-0cbd36f38651423c",
+      "source_type": "AUTHORIZED_API",
+      "item_count": 42,
+      "raw_payload_sha256": "12e683b40156a295f7682f978130aae001a31960fd7fe4735355aa2e00de3d62",
+      "raw_response_archived": true
+    }
+  ],
+  "checks": {
+    "external_call_cap_respected": true,
+    "expected_external_http_calls": true,
+    "authorized_api_snapshot": true,
+    "minimum_options": true,
+    "search_response_archived": true,
+    "test_mode_disclosed": true,
+    "no_order_or_payment_http": true,
+    "no_order_or_payment_tools": true,
+    "selection_succeeded": true,
+    "selected_option_compliant": true,
+    "search_then_offer_get": true,
+    "revalidation_status_allowed": true,
+    "selected_offer_still_available": true,
+    "revalidation_response_archived": true,
+    "expected_provider_tool_sequence": true,
+    "conditional_final_state": true,
+    "conditional_booking_intent": true,
+    "unchanged_handoff_is_test_only": true,
+    "price_change_requires_reconfirmation": true
+  },
+  "passed": true,
+  "failure": null
+}

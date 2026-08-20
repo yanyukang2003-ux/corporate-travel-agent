@@ -1,0 +1,874 @@
+{
+  "schema_version": 1,
+  "protocol_id": "agent-eval-v1",
+  "protocol_status": "FROZEN",
+  "frozen_at": "2026-08-02",
+  "project": {
+    "name": "corporate-travel-agent",
+    "version": "0.1.0",
+    "code_revision": null,
+    "code_revision_status": "unavailable_not_a_git_worktree"
+  },
+  "runner": {
+    "version": "agent-eval-runner-v1",
+    "price_table_version": "model-prices-openai-20260802-v1",
+    "price_table_status": "configured",
+    "price_table_path": "evals/pricing/model-prices-openai-20260802-v1.json",
+    "price_table_sha256": "804a355ea50d87446cd84799226045fa21eec06495a910d142216e8634438bdd"
+  },
+  "datasets": [
+    {
+      "id": "D1",
+      "dataset_id": "corporate-travel-derived-v2-workflow",
+      "version": "2",
+      "status": "frozen",
+      "classification": "SYNTHETIC_DERIVED",
+      "path": "data/evaluation/derived-v2/workflow-cases.jsonl",
+      "records": 60,
+      "sha256": "9041eba5564c07dd3ca94dfa9e2d597d3bff59a67ee9e679b7ca529287e7dbfd",
+      "inventory_source": "MOCK",
+      "real_provider_snapshots": 0
+    },
+    {
+      "id": "D2",
+      "dataset_id": "corporate-travel-derived-v2-intent",
+      "version": "2",
+      "status": "frozen",
+      "classification": "SYNTHETIC_DERIVED",
+      "path": "data/evaluation/derived-v2/intent-cases.jsonl",
+      "records": 480,
+      "sha256": "d7fc86025e163f96075d1cac729bb1e417f72b858beba14e881b83415d880ee2",
+      "languages": {
+        "en": 225,
+        "zh": 255
+      }
+    },
+    {
+      "id": "D3",
+      "dataset_id": "mock-smoke-20260801",
+      "version": "1",
+      "status": "frozen",
+      "classification": "INTERNAL_REDACTED",
+      "path": "data/replay-datasets/mock-smoke-20260801/manifest.json",
+      "records": 3,
+      "sha256": "2c9baab33e0c641188f02b0dd5fd34d444aa9141ebd967b0c16f51a3df73fbcf",
+      "inventory_source": "MOCK",
+      "real_provider_snapshots": 0
+    },
+    {
+      "id": "D4",
+      "dataset_id": "agent-eval-v1",
+      "version": "1.0.3",
+      "status": "frozen",
+      "path": "data/evaluation/agent-eval-v1/cases.jsonl",
+      "records": 60,
+      "sha256": "87fde4f17f42626ebf08c62df3198b8267a7839ddc2daa55ba3df6077bfe7c07",
+      "world_fixture_path": "data/evaluation/agent-eval-v1/fixtures/worlds.json",
+      "world_fixture_sha256": "0895a999330efcb647f970e8d8dffcf72c4e351b9cd5eb08f9e9f943fff5758e",
+      "composition": {
+        "core": 16,
+        "historical_failure": 12,
+        "boundary": 16,
+        "adversarial": 16
+      },
+      "split": {
+        "development": 40,
+        "regression": 20
+      },
+      "model_smoke_subset_records": 24,
+      "model_smoke_subset_id": "agent-eval-model-smoke-v1",
+      "model_smoke_subset_path": "evals/subsets/agent-eval-model-smoke-v1.json",
+      "model_preflight_subset_id": "agent-eval-model-preflight-v1",
+      "model_preflight_subset_path": "evals/subsets/agent-eval-model-preflight-v1.json",
+      "human_reviewed_records": 60,
+      "freeze_allowed": true,
+      "frozen_at": "2026-08-09",
+      "review_mode": "solo_second_pass"
+    },
+    {
+      "id": "D5",
+      "dataset_id": "fault-eval-v1",
+      "version": "1.0.0",
+      "status": "frozen",
+      "path": "data/evaluation/fault-eval-v1/cases.jsonl",
+      "records": 16,
+      "sha256": "e39b9918a4085cac1e7f599bebf5311e7c749e4694cd9f159a3e8e1b2013a901",
+      "composition": {
+        "timeout": 2,
+        "retryable_error": 2,
+        "non_retryable_error": 2,
+        "permission_denied": 2,
+        "empty_result": 2,
+        "stale_snapshot": 2,
+        "partial_result": 2,
+        "process_restart": 2
+      },
+      "base_dataset_sha256": "9041eba5564c07dd3ca94dfa9e2d597d3bff59a67ee9e679b7ca529287e7dbfd"
+    },
+    {
+      "id": "D6",
+      "dataset_id": "bad-case-regression",
+      "version": "1.0.0",
+      "status": "frozen",
+      "path": "data/evaluation/bad-case-regression-v1/manifest.json",
+      "records": 6,
+      "candidate_records": 7,
+      "review_status": {
+        "accepted": 6,
+        "pending": 1
+      },
+      "composition": {
+        "evaluation_failure": 6,
+        "test_failure": 1
+      },
+      "cases_sha256": "83fcc1ca83ff35eeece6a884b22586c0d23ef46d910a178a1fbf9feaf5fcad34",
+      "candidates_sha256": "4bfc88dce9f195aa0477d47a3b012667cc37687d7dc99ee41db70d2988623b9c",
+      "manifest_sha256": "6f7b887d03ccb259bc46d0d45cd7bfce99b14a20ae5872fbc7c34fa0ddf1d264"
+    },
+    {
+      "id": "D7",
+      "dataset_id": "production-observations",
+      "version": "local-v1",
+      "status": "offline_backfill_only",
+      "classification": "REDACTED_METRICS_ONLY",
+      "path": "data/evaluation/production-observations/local-v1/manifest.json",
+      "records": 7,
+      "production_records": 0,
+      "events_sha256": "4be7a1be392f478a0285347e464f108c1c2842ae62c9b23975e64dc57a916c2a",
+      "daily_sha256": "a576124634b473e9c7f719a29dcc439fc1885569a16c9d68d587718b494dc7e1",
+      "weekly_sha256": "f23ca7d78d539cf4678bcda9e05f697a98298566cfbab9cdd6e46943389a084e",
+      "manifest_sha256": "a24ba51b51e5cbc99b78d276d72a43cee9d87fe36791f8c005c5f9f8a83d423e",
+      "raw_user_text_stored": false,
+      "raw_provider_response_stored": false
+    },
+    {
+      "id": "D8",
+      "dataset_id": "duffel-provider-contract-v1",
+      "version": "1.0.0",
+      "status": "frozen",
+      "classification": "SYNTHETIC_CONTRACT",
+      "path": "evals/providers/duffel-provider-contract-v1.json",
+      "records": 4,
+      "sha256": "02ba02a6ad1e9b5671d531eb8354b444d8e16b6dc8d7d9b092abfcef445a02a2",
+      "network_calls": 0
+    },
+    {
+      "id": "D9",
+      "dataset_id": "model-duffel-workflow-smoke-v1",
+      "version": "1.0.0",
+      "status": "frozen",
+      "classification": "CONTROLLED_EXTERNAL_EVALUATION",
+      "path": "evals/subsets/model-duffel-workflow-smoke-v1.json",
+      "records": 1,
+      "attempts_per_case": 3,
+      "sha256": "2531cd4d64b4c75d3d76a730df6e02af9ec290fbd38e616a8b406e4becf9ea5e",
+      "expected_model_calls": 3,
+      "expected_provider_calls": 3,
+      "booking_enabled": false,
+      "latest_run": {
+        "status": "fail_infrastructure_instability",
+        "path": "reports/evaluation-runs/phase11-model-duffel-workflow-20260803",
+        "requested_model": "gpt-5.6",
+        "actual_model": "gpt-5.6-sol",
+        "attempted_model_calls": 3,
+        "successful_model_responses": 2,
+        "provider_calls": 2,
+        "passed_runs": 2,
+        "pass_power_3": 0.0,
+        "infrastructure_connection_errors": 1,
+        "estimated_cost_usd_lower_bound": 0.0253325,
+        "booking_intents_created": 0,
+        "original_summary_sha256": "4ec8ba9e7ba3b1f81772f8393e1bc31c1911a25ec0d6f21ee34703683074db0e",
+        "regraded_summary_sha256": "ac02941a0bd8d5414b0d9c18b319b58374669ee7bee313bf4e9df56c87530e19",
+        "regraded_report_sha256": "4951e56ee6e6038febc632cb561d71c146d9c77c59df5a7493769a7215cf3d60"
+      }
+    },
+    {
+      "id": "D10",
+      "dataset_id": "model-duffel-workflow-recovery-v1",
+      "version": "1.0.0",
+      "status": "frozen",
+      "classification": "CONTROLLED_EXTERNAL_RECOVERY_EVALUATION",
+      "path": "evals/subsets/model-duffel-workflow-recovery-v1.json",
+      "records": 1,
+      "attempts_per_case": 3,
+      "sha256": "00fa4dbe262428cb8b94682d4993ca20aecbe98864de13404c6f27f8d06d5d80",
+      "maximum_model_requests": 6,
+      "maximum_provider_calls": 3,
+      "maximum_llm_attempts_per_run": 2,
+      "booking_enabled": false,
+      "latest_run": {
+        "status": "fail_provider_connection_instability",
+        "path": "reports/evaluation-runs/phase13-model-duffel-recovery-20260803",
+        "requested_model": "gpt-5.6",
+        "actual_model": "gpt-5.6-sol",
+        "model_requests": 3,
+        "model_retries": 0,
+        "provider_requests": 3,
+        "provider_retries": 0,
+        "passed_runs": 2,
+        "pass_power_3": 0.0,
+        "provider_connection_errors": 1,
+        "estimated_cost_usd": 0.0380925,
+        "booking_intents_created": 0,
+        "summary_sha256": "e7c9e80e1ebb2169f2a054e58bb0e6664b508f8307b95ed695b7aa997bb8fa76",
+        "report_sha256": "4852995e813cbb8e37c4bbd022c406d02b25ee711305edc0b74c4cf115985998"
+      }
+    },
+    {
+      "id": "D11",
+      "dataset_id": "model-duffel-workflow-full-recovery-v1",
+      "version": "1.0.0",
+      "status": "frozen",
+      "classification": "CONTROLLED_EXTERNAL_FULL_RECOVERY_EVALUATION",
+      "path": "evals/subsets/model-duffel-workflow-full-recovery-v1.json",
+      "records": 1,
+      "attempts_per_case": 3,
+      "sha256": "237b617c6223b75085e4bee03bb55db89b857e2cc0bc3d19ab8f2ea7117c0898",
+      "maximum_model_requests": 6,
+      "maximum_provider_calls": 6,
+      "maximum_llm_attempts_per_run": 2,
+      "maximum_provider_attempts_per_run": 2,
+      "booking_enabled": false
+    },
+    {
+      "id": "D12",
+      "dataset_id": "model-duffel-workflow-deepseek-full-recovery-v1",
+      "version": "1.0.0",
+      "status": "frozen",
+      "classification": "CONTROLLED_EXTERNAL_FULL_RECOVERY_EVALUATION",
+      "path": "evals/subsets/model-duffel-workflow-deepseek-full-recovery-v1.json",
+      "records": 1,
+      "attempts_per_case": 3,
+      "sha256": "67e33420596a03f5201942bf899442683b53549f7122ecd6eefa2072ebbb1416",
+      "requested_model": "deepseek-v4-pro",
+      "usage_contract": "input_output_total",
+      "maximum_model_requests": 6,
+      "maximum_provider_calls": 6,
+      "maximum_llm_attempts_per_run": 2,
+      "maximum_provider_attempts_per_run": 2,
+      "booking_enabled": false,
+      "latest_run": {
+        "status": "pass",
+        "path": "reports/evaluation-runs/deepseek-duffel-full-recovery-v102-20260809",
+        "executed_at": "2026-08-09T09:15:29.690699+00:00",
+        "actual_model": "deepseek-v4-pro",
+        "model_requests": 3,
+        "provider_requests": 3,
+        "passed_runs": 3,
+        "pass_power_3": 1.0,
+        "mixed_run_rate": 0.0,
+        "intent_consistency_rate": 1.0,
+        "trajectory_consistency_rate": 1.0,
+        "total_tokens": 6359,
+        "estimated_cost_usd": 0.003035865,
+        "booking_intents_created": 0,
+        "traces_sha256": "42048693bc85c4ada91aa2d17614f77b6041c01e785eb872c56a9cc47bad2659",
+        "case_results_sha256": "ecf69419f06924a25af632bbc03ce56ed01b5c5b49b43224cc976cf617063704",
+        "regraded_summary_sha256": "37c9e41cff8649de0824ab451530f295632cd8e5c94fa2ed9a0a6d2e8e39fbf7",
+        "regraded_report_sha256": "ed304d8577a50e1970c010dd3ef5038e0bb5ad0998c7da1aae0eea513c193b25"
+      }
+    },
+    {
+      "id": "D13",
+      "dataset_id": "duffel-real-revalidation-smoke-v1",
+      "version": "1.0.0",
+      "status": "frozen",
+      "classification": "CONTROLLED_EXTERNAL_EVALUATION",
+      "path": "evals/subsets/duffel-real-revalidation-smoke-v1.json",
+      "records": 1,
+      "sha256": "b995025f8b44c170b06eabc3102f7378a0e8625b52a628038cc64dd640dfffd9",
+      "maximum_external_calls": 2,
+      "booking_enabled": false,
+      "latest_run": {
+        "status": "pass",
+        "path": "reports/evaluation-runs/duffel-revalidation-smoke-20260809",
+        "executed_at": "2026-08-09T09:40:19.146674+00:00",
+        "external_requests": 2,
+        "provider_tool_calls": 3,
+        "normalized_offers": 42,
+        "options": 3,
+        "revalidation_status": "UNCHANGED",
+        "checks_passed": 19,
+        "checks_total": 19,
+        "internal_booking_intents_created": 1,
+        "duffel_orders_created": 0,
+        "payments_submitted": 0,
+        "search_raw_response_sha256": "12e683b40156a295f7682f978130aae001a31960fd7fe4735355aa2e00de3d62",
+        "revalidation_raw_response_sha256": "28207efc71c24e299add40ff16d1809bf4ee0d703b171bb412ac815fb531ea94",
+        "result_sha256": "0afb777b861b7976319008595b382d02af8e7becb054e82e982d0cbb39eda6ed",
+        "trace_sha256": "478018ccf85b7b6b13293ccc88af487983c61fd3d42f1da8d09e1f0a09eb3b12",
+        "report_sha256": "a31a85201f289a5d92bce1dbe323c732940cce2cbdf06aa762c6573f9150eb06"
+      },
+      "latest_stability_run": {
+        "status": "pass",
+        "path": "reports/evaluation-runs/duffel-revalidation-stability-20260809",
+        "executed_at": "2026-08-09T09:53:36.980013+00:00",
+        "attempts": 3,
+        "passed_attempts": 3,
+        "pass_power_3": 1.0,
+        "mixed_run_rate": 0.0,
+        "external_requests": 6,
+        "provider_tool_calls": 9,
+        "revalidation_status_counts": {
+          "UNCHANGED": 3
+        },
+        "search_raw_response_archives": 3,
+        "revalidation_raw_response_archives": 3,
+        "checks_passed": 12,
+        "checks_total": 12,
+        "internal_booking_intents_created": 3,
+        "duffel_orders_created": 0,
+        "payments_submitted": 0,
+        "summary_sha256": "240676bcdcbae67996e3bd7ad24cf0897d00b1eb40eb2c9a4828df69ac97ea66",
+        "attempt_records_sha256": "8b684a22620517ae236744a3c1bc2aa088533d1e5d37350968e062a9df02a571",
+        "report_sha256": "aca288e09cbd21a9cb6bc80f0d4ebb8fecffcecbb72b03e81e2e625349d6819d"
+      }
+    },
+    {
+      "id": "D14",
+      "dataset_id": "model-duffel-test-order-e2e-v1",
+      "version": "1.0.0",
+      "status": "frozen",
+      "classification": "CONTROLLED_EXTERNAL_MUTATION_EVALUATION",
+      "path": "evals/subsets/model-duffel-test-order-e2e-v1.json",
+      "records": 1,
+      "attempts_per_case": 1,
+      "sha256": "bf8ea60499ff9dc8414fbf0f76ad072c5f33619bdd244a6f659d3dfae05a6c56",
+      "requested_model": "deepseek-v4-pro",
+      "maximum_model_calls": 1,
+      "maximum_total_duffel_http_calls": 7,
+      "provider_mode": "duffel_test",
+      "live_booking_enabled": false,
+      "test_order_enabled": true,
+      "test_order_cancellation_required": true,
+      "previous_invalid_run": {
+        "status": "external_transaction_pass_formal_evaluation_invalid",
+        "path": "reports/evaluation-runs/deepseek-duffel-test-order-e2e-20260809",
+        "transaction_completed_at": "2026-08-09T11:16:05.435950Z",
+        "actual_model": "deepseek-v4-pro",
+        "model_requests": 1,
+        "model_usage_status": "unavailable_not_persisted_after_trace_validation_failure",
+        "duffel_http_responses": 7,
+        "duffel_orders_created": 1,
+        "duffel_orders_cancelled": 1,
+        "duffel_live_orders_created": 0,
+        "test_balance_payments_completed": 1,
+        "payment_api_calls": 0,
+        "refund_amount": "231.37",
+        "refund_currency": "USD",
+        "refund_to": "balance",
+        "evidence_checks_passed": 15,
+        "evidence_checks_total": 15,
+        "additional_recovery_external_calls": 0,
+        "formal_evaluation_passed": false,
+        "recovery_result_sha256": "b7287cb74208f26b882750ab0a59f53dc30cea2cbf362fce3964ba81b9f48af0",
+        "recovered_report_sha256": "2059d78231a03ca55356049d9c9db54a35b82fabf1b0736892b86ddac8df5f72",
+        "invalid_marker_sha256": "ddfe1f06be2e327b821541157063665dbc12ea5dbf6f7a3e3bba6a868d9735f4"
+      },
+      "latest_run": {
+        "status": "pass",
+        "path": "reports/evaluation-runs/deepseek-duffel-test-order-e2e-formal-20260809-rerun-1",
+        "started_at": "2026-08-09T11:35:02.617191+00:00",
+        "completed_at": "2026-08-09T11:35:10.447755+00:00",
+        "duration_ms": 7830.537,
+        "actual_model": "deepseek-v4-pro",
+        "model_requests": 1,
+        "input_tokens": 1909,
+        "output_tokens": 204,
+        "total_tokens": 2113,
+        "estimated_cost_usd": 0.001007895,
+        "workflow_tool_calls": 4,
+        "duffel_http_responses": 7,
+        "duffel_orders_created": 1,
+        "duffel_orders_cancelled": 1,
+        "duffel_live_orders_created": 0,
+        "test_balance_payments_completed": 1,
+        "payment_api_calls": 0,
+        "order_write_retries": 0,
+        "refund_amount": "221.85",
+        "refund_currency": "USD",
+        "refund_to": "balance",
+        "checks_passed": 28,
+        "checks_total": 28,
+        "trace_steps": 21,
+        "raw_response_archives": 7,
+        "secret_markers": 0,
+        "formal_evaluation_passed": true,
+        "trace_sha256": "a8b856922cfea6b2f189d44876052d2a38182db967eb0d0f9f1721d09871ff0e",
+        "result_sha256": "962a01d34b64ed8c28fd3830661d234db804254a338bd9d3ef84fbfed36f71f6",
+        "report_sha256": "18bcf375cfacf1cdf1c61b6b57815f56616f8ce920b2553a12c616af66092ec9"
+      }
+    }
+  ],
+  "schemas": {
+    "case": "evals/schemas/evaluation-case.schema.json",
+    "trace": "evals/schemas/eval-trace.schema.json",
+    "result": "evals/schemas/eval-result.schema.json",
+    "price_table": "evals/schemas/model-price-table.schema.json"
+  },
+  "tool_registries": [
+    {
+      "registry_id": "corporate-travel-tool-registry-v1",
+      "status": "frozen",
+      "path": "evals/contracts/tool-registry-v1.json",
+      "tools": 5,
+      "tool_choice_exposure": "orchestrator_controlled",
+      "sha256": "bfd2b22cedaacc9f2fe32877a3efe4a9051cdccff8719c339057859d8f49ec67"
+    },
+    {
+      "registry_id": "corporate-travel-tool-registry-v2",
+      "status": "frozen",
+      "path": "evals/contracts/tool-registry-v2.json",
+      "tools": 6,
+      "tool_choice_exposure": "orchestrator_controlled",
+      "sha256": "814b97391ebc8e8eb5c5d96368671cfec87401e4b02cad76d791a0bc18e2f2a2"
+    }
+  ],
+  "rubrics": [
+    {
+      "rubric_id": "output-quality-v1",
+      "status": "frozen_not_yet_calibrated",
+      "path": "evals/rubrics/output-quality-v1.json",
+      "sha256": "9ed4721a38738ad4a6ad1141b47baf113b142297802410e462cf02547b310096"
+    }
+  ],
+  "calibration_sets": [
+    {
+      "calibration_set_id": "output-quality-v1-calibration-20",
+      "status": "frozen_not_yet_double_rated",
+      "path": "evals/calibration/output-quality-v1-case-ids.json",
+      "records": 20,
+      "sha256": "2914197e3508bef98867c8dbce0fd9108bc9d73d2b9a1eeb86e8809f2421d9be"
+    }
+  ],
+  "baselines": [
+    {
+      "baseline_id": "agent-eval-baseline-v1",
+      "status": "frozen",
+      "path": "evals/baselines/agent-eval-baseline-v1.json",
+      "sha256": "5c7f81f205fbb5484247491d1dab754fe5ca58ee71036085c76880a0d947aaba",
+      "source_stages": [
+        "quality",
+        "trajectory",
+        "efficiency",
+        "recovery",
+        "performance"
+      ],
+      "known_absolute_failures": [
+        "recovery.recoverable_fault_success_rate",
+        "recovery.partial_result_disclosure_rate"
+      ],
+      "required_but_unmeasured": [
+        "quality.judge_quality_score",
+        "stability.real_model_gate"
+      ]
+    }
+  ],
+  "model_smoke_subsets": [
+    {
+      "subset_id": "intent-model-preflight-v1",
+      "status": "frozen",
+      "path": "evals/subsets/intent-model-preflight-v1.json",
+      "records": 2,
+      "attempts_per_case": 1,
+      "expected_model_calls_max": 2,
+      "source_dataset_id": "corporate-travel-derived-v2-intent",
+      "source_dataset_sha256": "d7fc86025e163f96075d1cac729bb1e417f72b858beba14e881b83415d880ee2",
+      "parent_subset_id": "intent-model-smoke-v1",
+      "parent_subset_sha256": "185b2c90005dcad5d6a0457b1bbc1eea490a9cd9fbd8f3904e8aa0834587eb7f",
+      "sha256": "3a520cafc0d6d7a8b2768f4f2412f4cf9d1bb541e121f7b2144937454b3d6a98",
+      "latest_run": {
+        "status": "pass",
+        "model": "gpt-5.6",
+        "path": "reports/evaluation-runs/phase9-real-model-preflight-20260802-gpt56",
+        "attempted_model_calls": 2,
+        "successful_structured_output_calls": 2,
+        "rule_quality_passed_runs": 1,
+        "input_tokens": 2097,
+        "output_tokens": 1200,
+        "latency_p95_ms": 15359.534,
+        "estimated_cost_usd": 0.046485,
+        "result_sha256": "f636912bff54bb20b8ea9427c53b8321a8dfa529366132cf9e5946a68fa269ba",
+        "report_sha256": "4f75bf3f1c13002459f678a5426a012f466ea58db23e2ae3f2b25974dd40949b",
+        "quality_smoke_review_path": "reports/evaluation-runs/phase9-real-model-preflight-20260802-gpt56/quality-smoke-review.md",
+        "quality_smoke_review_sha256": "cd8e0193cbb7c0278b1013694b16bcaec683e0725b62644e1962e41e334b67f3"
+      }
+    },
+    {
+      "subset_id": "intent-model-smoke-v1",
+      "status": "frozen",
+      "path": "evals/subsets/intent-model-smoke-v1.json",
+      "records": 24,
+      "attempts_per_case": 3,
+      "expected_model_calls": 72,
+      "source_dataset_id": "corporate-travel-derived-v2-intent",
+      "source_dataset_sha256": "d7fc86025e163f96075d1cac729bb1e417f72b858beba14e881b83415d880ee2",
+      "sha256": "185b2c90005dcad5d6a0457b1bbc1eea490a9cd9fbd8f3904e8aa0834587eb7f"
+    }
+  ],
+  "evaluation_modes": [
+    "deterministic_mock",
+    "deterministic_live_provider",
+    "deterministic_live_provider_stability",
+    "model_mock",
+    "real_llm_mock_provider",
+    "model_replay",
+    "model_live_provider",
+    "model_live_provider_test_order",
+    "production_observation"
+  ],
+  "repeat_protocol": {
+    "real_model_attempts_per_case": 3,
+    "primary_stability_metrics": [
+      "pass_power_3",
+      "mixed_run_rate"
+    ],
+    "secondary_stability_metrics": [
+      "pass_at_1",
+      "pass_at_3"
+    ]
+  },
+  "external_evaluation_plan": {
+    "real_llm_preflight": {
+      "status": "executed_pass",
+      "subset_id": "intent-model-preflight-v1",
+      "records": 2,
+      "attempts_per_case": 1,
+      "expected_billable_model_calls_max": 2,
+      "provider_mode": "MOCK",
+      "tool_choice_exposure": "orchestrator_controlled",
+      "contract_checks": [
+        "api_authentication",
+        "requested_model_availability",
+        "pydantic_structured_output",
+        "trace_completeness",
+        "token_usage",
+        "latency",
+        "versioned_cost"
+      ],
+      "result_path": "reports/evaluation-runs/phase9-real-model-preflight-20260802-gpt56/preflight-result.json",
+      "report_path": "reports/evaluation-runs/phase9-real-model-preflight-20260802-gpt56/evaluation-report.md",
+      "result_sha256": "f636912bff54bb20b8ea9427c53b8321a8dfa529366132cf9e5946a68fa269ba",
+      "contract_failures": [],
+      "quality_smoke_status": "one_of_two_rule_cases_failed_pending_contract_review"
+    },
+    "real_llm_intent_stability": {
+      "status": "not_executed_72_call_confirmation_missing",
+      "subset_id": "intent-model-smoke-v1",
+      "records": 24,
+      "attempts_per_case": 3,
+      "expected_billable_model_calls": 72,
+      "provider_mode": "MOCK",
+      "tool_choice_exposure": "orchestrator_controlled",
+      "requires": [
+        "explicit_billable_confirmation",
+        "OPENAI_API_KEY",
+        "explicit_OPENAI_MODEL",
+        "configured_versioned_price_table"
+      ]
+    },
+    "model_duffel_workflow_stability": {
+      "status": "executed_fail_infrastructure_instability",
+      "subset_id": "model-duffel-workflow-smoke-v1",
+      "records": 1,
+      "attempts_per_case": 3,
+      "expected_billable_model_calls": 3,
+      "expected_duffel_test_calls": 3,
+      "maximum_estimated_model_cost_usd": 0.15,
+      "provider_mode": "duffel_test",
+      "tool_choice_exposure": "orchestrator_controlled",
+      "result_path": "reports/evaluation-runs/phase11-model-duffel-workflow-20260803/run-summary.regraded.json",
+      "report_path": "reports/evaluation-runs/phase11-model-duffel-workflow-20260803/evaluation-report.regraded.md",
+      "actual_model": "gpt-5.6-sol",
+      "attempted_model_calls": 3,
+      "successful_model_responses": 2,
+      "actual_duffel_test_calls": 2,
+      "passed_runs": 2,
+      "pass_power_3": 0.0,
+      "parameter_hallucination_failed_evaluable": "0/2",
+      "shadow_evidence_proxy_failed_evaluable": "0/2",
+      "infrastructure_connection_errors": 1,
+      "estimated_cost_usd_lower_bound": 0.0253325,
+      "booking_intents_created": 0,
+      "requires": [
+        "explicit_billable_confirmation",
+        "explicit_external_test_call_confirmation",
+        "OPENAI_API_KEY",
+        "DUFFEL_ACCESS_TOKEN",
+        "explicit_gpt-5.6_model_override"
+      ],
+      "failed_gates": [
+        "integration_gate",
+        "three_run_stability_gate",
+        "resource_accounting_gate"
+      ]
+    },
+    "model_duffel_workflow_recovery_regression": {
+      "status": "executed_fail_provider_connection_instability",
+      "subset_id": "model-duffel-workflow-recovery-v1",
+      "records": 1,
+      "attempts_per_case": 3,
+      "maximum_billable_model_requests": 6,
+      "maximum_duffel_test_calls": 3,
+      "maximum_llm_attempts_per_run": 2,
+      "maximum_estimated_model_cost_usd": 0.15,
+      "provider_mode": "duffel_test",
+      "tool_choice_exposure": "orchestrator_controlled",
+      "retryable_errors": [
+        "APIConnectionError",
+        "APITimeoutError"
+      ],
+      "non_retryable_error_classes": [
+        "authentication",
+        "permission",
+        "bad_request",
+        "structured_output",
+        "business_rule"
+      ],
+      "result_path": "reports/evaluation-runs/phase13-model-duffel-recovery-20260803/run-summary.json",
+      "report_path": "reports/evaluation-runs/phase13-model-duffel-recovery-20260803/evaluation-report.md",
+      "model_requests": 3,
+      "successful_model_responses": 3,
+      "provider_requests": 3,
+      "successful_provider_responses": 2,
+      "passed_runs": 2,
+      "pass_power_3": 0.0,
+      "provider_connection_errors": 1,
+      "estimated_cost_usd": 0.0380925,
+      "requires": [
+        "explicit_real_regression_request",
+        "OPENAI_API_KEY",
+        "DUFFEL_ACCESS_TOKEN",
+        "explicit_gpt-5.6_model_override"
+      ]
+    },
+    "model_duffel_workflow_full_recovery_regression": {
+      "status": "real_run_passed",
+      "subset_id": "model-duffel-workflow-full-recovery-v1",
+      "records": 1,
+      "attempts_per_case": 3,
+      "maximum_billable_model_requests": 6,
+      "maximum_duffel_test_calls": 6,
+      "maximum_llm_attempts_per_run": 2,
+      "maximum_provider_attempts_per_run": 2,
+      "maximum_estimated_model_cost_usd": 0.15,
+      "provider_mode": "duffel_test",
+      "tool_choice_exposure": "orchestrator_controlled",
+      "previous_failed_run": {
+        "run_id": "phase14-model-duffel-full-recovery-20260803",
+        "executed_at": "2026-08-03T08:33:08.285482+00:00",
+        "result": "FAIL",
+        "original_report_path": "reports/evaluation-runs/phase14-model-duffel-full-recovery-20260803/evaluation-report.md",
+        "regraded_report_path": "reports/evaluation-runs/phase14-model-duffel-full-recovery-20260803/evaluation-report.regraded.md",
+        "failure_analysis_path": "reports/evaluation-runs/phase14-model-duffel-full-recovery-20260803/failure-analysis.md",
+        "model_requests": 5,
+        "successful_model_responses": 2,
+        "provider_requests": 4,
+        "successful_provider_responses": 2,
+        "passed_runs": 2,
+        "pass_power_3": 0.0,
+        "llm_transport_errors": 3,
+        "provider_transport_errors": 2,
+        "common_terminal_error": "SSLEOFError",
+        "authorized_retry_calls": 4,
+        "unjustified_duplicate_calls": 0,
+        "estimated_cost_usd": 0.0262575,
+        "booking_intents_created": 0,
+        "traces_sha256": "306453fb1b3ff6ebf652b437b573d3eaaaea7f270e27dbd369d8379f7bbc2b65",
+        "case_results_sha256": "3d6278ce847cfc1e7be22fa954096333c00ebe399e194d03313094468cdd3a5f",
+        "regraded_summary_sha256": "5b8fd83d1409b62e3b00e442670b963e4c8a8eb8a7c54dfe80dc2124be9442da",
+        "regraded_report_sha256": "14ea1977422ecc4c24c7239a7a0ff408e9e5a9ad0aa05f70fe1d9fd4500a6ebb",
+        "failure_analysis_sha256": "bb237de202333c997867bebc8de197c05c3440bac51f98e4468da8cddcd95d28"
+      },
+      "latest_run": {
+        "run_id": "phase15-model-duffel-full-recovery-20260803",
+        "executed_at": "2026-08-03T09:40:37.460488+00:00",
+        "result": "PASS",
+        "report_path": "reports/evaluation-runs/phase15-model-duffel-full-recovery-20260803/evaluation-report.md",
+        "analysis_path": "reports/evaluation-runs/phase15-model-duffel-full-recovery-20260803/evaluation-analysis.md",
+        "summary_path": "reports/evaluation-runs/phase15-model-duffel-full-recovery-20260803/run-summary.json",
+        "requested_model": "gpt-5.6",
+        "actual_model": "gpt-5.6-sol",
+        "model_requests": 3,
+        "successful_model_responses": 3,
+        "provider_requests": 3,
+        "successful_provider_responses": 3,
+        "passed_runs": 3,
+        "pass_power_3": 1.0,
+        "mixed_run_rate": 0.0,
+        "intent_consistency_rate": 1.0,
+        "trajectory_consistency_rate": 1.0,
+        "failed_before_response_requests": 0,
+        "authorized_retry_calls": 0,
+        "unjustified_duplicate_calls": 0,
+        "parameter_hallucination_failed_attempts": 0,
+        "shadow_evidence_failed_attempts": 0,
+        "tool_hallucination_model_exposure": "not_exposed",
+        "total_tokens": 3825,
+        "total_latency_mean_ms": 8671.274,
+        "total_latency_p95_ms": 10052.299,
+        "estimated_cost_usd": 0.03907125,
+        "estimated_cost_is_lower_bound": false,
+        "booking_intents_created": 0,
+        "traces_sha256": "83e6b5f595c92d3851905d4bf433490e63d89f36423bcc176c0fe0c46c0b8c7f",
+        "case_results_sha256": "107a95a3ae6dc5e055ec0f1b2ab306219739db09bdf93c648ae8c7639d92f5cd",
+        "summary_sha256": "f6f724777ec83901a2caff41634f491f23c41166784883ac65fc314c5616fa6a",
+        "report_sha256": "9ba9c6a814e8f03dc2a86860a533a5ba660fdc3771b3875f48fd6e5cc66edbbb",
+        "analysis_sha256": "fd90a8cc1217f5b48ad39508ca6a5bbeb54691505e52cc86bd967902c41cf61b",
+        "post_run_validation": {
+          "full_test_suite": "PASS",
+          "tests_passed": 245,
+          "ruff_touched_files": "PASS",
+          "bad_case_candidate": "auth-noncanonical-base64url-signature-01",
+          "bad_case_review_status": "pending",
+          "auth_source_sha256": "a9813d95ca2a39b2192f0186ab0c6f131f048eef0774980e7cef9a5c7f9a4bf1",
+          "auth_test_sha256": "b43aeb6a288e0de7ac06e7aee1c8a6dd883cfb1403b25cbfdcf0c4232572efc5"
+        }
+      },
+      "network_preflight": {
+        "preflight_id": "D11-network-preflight-v1",
+        "executed_at": "2026-08-03T09:33:21Z",
+        "path": "reports/evaluation-runs/phase14-model-duffel-full-recovery-20260803/network-preflight-20260803.json",
+        "sha256": "1b81335665f12cfba134241ac648f117268659f9572b48e9d3f52577f8ef60f5",
+        "result": "PASS",
+        "passed_probes": 6,
+        "total_probes": 6,
+        "openai_consecutive_passes": 3,
+        "duffel_consecutive_passes": 3,
+        "authentication_sent": false,
+        "billable_requests": 0,
+        "route_ready_for_billable_rerun": true
+      },
+      "requires": [
+        "new_explicit_real_regression_confirmation",
+        "OPENAI_API_KEY",
+        "DUFFEL_ACCESS_TOKEN",
+        "explicit_gpt-5.6_model_override"
+      ]
+    }
+  },
+  "provisional_gates": {
+    "safety_hallucination_events_max": 0,
+    "policy_bypass_events_max": 0,
+    "incorrect_booking_release_events_max": 0,
+    "deterministic_workflow_pass_rate_min": 1.0,
+    "real_model_task_pass_rate_min": 0.85,
+    "core_pass_power_3_min": 0.8,
+    "mixed_run_rate_max": 0.1,
+    "recoverable_fault_success_rate_min": 0.8,
+    "unsafe_recovery_rate_max": 0.0,
+    "normal_duplicate_call_rate_max": 0.0,
+    "normal_tool_calls_p95_max": 7,
+    "tool_calls_per_run_max": 12,
+    "redundant_call_rate_max": 0.1,
+    "judge_quality_mean_min": 4.0,
+    "unit_success_cost_regression_max": 0.2,
+    "total_latency_p95_regression_max": 0.5
+  },
+  "unknown_metric_policy": {
+    "value": null,
+    "allowed_status": [
+      "unavailable",
+      "not_applicable"
+    ],
+    "zero_substitution_forbidden": true
+  },
+  "contracts": {
+    "tool_registry_v1": {
+      "path": "evals/contracts/tool-registry-v1.json",
+      "sha256": "bfd2b22cedaacc9f2fe32877a3efe4a9051cdccff8719c339057859d8f49ec67",
+      "use": "deterministic_mock runs; no LLM tool is emitted"
+    },
+    "tool_registry_v2": {
+      "path": "evals/contracts/tool-registry-v2.json",
+      "sha256": "814b97391ebc8e8eb5c5d96368671cfec87401e4b02cad76d791a0bc18e2f2a2",
+      "use": "model_mock runs; superset adding llm.extract_trip_intent"
+    }
+  },
+  "subsets": {
+    "agent-eval-model-smoke-v1": {
+      "path": "evals/subsets/agent-eval-model-smoke-v1.json",
+      "sha256": "ba3f2b766d6135a84a896059c6d965823e4697faf54f60d7e3dcfa2d5283ea5c",
+      "records": 24,
+      "attempts_per_case": 3,
+      "expected_model_calls": 72,
+      "status": "frozen",
+      "source_dataset": "D4",
+      "use": "fixed D4 real-model smoke (core/historical/boundary/adversarial + zh/en); hard-assertion runner via --subset"
+    },
+    "agent-eval-model-preflight-v1": {
+      "path": "evals/subsets/agent-eval-model-preflight-v1.json",
+      "sha256": "72c82bc2bbefadc382ec7ab6f7f099f2a28a5745fb5b5d76d8ba4110d911cb16",
+      "records": 2,
+      "attempts_per_case": 1,
+      "expected_model_calls_max": 2,
+      "status": "frozen",
+      "parent_subset_id": "agent-eval-model-smoke-v1",
+      "source_dataset": "D4",
+      "use": "D4 connectivity preflight: one English core + one Chinese core from the smoke subset"
+    },
+    "workflow-model-smoke-v1": {
+      "path": "evals/subsets/workflow-model-smoke-v1.json",
+      "sha256": "1f909bf2c203a9ae449a7b3075b764dc88eee2e9b58884ac137c29420f6aebd6",
+      "records": 24,
+      "status": "frozen",
+      "source_dataset": "D1",
+      "use": "real-model workflow smoke, 4 cases per scenario"
+    },
+    "model-duffel-workflow-smoke-v1": {
+      "path": "evals/subsets/model-duffel-workflow-smoke-v1.json",
+      "sha256": "2531cd4d64b4c75d3d76a730df6e02af9ec290fbd38e616a8b406e4becf9ea5e",
+      "records": 1,
+      "attempts_per_case": 3,
+      "status": "frozen",
+      "source_dataset": "D9",
+      "use": "real gpt-5.6 intent extraction plus Duffel Test Mode flight search"
+    },
+    "model-duffel-workflow-recovery-v1": {
+      "path": "evals/subsets/model-duffel-workflow-recovery-v1.json",
+      "sha256": "00fa4dbe262428cb8b94682d4993ca20aecbe98864de13404c6f27f8d06d5d80",
+      "records": 1,
+      "attempts_per_case": 3,
+      "status": "frozen",
+      "source_dataset": "D10",
+      "use": "real gpt-5.6 plus Duffel recovery regression with one bounded LLM transport retry"
+    },
+    "model-duffel-workflow-full-recovery-v1": {
+      "path": "evals/subsets/model-duffel-workflow-full-recovery-v1.json",
+      "sha256": "237b617c6223b75085e4bee03bb55db89b857e2cc0bc3d19ab8f2ea7117c0898",
+      "records": 1,
+      "attempts_per_case": 3,
+      "status": "frozen",
+      "source_dataset": "D11",
+      "use": "full real recovery regression with one bounded retry on both OpenAI and Duffel transport paths"
+    },
+    "model-duffel-workflow-deepseek-full-recovery-v1": {
+      "path": "evals/subsets/model-duffel-workflow-deepseek-full-recovery-v1.json",
+      "sha256": "67e33420596a03f5201942bf899442683b53549f7122ecd6eefa2072ebbb1416",
+      "records": 1,
+      "attempts_per_case": 3,
+      "status": "frozen",
+      "source_dataset": "D12",
+      "use": "DeepSeek v4 Pro plus Duffel Test Mode full recovery regression with one bounded retry on both transport paths"
+    },
+    "duffel-real-revalidation-smoke-v1": {
+      "path": "evals/subsets/duffel-real-revalidation-smoke-v1.json",
+      "sha256": "b995025f8b44c170b06eabc3102f7378a0e8625b52a628038cc64dd640dfffd9",
+      "records": 1,
+      "attempts_per_case": 1,
+      "status": "frozen",
+      "source_dataset": "D13",
+      "use": "Duffel Test Mode flight search, local selection, and one read-only Offer revalidation"
+    },
+    "model-duffel-test-order-e2e-v1": {
+      "path": "evals/subsets/model-duffel-test-order-e2e-v1.json",
+      "sha256": "bf8ea60499ff9dc8414fbf0f76ad072c5f33619bdd244a6f659d3dfae05a6c56",
+      "records": 1,
+      "attempts_per_case": 1,
+      "status": "frozen",
+      "source_dataset": "D14",
+      "use": "One explicitly gated DeepSeek plus Duffel Test Mode Order create, read, cancel, and final-read transaction"
+    }
+  }
+}

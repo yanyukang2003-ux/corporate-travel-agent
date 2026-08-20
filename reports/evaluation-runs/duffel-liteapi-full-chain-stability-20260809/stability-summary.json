@@ -1,0 +1,89 @@
+{
+  "schema_version": 1,
+  "run_id": "duffel-liteapi-full-chain-stability-20260809",
+  "evaluation_mode": "deterministic_live_duffel_liteapi_full_chain_stability",
+  "provider": "duffel+liteapi",
+  "provider_mode": "test+sandbox-read-only",
+  "dataset": {
+    "id": "duffel-liteapi-real-full-chain-v1",
+    "version": "1.0.0",
+    "sha256": "aa575b23c54481ad035afb6912cc199fecadbbb2cad211477bbd924d1a8f8008"
+  },
+  "code_revision": "workspace-v1.0.3-20260809-liteapi",
+  "runner_sha256": "abe9a3f240d18f56d2d057fc52b2ae2eb86fa46562ce696e7950eca872932988",
+  "attempts": 3,
+  "passed_attempts": 2,
+  "failed_attempts": 1,
+  "pass_rate": 0.666667,
+  "all_attempts_passed": false,
+  "duration_ms": {
+    "total": 25534.029,
+    "mean_all_attempts": 8511.343,
+    "mean_successful_attempts": 10264.509,
+    "minimum": 5005.011,
+    "maximum": 10817.18
+  },
+  "external_calls": {
+    "observed_total": 9,
+    "maximum_allowed_total": 12,
+    "duffel": 5,
+    "liteapi": 4,
+    "booking_order_or_payment": 0
+  },
+  "successful_attempt_consistency": {
+    "task_state": "READY_FOR_HANDOFF",
+    "revalidation_status": "UNCHANGED",
+    "provider_tool_trajectory_consistent": true,
+    "option_count": 3,
+    "flight_inventory_items": 42,
+    "hotel_inventory_items": 27,
+    "hotel_nightly_price_usd": 444.29,
+    "flight_price_usd": {
+      "minimum": 217.15,
+      "maximum": 220.83,
+      "range": 3.68
+    },
+    "total_cost_usd": {
+      "minimum": 1105.73,
+      "maximum": 1109.41,
+      "range": 3.68
+    }
+  },
+  "failure": {
+    "attempt": 3,
+    "stage": "duffel_initial_flight_search",
+    "classification": "transient_connectivity_at_duffel_boundary",
+    "message": "Duffel POST request failed transiently: ConnectError",
+    "retry_policy": "max_provider_attempts=1",
+    "liteapi_called": false
+  },
+  "safety": {
+    "live_booking_enabled": false,
+    "booking_payment_or_order_http_observed": false,
+    "provider_secrets_archived": false,
+    "raw_responses_archived_for_completed_provider_calls": true
+  },
+  "attempt_results": [
+    {
+      "attempt": 1,
+      "passed": true,
+      "duration_ms": 9711.838,
+      "external_calls": 4,
+      "result_path": "attempt-1/evaluation-result.json"
+    },
+    {
+      "attempt": 2,
+      "passed": true,
+      "duration_ms": 10817.18,
+      "external_calls": 4,
+      "result_path": "attempt-2/evaluation-result.json"
+    },
+    {
+      "attempt": 3,
+      "passed": false,
+      "duration_ms": 5005.011,
+      "external_calls": 1,
+      "result_path": "attempt-3/evaluation-result.json"
+    }
+  ]
+}

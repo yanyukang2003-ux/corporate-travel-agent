@@ -1,0 +1,153 @@
+{
+  "started_at": "2026-08-19T13:57:00.902710+00:00",
+  "passed": 8,
+  "total": 8,
+  "cases": [
+    {
+      "case_id": "H-01",
+      "title": "下下周三 resolves to the Wednesday of the week after next",
+      "passed": true,
+      "checks": [
+        {
+          "name": "has_depart",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "day",
+          "ok": true,
+          "detail": "2026-09-02"
+        }
+      ]
+    },
+    {
+      "case_id": "H-02",
+      "title": "这周五还是下周五 does not invent a day",
+      "passed": true,
+      "checks": [
+        {
+          "name": "depart_null",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "arrive_null",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "clarify",
+          "ok": true,
+          "detail": "NEEDS_CLARIFICATION"
+        },
+        {
+          "name": "no_options",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "asks_gregorian",
+          "ok": true,
+          "detail": "1. [出行日期] 请给一个具体公历日期（例如 2026-08-21 或 8月21日）。「这周五还是下周五」或农历/节假日无法直接换算出行日，系统不会猜。\n  A. 我来填写公历日期 — 直接输入年-月-日或月日\n请直接回复选项字母/标签，"
+        }
+      ]
+    },
+    {
+      "case_id": "H-03a",
+      "title": "8/5 before the day is 2026-08-05",
+      "passed": true,
+      "checks": [
+        {
+          "name": "day",
+          "ok": true,
+          "detail": "2026-08-05"
+        }
+      ]
+    },
+    {
+      "case_id": "H-03b",
+      "title": "8.5 before the day is 2026-08-05",
+      "passed": true,
+      "checks": [
+        {
+          "name": "day",
+          "ok": true,
+          "detail": "2026-08-05"
+        }
+      ]
+    },
+    {
+      "case_id": "H-03c",
+      "title": "2026.8.5 keeps the named year even if that day is past",
+      "passed": true,
+      "checks": [
+        {
+          "name": "day",
+          "ok": true,
+          "detail": "2026-08-05"
+        }
+      ]
+    },
+    {
+      "case_id": "H-03d",
+      "title": "Yearless 8/5 in the recent past is left unresolved",
+      "passed": true,
+      "checks": [
+        {
+          "name": "depart_null",
+          "ok": true,
+          "detail": ""
+        }
+      ]
+    },
+    {
+      "case_id": "H-04",
+      "title": "春节 does not become an invented Gregorian day",
+      "passed": true,
+      "checks": [
+        {
+          "name": "origin",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "destination",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "depart_null",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "clarify",
+          "ok": true,
+          "detail": "NEEDS_CLARIFICATION"
+        },
+        {
+          "name": "no_options",
+          "ok": true,
+          "detail": ""
+        }
+      ]
+    },
+    {
+      "case_id": "H-05",
+      "title": "12月30日去 1月2日回 wraps the return into the next year",
+      "passed": true,
+      "checks": [
+        {
+          "name": "outbound",
+          "ok": true,
+          "detail": "2026-12-30"
+        },
+        {
+          "name": "return",
+          "ok": true,
+          "detail": "2027-01-02"
+        }
+      ]
+    }
+  ]
+}

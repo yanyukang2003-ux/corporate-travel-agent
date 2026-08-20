@@ -1,0 +1,16 @@
+{
+  "mode": "model_mock",
+  "subset_id": "agent-eval-deepseek-case044-v1",
+  "subset_sha256": "2ac485f647f50a9d011ea0f5222518bd822b8ac2f93c4299448502559f0688bd",
+  "requested_model": "deepseek-v4-pro",
+  "price_table_version": "model-prices-openai-20260802-v1",
+  "price_table_path": "evals/pricing/model-prices-openai-20260802-v1.json",
+  "currency": "USD",
+  "code_revision": "working-tree-fix-five-20260809-v2",
+  "confirm_billable": true,
+  "provider_mode": "MOCK",
+  "tool_choice_exposure": "orchestrator_controlled",
+  "input_tokens_total": 3790,
+  "output_tokens_total": 527,
+  "estimated_cost_usd_total": 0.00210714
+}

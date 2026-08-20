@@ -1,0 +1,20 @@
+[
+  {
+    "attempt": 1,
+    "runner_exit_code": 0,
+    "result_path": "attempt-1/evaluation-result.json",
+    "runner_output_tail": null
+  },
+  {
+    "attempt": 2,
+    "runner_exit_code": 0,
+    "result_path": "attempt-2/evaluation-result.json",
+    "runner_output_tail": null
+  },
+  {
+    "attempt": 3,
+    "runner_exit_code": 0,
+    "result_path": "attempt-3/evaluation-result.json",
+    "runner_output_tail": null
+  }
+]

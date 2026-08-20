@@ -1,0 +1,56 @@
+{
+  "schema_version": 1,
+  "dataset_id": "duffel-real-revalidation-smoke-v1",
+  "dataset_version": "1.0.0",
+  "status": "frozen",
+  "provider": "duffel",
+  "provider_mode": "test",
+  "records": 1,
+  "maximum_external_calls": 2,
+  "booking_enabled": false,
+  "cases": [
+    {
+      "case_id": "duffel-real-lhr-jfk-search-select-revalidate",
+      "workflow_action": "search_select_revalidate",
+      "traveler_id": "E1001",
+      "origin": "LHR",
+      "destination": "JFK",
+      "departure_after": "2026-09-15T00:00:00+00:00",
+      "arrive_by": "2026-09-17T00:00:00+00:00",
+      "return_after": null,
+      "return_before": null,
+      "hotel_check_in": null,
+      "hotel_check_out": null,
+      "hard_constraints": ["flight_only"],
+      "soft_preferences": [],
+      "policy_currency": "USD",
+      "expected": {
+        "external_http_calls": 2,
+        "provider_source_type": "AUTHORIZED_API",
+        "minimum_options": 1,
+        "test_mode_disclosed": true,
+        "allowed_revalidation_statuses": ["UNCHANGED", "PRICE_CHANGED"],
+        "revalidation_response_archives": 1,
+        "provider_tool_sequences_by_revalidation_status": {
+          "UNCHANGED": [
+            "provider.search_transport.outbound",
+            "provider.revalidate",
+            "provider.create_deep_link"
+          ],
+          "PRICE_CHANGED": [
+            "provider.search_transport.outbound",
+            "provider.revalidate"
+          ]
+        },
+        "final_states_by_revalidation_status": {
+          "UNCHANGED": "READY_FOR_HANDOFF",
+          "PRICE_CHANGED": "RECONFIRMATION_REQUIRED"
+        },
+        "booking_intent_by_revalidation_status": {
+          "UNCHANGED": true,
+          "PRICE_CHANGED": false
+        }
+      }
+    }
+  ]
+}

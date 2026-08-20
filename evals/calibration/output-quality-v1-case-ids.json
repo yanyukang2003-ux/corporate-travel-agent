@@ -1,0 +1,40 @@
+{
+  "schema_version": 1,
+  "calibration_set_id": "output-quality-v1-calibration-20",
+  "status": "frozen_not_yet_double_rated",
+  "source_dataset_id": "corporate-travel-derived-v2-workflow",
+  "source_dataset_version": "2",
+  "source_dataset_sha256": "9041eba5564c07dd3ca94dfa9e2d597d3bff59a67ee9e679b7ca529287e7dbfd",
+  "selection_method": "Lexicographically first case IDs within fixed scenario quotas.",
+  "scenario_quotas": {
+    "COMPLIANT": 4,
+    "PREFERENCE_CONFLICT": 4,
+    "REQUIRES_APPROVAL": 3,
+    "NO_FEASIBLE_OPTION": 3,
+    "REVALIDATION_CHANGED": 3,
+    "PROVIDER_FAILURE": 3
+  },
+  "cases": [
+    {"case_id": "prefer-compliant-0002", "scenario": "COMPLIANT"},
+    {"case_id": "prefer-compliant-0008", "scenario": "COMPLIANT"},
+    {"case_id": "prefer-compliant-0019", "scenario": "COMPLIANT"},
+    {"case_id": "prefer-compliant-0029", "scenario": "COMPLIANT"},
+    {"case_id": "prefer-preference-conflict-0012", "scenario": "PREFERENCE_CONFLICT"},
+    {"case_id": "prefer-preference-conflict-0042", "scenario": "PREFERENCE_CONFLICT"},
+    {"case_id": "prefer-preference-conflict-0357", "scenario": "PREFERENCE_CONFLICT"},
+    {"case_id": "prefer-preference-conflict-0378", "scenario": "PREFERENCE_CONFLICT"},
+    {"case_id": "prefer-requires-approval-0037", "scenario": "REQUIRES_APPROVAL"},
+    {"case_id": "prefer-requires-approval-0039", "scenario": "REQUIRES_APPROVAL"},
+    {"case_id": "prefer-requires-approval-0040", "scenario": "REQUIRES_APPROVAL"},
+    {"case_id": "prefer-no-feasible-option-0047", "scenario": "NO_FEASIBLE_OPTION"},
+    {"case_id": "prefer-no-feasible-option-0091", "scenario": "NO_FEASIBLE_OPTION"},
+    {"case_id": "prefer-no-feasible-option-0093", "scenario": "NO_FEASIBLE_OPTION"},
+    {"case_id": "prefer-revalidation-changed-0053", "scenario": "REVALIDATION_CHANGED"},
+    {"case_id": "prefer-revalidation-changed-0431", "scenario": "REVALIDATION_CHANGED"},
+    {"case_id": "prefer-revalidation-changed-0449", "scenario": "REVALIDATION_CHANGED"},
+    {"case_id": "prefer-provider-failure-0063", "scenario": "PROVIDER_FAILURE"},
+    {"case_id": "prefer-provider-failure-0095", "scenario": "PROVIDER_FAILURE"},
+    {"case_id": "prefer-provider-failure-0105", "scenario": "PROVIDER_FAILURE"}
+  ]
+}
+

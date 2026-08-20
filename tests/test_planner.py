@@ -1,0 +1,188 @@
+from __future__ import annotations
+
+from datetime import date, datetime
+from decimal import Decimal
+from zoneinfo import ZoneInfo
+
+from corporate_travel_agent.domain.enums import TransportMode
+from corporate_travel_agent.domain.models import (
+    COMMUTE_UNKNOWN_MINUTES,
+    EmployeeProfileSnapshot,
+    HotelOffer,
+    LevelTravelRule,
+    PolicySnapshot,
+    TransportOffer,
+    TripRequestVersion,
+)
+from corporate_travel_agent.planning.planner import ItineraryPlanner
+
+SH = ZoneInfo("Asia/Shanghai")
+
+
+def _policy() -> PolicySnapshot:
+    return PolicySnapshot(
+        snapshot_id="planner-policy-v1",
+        policy_version="planner-v1",
+        level_rules={"L1": LevelTravelRule(("ECONOMY",), ("SECOND_CLASS",))},
+        hotel_city_caps={"Shanghai": Decimal("2000")},
+        arrival_buffer_minutes=30,
+        exception_allowed_rule_ids=frozenset(),
+        effective_from=date(2026, 1, 1),
+        currency="CNY",
+    )
+
+
+def _employee() -> EmployeeProfileSnapshot:
+    return EmployeeProfileSnapshot(
+        snapshot_id="planner-employee-v1",
+        employee_id="E-PLAN",
+        level="L1",
+        department="Product",
+        home_city="Beijing",
+        manager_id="M-PLAN",
+    )
+
+
+def _request(**overrides: object) -> TripRequestVersion:
+    payload: dict[str, object] = {
+        "task_id": "planner-task",
+        "version": 1,
+        "traveler_id": "E-PLAN",
+        "origin": "Beijing",
+        "destination": "Shanghai",
+        "departure_after": datetime(2026, 8, 20, 8, 0, tzinfo=SH),
+        "arrive_by": datetime(2026, 8, 20, 18, 0, tzinfo=SH),
+        "return_after": datetime(2026, 8, 21, 13, 0, tzinfo=SH),
+        "return_before": datetime(2026, 8, 21, 22, 0, tzinfo=SH),
+        "hotel_check_in": date(2026, 8, 20),
+        "hotel_check_out": date(2026, 8, 21),
+        "hard_constraints": ("hotel_required",),
+        "soft_preferences": ("hotel_near_client",),
+    }
+    payload.update(overrides)
+    return TripRequestVersion(**payload)  # type: ignore[arg-type]
+
+
+def _flight(ref_id: str, *, hour: int = 14, price: str = "35") -> TransportOffer:
+    return TransportOffer(
+        ref_id=ref_id,
+        snapshot_id="snap-flight",
+        provider="duffel",
+        mode=TransportMode.FLIGHT,
+        origin="Beijing",
+        destination="Shanghai",
+        depart_at=datetime(2026, 8, 20, hour, 0, tzinfo=SH),
+        arrive_at=datetime(2026, 8, 20, hour + 2, 0, tzinfo=SH),
+        price=Decimal(price),
+        seat_class="ECONOMY",
+        currency="CNY",
+    )
+
+
+def _return_flight(ref_id: str = "RET-1") -> TransportOffer:
+    return TransportOffer(
+        ref_id=ref_id,
+        snapshot_id="snap-flight",
+        provider="duffel",
+        mode=TransportMode.FLIGHT,
+        origin="Shanghai",
+        destination="Beijing",
+        depart_at=datetime(2026, 8, 21, 15, 0, tzinfo=SH),
+        arrive_at=datetime(2026, 8, 21, 17, 0, tzinfo=SH),
+        price=Decimal("35"),
+        seat_class="ECONOMY",
+        currency="CNY",
+    )
+
+
+def _hotel(
+    ref_id: str,
+    *,
+    name: str = "Cambria Hotel",
+    nightly_price: str = "120.80",
+    commute_minutes: int = COMMUTE_UNKNOWN_MINUTES,
+) -> HotelOffer:
+    return HotelOffer(
+        ref_id=ref_id,
+        snapshot_id="snap-hotel",
+        provider="liteapi",
+        name=name,
+        city="Shanghai",
+        check_in=date(2026, 8, 20),
+        check_out=date(2026, 8, 21),
+        nightly_price=Decimal(nightly_price),
+        commute_minutes=commute_minutes,
+        currency="CNY",
+    )
+
+
+def test_identical_hotel_rates_do_not_fill_the_recommendation_list() -> None:
+    planner = ItineraryPlanner()
+    options = planner.plan(
+        _request(),
+        _employee(),
+        _policy(),
+        outbound_offers=[_flight("OUT-A", hour=14), _flight("OUT-B", hour=16, price="80")],
+        inbound_offers=[_return_flight()],
+        hotel_offers=[
+            _hotel("litehotel_aaa"),
+            _hotel("litehotel_bbb"),
+            _hotel("litehotel_ccc"),
+        ],
+        limit=3,
+    )
+
+    hotel_names = {option.hotel.name for option in options if option.hotel}
+    outbound_ids = [option.outbound.ref_id for option in options]
+    assert len(options) == 2
+    assert hotel_names == {"Cambria Hotel"}
+    assert outbound_ids == ["OUT-A", "OUT-B"]
+
+
+def test_unknown_commute_does_not_apply_near_client_penalty() -> None:
+    planner = ItineraryPlanner()
+    unknown = planner.plan(
+        _request(),
+        _employee(),
+        _policy(),
+        outbound_offers=[_flight("OUT-A")],
+        inbound_offers=[_return_flight()],
+        hotel_offers=[_hotel("litehotel_unknown")],
+        limit=1,
+    )
+    known_far = planner.plan(
+        _request(),
+        _employee(),
+        _policy(),
+        outbound_offers=[_flight("OUT-A")],
+        inbound_offers=[_return_flight()],
+        hotel_offers=[_hotel("litehotel_far", commute_minutes=90)],
+        limit=1,
+    )
+
+    assert unknown[0].preference_penalty == Decimal("0")
+    assert "commute_minutes=unknown" in unknown[0].explanation_facts
+    assert known_far[0].preference_penalty == Decimal("120")
+
+
+def test_distinct_hotels_remain_available_as_separate_options() -> None:
+    planner = ItineraryPlanner()
+    options = planner.plan(
+        _request(),
+        _employee(),
+        _policy(),
+        outbound_offers=[_flight("OUT-A")],
+        inbound_offers=[_return_flight()],
+        hotel_offers=[
+            _hotel("H1", name="River Hotel", nightly_price="400"),
+            _hotel("H2", name="Garden Hotel", nightly_price="500"),
+            _hotel("H3", name="Park Hotel", nightly_price="600"),
+        ],
+        limit=3,
+    )
+
+    assert [option.hotel.name for option in options if option.hotel] == [
+        "River Hotel",
+        "Garden Hotel",
+        "Park Hotel",
+    ]

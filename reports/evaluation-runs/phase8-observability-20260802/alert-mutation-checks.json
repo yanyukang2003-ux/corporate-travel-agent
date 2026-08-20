@@ -1,0 +1,44 @@
+[
+  {
+    "mutation_id": "safety_any_event",
+    "alert_type": "SAFETY_EVENT",
+    "expected_status": "triggered",
+    "actual_status": "triggered",
+    "detected": true
+  },
+  {
+    "mutation_id": "success_drop_6_points",
+    "alert_type": "TASK_SUCCESS_DROP",
+    "expected_status": "triggered",
+    "actual_status": "triggered",
+    "detected": true
+  },
+  {
+    "mutation_id": "latency_two_windows_plus_31_percent",
+    "alert_type": "LATENCY_REGRESSION",
+    "expected_status": "triggered",
+    "actual_status": "triggered",
+    "detected": true
+  },
+  {
+    "mutation_id": "cost_two_windows_plus_31_percent",
+    "alert_type": "COST_REGRESSION",
+    "expected_status": "triggered",
+    "actual_status": "triggered",
+    "detected": true
+  },
+  {
+    "mutation_id": "same_signature_three_times",
+    "alert_type": "REPEATED_FAILURE_SIGNATURE",
+    "expected_status": "triggered",
+    "actual_status": "triggered",
+    "detected": true
+  },
+  {
+    "mutation_id": "unknown_cost_not_zero",
+    "alert_type": "COST_REGRESSION",
+    "expected_status": "not_evaluated",
+    "actual_status": "not_evaluated",
+    "detected": true
+  }
+]

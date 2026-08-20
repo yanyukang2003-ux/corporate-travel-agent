@@ -1,0 +1,78 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://local.corporate-travel-agent/evals/agent-eval-human-review.schema.json",
+  "title": "agent-eval-v1 human review round",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "dataset_id",
+    "dataset_version",
+    "reviewer",
+    "round",
+    "records"
+  ],
+  "properties": {
+    "schema_version": {"const": 2},
+    "dataset_id": {"const": "agent-eval-v1"},
+    "dataset_version": {"type": "string", "minLength": 1},
+    "reviewer": {"enum": ["reviewer-a", "reviewer-b"]},
+    "round": {"const": 1},
+    "records": {
+      "type": "array",
+      "minItems": 60,
+      "maxItems": 60,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "case_id",
+          "verdict",
+          "human_checks",
+          "issue_codes",
+          "comment",
+          "reviewed_at"
+        ],
+        "properties": {
+          "case_id": {"type": "string", "minLength": 1},
+          "verdict": {"enum": ["pending", "accept", "revise", "reject"]},
+          "human_checks": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "intent_supported",
+              "expected_behavior_correct",
+              "assertions_sufficient"
+            ],
+            "properties": {
+              "intent_supported": {"enum": ["pass", "fail", "unsure", null]},
+              "expected_behavior_correct": {"enum": ["pass", "fail", "unsure", null]},
+              "assertions_sufficient": {"enum": ["pass", "fail", "unsure", null]}
+            }
+          },
+          "issue_codes": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "enum": [
+                "UNSUPPORTED_INTENT_VALUE",
+                "MISSING_INTENT_VALUE",
+                "INCONSISTENT_FIXTURE",
+                "WRONG_POLICY_OUTCOME",
+                "WRONG_FINAL_STATE",
+                "WRONG_TOOL_EXPECTATION",
+                "WEAK_ASSERTION",
+                "OVERCONSTRAINED_ASSERTION",
+                "NO_LEGAL_PATH",
+                "DUPLICATE_OR_LOW_VALUE",
+                "OTHER"
+              ]
+            }
+          },
+          "comment": {"type": "string"},
+          "reviewed_at": {"type": ["string", "null"], "format": "date-time"}
+        }
+      }
+    }
+  }
+}

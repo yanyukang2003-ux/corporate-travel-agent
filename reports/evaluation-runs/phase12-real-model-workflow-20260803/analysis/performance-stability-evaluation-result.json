@@ -1,0 +1,672 @@
+{
+  "schema_version": 1,
+  "evaluation_id": "eval-3850d939-8f99-4176-a2dc-975ca0d12620",
+  "protocol_id": "agent-eval-v1",
+  "generated_at": "2026-08-02T16:15:17.882106Z",
+  "run_ids": [
+    "run-78b98607-2ab3-43e4-aa34-29351d77cc7f",
+    "run-e8ab01ac-4773-4108-836b-d96569c20531",
+    "run-0de5bec3-e84b-47c3-a484-55ee97dc7395",
+    "run-d12a9e6a-a191-4542-85ed-a5c2cfcf0e6a",
+    "run-6dd44c8f-2248-47c3-b9e3-5f69bceeee4c",
+    "run-b280cc05-859c-4d69-9668-5c2d0015b8ae",
+    "run-e885d441-1002-494d-bcc6-cc86b8957aed",
+    "run-b8ef71fb-3015-4e98-a8b8-ee21cc58858b",
+    "run-be85db6d-183b-4ffc-95a7-069d5bf4926a",
+    "run-e8d2dc36-bf0d-48c5-aad3-d28c936a4fc3",
+    "run-e4b29fa1-d2bb-444a-a97a-b330d8339e25",
+    "run-6bbdcef0-0a0a-4c72-aa0f-99af84150c6e",
+    "run-c2563b3d-0ee3-4301-9cf6-4a5e0c89e843",
+    "run-ad1562db-3309-4579-a9a0-f8b6cb89a7a0",
+    "run-d234f8d1-f106-45a3-b901-7fd2a39dd44d",
+    "run-52f9b57c-eb5e-477e-b7c7-665f77711bf4",
+    "run-5f2502ab-e940-4969-afd1-d91b09783b31",
+    "run-814b79e9-3a92-4a2b-a701-379fe5a70e82",
+    "run-cfafe13b-3969-4c4c-abcb-53a1e17635fd",
+    "run-2d3f63b4-c552-4730-9a0b-ea9d03d298d7",
+    "run-c5c942b1-d606-4d73-b20f-76248ad10a9f",
+    "run-2b050555-eb5d-42e3-86ed-ddb02201918a",
+    "run-12961967-bf80-43d6-b91e-828a20ee2cc6",
+    "run-cd6c05bb-75b2-4cce-8fcd-352ee0c6a941",
+    "run-7f3f2fe4-5746-4083-a8c8-7e05a88fee3f",
+    "run-479c4d83-5b5d-4463-bae5-1d841dd5d68b",
+    "run-bb99c963-714c-4a33-812c-83ec97512310",
+    "run-3e92af23-15df-4ce3-9256-ca9d0688fe24",
+    "run-7b230c14-16fc-4e1e-b34a-91baa56df0cf",
+    "run-6dd02557-f50b-4a33-bdb3-12a8ada522c3",
+    "run-9cae1dd3-34b2-4614-be30-2059a1f1a043",
+    "run-d7d54cbc-e594-415f-b3c5-06e51da3703c",
+    "run-44955907-44ec-4a2b-a92f-4bd666e4ee98",
+    "run-e682a1e5-656f-4444-8467-319aa90d8514",
+    "run-caa1edb7-21f3-4686-b231-2859f5ce1418",
+    "run-f4c0850a-84a4-4220-af96-db44aa15e4d9",
+    "run-0af61629-3a9b-4fcd-865f-7aacee8db9ea",
+    "run-f651ef16-d04f-452c-be6a-2c89344f03ce",
+    "run-9f116fa0-a5d8-4769-874c-81fcea8412f1",
+    "run-b486e397-4539-4487-a618-031ce75bd7d1",
+    "run-7fcad8f1-3142-4fe7-9e54-52b707601733",
+    "run-c315077b-4b48-4cff-8e7e-518becf1415f",
+    "run-1983e3cf-805d-47b8-90b3-1780eccbfbb9",
+    "run-31f168b7-e594-4a98-88d8-b301980fb7f2",
+    "run-e03eb625-6978-48a7-b1e6-0f16eed6c532",
+    "run-776790ea-c145-48f8-8afc-b63bb520e892",
+    "run-27e119fa-f3f9-477a-b017-45e0b70c0369",
+    "run-af470381-3e16-45a8-850e-1602a1d3c940",
+    "run-bb9e2d97-49a7-496e-a98a-edb630e0119f",
+    "run-91f45d35-8343-451f-aa4a-f267e4b4b7ef",
+    "run-5cd21e20-cc8b-49c8-9c96-75500da5bf3d",
+    "run-c9f7ef71-09ff-4988-bc4e-1f7800dd1a00",
+    "run-ff9d403b-cd6d-408d-b35e-93568ee9b737",
+    "run-578496f6-2fa6-48ff-befc-79446105ad73",
+    "run-ddfe33a5-c388-4d75-9310-efc88ad191d2",
+    "run-e050b9e3-f69e-4ef7-8c67-6272053e2d5f",
+    "run-845d428b-8c2d-489c-9ed4-2a0c511e2398",
+    "run-41108367-aa2d-4603-a316-b6699426d222",
+    "run-063cf343-10c3-4963-aa81-a0e78eee9151",
+    "run-2dcd145e-dc90-4d75-b15a-9a40f723c864",
+    "run-d9b57603-3ff6-4e7d-ad29-efe41c2ef02b",
+    "run-d5c87dc9-7906-471d-b0b0-5f3d446ac529",
+    "run-0a0dc527-36bf-4643-92d1-800d367304b0",
+    "run-f2a223fe-624f-4d3a-9b98-3c740308f3d4",
+    "run-8e6eb7a5-90a5-45ce-a372-d3a630ad569f",
+    "run-0c066928-0147-4078-a4ce-ef2f19b7cdfd",
+    "run-ee8aab35-6076-4b37-b709-fa578f81c8b1",
+    "run-26026515-2c0f-4d40-8350-f7d2f1ae76d7",
+    "run-bf6ca7e7-9b1e-49a6-bb31-5bb3f1f6671c",
+    "run-d2ef18d1-4d9f-41ff-a9a8-0ab24e66b57d",
+    "run-9f227b2c-1f08-4024-9810-43bbce0905d7",
+    "run-8b0aa574-c639-4b9a-a33a-0295557661f8"
+  ],
+  "coverage": {
+    "dataset_id": "corporate-travel-derived-v2-workflow",
+    "dataset_version": "2",
+    "selected_cases": 24,
+    "completed_runs": 72,
+    "expected_runs": 72,
+    "slices": {
+      "evaluation_mode": "model_mock",
+      "attempts_per_case": 3
+    }
+  },
+  "metrics": {
+    "pass_at_1": {
+      "status": "measured",
+      "value": 1.0,
+      "numerator": 72.0,
+      "denominator": 72.0,
+      "unit": "rate",
+      "exposure_note": null,
+      "confidence_note": "Exact aggregation over the fixed attempt matrix."
+    },
+    "pass_power_3": {
+      "status": "measured",
+      "value": 1.0,
+      "numerator": 24.0,
+      "denominator": 24.0,
+      "unit": "rate",
+      "exposure_note": null,
+      "confidence_note": "Exact aggregation over the fixed attempt matrix."
+    },
+    "pass_at_3": {
+      "status": "measured",
+      "value": 1.0,
+      "numerator": 24.0,
+      "denominator": 24.0,
+      "unit": "rate",
+      "exposure_note": null,
+      "confidence_note": "Exact aggregation over the fixed attempt matrix."
+    },
+    "mixed_run_rate": {
+      "status": "measured",
+      "value": 0.0,
+      "numerator": 0.0,
+      "denominator": 24.0,
+      "unit": "rate",
+      "exposure_note": null,
+      "confidence_note": "Exact aggregation over the fixed attempt matrix."
+    },
+    "output_consistency_rate": {
+      "status": "measured",
+      "value": 0.5833333333333334,
+      "numerator": 14.0,
+      "denominator": 24.0,
+      "unit": "rate",
+      "exposure_note": null,
+      "confidence_note": "Exact aggregation over the fixed attempt matrix."
+    },
+    "trajectory_consistency_rate": {
+      "status": "measured",
+      "value": 0.0,
+      "numerator": 0.0,
+      "denominator": 24.0,
+      "unit": "rate",
+      "exposure_note": null,
+      "confidence_note": "Exact aggregation over the fixed attempt matrix."
+    },
+    "total_latency_ms_mean": {
+      "status": "measured",
+      "value": 2867.795847,
+      "numerator": 2867.795847,
+      "denominator": 72.0,
+      "unit": "ms",
+      "exposure_note": null,
+      "confidence_note": null
+    },
+    "total_latency_ms_p50": {
+      "status": "measured",
+      "value": 2630.647,
+      "numerator": 2630.647,
+      "denominator": 72.0,
+      "unit": "ms",
+      "exposure_note": null,
+      "confidence_note": null
+    },
+    "total_latency_ms_p95": {
+      "status": "measured",
+      "value": 4823.85,
+      "numerator": 4823.85,
+      "denominator": 72.0,
+      "unit": "ms",
+      "exposure_note": null,
+      "confidence_note": null
+    },
+    "total_latency_ms_max": {
+      "status": "measured",
+      "value": 5907.014,
+      "numerator": 5907.014,
+      "denominator": 72.0,
+      "unit": "ms",
+      "exposure_note": null,
+      "confidence_note": null
+    },
+    "tool_latency_ms_mean": {
+      "status": "measured",
+      "value": 2865.427169,
+      "numerator": 2865.427169,
+      "denominator": 72.0,
+      "unit": "ms",
+      "exposure_note": null,
+      "confidence_note": null
+    },
+    "tool_latency_ms_p95": {
+      "status": "measured",
+      "value": 4822.48375,
+      "numerator": 4822.48375,
+      "denominator": 72.0,
+      "unit": "ms",
+      "exposure_note": null,
+      "confidence_note": null
+    },
+    "external_calls_total": {
+      "status": "measured",
+      "value": 342.0,
+      "numerator": 342.0,
+      "denominator": 72.0,
+      "unit": "calls",
+      "exposure_note": null,
+      "confidence_note": null
+    },
+    "external_calls_per_run_mean": {
+      "status": "measured",
+      "value": 4.75,
+      "numerator": 4.75,
+      "denominator": 72.0,
+      "unit": "calls",
+      "exposure_note": null,
+      "confidence_note": null
+    },
+    "external_calls_per_run_p95": {
+      "status": "measured",
+      "value": 6.0,
+      "numerator": 6.0,
+      "denominator": 72.0,
+      "unit": "calls",
+      "exposure_note": null,
+      "confidence_note": null
+    },
+    "input_tokens_total": {
+      "status": "measured",
+      "value": 81675.0,
+      "numerator": 81675.0,
+      "denominator": 72.0,
+      "unit": "tokens",
+      "exposure_note": null,
+      "confidence_note": null
+    },
+    "output_tokens_total": {
+      "status": "measured",
+      "value": 17596.0,
+      "numerator": 17596.0,
+      "denominator": 72.0,
+      "unit": "tokens",
+      "exposure_note": null,
+      "confidence_note": null
+    },
+    "total_tokens_per_run_mean": {
+      "status": "measured",
+      "value": 1378.763888888889,
+      "numerator": 99271.0,
+      "denominator": 72.0,
+      "unit": "tokens_per_run",
+      "exposure_note": null,
+      "confidence_note": null
+    },
+    "estimated_cost_total": {
+      "status": "measured",
+      "value": 0.374502,
+      "numerator": 0.374502,
+      "denominator": 1.0,
+      "unit": "USD",
+      "exposure_note": null,
+      "confidence_note": null
+    },
+    "estimated_cost_per_successful_task": {
+      "status": "measured",
+      "value": 0.005201416666666667,
+      "numerator": 0.374502,
+      "denominator": 72.0,
+      "unit": "USD",
+      "exposure_note": null,
+      "confidence_note": null
+    },
+    "cost_regression_rate": {
+      "status": "unavailable",
+      "value": null,
+      "numerator": null,
+      "denominator": null,
+      "unit": "rate",
+      "exposure_note": "No frozen Stage 7 baseline exists.",
+      "confidence_note": null
+    },
+    "latency_p95_regression_rate": {
+      "status": "unavailable",
+      "value": null,
+      "numerator": null,
+      "denominator": null,
+      "unit": "rate",
+      "exposure_note": "No frozen Stage 7 baseline exists.",
+      "confidence_note": null
+    },
+    "real_model_stability_gate": {
+      "status": "measured",
+      "value": 1.0,
+      "numerator": 1.0,
+      "denominator": 1.0,
+      "unit": "boolean",
+      "exposure_note": null,
+      "confidence_note": "Protocol 8 thresholds on model_mock: pass_at_1 1.000 >= 0.85, pass_power_3 1.000 >= 0.80, mixed_run_rate 0.000 <= 0.10."
+    }
+  },
+  "judge": null,
+  "cost": {
+    "currency": "USD",
+    "price_table_version": "model-prices-openai-20260802-v1",
+    "total": 0.374502,
+    "per_successful_task": 0.005201416666666667
+  },
+  "gate_status": "not_evaluated",
+  "hard_failures": [
+    {
+      "case_id": "prefer-compliant-0002",
+      "run_id": "run-c2563b3d-0ee3-4301-9cf6-4a5e0c89e843",
+      "failure_type": "output_inconsistent,trajectory_inconsistent",
+      "evidence": [
+        "run-c2563b3d-0ee3-4301-9cf6-4a5e0c89e843",
+        "run-ad1562db-3309-4579-a9a0-f8b6cb89a7a0",
+        "run-d234f8d1-f106-45a3-b901-7fd2a39dd44d"
+      ]
+    },
+    {
+      "case_id": "prefer-compliant-0008",
+      "run_id": "run-2b050555-eb5d-42e3-86ed-ddb02201918a",
+      "failure_type": "trajectory_inconsistent",
+      "evidence": [
+        "run-2b050555-eb5d-42e3-86ed-ddb02201918a",
+        "run-12961967-bf80-43d6-b91e-828a20ee2cc6",
+        "run-cd6c05bb-75b2-4cce-8fcd-352ee0c6a941"
+      ]
+    },
+    {
+      "case_id": "prefer-compliant-0019",
+      "run_id": "run-52f9b57c-eb5e-477e-b7c7-665f77711bf4",
+      "failure_type": "output_inconsistent,trajectory_inconsistent",
+      "evidence": [
+        "run-52f9b57c-eb5e-477e-b7c7-665f77711bf4",
+        "run-5f2502ab-e940-4969-afd1-d91b09783b31",
+        "run-814b79e9-3a92-4a2b-a701-379fe5a70e82"
+      ]
+    },
+    {
+      "case_id": "prefer-compliant-0029",
+      "run_id": "run-cfafe13b-3969-4c4c-abcb-53a1e17635fd",
+      "failure_type": "trajectory_inconsistent",
+      "evidence": [
+        "run-cfafe13b-3969-4c4c-abcb-53a1e17635fd",
+        "run-2d3f63b4-c552-4730-9a0b-ea9d03d298d7",
+        "run-c5c942b1-d606-4d73-b20f-76248ad10a9f"
+      ]
+    },
+    {
+      "case_id": "prefer-no-feasible-option-0047",
+      "run_id": "run-b486e397-4539-4487-a618-031ce75bd7d1",
+      "failure_type": "trajectory_inconsistent",
+      "evidence": [
+        "run-b486e397-4539-4487-a618-031ce75bd7d1",
+        "run-7fcad8f1-3142-4fe7-9e54-52b707601733",
+        "run-c315077b-4b48-4cff-8e7e-518becf1415f"
+      ]
+    },
+    {
+      "case_id": "prefer-no-feasible-option-0091",
+      "run_id": "run-1983e3cf-805d-47b8-90b3-1780eccbfbb9",
+      "failure_type": "trajectory_inconsistent",
+      "evidence": [
+        "run-1983e3cf-805d-47b8-90b3-1780eccbfbb9",
+        "run-31f168b7-e594-4a98-88d8-b301980fb7f2",
+        "run-e03eb625-6978-48a7-b1e6-0f16eed6c532"
+      ]
+    },
+    {
+      "case_id": "prefer-no-feasible-option-0093",
+      "run_id": "run-776790ea-c145-48f8-8afc-b63bb520e892",
+      "failure_type": "trajectory_inconsistent",
+      "evidence": [
+        "run-776790ea-c145-48f8-8afc-b63bb520e892",
+        "run-27e119fa-f3f9-477a-b017-45e0b70c0369",
+        "run-af470381-3e16-45a8-850e-1602a1d3c940"
+      ]
+    },
+    {
+      "case_id": "prefer-no-feasible-option-0428",
+      "run_id": "run-0af61629-3a9b-4fcd-865f-7aacee8db9ea",
+      "failure_type": "trajectory_inconsistent",
+      "evidence": [
+        "run-0af61629-3a9b-4fcd-865f-7aacee8db9ea",
+        "run-f651ef16-d04f-452c-be6a-2c89344f03ce",
+        "run-9f116fa0-a5d8-4769-874c-81fcea8412f1"
+      ]
+    },
+    {
+      "case_id": "prefer-preference-conflict-0012",
+      "run_id": "run-78b98607-2ab3-43e4-aa34-29351d77cc7f",
+      "failure_type": "output_inconsistent,trajectory_inconsistent",
+      "evidence": [
+        "run-78b98607-2ab3-43e4-aa34-29351d77cc7f",
+        "run-e8ab01ac-4773-4108-836b-d96569c20531",
+        "run-0de5bec3-e84b-47c3-a484-55ee97dc7395"
+      ]
+    },
+    {
+      "case_id": "prefer-preference-conflict-0042",
+      "run_id": "run-e885d441-1002-494d-bcc6-cc86b8957aed",
+      "failure_type": "output_inconsistent,trajectory_inconsistent",
+      "evidence": [
+        "run-e885d441-1002-494d-bcc6-cc86b8957aed",
+        "run-b8ef71fb-3015-4e98-a8b8-ee21cc58858b",
+        "run-be85db6d-183b-4ffc-95a7-069d5bf4926a"
+      ]
+    },
+    {
+      "case_id": "prefer-preference-conflict-0357",
+      "run_id": "run-d12a9e6a-a191-4542-85ed-a5c2cfcf0e6a",
+      "failure_type": "trajectory_inconsistent",
+      "evidence": [
+        "run-d12a9e6a-a191-4542-85ed-a5c2cfcf0e6a",
+        "run-6dd44c8f-2248-47c3-b9e3-5f69bceeee4c",
+        "run-b280cc05-859c-4d69-9668-5c2d0015b8ae"
+      ]
+    },
+    {
+      "case_id": "prefer-preference-conflict-0378",
+      "run_id": "run-e8d2dc36-bf0d-48c5-aad3-d28c936a4fc3",
+      "failure_type": "output_inconsistent,trajectory_inconsistent",
+      "evidence": [
+        "run-e8d2dc36-bf0d-48c5-aad3-d28c936a4fc3",
+        "run-e4b29fa1-d2bb-444a-a97a-b330d8339e25",
+        "run-6bbdcef0-0a0a-4c72-aa0f-99af84150c6e"
+      ]
+    },
+    {
+      "case_id": "prefer-provider-failure-0063",
+      "run_id": "run-d2ef18d1-4d9f-41ff-a9a8-0ab24e66b57d",
+      "failure_type": "output_inconsistent,trajectory_inconsistent",
+      "evidence": [
+        "run-d2ef18d1-4d9f-41ff-a9a8-0ab24e66b57d",
+        "run-9f227b2c-1f08-4024-9810-43bbce0905d7",
+        "run-8b0aa574-c639-4b9a-a33a-0295557661f8"
+      ]
+    },
+    {
+      "case_id": "prefer-provider-failure-0095",
+      "run_id": "run-d9b57603-3ff6-4e7d-ad29-efe41c2ef02b",
+      "failure_type": "trajectory_inconsistent",
+      "evidence": [
+        "run-d9b57603-3ff6-4e7d-ad29-efe41c2ef02b",
+        "run-d5c87dc9-7906-471d-b0b0-5f3d446ac529",
+        "run-0a0dc527-36bf-4643-92d1-800d367304b0"
+      ]
+    },
+    {
+      "case_id": "prefer-provider-failure-0105",
+      "run_id": "run-f2a223fe-624f-4d3a-9b98-3c740308f3d4",
+      "failure_type": "trajectory_inconsistent",
+      "evidence": [
+        "run-f2a223fe-624f-4d3a-9b98-3c740308f3d4",
+        "run-8e6eb7a5-90a5-45ce-a372-d3a630ad569f",
+        "run-0c066928-0147-4078-a4ce-ef2f19b7cdfd"
+      ]
+    },
+    {
+      "case_id": "prefer-provider-failure-0445",
+      "run_id": "run-ee8aab35-6076-4b37-b709-fa578f81c8b1",
+      "failure_type": "trajectory_inconsistent",
+      "evidence": [
+        "run-ee8aab35-6076-4b37-b709-fa578f81c8b1",
+        "run-26026515-2c0f-4d40-8350-f7d2f1ae76d7",
+        "run-bf6ca7e7-9b1e-49a6-bb31-5bb3f1f6671c"
+      ]
+    },
+    {
+      "case_id": "prefer-requires-approval-0037",
+      "run_id": "run-7f3f2fe4-5746-4083-a8c8-7e05a88fee3f",
+      "failure_type": "trajectory_inconsistent",
+      "evidence": [
+        "run-7f3f2fe4-5746-4083-a8c8-7e05a88fee3f",
+        "run-479c4d83-5b5d-4463-bae5-1d841dd5d68b",
+        "run-bb99c963-714c-4a33-812c-83ec97512310"
+      ]
+    },
+    {
+      "case_id": "prefer-requires-approval-0039",
+      "run_id": "run-e682a1e5-656f-4444-8467-319aa90d8514",
+      "failure_type": "trajectory_inconsistent",
+      "evidence": [
+        "run-e682a1e5-656f-4444-8467-319aa90d8514",
+        "run-caa1edb7-21f3-4686-b231-2859f5ce1418",
+        "run-f4c0850a-84a4-4220-af96-db44aa15e4d9"
+      ]
+    },
+    {
+      "case_id": "prefer-requires-approval-0040",
+      "run_id": "run-3e92af23-15df-4ce3-9256-ca9d0688fe24",
+      "failure_type": "output_inconsistent,trajectory_inconsistent",
+      "evidence": [
+        "run-3e92af23-15df-4ce3-9256-ca9d0688fe24",
+        "run-7b230c14-16fc-4e1e-b34a-91baa56df0cf",
+        "run-6dd02557-f50b-4a33-bdb3-12a8ada522c3"
+      ]
+    },
+    {
+      "case_id": "prefer-requires-approval-0075",
+      "run_id": "run-9cae1dd3-34b2-4614-be30-2059a1f1a043",
+      "failure_type": "output_inconsistent,trajectory_inconsistent",
+      "evidence": [
+        "run-9cae1dd3-34b2-4614-be30-2059a1f1a043",
+        "run-d7d54cbc-e594-415f-b3c5-06e51da3703c",
+        "run-44955907-44ec-4a2b-a92f-4bd666e4ee98"
+      ]
+    },
+    {
+      "case_id": "prefer-revalidation-changed-0053",
+      "run_id": "run-41108367-aa2d-4603-a316-b6699426d222",
+      "failure_type": "trajectory_inconsistent",
+      "evidence": [
+        "run-41108367-aa2d-4603-a316-b6699426d222",
+        "run-063cf343-10c3-4963-aa81-a0e78eee9151",
+        "run-2dcd145e-dc90-4d75-b15a-9a40f723c864"
+      ]
+    },
+    {
+      "case_id": "prefer-revalidation-changed-0431",
+      "run_id": "run-ddfe33a5-c388-4d75-9310-efc88ad191d2",
+      "failure_type": "output_inconsistent,trajectory_inconsistent",
+      "evidence": [
+        "run-ddfe33a5-c388-4d75-9310-efc88ad191d2",
+        "run-e050b9e3-f69e-4ef7-8c67-6272053e2d5f",
+        "run-845d428b-8c2d-489c-9ed4-2a0c511e2398"
+      ]
+    },
+    {
+      "case_id": "prefer-revalidation-changed-0449",
+      "run_id": "run-c9f7ef71-09ff-4988-bc4e-1f7800dd1a00",
+      "failure_type": "trajectory_inconsistent",
+      "evidence": [
+        "run-c9f7ef71-09ff-4988-bc4e-1f7800dd1a00",
+        "run-ff9d403b-cd6d-408d-b35e-93568ee9b737",
+        "run-578496f6-2fa6-48ff-befc-79446105ad73"
+      ]
+    },
+    {
+      "case_id": "prefer-revalidation-changed-0727",
+      "run_id": "run-bb9e2d97-49a7-496e-a98a-edb630e0119f",
+      "failure_type": "output_inconsistent,trajectory_inconsistent",
+      "evidence": [
+        "run-bb9e2d97-49a7-496e-a98a-edb630e0119f",
+        "run-91f45d35-8343-451f-aa4a-f267e4b4b7ef",
+        "run-5cd21e20-cc8b-49c8-9c96-75500da5bf3d"
+      ]
+    }
+  ],
+  "bad_case_candidates": [
+    {
+      "case_id": "prefer-compliant-0002",
+      "failure_signature": "3d2e04eca201a71a974a6a406be94ced867f5106987c16e40f6a5fbd69d2ff64",
+      "review_status": "pending"
+    },
+    {
+      "case_id": "prefer-compliant-0008",
+      "failure_signature": "f8e9b67e52b412c9f123f2fd2bcdf2b43f0fcfb2980d236d681620f533dd221c",
+      "review_status": "pending"
+    },
+    {
+      "case_id": "prefer-compliant-0019",
+      "failure_signature": "20fd94287130e4cc709da3413c0c1da4e707561a273fee0b285c95281d3cb67a",
+      "review_status": "pending"
+    },
+    {
+      "case_id": "prefer-compliant-0029",
+      "failure_signature": "c6d1859367b2514dd881e5779ac75a208ce95ca07b7852fcfe46064671b64fae",
+      "review_status": "pending"
+    },
+    {
+      "case_id": "prefer-no-feasible-option-0047",
+      "failure_signature": "26664c1013701c944287a09ea07607febf4eb8c4415a423ca0ac85939e79efee",
+      "review_status": "pending"
+    },
+    {
+      "case_id": "prefer-no-feasible-option-0091",
+      "failure_signature": "c6fc0f69c27aa447509e2b6c13ab655ce9419ee54a2c31487d5affc2cc10c049",
+      "review_status": "pending"
+    },
+    {
+      "case_id": "prefer-no-feasible-option-0093",
+      "failure_signature": "1d18f18ae2ff0914a333967cce63134966a4d37b361b5efca2565a71b8f4804e",
+      "review_status": "pending"
+    },
+    {
+      "case_id": "prefer-no-feasible-option-0428",
+      "failure_signature": "0d46fdae0439f85ffd913bd0ad33c60841cb6cbddc1dc0e7460006c8d9267d7b",
+      "review_status": "pending"
+    },
+    {
+      "case_id": "prefer-preference-conflict-0012",
+      "failure_signature": "8892a80960cfa45c473b86453bc264d82a1218af9f2097560e18c925b7ec8161",
+      "review_status": "pending"
+    },
+    {
+      "case_id": "prefer-preference-conflict-0042",
+      "failure_signature": "53eb56bd3cfc0426ef5cbba3d535808c048d4034f69d1735b169e784deb9caf0",
+      "review_status": "pending"
+    },
+    {
+      "case_id": "prefer-preference-conflict-0357",
+      "failure_signature": "60f095455fbd40e1042499800676a4005922342bd29212907c55606bf711b9ab",
+      "review_status": "pending"
+    },
+    {
+      "case_id": "prefer-preference-conflict-0378",
+      "failure_signature": "f5b93e08e36cd9671375c83035bbde18dc3170e3a8e2fa8908c7578156edee28",
+      "review_status": "pending"
+    },
+    {
+      "case_id": "prefer-provider-failure-0063",
+      "failure_signature": "7b23b9e5036e0bbfae0256111824673a191f97f5dd4a675ba2406fe1690f5810",
+      "review_status": "pending"
+    },
+    {
+      "case_id": "prefer-provider-failure-0095",
+      "failure_signature": "f3a151a1b4a30cc27e2fbfbe98bc0f369d5b47d0e7862ad93ca287013d1ce911",
+      "review_status": "pending"
+    },
+    {
+      "case_id": "prefer-provider-failure-0105",
+      "failure_signature": "e462cf0338bac16df27e677d223e0525ee455795c7b6880f04e9121d950b008a",
+      "review_status": "pending"
+    },
+    {
+      "case_id": "prefer-provider-failure-0445",
+      "failure_signature": "56696b9c9af0e98368ea0a8d509ada765c7fb74334ddfa94e86e11eb5642d89a",
+      "review_status": "pending"
+    },
+    {
+      "case_id": "prefer-requires-approval-0037",
+      "failure_signature": "fbc16eb1204169f00b1e3697cb7a0a03c6623e27a0a4dc043a0489485340a602",
+      "review_status": "pending"
+    },
+    {
+      "case_id": "prefer-requires-approval-0039",
+      "failure_signature": "a8efb2d89e153f20f115aa613a6b8bef822ad2af6ca861ca0a2886a341b511f1",
+      "review_status": "pending"
+    },
+    {
+      "case_id": "prefer-requires-approval-0040",
+      "failure_signature": "75fe2cb1aab162e475e463cdb37b0359fb81b2a9b41a2882531747ad20bf3bd7",
+      "review_status": "pending"
+    },
+    {
+      "case_id": "prefer-requires-approval-0075",
+      "failure_signature": "3189d858e6ed87af41535ed642fd488fbd0c3023c17862c24e85b071e4f5abf2",
+      "review_status": "pending"
+    },
+    {
+      "case_id": "prefer-revalidation-changed-0053",
+      "failure_signature": "3706241684a2b2852cf5fbbd2a9b7f1f92587729b5324d16f5061828ffd55ed6",
+      "review_status": "pending"
+    },
+    {
+      "case_id": "prefer-revalidation-changed-0431",
+      "failure_signature": "4984b5a47439d80040b62b80694fc34e766afa77f4988f88dc54772810c3daf3",
+      "review_status": "pending"
+    },
+    {
+      "case_id": "prefer-revalidation-changed-0449",
+      "failure_signature": "174c665c9036f5c5a7465935c6c0bf6ab72f66bc0060f3fcdd0e0369bb7e37f7",
+      "review_status": "pending"
+    },
+    {
+      "case_id": "prefer-revalidation-changed-0727",
+      "failure_signature": "fd8d1f163bc62b1334db793f41fb329c86c1583fde937050e46c8ac68f513bb9",
+      "review_status": "pending"
+    }
+  ]
+}

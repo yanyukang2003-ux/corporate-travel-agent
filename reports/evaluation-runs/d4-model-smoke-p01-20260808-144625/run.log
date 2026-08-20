@@ -1,0 +1,7 @@
+usage: run_agent_eval_model_smoke.py [-h] [--dataset DATASET]
+                                     [--subset SUBSET] --output OUTPUT
+                                     [--attempts ATTEMPTS]
+                                     --price-table PRICE_TABLE [--model MODEL]
+                                     [--confirm-billable]
+                                     [--code-revision CODE_REVISION]
+run_agent_eval_model_smoke.py: error: output directory already exists: /Users/yukangyan/Downloads/corporate-travel-agent/reports/evaluation-runs/d4-model-smoke-p01-20260808-144625

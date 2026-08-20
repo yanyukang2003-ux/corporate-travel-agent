@@ -1,0 +1,66 @@
+{
+  "schema_version": 1,
+  "dataset_id": "duffel-liteapi-real-full-chain-v1",
+  "dataset_version": "1.0.0",
+  "status": "frozen",
+  "provider": "duffel+liteapi",
+  "provider_mode": "test+sandbox-read-only",
+  "records": 1,
+  "maximum_external_calls": 4,
+  "maximum_duffel_calls": 2,
+  "maximum_liteapi_calls": 2,
+  "booking_enabled": false,
+  "cases": [
+    {
+      "case_id": "real-lhr-jfk-flight-hotel-select-revalidate-handoff",
+      "traveler_id": "E1001",
+      "origin": "LHR",
+      "destination": "JFK",
+      "departure_after": "2026-09-15T00:00:00+00:00",
+      "arrive_by": "2026-09-17T00:00:00+00:00",
+      "return_after": null,
+      "return_before": null,
+      "hotel_check_in": "2026-09-15",
+      "hotel_check_out": "2026-09-17",
+      "hard_constraints": ["flight_only"],
+      "soft_preferences": [],
+      "policy_currency": "USD",
+      "hotel_nightly_cap": "10000",
+      "guest_nationality": "CN",
+      "expected": {
+        "minimum_flight_offers": 1,
+        "minimum_hotel_offers": 1,
+        "minimum_options": 1,
+        "provider_source_type": "AUTHORIZED_API",
+        "allowed_revalidation_statuses": ["UNCHANGED", "PRICE_CHANGED"],
+        "tool_sequences_by_revalidation_status": {
+          "UNCHANGED": [
+            "provider.search_transport.outbound",
+            "provider.search_hotels",
+            "provider.revalidate",
+            "provider.create_deep_link"
+          ],
+          "PRICE_CHANGED": [
+            "provider.search_transport.outbound",
+            "provider.search_hotels",
+            "provider.revalidate"
+          ]
+        },
+        "final_states_by_revalidation_status": {
+          "UNCHANGED": "READY_FOR_HANDOFF",
+          "PRICE_CHANGED": "RECONFIRMATION_REQUIRED"
+        },
+        "booking_intent_by_revalidation_status": {
+          "UNCHANGED": true,
+          "PRICE_CHANGED": false
+        }
+      }
+    }
+  ],
+  "limitations": [
+    "Duffel Test Mode and LiteAPI Sandbox return test inventory, not production booking evidence.",
+    "The case uses a structured request to isolate the real-provider and deterministic workflow chain from language-model variance.",
+    "The local BookingIntent is an instruction-only handoff; no order, prebook, booking, payment, ticket, or hotel reservation is created.",
+    "LiteAPI does not provide client-office commute time, so the adapter marks commute evidence as unknown."
+  ]
+}

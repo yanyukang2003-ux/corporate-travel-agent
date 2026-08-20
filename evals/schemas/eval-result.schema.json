@@ -1,0 +1,108 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://local.corporate-travel-agent/evals/eval-result.schema.json",
+  "title": "Corporate Travel Agent evaluation result",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "evaluation_id",
+    "protocol_id",
+    "generated_at",
+    "run_ids",
+    "coverage",
+    "metrics",
+    "gate_status",
+    "hard_failures",
+    "bad_case_candidates"
+  ],
+  "properties": {
+    "schema_version": {"const": 1},
+    "evaluation_id": {"type": "string", "minLength": 1},
+    "protocol_id": {"const": "agent-eval-v1"},
+    "generated_at": {"type": "string", "format": "date-time"},
+    "run_ids": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+    "coverage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["dataset_id", "dataset_version", "selected_cases", "completed_runs", "expected_runs"],
+      "properties": {
+        "dataset_id": {"type": "string"},
+        "dataset_version": {"type": "string"},
+        "selected_cases": {"type": "integer", "minimum": 0},
+        "completed_runs": {"type": "integer", "minimum": 0},
+        "expected_runs": {"type": "integer", "minimum": 0},
+        "slices": {"type": "object"}
+      }
+    },
+    "metrics": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["status", "value", "numerator", "denominator", "unit"],
+        "properties": {
+          "status": {"enum": ["measured", "unavailable", "not_applicable"]},
+          "value": {"type": ["number", "null"]},
+          "numerator": {"type": ["number", "null"]},
+          "denominator": {"type": ["number", "null"]},
+          "unit": {"type": ["string", "null"]},
+          "exposure_note": {"type": ["string", "null"]},
+          "confidence_note": {"type": ["string", "null"]}
+        }
+      }
+    },
+    "judge": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "required": ["judge_id", "rubric_version", "calibration_set", "agreement_rate", "abstentions"],
+      "properties": {
+        "judge_id": {"type": ["string", "null"]},
+        "rubric_version": {"type": ["string", "null"]},
+        "calibration_set": {"type": ["string", "null"]},
+        "agreement_rate": {"type": ["number", "null"], "minimum": 0, "maximum": 1},
+        "abstentions": {"type": "integer", "minimum": 0}
+      }
+    },
+    "cost": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "required": ["currency", "price_table_version", "total", "per_successful_task"],
+      "properties": {
+        "currency": {"type": ["string", "null"]},
+        "price_table_version": {"type": ["string", "null"]},
+        "total": {"type": ["number", "null"], "minimum": 0},
+        "per_successful_task": {"type": ["number", "null"], "minimum": 0}
+      }
+    },
+    "gate_status": {"enum": ["pass", "fail", "not_evaluated"]},
+    "hard_failures": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["case_id", "run_id", "failure_type", "evidence"],
+        "properties": {
+          "case_id": {"type": "string"},
+          "run_id": {"type": "string"},
+          "failure_type": {"type": "string"},
+          "evidence": {"type": "array", "items": {"type": "string"}}
+        }
+      }
+    },
+    "bad_case_candidates": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["case_id", "failure_signature", "review_status"],
+        "properties": {
+          "case_id": {"type": "string"},
+          "failure_signature": {"type": "string"},
+          "review_status": {"enum": ["pending", "accepted", "rejected", "duplicate"]}
+        }
+      }
+    }
+  }
+}
+

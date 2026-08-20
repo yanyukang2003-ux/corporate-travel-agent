@@ -1,0 +1,476 @@
+{
+  "schema_version": 1,
+  "evaluation_id": "eval-39c67775-ef87-4920-8241-754280dc87e7",
+  "protocol_id": "agent-eval-v1",
+  "evaluator_version": "regression-evaluator-v1",
+  "generated_at": "2026-08-02T13:44:24.603696Z",
+  "project_version": "0.1.0",
+  "comparison_mode": "baseline_initialization_self_check",
+  "independent_candidate_run": false,
+  "baseline_file": "evals/baselines/agent-eval-baseline-v1.json",
+  "baseline_sha256": "5c7f81f205fbb5484247491d1dab754fe5ca58ee71036085c76880a0d947aaba",
+  "current_artifacts": {
+    "quality": {
+      "path": "reports/evaluation-runs/phase2-quality-20260802/evaluation-result.json",
+      "sha256": "ee4e3938567a1f07239bb223f3fd3111c01088c665c1d24f99306e52dad18ceb",
+      "evaluation_id": "eval-fcf2bd4c-2889-475b-9dfb-3a9f4e99c985",
+      "dataset_id": "corporate-travel-derived-v2-workflow",
+      "dataset_version": "2",
+      "selected_cases": 60,
+      "expected_runs": 60
+    },
+    "trajectory": {
+      "path": "reports/evaluation-runs/phase3-trajectory-20260802/trajectory-evaluation-result.json",
+      "sha256": "eb7ab52dbcf0f6361ec476380357bd550be8f9a5482fe9e5b6a7efbd8c26f3af",
+      "evaluation_id": "eval-114e34b2-3def-46a4-87b3-f41c066cdc19",
+      "dataset_id": "corporate-travel-derived-v2-workflow",
+      "dataset_version": "2",
+      "selected_cases": 60,
+      "expected_runs": 60
+    },
+    "efficiency": {
+      "path": "reports/evaluation-runs/phase4-tool-efficiency-20260802/tool-efficiency-evaluation-result.json",
+      "sha256": "cb273cbd79367fc6b46d01a257d362490a58570a48fbc9fcd23207980ebc9255",
+      "evaluation_id": "eval-e8ad540b-3602-43e0-a954-43e11e882ea7",
+      "dataset_id": "corporate-travel-derived-v2-workflow",
+      "dataset_version": "2",
+      "selected_cases": 60,
+      "expected_runs": 60
+    },
+    "recovery": {
+      "path": "reports/evaluation-runs/phase5-fault-recovery-20260802/fault-recovery-evaluation-result.json",
+      "sha256": "d6f74a9c164a7e508a26975fde7f9b3abfcfeba8959181258949f681f217ab1b",
+      "evaluation_id": "eval-0021138e-6df3-4148-b288-9f93ac14bce0",
+      "dataset_id": "fault-eval-v1",
+      "dataset_version": "1.0.0",
+      "selected_cases": 16,
+      "expected_runs": 16
+    },
+    "performance": {
+      "path": "reports/evaluation-runs/phase6-cost-stability-20260802/analysis/performance-stability-evaluation-result.json",
+      "sha256": "fd75c4d3aeab826012f6c16fb2014e540c2c56f560d6d87f128cb07ff3031789",
+      "evaluation_id": "eval-b1387ad6-0dec-47a0-9673-55bf13336e1f",
+      "dataset_id": "corporate-travel-derived-v2-workflow",
+      "dataset_version": "2",
+      "selected_cases": 60,
+      "expected_runs": 180
+    }
+  },
+  "comparisons": [
+    {
+      "metric_id": "quality.task_pass_rate",
+      "baseline_status": "measured",
+      "baseline_value": 1.0,
+      "current_status": "measured",
+      "current_value": 1.0,
+      "absolute_threshold": 1.0,
+      "direction": "min",
+      "relative_regression": 0.0,
+      "allowed_regression": 0.0,
+      "absolute_gate": "pass",
+      "regression_gate": "pass",
+      "evidence": [
+        "baseline=1.0",
+        "current=1.0",
+        "relative_regression=0.0"
+      ]
+    },
+    {
+      "metric_id": "quality.hard_assertion_pass_rate",
+      "baseline_status": "measured",
+      "baseline_value": 1.0,
+      "current_status": "measured",
+      "current_value": 1.0,
+      "absolute_threshold": 1.0,
+      "direction": "min",
+      "relative_regression": 0.0,
+      "allowed_regression": 0.0,
+      "absolute_gate": "pass",
+      "regression_gate": "pass",
+      "evidence": [
+        "baseline=1.0",
+        "current=1.0",
+        "relative_regression=0.0"
+      ]
+    },
+    {
+      "metric_id": "quality.judge_quality_score",
+      "baseline_status": "unavailable",
+      "baseline_value": null,
+      "current_status": "unavailable",
+      "current_value": null,
+      "absolute_threshold": 4.0,
+      "direction": "min",
+      "relative_regression": null,
+      "allowed_regression": 0.0,
+      "absolute_gate": "not_evaluated",
+      "regression_gate": "not_evaluated",
+      "evidence": [
+        "Both baseline and candidate must be measured; zero substitution is forbidden."
+      ]
+    },
+    {
+      "metric_id": "trajectory.trajectory_pass_rate",
+      "baseline_status": "measured",
+      "baseline_value": 1.0,
+      "current_status": "measured",
+      "current_value": 1.0,
+      "absolute_threshold": 1.0,
+      "direction": "min",
+      "relative_regression": 0.0,
+      "allowed_regression": 0.0,
+      "absolute_gate": "pass",
+      "regression_gate": "pass",
+      "evidence": [
+        "baseline=1.0",
+        "current=1.0",
+        "relative_regression=0.0"
+      ]
+    },
+    {
+      "metric_id": "trajectory.tool_hallucination_call_rate",
+      "baseline_status": "measured",
+      "baseline_value": 0.0,
+      "current_status": "measured",
+      "current_value": 0.0,
+      "absolute_threshold": 0.0,
+      "direction": "max",
+      "relative_regression": 0.0,
+      "allowed_regression": 0.0,
+      "absolute_gate": "pass",
+      "regression_gate": "pass",
+      "evidence": [
+        "baseline=0.0",
+        "current=0.0",
+        "relative_regression=0.0"
+      ]
+    },
+    {
+      "metric_id": "trajectory.parameter_hallucination_call_rate",
+      "baseline_status": "measured",
+      "baseline_value": 0.0,
+      "current_status": "measured",
+      "current_value": 0.0,
+      "absolute_threshold": 0.0,
+      "direction": "max",
+      "relative_regression": 0.0,
+      "allowed_regression": 0.0,
+      "absolute_gate": "pass",
+      "regression_gate": "pass",
+      "evidence": [
+        "baseline=0.0",
+        "current=0.0",
+        "relative_regression=0.0"
+      ]
+    },
+    {
+      "metric_id": "trajectory.shadow_hallucination_claim_rate",
+      "baseline_status": "measured",
+      "baseline_value": 0.0,
+      "current_status": "measured",
+      "current_value": 0.0,
+      "absolute_threshold": 0.0,
+      "direction": "max",
+      "relative_regression": 0.0,
+      "allowed_regression": 0.0,
+      "absolute_gate": "pass",
+      "regression_gate": "pass",
+      "evidence": [
+        "baseline=0.0",
+        "current=0.0",
+        "relative_regression=0.0"
+      ]
+    },
+    {
+      "metric_id": "efficiency.normal_duplicate_call_rate",
+      "baseline_status": "measured",
+      "baseline_value": 0.0,
+      "current_status": "measured",
+      "current_value": 0.0,
+      "absolute_threshold": 0.0,
+      "direction": "max",
+      "relative_regression": 0.0,
+      "allowed_regression": 0.0,
+      "absolute_gate": "pass",
+      "regression_gate": "pass",
+      "evidence": [
+        "baseline=0.0",
+        "current=0.0",
+        "relative_regression=0.0"
+      ]
+    },
+    {
+      "metric_id": "efficiency.redundant_call_rate",
+      "baseline_status": "measured",
+      "baseline_value": 0.0,
+      "current_status": "measured",
+      "current_value": 0.0,
+      "absolute_threshold": 0.1,
+      "direction": "max",
+      "relative_regression": 0.0,
+      "allowed_regression": 0.0,
+      "absolute_gate": "pass",
+      "regression_gate": "pass",
+      "evidence": [
+        "baseline=0.0",
+        "current=0.0",
+        "relative_regression=0.0"
+      ]
+    },
+    {
+      "metric_id": "efficiency.tool_calls_p95",
+      "baseline_status": "measured",
+      "baseline_value": 5.0,
+      "current_status": "measured",
+      "current_value": 5.0,
+      "absolute_threshold": 7.0,
+      "direction": "max",
+      "relative_regression": 0.0,
+      "allowed_regression": 0.0,
+      "absolute_gate": "pass",
+      "regression_gate": "pass",
+      "evidence": [
+        "baseline=5.0",
+        "current=5.0",
+        "relative_regression=0.0"
+      ]
+    },
+    {
+      "metric_id": "efficiency.tool_calls_max",
+      "baseline_status": "measured",
+      "baseline_value": 5.0,
+      "current_status": "measured",
+      "current_value": 5.0,
+      "absolute_threshold": 12.0,
+      "direction": "max",
+      "relative_regression": 0.0,
+      "allowed_regression": 0.0,
+      "absolute_gate": "pass",
+      "regression_gate": "pass",
+      "evidence": [
+        "baseline=5.0",
+        "current=5.0",
+        "relative_regression=0.0"
+      ]
+    },
+    {
+      "metric_id": "recovery.recoverable_fault_success_rate",
+      "baseline_status": "measured",
+      "baseline_value": 0.3333333333333333,
+      "current_status": "measured",
+      "current_value": 0.3333333333333333,
+      "absolute_threshold": 0.8,
+      "direction": "min",
+      "relative_regression": 0.0,
+      "allowed_regression": 0.0,
+      "absolute_gate": "fail",
+      "regression_gate": "pass",
+      "evidence": [
+        "baseline=0.3333333333333333",
+        "current=0.3333333333333333",
+        "relative_regression=0.0"
+      ]
+    },
+    {
+      "metric_id": "recovery.safe_degradation_rate",
+      "baseline_status": "measured",
+      "baseline_value": 1.0,
+      "current_status": "measured",
+      "current_value": 1.0,
+      "absolute_threshold": 0.95,
+      "direction": "min",
+      "relative_regression": 0.0,
+      "allowed_regression": 0.0,
+      "absolute_gate": "pass",
+      "regression_gate": "pass",
+      "evidence": [
+        "baseline=1.0",
+        "current=1.0",
+        "relative_regression=0.0"
+      ]
+    },
+    {
+      "metric_id": "recovery.unsafe_recovery_rate",
+      "baseline_status": "measured",
+      "baseline_value": 0.0,
+      "current_status": "measured",
+      "current_value": 0.0,
+      "absolute_threshold": 0.0,
+      "direction": "max",
+      "relative_regression": 0.0,
+      "allowed_regression": 0.0,
+      "absolute_gate": "pass",
+      "regression_gate": "pass",
+      "evidence": [
+        "baseline=0.0",
+        "current=0.0",
+        "relative_regression=0.0"
+      ]
+    },
+    {
+      "metric_id": "recovery.partial_result_disclosure_rate",
+      "baseline_status": "measured",
+      "baseline_value": 0.0,
+      "current_status": "measured",
+      "current_value": 0.0,
+      "absolute_threshold": 1.0,
+      "direction": "min",
+      "relative_regression": 0.0,
+      "allowed_regression": 0.0,
+      "absolute_gate": "fail",
+      "regression_gate": "pass",
+      "evidence": [
+        "baseline=0.0",
+        "current=0.0",
+        "relative_regression=0.0"
+      ]
+    },
+    {
+      "metric_id": "stability.pass_power_3",
+      "baseline_status": "measured",
+      "baseline_value": 1.0,
+      "current_status": "measured",
+      "current_value": 1.0,
+      "absolute_threshold": 1.0,
+      "direction": "min",
+      "relative_regression": 0.0,
+      "allowed_regression": 0.0,
+      "absolute_gate": "pass",
+      "regression_gate": "pass",
+      "evidence": [
+        "baseline=1.0",
+        "current=1.0",
+        "relative_regression=0.0"
+      ]
+    },
+    {
+      "metric_id": "stability.mixed_run_rate",
+      "baseline_status": "measured",
+      "baseline_value": 0.0,
+      "current_status": "measured",
+      "current_value": 0.0,
+      "absolute_threshold": 0.1,
+      "direction": "max",
+      "relative_regression": 0.0,
+      "allowed_regression": 0.0,
+      "absolute_gate": "pass",
+      "regression_gate": "pass",
+      "evidence": [
+        "baseline=0.0",
+        "current=0.0",
+        "relative_regression=0.0"
+      ]
+    },
+    {
+      "metric_id": "performance.total_latency_ms_p95",
+      "baseline_status": "measured",
+      "baseline_value": 1.303,
+      "current_status": "measured",
+      "current_value": 1.303,
+      "absolute_threshold": null,
+      "direction": "max",
+      "relative_regression": 0.0,
+      "allowed_regression": 0.5,
+      "absolute_gate": "not_evaluated",
+      "regression_gate": "pass",
+      "evidence": [
+        "baseline=1.303",
+        "current=1.303",
+        "relative_regression=0.0"
+      ]
+    },
+    {
+      "metric_id": "cost.per_successful_task",
+      "baseline_status": "not_applicable",
+      "baseline_value": null,
+      "current_status": "not_applicable",
+      "current_value": null,
+      "absolute_threshold": null,
+      "direction": "max",
+      "relative_regression": null,
+      "allowed_regression": 0.2,
+      "absolute_gate": "not_evaluated",
+      "regression_gate": "not_evaluated",
+      "evidence": [
+        "Both baseline and candidate must be measured; zero substitution is forbidden."
+      ]
+    },
+    {
+      "metric_id": "stability.real_model_gate",
+      "baseline_status": "unavailable",
+      "baseline_value": null,
+      "current_status": "unavailable",
+      "current_value": null,
+      "absolute_threshold": 1.0,
+      "direction": "min",
+      "relative_regression": null,
+      "allowed_regression": 0.0,
+      "absolute_gate": "not_evaluated",
+      "regression_gate": "not_evaluated",
+      "evidence": [
+        "Both baseline and candidate must be measured; zero substitution is forbidden."
+      ]
+    }
+  ],
+  "absolute_gate_status": "fail",
+  "regression_gate_status": "pass",
+  "release_gate_status": "fail",
+  "unevaluated_required_metrics": [
+    "quality.judge_quality_score",
+    "stability.real_model_gate"
+  ],
+  "failed_absolute_metrics": [
+    "recovery.recoverable_fault_success_rate",
+    "recovery.partial_result_disclosure_rate"
+  ],
+  "regressed_metrics": [],
+  "mutation_checks": [
+    {
+      "mutation_id": "quality_drop",
+      "metric_id": "quality.task_pass_rate",
+      "expected_gate": "fail",
+      "actual_gate": "fail",
+      "detected": true
+    },
+    {
+      "mutation_id": "tool_hallucination",
+      "metric_id": "trajectory.tool_hallucination_call_rate",
+      "expected_gate": "fail",
+      "actual_gate": "fail",
+      "detected": true
+    },
+    {
+      "mutation_id": "duplicate_call",
+      "metric_id": "efficiency.normal_duplicate_call_rate",
+      "expected_gate": "fail",
+      "actual_gate": "fail",
+      "detected": true
+    },
+    {
+      "mutation_id": "recovery_drop",
+      "metric_id": "recovery.recoverable_fault_success_rate",
+      "expected_gate": "fail",
+      "actual_gate": "fail",
+      "detected": true
+    },
+    {
+      "mutation_id": "latency_plus_51_percent",
+      "metric_id": "performance.total_latency_ms_p95",
+      "expected_gate": "fail",
+      "actual_gate": "fail",
+      "detected": true
+    },
+    {
+      "mutation_id": "unknown_cost_not_zero",
+      "metric_id": "cost.per_successful_task",
+      "expected_gate": "not_evaluated",
+      "actual_gate": "not_evaluated",
+      "detected": true
+    }
+  ],
+  "mutation_detection_rate": 1.0,
+  "limitations": [
+    "This initialization run reuses the baseline artifacts and is not an independent candidate run.",
+    "Unknown Judge, real-model, Token, or cost values are never replaced with zero."
+  ]
+}

@@ -1,0 +1,206 @@
+{
+  "schema_version": 1,
+  "run_id": "duffel-liteapi-full-chain-provider-alias-fix-20260811",
+  "evaluation_mode": "deterministic_live_duffel_liteapi_full_chain",
+  "provider": "duffel+liteapi",
+  "provider_mode": "test+sandbox-read-only",
+  "dataset": {
+    "id": "duffel-liteapi-real-full-chain-v2",
+    "version": "2.0.0",
+    "sha256": "dd9ef5cda03ad5c20868e67f320d4b64014b7e13a136be7d954c515a2482b3be",
+    "case_id": "real-lhr-jfk-flight-hotel-select-revalidate-handoff"
+  },
+  "code_revision": "workspace-provider-alias-fix-20260811",
+  "started_at": "2026-08-11T08:33:20.326473+00:00",
+  "completed_at": "2026-08-11T08:33:53.501150+00:00",
+  "duration_ms": 33177.558,
+  "request": {
+    "origin": "LHR",
+    "destination": "JFK",
+    "departure_after": "2026-09-15T00:00:00+00:00",
+    "arrive_by": "2026-09-17T00:00:00+00:00",
+    "hotel_check_in": "2026-09-15",
+    "hotel_check_out": "2026-09-17",
+    "currency": "USD"
+  },
+  "external_calls": {
+    "total": 5,
+    "duffel": 3,
+    "liteapi": 2,
+    "base": 4,
+    "maximum": 12
+  },
+  "external_requests_by_provider": {
+    "duffel": [
+      {
+        "provider": "duffel",
+        "method": "POST",
+        "path": "/air/offer_requests"
+      },
+      {
+        "provider": "duffel",
+        "method": "POST",
+        "path": "/air/offer_requests"
+      },
+      {
+        "provider": "duffel",
+        "method": "GET",
+        "path": "/air/offers/off_0000B9G1RJXGNZgTXlTqCk"
+      }
+    ],
+    "liteapi": [
+      {
+        "provider": "liteapi",
+        "method": "POST",
+        "path": "/hotels/rates"
+      },
+      {
+        "provider": "liteapi",
+        "method": "POST",
+        "path": "/hotels/rates"
+      }
+    ]
+  },
+  "provider_tool_calls": [
+    "provider.search_transport.outbound",
+    "provider.search_transport.outbound",
+    "provider.search_hotels",
+    "provider.revalidate"
+  ],
+  "successful_provider_tool_calls": [
+    "provider.search_transport.outbound",
+    "provider.search_hotels",
+    "provider.revalidate"
+  ],
+  "provider_tool_call_records": [
+    {
+      "sequence": 1,
+      "tool_name": "provider.search_transport.outbound",
+      "status": "FAILED",
+      "retryable": true,
+      "retry_of": null,
+      "reason_code": null,
+      "error_code": "DUFFEL_TRANSPORT_CONNECTION_ERROR",
+      "error_layer": "duffel_transport"
+    },
+    {
+      "sequence": 2,
+      "tool_name": "provider.search_transport.outbound",
+      "status": "SUCCEEDED",
+      "retryable": null,
+      "retry_of": 1,
+      "reason_code": "TRANSIENT_PROVIDER_FAULT",
+      "error_code": null,
+      "error_layer": null
+    },
+    {
+      "sequence": 3,
+      "tool_name": "provider.search_hotels",
+      "status": "SUCCEEDED",
+      "retryable": null,
+      "retry_of": null,
+      "reason_code": null,
+      "error_code": null,
+      "error_layer": null
+    },
+    {
+      "sequence": 4,
+      "tool_name": "provider.revalidate",
+      "status": "SUCCEEDED",
+      "retryable": null,
+      "retry_of": null,
+      "reason_code": null,
+      "error_code": null,
+      "error_layer": null
+    }
+  ],
+  "retry_policy": {
+    "max_provider_attempts": 3,
+    "backoff_base_seconds": 0.5,
+    "provider_retries": 1,
+    "failed_provider_attempts": 1
+  },
+  "task_state": "RECONFIRMATION_REQUIRED",
+  "task_failure": null,
+  "option_count": 3,
+  "selection_error": null,
+  "unexpected_error": null,
+  "selected_option": {
+    "option_id": "opt-off_0000B9G1RJXGNZgTXlTqCk-litehotel_825759d13e7a733cc5ce6734",
+    "flight_ref": "off_0000B9G1RJXGNZgTXlTqCk",
+    "flight_price": "214.20",
+    "hotel_ref": "litehotel_825759d13e7a733cc5ce6734",
+    "hotel_name": "Hotel Riu Plaza Manhattan Times Square",
+    "hotel_nightly_price": "531.82",
+    "hotel_nights": 2,
+    "total_cost": "1277.84",
+    "currency": "USD",
+    "policy_outcome": "COMPLIANT"
+  },
+  "revalidation": {
+    "status": "PRICE_CHANGED",
+    "checked_at": "2026-08-11T08:33:47.891380+00:00",
+    "current_prices": {
+      "off_0000B9G1RJXGNZgTXlTqCk": "214.20",
+      "litehotel_825759d13e7a733cc5ce6734": "533.72"
+    },
+    "warnings": [
+      "litehotel_825759d13e7a733cc5ce6734: LiteAPI rotated the offer token during quote refresh"
+    ]
+  },
+  "handoff": null,
+  "snapshots": [
+    {
+      "snapshot_id": "duffel-flight-46266f468e7576f0",
+      "provider": "duffel",
+      "source_type": "AUTHORIZED_API",
+      "item_count": 44,
+      "raw_payload_sha256": "a495664da275408325ad9b2afed7ad9040674346ffa380fd75f4568ede0d1661",
+      "raw_response_archived": true,
+      "warnings": [
+        "Duffel Test Mode sandbox inventory; schedules and prices are not production data",
+        "Duffel response was capped at 50 normalized offers"
+      ]
+    },
+    {
+      "snapshot_id": "liteapi-hotel-33d5cc500ad2a344",
+      "provider": "liteapi",
+      "source_type": "AUTHORIZED_API",
+      "item_count": 28,
+      "raw_payload_sha256": "5615c1d225f35d72a10df94920e2fff97dc587464ad11aaad0a55a3c392a31fa",
+      "raw_response_archived": true,
+      "warnings": [
+        "LiteAPI/Nuitee Connect Sandbox hotel rates; availability and prices are test data",
+        "LiteAPI hotel rates are search quotes only; no prebook, booking, or payment was created",
+        "LiteAPI does not provide client-office commute time; commute_minutes=1440 marks this evidence as unknown"
+      ]
+    }
+  ],
+  "checks": {
+    "workflow_completed_without_exception": true,
+    "selection_succeeded": true,
+    "default_retry_policy_applied": true,
+    "external_call_budget_respected": true,
+    "duffel_call_budget_respected": true,
+    "liteapi_call_budget_respected": true,
+    "provider_retry_contract_valid": true,
+    "duffel_search_then_revalidate": true,
+    "liteapi_search_then_quote_refresh": true,
+    "flight_snapshot_authorized": true,
+    "hotel_snapshot_authorized": true,
+    "minimum_combined_options": true,
+    "selected_option_has_both_providers": true,
+    "selected_prices_use_policy_currency": true,
+    "selected_option_policy_compliant": true,
+    "both_quotes_revalidated": true,
+    "allowed_revalidation_status": true,
+    "expected_provider_tool_sequence": true,
+    "conditional_final_state": true,
+    "conditional_booking_intent": true,
+    "unchanged_handoff_covers_flight_and_hotel": true,
+    "search_and_revalidation_archived": true,
+    "no_booking_payment_or_order_http": true,
+    "provider_secrets_not_archived": true
+  },
+  "passed": true
+}

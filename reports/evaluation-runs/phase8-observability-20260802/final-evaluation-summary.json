@@ -1,0 +1,150 @@
+{
+  "schema_version": 1,
+  "summary_id": "summary-c947550b-3ce0-4a20-b5c8-df69f23d41a6",
+  "protocol_id": "agent-eval-v1",
+  "generated_at": "2026-08-02T14:09:06.174623Z",
+  "project_version": "0.1.0",
+  "safety_gate": "pass",
+  "release_gate": "fail",
+  "full_score_status": "not_evaluated",
+  "offline_measured_weight": 90,
+  "offline_earned_points": 80.0,
+  "offline_normalized_score": 0.8888888888888888,
+  "components": [
+    {
+      "component_id": "task_quality",
+      "weight": 40,
+      "status": "partial",
+      "normalized_value": 1.0,
+      "earned_points": 40.0,
+      "evidence": [
+        "D1 deterministic quality measured",
+        "real-model and Judge unavailable"
+      ]
+    },
+    {
+      "component_id": "stability",
+      "weight": 20,
+      "status": "partial",
+      "normalized_value": 1.0,
+      "earned_points": 20.0,
+      "evidence": [
+        "D1 deterministic 3-run stability measured",
+        "real-model 3-run unavailable"
+      ]
+    },
+    {
+      "component_id": "trajectory",
+      "weight": 15,
+      "status": "measured",
+      "normalized_value": 1.0,
+      "earned_points": 15.0,
+      "evidence": [
+        "D1 full trace evaluation"
+      ]
+    },
+    {
+      "component_id": "recovery",
+      "weight": 15,
+      "status": "measured",
+      "normalized_value": 0.3333333333333333,
+      "earned_points": 5.0,
+      "evidence": [
+        "D5 recoverable-fault success rate"
+      ]
+    },
+    {
+      "component_id": "cost_efficiency",
+      "weight": 10,
+      "status": "not_evaluated",
+      "normalized_value": null,
+      "earned_points": null,
+      "evidence": [
+        "no LLM cost exposure",
+        "tool efficiency measured separately"
+      ]
+    }
+  ],
+  "capabilities": [
+    {
+      "capability": "任务完成质量",
+      "status": "partial",
+      "evidence": "D1 60/60；真实模型质量与 Judge 未评测"
+    },
+    {
+      "capability": "轨迹感知与三类幻觉",
+      "status": "measured_pass",
+      "evidence": "D1 轨迹 60/60，三类幻觉事件均为 0；工具选择由编排器控制"
+    },
+    {
+      "capability": "工具效率",
+      "status": "measured_pass",
+      "evidence": "重复/冗余/无增益均为 0，P95 调用数 5"
+    },
+    {
+      "capability": "异常恢复",
+      "status": "measured_fail",
+      "evidence": "可恢复故障成功率 33.3%，部分结果披露率 0%"
+    },
+    {
+      "capability": "Token、时延与费用",
+      "status": "partial",
+      "evidence": "本地时延已测；真实 LLM Token 和费用未评测"
+    },
+    {
+      "capability": "多次运行稳定性",
+      "status": "partial",
+      "evidence": "D1 三次稳定 100%；真实模型 24×3 未运行"
+    },
+    {
+      "capability": "坏案例闭环",
+      "status": "measured_pass",
+      "evidence": "D6 6 条 accepted、1 条 pending，已接入版本化回归"
+    },
+    {
+      "capability": "线上观测",
+      "status": "partial",
+      "evidence": "本地观测、聚合和告警就绪；真实生产窗口为 0"
+    }
+  ],
+  "known_failures": [
+    "recoverable_fault_success_rate=33.3% < 80%",
+    "partial_result_disclosure_rate=0% < 100%"
+  ],
+  "required_but_unevaluated": [
+    "real-model task quality on intent-model-smoke-v1",
+    "real-model pass_power_3 and mixed_run_rate",
+    "measured LLM Token and cost",
+    "calibrated LLM Judge or human review",
+    "production observation trends"
+  ],
+  "real_api_plan": {
+    "status": "blocked_prerequisites",
+    "evaluation_mode": "real_llm_mock_provider",
+    "subset_id": "intent-model-smoke-v1",
+    "subset_records": 24,
+    "attempts_per_case": 3,
+    "expected_billable_model_calls": 72,
+    "provider_mode": "MOCK",
+    "api_key_configured": false,
+    "model_explicitly_configured": false,
+    "requested_model": "gpt-5.6",
+    "sdk_installed": true,
+    "price_table_status": "unconfigured",
+    "requested_model_has_price": false,
+    "billable_confirmation_received": false,
+    "ready_to_run": false,
+    "blockers": [
+      "OPENAI_API_KEY is not configured",
+      "OPENAI_MODEL is not explicitly configured",
+      "the versioned price table is unconfigured",
+      "explicit --confirm-billable approval has not been supplied"
+    ],
+    "limitations": [
+      "The real model extracts intent only; tool selection remains orchestrator-controlled.",
+      "Travel inventory and provider calls remain deterministic Mock data.",
+      "This is not a live airline, hotel, booking, or payment evaluation."
+    ]
+  },
+  "interpretation": "The 80/90 offline evidence score is diagnostic only. It excludes the 10-point cost component and relies on deterministic evidence for quality and stability; the full 100-point score remains not_evaluated and the release gate fails."
+}

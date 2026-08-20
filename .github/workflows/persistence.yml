@@ -1,0 +1,69 @@
+name: quality
+
+on: [push, pull_request]
+
+jobs:
+  python-quality-and-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install package
+        run: python -m pip install -e '.[dev,persistence]'
+      - name: Alembic upgrade on SQLite
+        env:
+          DATABASE_URL: sqlite+pysqlite:////tmp/travel-agent-ci.db
+        run: alembic upgrade head
+      - name: Lint
+        run: ruff check src tests examples migrations
+      - name: Full Python suite
+        run: pytest -q
+
+  frontend-quality-and-build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - run: npm test
+      - run: npm run build
+
+  postgres-smoke:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: travel_agent
+          POSTGRES_USER: travel_agent
+          POSTGRES_PASSWORD: travel_agent_dev
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U travel_agent -d travel_agent"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install package
+        run: python -m pip install -e '.[dev,persistence]'
+      - name: Migrate and verify
+        env:
+          DATABASE_URL: postgresql+psycopg://travel_agent:travel_agent_dev@127.0.0.1:5432/travel_agent
+        run: |
+          alembic upgrade head
+          python examples/verify_postgres.py

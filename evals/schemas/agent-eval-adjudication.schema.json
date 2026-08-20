@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://local.corporate-travel-agent/evals/agent-eval-adjudication.schema.json",
+  "title": "agent-eval-v1 adjudication round",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "dataset_id", "round", "records"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "dataset_id": {"const": "agent-eval-v1"},
+    "round": {"const": 1},
+    "records": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "case_id",
+          "reviewer_a_verdict",
+          "reviewer_b_verdict",
+          "resolution",
+          "issue_codes",
+          "comment",
+          "adjudicated_at"
+        ],
+        "properties": {
+          "case_id": {"type": "string", "minLength": 1},
+          "reviewer_a_verdict": {"enum": ["accept", "revise", "reject"]},
+          "reviewer_b_verdict": {"enum": ["accept", "revise", "reject"]},
+          "resolution": {"enum": ["pending", "accept", "revise", "reject"]},
+          "issue_codes": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+          "comment": {"type": "string"},
+          "adjudicated_at": {"type": ["string", "null"], "format": "date-time"}
+        }
+      }
+    }
+  }
+}

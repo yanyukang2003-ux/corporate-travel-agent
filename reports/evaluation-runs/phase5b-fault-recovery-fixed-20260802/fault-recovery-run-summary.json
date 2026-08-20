@@ -1,0 +1,69 @@
+{
+  "schema_version": 1,
+  "evaluation_id": "eval-db4d4b0a-6b43-4beb-9bbe-16da95d501eb",
+  "protocol_id": "agent-eval-v1",
+  "evaluator_version": "fault-recovery-evaluator-v1",
+  "project_version": "0.1.0",
+  "generated_at": "2026-08-02T15:38:18.148670Z",
+  "evaluation_mode": "deterministic_mock_fault_injection",
+  "dataset_id": "fault-eval-v1",
+  "dataset_version": "1.0.0",
+  "dataset_sha256": "e39b9918a4085cac1e7f599bebf5311e7c749e4694cd9f159a3e8e1b2013a901",
+  "dataset_manifest_sha256": "c079584b8a09e82720865766e8dd491b0fc9a4406aca5f350c5bf2bb79a83884",
+  "base_dataset_sha256": "9041eba5564c07dd3ca94dfa9e2d597d3bff59a67ee9e679b7ca529287e7dbfd",
+  "selected_cases": 16,
+  "completed_runs": 16,
+  "traces_file": "fault-traces.jsonl",
+  "traces_sha256": "e9f0d210b9e51b11567eef44e013939fa4683aa63d0fcab833e401740589a72a",
+  "case_results_file": "fault-recovery-case-results.jsonl",
+  "case_results_sha256": "2c1a4888c9d7eda1f387b4d4961fb8a22a49f13375803e0fa7f9aac1f22ecee8",
+  "evaluation_result_file": "fault-recovery-evaluation-result.json",
+  "evaluation_result_sha256": "3e581ee3ec65a91021f40f644706d51a26d047fc9b32958276ff4885387e6f05",
+  "total_tool_calls": 67,
+  "autonomous_recovery_candidates": 6,
+  "autonomous_recoveries": 6,
+  "safe_degradation_cases": 10,
+  "safe_degradations": 10,
+  "unsafe_recoveries": 0,
+  "restart_cases": 2,
+  "restart_state_recoveries": 2,
+  "stage_5_gate_passed": true,
+  "full_protocol_gate": "not_evaluated",
+  "real_model_calls": 0,
+  "estimated_cost": null,
+  "mutation_checks": [
+    {
+      "mutation_id": "inject-ungrounded-claim",
+      "expected_detection": "ungrounded_claim",
+      "detected": true
+    },
+    {
+      "mutation_id": "release-booking-without-verification",
+      "expected_detection": "incorrect_booking_release",
+      "detected": true
+    },
+    {
+      "mutation_id": "drop-persisted-request",
+      "expected_detection": "lost_task_state",
+      "detected": true
+    },
+    {
+      "mutation_id": "remove-failure-notice",
+      "expected_detection": "missing_user_notice",
+      "detected": true
+    },
+    {
+      "mutation_id": "leave-started-call-after-restart",
+      "expected_detection": "missing_restart_recovery",
+      "detected": true
+    }
+  ],
+  "limitations": [
+    "Faults are deterministic scripted Mock behaviors, not measured network or provider incidents.",
+    "Timeout injection raises immediately; it does not sleep for a real timeout interval.",
+    "Autonomous recovery counts only completion without an evaluator-triggered retry or replan.",
+    "Process restart uses SQLite persistence and measures fail-closed state recovery, not automatic task completion.",
+    "Partial responses expose provider warnings internally, but the deterministic user projection is evaluated separately for disclosure.",
+    "No real model, external provider, token usage, or monetary cost is measured in this stage."
+  ]
+}

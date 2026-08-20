@@ -1,0 +1,148 @@
+{
+  "schema_version": 1,
+  "run_id": "duffel-liteapi-full-chain-20260809-2",
+  "evaluation_mode": "deterministic_live_duffel_liteapi_full_chain",
+  "provider": "duffel+liteapi",
+  "provider_mode": "test+sandbox-read-only",
+  "dataset": {
+    "id": "duffel-liteapi-real-full-chain-v1",
+    "version": "1.0.0",
+    "sha256": "aa575b23c54481ad035afb6912cc199fecadbbb2cad211477bbd924d1a8f8008",
+    "case_id": "real-lhr-jfk-flight-hotel-select-revalidate-handoff"
+  },
+  "code_revision": "workspace-v1.0.3-20260809-liteapi",
+  "started_at": "2026-08-09T15:24:01.719008+00:00",
+  "completed_at": "2026-08-09T15:24:18.721964+00:00",
+  "duration_ms": 17006.938,
+  "request": {
+    "origin": "LHR",
+    "destination": "JFK",
+    "departure_after": "2026-09-15T00:00:00+00:00",
+    "arrive_by": "2026-09-17T00:00:00+00:00",
+    "hotel_check_in": "2026-09-15",
+    "hotel_check_out": "2026-09-17",
+    "currency": "USD"
+  },
+  "external_calls": {
+    "total": 4,
+    "duffel": 2,
+    "liteapi": 2
+  },
+  "external_requests_by_provider": {
+    "duffel": [
+      {
+        "provider": "duffel",
+        "method": "POST",
+        "path": "/air/offer_requests"
+      },
+      {
+        "provider": "duffel",
+        "method": "GET",
+        "path": "/air/offers/off_0000B9CT3IIl2STyIZg4Bg"
+      }
+    ],
+    "liteapi": [
+      {
+        "provider": "liteapi",
+        "method": "POST",
+        "path": "/hotels/rates"
+      },
+      {
+        "provider": "liteapi",
+        "method": "POST",
+        "path": "/hotels/rates"
+      }
+    ]
+  },
+  "provider_tool_calls": [
+    "provider.search_transport.outbound",
+    "provider.search_hotels",
+    "provider.revalidate",
+    "provider.create_deep_link"
+  ],
+  "task_state": "READY_FOR_HANDOFF",
+  "task_failure": null,
+  "option_count": 3,
+  "selection_error": null,
+  "unexpected_error": null,
+  "selected_option": {
+    "option_id": "opt-off_0000B9CT3IIl2STyIZg4Bg-litehotel_a532accbdee37692786bb03e",
+    "flight_ref": "off_0000B9CT3IIl2STyIZg4Bg",
+    "flight_price": "215.52",
+    "hotel_ref": "litehotel_a532accbdee37692786bb03e",
+    "hotel_name": "Hotel Riu Plaza Manhattan Times Square",
+    "hotel_nightly_price": "444.29",
+    "hotel_nights": 2,
+    "total_cost": "1104.10",
+    "currency": "USD",
+    "policy_outcome": "COMPLIANT"
+  },
+  "revalidation": {
+    "status": "UNCHANGED",
+    "checked_at": "2026-08-09T15:24:13.861181+00:00",
+    "current_prices": {
+      "off_0000B9CT3IIl2STyIZg4Bg": "215.52",
+      "litehotel_a532accbdee37692786bb03e": "444.29"
+    },
+    "warnings": [
+      "litehotel_a532accbdee37692786bb03e: LiteAPI rotated the offer token during quote refresh"
+    ]
+  },
+  "handoff": {
+    "provider": "duffel+liteapi",
+    "instructions": "duffel: Test Mode only; no order was created. Re-open the Duffel test flow for off_0000B9CT3IIl2STyIZg4Bg | liteapi: LiteAPI search-only hotel quote litehotel_a532accbdee37692786bb03e; no prebook, booking, or payment was created. A separately approved checkout integration is required to continue.",
+    "expires_at": "2026-08-09T15:34:13.861181+00:00"
+  },
+  "snapshots": [
+    {
+      "snapshot_id": "duffel-flight-da4d2e663b10887f",
+      "provider": "duffel",
+      "source_type": "AUTHORIZED_API",
+      "item_count": 42,
+      "raw_payload_sha256": "cc4656d06283b1998b08aca1c65eb39a2237cc2c274147ad6e19603c63ccdf2f",
+      "raw_response_archived": true,
+      "warnings": [
+        "Duffel Test Mode sandbox inventory; schedules and prices are not production data",
+        "Duffel response was capped at 50 normalized offers"
+      ]
+    },
+    {
+      "snapshot_id": "liteapi-hotel-ad07672c4842ce94",
+      "provider": "liteapi",
+      "source_type": "AUTHORIZED_API",
+      "item_count": 27,
+      "raw_payload_sha256": "9e773ca231a1c7e9bb4bd63a30a3be9f715d96f5c830c9f9fcc46a443a85f85e",
+      "raw_response_archived": true,
+      "warnings": [
+        "LiteAPI/Nuitee Connect Sandbox hotel rates; availability and prices are test data",
+        "LiteAPI hotel rates are search quotes only; no prebook, booking, or payment was created",
+        "LiteAPI does not provide client-office commute time; commute_minutes=1440 marks this evidence as unknown"
+      ]
+    }
+  ],
+  "checks": {
+    "workflow_completed_without_exception": true,
+    "selection_succeeded": true,
+    "exact_external_call_cap": true,
+    "duffel_call_cap": true,
+    "liteapi_call_cap": true,
+    "duffel_search_then_revalidate": true,
+    "liteapi_search_then_quote_refresh": true,
+    "flight_snapshot_authorized": true,
+    "hotel_snapshot_authorized": true,
+    "minimum_combined_options": true,
+    "selected_option_has_both_providers": true,
+    "selected_prices_use_policy_currency": true,
+    "selected_option_policy_compliant": true,
+    "both_quotes_revalidated": true,
+    "allowed_revalidation_status": true,
+    "expected_provider_tool_sequence": true,
+    "conditional_final_state": true,
+    "conditional_booking_intent": true,
+    "unchanged_handoff_covers_flight_and_hotel": true,
+    "search_and_revalidation_archived": true,
+    "no_booking_payment_or_order_http": true,
+    "provider_secrets_not_archived": true
+  },
+  "passed": true
+}

@@ -1,0 +1,66 @@
+{
+  "schema_version": 1,
+  "dataset_id": "agent-eval-v1",
+  "dataset_version": "1.0.0",
+  "mode": "model_mock",
+  "subset_id": "agent-eval-model-preflight-v1",
+  "runner_version": "d4-agent-eval-model-mock-v1",
+  "attempts_per_case": 1,
+  "selected_cases": 2,
+  "completed_runs": 2,
+  "passed_cases": 2,
+  "failed_cases": 0,
+  "error_cases": 0,
+  "real_model_calls": 2,
+  "assertion_pass_rate": 1.0,
+  "case_results": [
+    {
+      "case_id": "core-business-class-approval-008",
+      "category": "core",
+      "split": "development",
+      "mode": "model_mock",
+      "attempt": 1,
+      "passed": true,
+      "final_state": "WAITING_FOR_APPROVAL",
+      "policy_outcome": "REQUIRES_APPROVAL",
+      "real_model_calls": 1,
+      "tools_called": [
+        "llm.extract_trip_intent",
+        "provider.search_transport.outbound",
+        "provider.search_transport.inbound",
+        "provider.search_hotels"
+      ],
+      "error": null,
+      "notes": [
+        "model intent message chars=154",
+        "real_model_calls=1"
+      ],
+      "failed_assertions": []
+    },
+    {
+      "case_id": "core-approval-accepted-009",
+      "category": "core",
+      "split": "development",
+      "mode": "model_mock",
+      "attempt": 1,
+      "passed": true,
+      "final_state": "READY_FOR_HANDOFF",
+      "policy_outcome": "REQUIRES_APPROVAL",
+      "real_model_calls": 1,
+      "tools_called": [
+        "llm.extract_trip_intent",
+        "provider.search_transport.outbound",
+        "provider.search_transport.inbound",
+        "provider.search_hotels",
+        "provider.revalidate",
+        "provider.create_deep_link"
+      ],
+      "error": null,
+      "notes": [
+        "model intent message chars=43",
+        "real_model_calls=1"
+      ],
+      "failed_assertions": []
+    }
+  ]
+}

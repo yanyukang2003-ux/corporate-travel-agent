@@ -1,0 +1,69 @@
+{
+  "schema_version": 1,
+  "evaluation_id": "eval-89356599-c046-455b-8e03-b6f01912f67f",
+  "protocol_id": "agent-eval-v1",
+  "evaluator_version": "tool-efficiency-evaluator-v1",
+  "generated_at": "2026-08-02T16:18:40.039464Z",
+  "evaluation_mode": "deterministic_mock_offline_replay",
+  "dataset_id": "corporate-travel-derived-v2-workflow",
+  "dataset_version": "2",
+  "dataset_sha256": "9041eba5564c07dd3ca94dfa9e2d597d3bff59a67ee9e679b7ca529287e7dbfd",
+  "selected_cases": 24,
+  "completed_runs": 72,
+  "source_trace_file": "/Users/yukangyan/Downloads/corporate-travel-agent/reports/evaluation-runs/phase12-real-model-workflow-20260803/source-run/traces.jsonl",
+  "source_trace_sha256": "14aa549187d542f73a96bf062048d48381bd5e59ae522598006c1a469caae8b9",
+  "source_case_results_file": "/Users/yukangyan/Downloads/corporate-travel-agent/reports/evaluation-runs/phase12-real-model-workflow-20260803/source-run/case-results.jsonl",
+  "source_case_results_sha256": "230c77d8d1cc3aa0b696985ed1f7e689632fa8783a06ccc566b126ad929d1ddd",
+  "source_trajectory_results_file": "/Users/yukangyan/Downloads/corporate-travel-agent/reports/evaluation-runs/phase12-real-model-workflow-20260803/trajectory-v2/trajectory-case-results.jsonl",
+  "source_trajectory_results_sha256": "d552a9250b28434c47cb8389c019a6c84f5fd270671056c694abf69fc0e3cc38",
+  "tool_registry_file": "/Users/yukangyan/Downloads/corporate-travel-agent/evals/contracts/tool-registry-v2.json",
+  "tool_registry_sha256": "814b97391ebc8e8eb5c5d96368671cfec87401e4b02cad76d791a0bc18e2f2a2",
+  "efficiency_case_results_file": "tool-efficiency-case-results.jsonl",
+  "efficiency_case_results_sha256": "992b37877a17801312304eb045435951aa8d3db5c9c18cb3e3a82d4431965d5f",
+  "evaluation_result_file": "tool-efficiency-evaluation-result.json",
+  "evaluation_result_sha256": "d2dfecae6bdec6c5ae5d97b6415efae02c7ff7a8896deac7e8b5da6c3ce5f26a",
+  "total_tool_calls": 342,
+  "successful_tasks": 72,
+  "stage_4_gate_passed": false,
+  "full_protocol_gate": "not_evaluated",
+  "percentile_method": "linear_type_7",
+  "mutation_checks": [
+    {
+      "mutation_id": "tool_in_disallowed_state",
+      "expected_detection": "invalid_call",
+      "detected": false
+    },
+    {
+      "mutation_id": "adjacent_exact_duplicate",
+      "expected_detection": "duplicate_call",
+      "detected": true
+    },
+    {
+      "mutation_id": "duplicate_is_removable",
+      "expected_detection": "redundant_call",
+      "detected": true
+    },
+    {
+      "mutation_id": "duplicate_adds_no_evidence",
+      "expected_detection": "no_gain_call",
+      "detected": true
+    },
+    {
+      "mutation_id": "extra_call_breaks_minimal_path",
+      "expected_detection": "minimal_path_mismatch",
+      "detected": true
+    },
+    {
+      "mutation_id": "thirteen_tool_calls",
+      "expected_detection": "budget_exceeded",
+      "detected": true
+    }
+  ],
+  "limitations": [
+    "All calls are from deterministic MOCK workflow traces.",
+    "Redundancy is a rule-based minimal-path counterfactual, not a live tool-ablation experiment.",
+    "Information gain uses new evidence, state changes, mandatory revalidation, handoff creation, and actionable errors as conservative proxies.",
+    "Provider result payloads are hashed rather than stored, so semantic information gain beyond recorded evidence cannot be reconstructed.",
+    "Real-model retries, stochastic planning, token cost, and network latency are not measured in this stage."
+  ]
+}

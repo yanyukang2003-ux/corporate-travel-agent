@@ -1,0 +1,116 @@
+{
+  "schema_version": 1,
+  "dataset_id": "production-observations",
+  "version": "local-v1",
+  "status": "offline_backfill_only",
+  "generated_at": "2026-08-02T14:09:06.174060Z",
+  "records": 7,
+  "production_records": 0,
+  "events_file": "events.jsonl",
+  "events_sha256": "4be7a1be392f478a0285347e464f108c1c2842ae62c9b23975e64dc57a916c2a",
+  "daily_file": "daily/2026-08-02.json",
+  "daily_sha256": "a576124634b473e9c7f719a29dcc439fc1885569a16c9d68d587718b494dc7e1",
+  "weekly_file": "weekly/2026-W31.json",
+  "weekly_sha256": "f23ca7d78d539cf4678bcda9e05f697a98298566cfbab9cdd6e46943389a084e",
+  "privacy": {
+    "raw_user_text_stored": false,
+    "raw_provider_response_stored": false,
+    "redacted_metrics_and_hashes_only": true
+  },
+  "source_artifacts": {
+    "quality": {
+      "path": "reports/evaluation-runs/phase2-quality-20260802/evaluation-result.json",
+      "sha256": "ee4e3938567a1f07239bb223f3fd3111c01088c665c1d24f99306e52dad18ceb",
+      "evaluation_id": "eval-fcf2bd4c-2889-475b-9dfb-3a9f4e99c985",
+      "dataset_id": "corporate-travel-derived-v2-workflow",
+      "dataset_version": "2",
+      "selected_cases": 60,
+      "expected_runs": 60
+    },
+    "trajectory": {
+      "path": "reports/evaluation-runs/phase3-trajectory-20260802/trajectory-evaluation-result.json",
+      "sha256": "eb7ab52dbcf0f6361ec476380357bd550be8f9a5482fe9e5b6a7efbd8c26f3af",
+      "evaluation_id": "eval-114e34b2-3def-46a4-87b3-f41c066cdc19",
+      "dataset_id": "corporate-travel-derived-v2-workflow",
+      "dataset_version": "2",
+      "selected_cases": 60,
+      "expected_runs": 60
+    },
+    "efficiency": {
+      "path": "reports/evaluation-runs/phase4-tool-efficiency-20260802/tool-efficiency-evaluation-result.json",
+      "sha256": "cb273cbd79367fc6b46d01a257d362490a58570a48fbc9fcd23207980ebc9255",
+      "evaluation_id": "eval-e8ad540b-3602-43e0-a954-43e11e882ea7",
+      "dataset_id": "corporate-travel-derived-v2-workflow",
+      "dataset_version": "2",
+      "selected_cases": 60,
+      "expected_runs": 60
+    },
+    "recovery": {
+      "path": "reports/evaluation-runs/phase5-fault-recovery-20260802/fault-recovery-evaluation-result.json",
+      "sha256": "d6f74a9c164a7e508a26975fde7f9b3abfcfeba8959181258949f681f217ab1b",
+      "evaluation_id": "eval-0021138e-6df3-4148-b288-9f93ac14bce0",
+      "dataset_id": "fault-eval-v1",
+      "dataset_version": "1.0.0",
+      "selected_cases": 16,
+      "expected_runs": 16
+    },
+    "performance": {
+      "path": "reports/evaluation-runs/phase6-cost-stability-20260802/analysis/performance-stability-evaluation-result.json",
+      "sha256": "fd75c4d3aeab826012f6c16fb2014e540c2c56f560d6d87f128cb07ff3031789",
+      "evaluation_id": "eval-b1387ad6-0dec-47a0-9673-55bf13336e1f",
+      "dataset_id": "corporate-travel-derived-v2-workflow",
+      "dataset_version": "2",
+      "selected_cases": 60,
+      "expected_runs": 180
+    },
+    "regression": {
+      "path": "reports/evaluation-runs/phase7-regression-20260802/regression-evaluation-result.json",
+      "sha256": "8b05fe852d9175f595b35e3b2217d373d07fc498c39adfaf19789e848dfe0afe",
+      "evaluation_id": null,
+      "dataset_id": null,
+      "dataset_version": null,
+      "selected_cases": null,
+      "expected_runs": null
+    },
+    "d6_manifest": {
+      "path": "data/evaluation/bad-case-regression-v1/manifest.json",
+      "sha256": "6f7b887d03ccb259bc46d0d45cd7bfce99b14a20ae5872fbc7c34fa0ddf1d264",
+      "evaluation_id": null,
+      "dataset_id": null,
+      "dataset_version": null,
+      "selected_cases": null,
+      "expected_runs": null
+    },
+    "d6_candidates": {
+      "path": "data/evaluation/bad-case-regression-v1/candidates.jsonl",
+      "sha256": "4bfc88dce9f195aa0477d47a3b012667cc37687d7dc99ee41db70d2988623b9c",
+      "evaluation_id": null,
+      "dataset_id": null,
+      "dataset_version": null,
+      "selected_cases": null,
+      "expected_runs": null
+    },
+    "baseline": {
+      "path": "evals/baselines/agent-eval-baseline-v1.json",
+      "sha256": "5c7f81f205fbb5484247491d1dab754fe5ca58ee71036085c76880a0d947aaba",
+      "evaluation_id": null,
+      "dataset_id": null,
+      "dataset_version": null,
+      "selected_cases": null,
+      "expected_runs": null
+    },
+    "price_table": {
+      "path": "evals/pricing/model-prices-unconfigured-v1.json",
+      "sha256": "199a924ee15baae24a39e4546f01adec36a1d839bec5b6e9f3331e00ffa92f11",
+      "evaluation_id": null,
+      "dataset_id": null,
+      "dataset_version": null,
+      "selected_cases": null,
+      "expected_runs": null
+    }
+  },
+  "limitations": [
+    "This first version is an offline backfill that proves the observation pipeline.",
+    "Production trend metrics remain not_evaluated until real windows are ingested."
+  ]
+}

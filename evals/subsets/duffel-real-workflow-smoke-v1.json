@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "dataset_id": "duffel-real-workflow-smoke-v1",
+  "dataset_version": "1.0.0",
+  "status": "frozen",
+  "provider": "duffel",
+  "provider_mode": "test",
+  "records": 1,
+  "maximum_external_calls": 1,
+  "booking_enabled": false,
+  "cases": [
+    {
+      "case_id": "duffel-real-lhr-jfk-search",
+      "traveler_id": "E1001",
+      "origin": "LHR",
+      "destination": "JFK",
+      "departure_after": "2026-09-15T00:00:00+00:00",
+      "arrive_by": "2026-09-17T00:00:00+00:00",
+      "return_after": null,
+      "return_before": null,
+      "hotel_check_in": null,
+      "hotel_check_out": null,
+      "hard_constraints": ["flight_only"],
+      "soft_preferences": [],
+      "policy_currency": "USD",
+      "expected": {
+        "provider_tool_calls": 1,
+        "provider_source_type": "AUTHORIZED_API",
+        "final_state": "WAITING_FOR_USER",
+        "minimum_options": 1,
+        "booking_intent_created": false,
+        "test_mode_disclosed": true
+      }
+    }
+  ]
+}

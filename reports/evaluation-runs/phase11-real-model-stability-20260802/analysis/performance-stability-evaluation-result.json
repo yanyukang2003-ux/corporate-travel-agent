@@ -1,0 +1,672 @@
+{
+  "schema_version": 1,
+  "evaluation_id": "eval-a10626a3-cf92-4e1f-b08d-6d383a424914",
+  "protocol_id": "agent-eval-v1",
+  "generated_at": "2026-08-02T15:49:30.217077Z",
+  "run_ids": [
+    "run-b8193914-f485-427d-b2dd-0a7a0d21ddc6",
+    "run-6d02759a-a65a-4b6f-bb3e-392fac5e5fff",
+    "run-5e167c33-1728-47b5-9122-5387d4eef39f",
+    "run-558158e1-ea38-4357-b86f-113fb5679917",
+    "run-650438e4-7423-4c7a-b0d5-50a4ab9186e9",
+    "run-090423de-aff8-438d-8868-e1ce6fb2ce2d",
+    "run-ce90f9e9-eccb-44b5-b5d5-3a7ec7e043c5",
+    "run-f0884141-7491-42d9-b1df-1216cf18a45e",
+    "run-2b70552b-4c03-4d15-87a6-1ea8dd756201",
+    "run-5ea73992-c5e1-452e-b0ac-8bde5e6508a7",
+    "run-445d24c3-8fdb-49e5-a214-563028ccc703",
+    "run-8d391b12-3a09-4cbc-b87c-c6d1e898efe3",
+    "run-6c34f869-f8a7-43fd-811e-224dc82dda6e",
+    "run-a6dae8bb-0d25-459d-8ce7-668049e60fa7",
+    "run-558f4a66-2754-4a1b-9857-dcd93e5605ee",
+    "run-8836f86f-591b-4dff-a184-ac189bc208ea",
+    "run-f335be43-9f53-4b44-b79e-b950a37c69c2",
+    "run-26d8f209-8aec-49d0-8cf2-f47589420ca5",
+    "run-ed7cfd45-443a-4c87-a744-f5dd852e208f",
+    "run-107228aa-690b-4628-88b1-e98b6ff0cb42",
+    "run-3ac2d034-2878-48f3-a2cc-7d4ed4aa1a85",
+    "run-8dfe1b18-dc13-438b-8f63-2726a9c10cbe",
+    "run-465987f0-c01b-4f07-9e79-f0f42aac6082",
+    "run-834d0c97-b67f-4caf-a78c-fd23b79b6a92",
+    "run-e732b705-f66c-4e29-a794-356d5f62f9c0",
+    "run-0c609956-b3f8-443b-9fb6-0e18ce9a9924",
+    "run-7a6931e3-64c7-48d1-9e48-15c1e6e84dd5",
+    "run-9df0a172-8132-47d8-823c-5fd4ec0feed0",
+    "run-104fdbc0-84ca-434e-9dca-d134d2b2b4ce",
+    "run-acd5c2b8-800a-476f-bf8b-bf2ea6ac1a70",
+    "run-cd2708da-9623-4e0f-80ce-1bb61c4b14a5",
+    "run-edec1902-911b-4334-b845-44c0d0b56f4c",
+    "run-e1f0103a-ea14-4ac8-a2c5-b2ac11c83b09",
+    "run-34abfaa9-02d0-4b67-bb4b-2a82150f6096",
+    "run-ac13577e-081d-406c-b3a9-fb77635270be",
+    "run-44c8788f-39a3-4fba-8054-826dc7efc2a4",
+    "run-a08c6073-2563-44c4-9d79-96c4311ba441",
+    "run-e29a242c-fbe8-4ae7-b54b-ac2fa36717a0",
+    "run-d685cf8e-0814-4b16-b56f-4fc6193d6782",
+    "run-54f4f016-86ea-49d5-bcba-ef41e817f5d5",
+    "run-bce1fad8-e6fc-4393-9af8-da0d268b61cb",
+    "run-b83e71aa-1ec2-4476-93ca-1d13cb9b4fe4",
+    "run-95cbbd33-83d1-475a-8ae0-b3c9800c3fd2",
+    "run-87a11e52-90ee-4824-8031-26881b4d7a89",
+    "run-a4f0dc72-cf83-4a5a-b5e2-595c5bc34bc3",
+    "run-f08264d7-5974-49df-bf63-7fdda6ba34f4",
+    "run-e25fe9da-81f6-4d6b-b76d-3d3da0ee2231",
+    "run-7df5daae-0fa8-4835-9280-b424f5469c08",
+    "run-a352aca3-38e9-438f-b71e-a85ae6f44694",
+    "run-106fdc7f-edce-4f3d-be42-8db7aa659464",
+    "run-329b31a0-9361-470c-837e-8283e942f387",
+    "run-91c9ee4d-e704-49b0-8c55-ebb4a5ce4b78",
+    "run-bcda3076-5e1e-40cf-bb3a-c9604b2f894b",
+    "run-99eba12b-2d7f-4f89-ac81-4e88a23318e9",
+    "run-de8f9ffd-cccf-4099-a35b-1e4b4eb683d1",
+    "run-01541967-a703-406f-a863-facf642dacd4",
+    "run-4dccfe8a-8a47-4d33-ad50-69d3f977aec7",
+    "run-6763a63a-ebb2-4e1d-b54e-93cf1bceabb2",
+    "run-ee5936f7-f248-48db-bf8d-c2b4fce3aeea",
+    "run-3f498946-ee8a-4006-ab90-936974b4bb05",
+    "run-6a811da3-65d3-46c1-98c0-1491ec55c714",
+    "run-4e1a39d1-cc9d-43f6-9551-fdec6072e0e1",
+    "run-04af4dfc-28eb-47d0-bcce-224eb641d597",
+    "run-71641ada-849f-4ab3-87e3-7e62ec1ac887",
+    "run-095f3165-02a4-4c81-a10a-9eb715482675",
+    "run-6c959c25-3c0b-43ac-a8af-efe2f06d9595",
+    "run-fb373295-d74b-473e-bdf4-e295d36503fe",
+    "run-3d7977f9-cde6-4382-b31c-b3ea86a21bec",
+    "run-35b3d082-cb3c-4a53-b4d2-eab49af99397",
+    "run-e145b4d1-714e-42e7-83cf-ded04aaa068b",
+    "run-aec1ac88-cb74-4aef-85ad-28789b1c5341",
+    "run-0f7b68f2-2f6f-4edd-8533-c49b8455dce8"
+  ],
+  "coverage": {
+    "dataset_id": "intent-model-smoke-v1",
+    "dataset_version": "1",
+    "selected_cases": 24,
+    "completed_runs": 72,
+    "expected_runs": 72,
+    "slices": {
+      "evaluation_mode": "model_mock",
+      "attempts_per_case": 3
+    }
+  },
+  "metrics": {
+    "pass_at_1": {
+      "status": "measured",
+      "value": 0.4861111111111111,
+      "numerator": 35.0,
+      "denominator": 72.0,
+      "unit": "rate",
+      "exposure_note": null,
+      "confidence_note": "Exact aggregation over the fixed attempt matrix."
+    },
+    "pass_power_3": {
+      "status": "measured",
+      "value": 0.4583333333333333,
+      "numerator": 11.0,
+      "denominator": 24.0,
+      "unit": "rate",
+      "exposure_note": null,
+      "confidence_note": "Exact aggregation over the fixed attempt matrix."
+    },
+    "pass_at_3": {
+      "status": "measured",
+      "value": 0.5,
+      "numerator": 12.0,
+      "denominator": 24.0,
+      "unit": "rate",
+      "exposure_note": null,
+      "confidence_note": "Exact aggregation over the fixed attempt matrix."
+    },
+    "mixed_run_rate": {
+      "status": "measured",
+      "value": 0.041666666666666664,
+      "numerator": 1.0,
+      "denominator": 24.0,
+      "unit": "rate",
+      "exposure_note": null,
+      "confidence_note": "Exact aggregation over the fixed attempt matrix."
+    },
+    "output_consistency_rate": {
+      "status": "measured",
+      "value": 0.7083333333333334,
+      "numerator": 17.0,
+      "denominator": 24.0,
+      "unit": "rate",
+      "exposure_note": null,
+      "confidence_note": "Exact aggregation over the fixed attempt matrix."
+    },
+    "trajectory_consistency_rate": {
+      "status": "measured",
+      "value": 0.0,
+      "numerator": 0.0,
+      "denominator": 24.0,
+      "unit": "rate",
+      "exposure_note": null,
+      "confidence_note": "Exact aggregation over the fixed attempt matrix."
+    },
+    "total_latency_ms_mean": {
+      "status": "measured",
+      "value": 3676.855403,
+      "numerator": 3676.855403,
+      "denominator": 72.0,
+      "unit": "ms",
+      "exposure_note": null,
+      "confidence_note": null
+    },
+    "total_latency_ms_p50": {
+      "status": "measured",
+      "value": 2419.699,
+      "numerator": 2419.699,
+      "denominator": 72.0,
+      "unit": "ms",
+      "exposure_note": null,
+      "confidence_note": null
+    },
+    "total_latency_ms_p95": {
+      "status": "measured",
+      "value": 8541.421,
+      "numerator": 8541.421,
+      "denominator": 72.0,
+      "unit": "ms",
+      "exposure_note": null,
+      "confidence_note": null
+    },
+    "total_latency_ms_max": {
+      "status": "measured",
+      "value": 10117.46,
+      "numerator": 10117.46,
+      "denominator": 72.0,
+      "unit": "ms",
+      "exposure_note": null,
+      "confidence_note": null
+    },
+    "tool_latency_ms_mean": {
+      "status": "measured",
+      "value": 3675.614006,
+      "numerator": 3675.614006,
+      "denominator": 72.0,
+      "unit": "ms",
+      "exposure_note": null,
+      "confidence_note": null
+    },
+    "tool_latency_ms_p95": {
+      "status": "measured",
+      "value": 8539.00725,
+      "numerator": 8539.00725,
+      "denominator": 72.0,
+      "unit": "ms",
+      "exposure_note": null,
+      "confidence_note": null
+    },
+    "external_calls_total": {
+      "status": "measured",
+      "value": 72.0,
+      "numerator": 72.0,
+      "denominator": 72.0,
+      "unit": "calls",
+      "exposure_note": null,
+      "confidence_note": null
+    },
+    "external_calls_per_run_mean": {
+      "status": "measured",
+      "value": 1.0,
+      "numerator": 1.0,
+      "denominator": 72.0,
+      "unit": "calls",
+      "exposure_note": null,
+      "confidence_note": null
+    },
+    "external_calls_per_run_p95": {
+      "status": "measured",
+      "value": 1.0,
+      "numerator": 1.0,
+      "denominator": 72.0,
+      "unit": "calls",
+      "exposure_note": null,
+      "confidence_note": null
+    },
+    "input_tokens_total": {
+      "status": "measured",
+      "value": 74841.0,
+      "numerator": 74841.0,
+      "denominator": 72.0,
+      "unit": "tokens",
+      "exposure_note": null,
+      "confidence_note": null
+    },
+    "output_tokens_total": {
+      "status": "measured",
+      "value": 18463.0,
+      "numerator": 18463.0,
+      "denominator": 72.0,
+      "unit": "tokens",
+      "exposure_note": null,
+      "confidence_note": null
+    },
+    "total_tokens_per_run_mean": {
+      "status": "measured",
+      "value": 1295.888888888889,
+      "numerator": 93304.0,
+      "denominator": 72.0,
+      "unit": "tokens_per_run",
+      "exposure_note": null,
+      "confidence_note": null
+    },
+    "estimated_cost_total": {
+      "status": "measured",
+      "value": 0.371238,
+      "numerator": 0.371238,
+      "denominator": 1.0,
+      "unit": "USD",
+      "exposure_note": null,
+      "confidence_note": null
+    },
+    "estimated_cost_per_successful_task": {
+      "status": "measured",
+      "value": 0.003959314285714286,
+      "numerator": 0.138576,
+      "denominator": 35.0,
+      "unit": "USD",
+      "exposure_note": null,
+      "confidence_note": null
+    },
+    "cost_regression_rate": {
+      "status": "unavailable",
+      "value": null,
+      "numerator": null,
+      "denominator": null,
+      "unit": "rate",
+      "exposure_note": "No frozen Stage 7 baseline exists.",
+      "confidence_note": null
+    },
+    "latency_p95_regression_rate": {
+      "status": "unavailable",
+      "value": null,
+      "numerator": null,
+      "denominator": null,
+      "unit": "rate",
+      "exposure_note": "No frozen Stage 7 baseline exists.",
+      "confidence_note": null
+    },
+    "real_model_stability_gate": {
+      "status": "unavailable",
+      "value": null,
+      "numerator": null,
+      "denominator": null,
+      "unit": "boolean",
+      "exposure_note": "This source run is deterministic Mock and cannot satisfy the real-model gate.",
+      "confidence_note": null
+    }
+  },
+  "judge": null,
+  "cost": {
+    "currency": "USD",
+    "price_table_version": "model-prices-openai-20260802-v1",
+    "total": 0.371238,
+    "per_successful_task": 0.003959314285714286
+  },
+  "gate_status": "not_evaluated",
+  "hard_failures": [
+    {
+      "case_id": "open-test-compare-itinerary-0001",
+      "run_id": "run-6c34f869-f8a7-43fd-811e-224dc82dda6e",
+      "failure_type": "not_all_attempts_passed,mixed_pass_result,output_inconsistent,trajectory_inconsistent",
+      "evidence": [
+        "run-6c34f869-f8a7-43fd-811e-224dc82dda6e",
+        "run-a6dae8bb-0d25-459d-8ce7-668049e60fa7",
+        "run-558f4a66-2754-4a1b-9857-dcd93e5605ee"
+      ]
+    },
+    {
+      "case_id": "open-test-compare-itinerary-0002",
+      "run_id": "run-8836f86f-591b-4dff-a184-ac189bc208ea",
+      "failure_type": "not_all_attempts_passed,trajectory_inconsistent",
+      "evidence": [
+        "run-8836f86f-591b-4dff-a184-ac189bc208ea",
+        "run-f335be43-9f53-4b44-b79e-b950a37c69c2",
+        "run-26d8f209-8aec-49d0-8cf2-f47589420ca5"
+      ]
+    },
+    {
+      "case_id": "open-test-compare-itinerary-0003",
+      "run_id": "run-ed7cfd45-443a-4c87-a744-f5dd852e208f",
+      "failure_type": "not_all_attempts_passed,trajectory_inconsistent",
+      "evidence": [
+        "run-ed7cfd45-443a-4c87-a744-f5dd852e208f",
+        "run-107228aa-690b-4628-88b1-e98b6ff0cb42",
+        "run-3ac2d034-2878-48f3-a2cc-7d4ed4aa1a85"
+      ]
+    },
+    {
+      "case_id": "open-test-compare-itinerary-0005",
+      "run_id": "run-8dfe1b18-dc13-438b-8f63-2726a9c10cbe",
+      "failure_type": "trajectory_inconsistent",
+      "evidence": [
+        "run-8dfe1b18-dc13-438b-8f63-2726a9c10cbe",
+        "run-465987f0-c01b-4f07-9e79-f0f42aac6082",
+        "run-834d0c97-b67f-4caf-a78c-fd23b79b6a92"
+      ]
+    },
+    {
+      "case_id": "open-test-direction-0001",
+      "run_id": "run-e732b705-f66c-4e29-a794-356d5f62f9c0",
+      "failure_type": "trajectory_inconsistent",
+      "evidence": [
+        "run-e732b705-f66c-4e29-a794-356d5f62f9c0",
+        "run-0c609956-b3f8-443b-9fb6-0e18ce9a9924",
+        "run-7a6931e3-64c7-48d1-9e48-15c1e6e84dd5"
+      ]
+    },
+    {
+      "case_id": "open-test-direction-0002",
+      "run_id": "run-9df0a172-8132-47d8-823c-5fd4ec0feed0",
+      "failure_type": "trajectory_inconsistent",
+      "evidence": [
+        "run-9df0a172-8132-47d8-823c-5fd4ec0feed0",
+        "run-104fdbc0-84ca-434e-9dca-d134d2b2b4ce",
+        "run-acd5c2b8-800a-476f-bf8b-bf2ea6ac1a70"
+      ]
+    },
+    {
+      "case_id": "open-test-direction-0003",
+      "run_id": "run-cd2708da-9623-4e0f-80ce-1bb61c4b14a5",
+      "failure_type": "trajectory_inconsistent",
+      "evidence": [
+        "run-cd2708da-9623-4e0f-80ce-1bb61c4b14a5",
+        "run-edec1902-911b-4334-b845-44c0d0b56f4c",
+        "run-e1f0103a-ea14-4ac8-a2c5-b2ac11c83b09"
+      ]
+    },
+    {
+      "case_id": "open-test-multi-day-travel-0001",
+      "run_id": "run-34abfaa9-02d0-4b67-bb4b-2a82150f6096",
+      "failure_type": "not_all_attempts_passed,trajectory_inconsistent",
+      "evidence": [
+        "run-34abfaa9-02d0-4b67-bb4b-2a82150f6096",
+        "run-ac13577e-081d-406c-b3a9-fb77635270be",
+        "run-44c8788f-39a3-4fba-8054-826dc7efc2a4"
+      ]
+    },
+    {
+      "case_id": "open-test-multi-day-travel-0002",
+      "run_id": "run-a08c6073-2563-44c4-9d79-96c4311ba441",
+      "failure_type": "not_all_attempts_passed,output_inconsistent,trajectory_inconsistent",
+      "evidence": [
+        "run-a08c6073-2563-44c4-9d79-96c4311ba441",
+        "run-e29a242c-fbe8-4ae7-b54b-ac2fa36717a0",
+        "run-d685cf8e-0814-4b16-b56f-4fc6193d6782"
+      ]
+    },
+    {
+      "case_id": "open-test-multi-day-travel-0003",
+      "run_id": "run-54f4f016-86ea-49d5-bcba-ef41e817f5d5",
+      "failure_type": "not_all_attempts_passed,trajectory_inconsistent",
+      "evidence": [
+        "run-54f4f016-86ea-49d5-bcba-ef41e817f5d5",
+        "run-bce1fad8-e6fc-4393-9af8-da0d268b61cb",
+        "run-b83e71aa-1ec2-4476-93ca-1d13cb9b4fe4"
+      ]
+    },
+    {
+      "case_id": "open-test-one-day-travel-0001",
+      "run_id": "run-95cbbd33-83d1-475a-8ae0-b3c9800c3fd2",
+      "failure_type": "trajectory_inconsistent",
+      "evidence": [
+        "run-95cbbd33-83d1-475a-8ae0-b3c9800c3fd2",
+        "run-87a11e52-90ee-4824-8031-26881b4d7a89",
+        "run-a4f0dc72-cf83-4a5a-b5e2-595c5bc34bc3"
+      ]
+    },
+    {
+      "case_id": "open-test-one-day-travel-0002",
+      "run_id": "run-f08264d7-5974-49df-bf63-7fdda6ba34f4",
+      "failure_type": "trajectory_inconsistent",
+      "evidence": [
+        "run-f08264d7-5974-49df-bf63-7fdda6ba34f4",
+        "run-e25fe9da-81f6-4d6b-b76d-3d3da0ee2231",
+        "run-7df5daae-0fa8-4835-9280-b424f5469c08"
+      ]
+    },
+    {
+      "case_id": "open-test-one-day-travel-0003",
+      "run_id": "run-a352aca3-38e9-438f-b71e-a85ae6f44694",
+      "failure_type": "trajectory_inconsistent",
+      "evidence": [
+        "run-a352aca3-38e9-438f-b71e-a85ae6f44694",
+        "run-106fdc7f-edce-4f3d-be42-8db7aa659464",
+        "run-329b31a0-9361-470c-837e-8283e942f387"
+      ]
+    },
+    {
+      "case_id": "open-test-search-around-0001",
+      "run_id": "run-91c9ee4d-e704-49b0-8c55-ebb4a5ce4b78",
+      "failure_type": "trajectory_inconsistent",
+      "evidence": [
+        "run-91c9ee4d-e704-49b0-8c55-ebb4a5ce4b78",
+        "run-bcda3076-5e1e-40cf-bb3a-c9604b2f894b",
+        "run-99eba12b-2d7f-4f89-ac81-4e88a23318e9"
+      ]
+    },
+    {
+      "case_id": "open-test-search-around-0002",
+      "run_id": "run-de8f9ffd-cccf-4099-a35b-1e4b4eb683d1",
+      "failure_type": "trajectory_inconsistent",
+      "evidence": [
+        "run-de8f9ffd-cccf-4099-a35b-1e4b4eb683d1",
+        "run-01541967-a703-406f-a863-facf642dacd4",
+        "run-4dccfe8a-8a47-4d33-ad50-69d3f977aec7"
+      ]
+    },
+    {
+      "case_id": "open-test-search-around-0006",
+      "run_id": "run-6763a63a-ebb2-4e1d-b54e-93cf1bceabb2",
+      "failure_type": "trajectory_inconsistent",
+      "evidence": [
+        "run-6763a63a-ebb2-4e1d-b54e-93cf1bceabb2",
+        "run-ee5936f7-f248-48db-bf8d-c2b4fce3aeea",
+        "run-3f498946-ee8a-4006-ab90-936974b4bb05"
+      ]
+    },
+    {
+      "case_id": "open-train-missing-fields-0067",
+      "run_id": "run-e145b4d1-714e-42e7-83cf-ded04aaa068b",
+      "failure_type": "not_all_attempts_passed,trajectory_inconsistent",
+      "evidence": [
+        "run-e145b4d1-714e-42e7-83cf-ded04aaa068b",
+        "run-aec1ac88-cb74-4aef-85ad-28789b1c5341",
+        "run-0f7b68f2-2f6f-4edd-8533-c49b8455dce8"
+      ]
+    },
+    {
+      "case_id": "open-train-missing-fields-0085",
+      "run_id": "run-6a811da3-65d3-46c1-98c0-1491ec55c714",
+      "failure_type": "output_inconsistent,trajectory_inconsistent",
+      "evidence": [
+        "run-6a811da3-65d3-46c1-98c0-1491ec55c714",
+        "run-4e1a39d1-cc9d-43f6-9551-fdec6072e0e1",
+        "run-04af4dfc-28eb-47d0-bcce-224eb641d597"
+      ]
+    },
+    {
+      "case_id": "open-train-missing-fields-0122",
+      "run_id": "run-fb373295-d74b-473e-bdf4-e295d36503fe",
+      "failure_type": "not_all_attempts_passed,trajectory_inconsistent",
+      "evidence": [
+        "run-fb373295-d74b-473e-bdf4-e295d36503fe",
+        "run-3d7977f9-cde6-4382-b31c-b3ea86a21bec",
+        "run-35b3d082-cb3c-4a53-b4d2-eab49af99397"
+      ]
+    },
+    {
+      "case_id": "open-train-missing-fields-0128",
+      "run_id": "run-71641ada-849f-4ab3-87e3-7e62ec1ac887",
+      "failure_type": "not_all_attempts_passed,trajectory_inconsistent",
+      "evidence": [
+        "run-71641ada-849f-4ab3-87e3-7e62ec1ac887",
+        "run-095f3165-02a4-4c81-a10a-9eb715482675",
+        "run-6c959c25-3c0b-43ac-a8af-efe2f06d9595"
+      ]
+    },
+    {
+      "case_id": "prefer-intent-0001",
+      "run_id": "run-b8193914-f485-427d-b2dd-0a7a0d21ddc6",
+      "failure_type": "not_all_attempts_passed,output_inconsistent,trajectory_inconsistent",
+      "evidence": [
+        "run-b8193914-f485-427d-b2dd-0a7a0d21ddc6",
+        "run-6d02759a-a65a-4b6f-bb3e-392fac5e5fff",
+        "run-5e167c33-1728-47b5-9122-5387d4eef39f"
+      ]
+    },
+    {
+      "case_id": "prefer-intent-0002",
+      "run_id": "run-558158e1-ea38-4357-b86f-113fb5679917",
+      "failure_type": "not_all_attempts_passed,output_inconsistent,trajectory_inconsistent",
+      "evidence": [
+        "run-558158e1-ea38-4357-b86f-113fb5679917",
+        "run-650438e4-7423-4c7a-b0d5-50a4ab9186e9",
+        "run-090423de-aff8-438d-8868-e1ce6fb2ce2d"
+      ]
+    },
+    {
+      "case_id": "prefer-intent-0003",
+      "run_id": "run-ce90f9e9-eccb-44b5-b5d5-3a7ec7e043c5",
+      "failure_type": "not_all_attempts_passed,output_inconsistent,trajectory_inconsistent",
+      "evidence": [
+        "run-ce90f9e9-eccb-44b5-b5d5-3a7ec7e043c5",
+        "run-f0884141-7491-42d9-b1df-1216cf18a45e",
+        "run-2b70552b-4c03-4d15-87a6-1ea8dd756201"
+      ]
+    },
+    {
+      "case_id": "prefer-intent-0004",
+      "run_id": "run-5ea73992-c5e1-452e-b0ac-8bde5e6508a7",
+      "failure_type": "not_all_attempts_passed,output_inconsistent,trajectory_inconsistent",
+      "evidence": [
+        "run-5ea73992-c5e1-452e-b0ac-8bde5e6508a7",
+        "run-445d24c3-8fdb-49e5-a214-563028ccc703",
+        "run-8d391b12-3a09-4cbc-b87c-c6d1e898efe3"
+      ]
+    }
+  ],
+  "bad_case_candidates": [
+    {
+      "case_id": "open-test-compare-itinerary-0001",
+      "failure_signature": "31dec355b0cc51eabababaf1a829a416274b5c8250db048a354a61ed154ce548",
+      "review_status": "pending"
+    },
+    {
+      "case_id": "open-test-compare-itinerary-0002",
+      "failure_signature": "7f5ef9e77a1bbc475d18f671b7fe89185cbc74d760f26a4bc93030e2861570a5",
+      "review_status": "pending"
+    },
+    {
+      "case_id": "open-test-compare-itinerary-0003",
+      "failure_signature": "191213efd8d755e70e840af16966b634e458b6417628dd4ed73bd76c76fd178c",
+      "review_status": "pending"
+    },
+    {
+      "case_id": "open-test-compare-itinerary-0005",
+      "failure_signature": "71035e80de137458188de6cb651e43131e8753cd2ed670050c3234bf1c2e71bc",
+      "review_status": "pending"
+    },
+    {
+      "case_id": "open-test-direction-0001",
+      "failure_signature": "4eb4f842466ac96d359e96081f874cf768289b30e487fe5dc56d1c34170eb7a2",
+      "review_status": "pending"
+    },
+    {
+      "case_id": "open-test-direction-0002",
+      "failure_signature": "c6690a3e1c24601de59bfc1f2e27ff30434739c558e7063311e6334646a3dfff",
+      "review_status": "pending"
+    },
+    {
+      "case_id": "open-test-direction-0003",
+      "failure_signature": "bcbf3702fc388419917f11de9f075ee96ed301f2f5c3d9633dadcd048dc50ffc",
+      "review_status": "pending"
+    },
+    {
+      "case_id": "open-test-multi-day-travel-0001",
+      "failure_signature": "6f359dfee34211476b63093a7d31ef261fc2459203e11f9e795fc931115b58e6",
+      "review_status": "pending"
+    },
+    {
+      "case_id": "open-test-multi-day-travel-0002",
+      "failure_signature": "133a75725316cafa10c472afa0741e9cf7d23e3a8405209ba627f9c6d6f569f4",
+      "review_status": "pending"
+    },
+    {
+      "case_id": "open-test-multi-day-travel-0003",
+      "failure_signature": "4e22e993c61cec68f1a752e50b542665437b3b09e3c482412f29c88aae14281a",
+      "review_status": "pending"
+    },
+    {
+      "case_id": "open-test-one-day-travel-0001",
+      "failure_signature": "3fb85c92985ede5a10a67f080544310fc4ed0e17b020085a58de8420b2f5d57a",
+      "review_status": "pending"
+    },
+    {
+      "case_id": "open-test-one-day-travel-0002",
+      "failure_signature": "1290ce286820ae1a761ebde76390a019da4b418be3fb82743c2d7bdf231ba668",
+      "review_status": "pending"
+    },
+    {
+      "case_id": "open-test-one-day-travel-0003",
+      "failure_signature": "ad398feeee05b0a545162b18979792fd21e1559b33662bb99050266f53b8e478",
+      "review_status": "pending"
+    },
+    {
+      "case_id": "open-test-search-around-0001",
+      "failure_signature": "b11d6fb28a03d2eeee21814c3e6ef07da45a4e7382725c8beb4a7843de110267",
+      "review_status": "pending"
+    },
+    {
+      "case_id": "open-test-search-around-0002",
+      "failure_signature": "4f05b78114b6ba0c556fe22aa9fc024f76de4e8c9df1a002ac3e5b6a87225ea7",
+      "review_status": "pending"
+    },
+    {
+      "case_id": "open-test-search-around-0006",
+      "failure_signature": "e908cc77a073142041c32d430416fd96fceab8054baa80cefd9f87cd7a697579",
+      "review_status": "pending"
+    },
+    {
+      "case_id": "open-train-missing-fields-0067",
+      "failure_signature": "cda7ee9b913fac69d98b2ea41e92bbb19c01f87339a0b6d1f0d6b5b8542bc57e",
+      "review_status": "pending"
+    },
+    {
+      "case_id": "open-train-missing-fields-0085",
+      "failure_signature": "fd28931d443105e7b2bf02138b4d3873ea90f09115e7ebaf56b91f925c387c90",
+      "review_status": "pending"
+    },
+    {
+      "case_id": "open-train-missing-fields-0122",
+      "failure_signature": "8caf92bb80c04848ceeed0caf2b046e17066a1f79e61b29528f74eeed831c0f9",
+      "review_status": "pending"
+    },
+    {
+      "case_id": "open-train-missing-fields-0128",
+      "failure_signature": "ad93e618b9e1543d87b8601f50cc793854ceed9649ac005b429eb3f857cbce6b",
+      "review_status": "pending"
+    },
+    {
+      "case_id": "prefer-intent-0001",
+      "failure_signature": "fd656c8f5127f679e6b0f1bb44649a05211da1af956a70cfe322c96138bc8b98",
+      "review_status": "pending"
+    },
+    {
+      "case_id": "prefer-intent-0002",
+      "failure_signature": "cdafdb492b4189141ba6b179ee6d189e495c8cc1c5ec6a43c8ea8b9c77b08606",
+      "review_status": "pending"
+    },
+    {
+      "case_id": "prefer-intent-0003",
+      "failure_signature": "b458770d4b477785c3edecaa103ed397cffcd2faae977c663cd0f0479aef5413",
+      "review_status": "pending"
+    },
+    {
+      "case_id": "prefer-intent-0004",
+      "failure_signature": "a10e0d59416e48070c148b4afa9975ca34b653d2a4871ac9c55bcce8e6a3220b",
+      "review_status": "pending"
+    }
+  ]
+}

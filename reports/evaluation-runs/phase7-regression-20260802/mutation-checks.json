@@ -1,0 +1,44 @@
+[
+  {
+    "mutation_id": "quality_drop",
+    "metric_id": "quality.task_pass_rate",
+    "expected_gate": "fail",
+    "actual_gate": "fail",
+    "detected": true
+  },
+  {
+    "mutation_id": "tool_hallucination",
+    "metric_id": "trajectory.tool_hallucination_call_rate",
+    "expected_gate": "fail",
+    "actual_gate": "fail",
+    "detected": true
+  },
+  {
+    "mutation_id": "duplicate_call",
+    "metric_id": "efficiency.normal_duplicate_call_rate",
+    "expected_gate": "fail",
+    "actual_gate": "fail",
+    "detected": true
+  },
+  {
+    "mutation_id": "recovery_drop",
+    "metric_id": "recovery.recoverable_fault_success_rate",
+    "expected_gate": "fail",
+    "actual_gate": "fail",
+    "detected": true
+  },
+  {
+    "mutation_id": "latency_plus_51_percent",
+    "metric_id": "performance.total_latency_ms_p95",
+    "expected_gate": "fail",
+    "actual_gate": "fail",
+    "detected": true
+  },
+  {
+    "mutation_id": "unknown_cost_not_zero",
+    "metric_id": "cost.per_successful_task",
+    "expected_gate": "not_evaluated",
+    "actual_gate": "not_evaluated",
+    "detected": true
+  }
+]

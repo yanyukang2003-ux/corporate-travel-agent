@@ -1,0 +1,215 @@
+{
+  "schema_version": 1,
+  "run_id": "provider-recover",
+  "evaluation_mode": "provider_delayed_recovery_acceptance",
+  "started_at": "2026-08-19T11:51:33.276195+00:00",
+  "scenarios": {
+    "recover": {
+      "scenario": "recover",
+      "passed": true,
+      "checks": {
+        "no_unexpected_exception": true,
+        "after_create_waiting_for_provider": true,
+        "three_injected_failures_before_real_http": true,
+        "delayed_retry_processed_task": true,
+        "recovered_to_waiting_for_user": true,
+        "retry_status_recovered": true,
+        "real_http_only_after_delay": true,
+        "has_combined_options": true,
+        "select_and_revalidate_completed": true,
+        "no_booking_intent_on_failure_path": true,
+        "audit_has_delayed_retry_started": true,
+        "no_order_or_payment_paths": true,
+        "booking_intent_absent_on_price_change": true
+      },
+      "duration_ms": 7096.025,
+      "unexpected_error": null,
+      "dataset": {
+        "id": "duffel-liteapi-real-full-chain-v2",
+        "version": "2.0.0",
+        "sha256": "dd9ef5cda03ad5c20868e67f320d4b64014b7e13a136be7d954c515a2482b3be",
+        "case_id": "real-lhr-jfk-flight-hotel-select-revalidate-handoff"
+      },
+      "after_create": {
+        "state": "WAITING_FOR_PROVIDER",
+        "tool_calls_used": 3,
+        "provider_retry": {
+          "status": "scheduled",
+          "resume_operation": "SEARCH",
+          "delayed_attempts_completed": 0,
+          "max_delayed_attempts": 3,
+          "next_retry_at": "2026-08-10T12:01:00+00:00",
+          "last_error_code": "INJECTED_TRANSIENT_TRANSPORT",
+          "last_error_layer": "acceptance_harness",
+          "user_message": "供应商暂时不可用，任务会在后台自动重试。",
+          "circuit": {
+            "state": "OPEN",
+            "open_seconds": 60.0,
+            "opened_at": "2026-08-10T12:00:00+00:00",
+            "open_until": "2026-08-10T12:01:00+00:00"
+          }
+        },
+        "injected_failures": 3,
+        "real_transport_calls": 0,
+        "duffel_http": 0,
+        "liteapi_http": 0
+      },
+      "after_delayed": {
+        "processed_task_ids": [
+          "real-lhr-jfk-flight-hotel-select-revalidate-handoff-delayed-recover"
+        ],
+        "state": "WAITING_FOR_USER",
+        "tool_calls_used": 5,
+        "options": 3,
+        "provider_retry": {
+          "status": "recovered",
+          "resume_operation": "SEARCH",
+          "delayed_attempts_completed": 1,
+          "max_delayed_attempts": 3,
+          "next_retry_at": null,
+          "last_error_code": "INJECTED_TRANSIENT_TRANSPORT",
+          "last_error_layer": "acceptance_harness",
+          "user_message": "供应商已恢复，任务已继续执行。",
+          "circuit": {
+            "state": "CLOSED",
+            "open_seconds": 60.0,
+            "opened_at": null,
+            "open_until": null
+          }
+        },
+        "injected_failures": 3,
+        "real_transport_calls": 1,
+        "real_hotel_calls": 1,
+        "duffel_http": 1,
+        "liteapi_http": 1
+      },
+      "final_state": "RECONFIRMATION_REQUIRED",
+      "provider_retry": {
+        "status": "recovered",
+        "resume_operation": "SEARCH",
+        "delayed_attempts_completed": 1,
+        "max_delayed_attempts": 3,
+        "next_retry_at": null,
+        "last_error_code": "INJECTED_TRANSIENT_TRANSPORT",
+        "last_error_layer": "acceptance_harness",
+        "user_message": "供应商已恢复，任务已继续执行。",
+        "circuit": {
+          "state": "CLOSED",
+          "open_seconds": 60.0,
+          "opened_at": null,
+          "open_until": null
+        }
+      },
+      "selected_option_id": "opt-off_0000B9WtEFGnAUIeo87lY1-litehotel_ac5c5c37ec4d0f69a137ce67",
+      "duffel_http_requests": [
+        {
+          "method": "POST",
+          "path": "/air/offer_requests"
+        },
+        {
+          "method": "GET",
+          "path": "/air/offers/off_0000B9WtEFGnAUIeo87lY1"
+        }
+      ],
+      "liteapi_http_requests": [
+        {
+          "method": "POST",
+          "path": "/hotels/rates"
+        },
+        {
+          "method": "POST",
+          "path": "/hotels/rates"
+        }
+      ],
+      "provider_tool_calls": [
+        {
+          "tool_name": "provider.search_transport.outbound",
+          "status": "FAILED",
+          "error_type": "InjectedFault",
+          "retry_of": null
+        },
+        {
+          "tool_name": "provider.search_transport.outbound",
+          "status": "FAILED",
+          "error_type": "InjectedFault",
+          "retry_of": 1
+        },
+        {
+          "tool_name": "provider.search_transport.outbound",
+          "status": "FAILED",
+          "error_type": "InjectedFault",
+          "retry_of": 2
+        },
+        {
+          "tool_name": "provider.search_transport.outbound",
+          "status": "SUCCEEDED",
+          "error_type": null,
+          "retry_of": null
+        },
+        {
+          "tool_name": "provider.search_hotels",
+          "status": "SUCCEEDED",
+          "error_type": null,
+          "retry_of": null
+        },
+        {
+          "tool_name": "provider.revalidate",
+          "status": "SUCCEEDED",
+          "error_type": null,
+          "retry_of": null
+        }
+      ],
+      "audit_events": [
+        "TASK_CREATED",
+        "STATE_TRANSITION",
+        "TOOL_CALL_STARTED",
+        "TOOL_CALL_FAILED",
+        "TOOL_CALL_RETRY_SCHEDULED",
+        "TOOL_CALL_STARTED",
+        "TOOL_CALL_FAILED",
+        "TOOL_CALL_RETRY_SCHEDULED",
+        "TOOL_CALL_STARTED",
+        "TOOL_CALL_FAILED",
+        "PROVIDER_SEARCH_ATTEMPTS_EXHAUSTED",
+        "STATE_TRANSITION",
+        "PROVIDER_DELAYED_RETRY_SCHEDULED",
+        "STATE_TRANSITION",
+        "PROVIDER_DELAYED_RETRY_STARTED",
+        "TOOL_CALL_STARTED",
+        "TOOL_CALL_SUCCEEDED",
+        "TOOL_CALL_STARTED",
+        "TOOL_CALL_SUCCEEDED",
+        "PROVIDER_DELAYED_RETRY_RECOVERED",
+        "PROVIDER_COVERAGE_INCOMPLETE",
+        "INVENTORY_SNAPSHOT_CAPTURED",
+        "INVENTORY_SNAPSHOT_CAPTURED",
+        "STATE_TRANSITION",
+        "STATE_TRANSITION",
+        "OPTIONS_VERIFIED",
+        "STATE_TRANSITION",
+        "OPTION_SELECTED",
+        "STATE_TRANSITION",
+        "TOOL_CALL_STARTED",
+        "TOOL_CALL_SUCCEEDED",
+        "INVENTORY_REVALIDATED",
+        "STATE_TRANSITION"
+      ],
+      "harness_counters": {
+        "injected_failures": 3,
+        "transport_calls": 4,
+        "hotel_calls": 1,
+        "real_transport_calls": 1,
+        "real_hotel_calls": 1,
+        "revalidate_calls": 1
+      }
+    }
+  },
+  "completed_at": "2026-08-19T11:51:40.416806+00:00",
+  "passed": true,
+  "checks_summary": {
+    "recover": {
+      "passed": true,
+      "failed_checks": []
+    }
+  }
+}

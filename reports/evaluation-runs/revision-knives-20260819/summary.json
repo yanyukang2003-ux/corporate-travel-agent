@@ -1,0 +1,214 @@
+{
+  "started_at": "2026-08-19T13:39:08.616565+00:00",
+  "passed": 6,
+  "total": 6,
+  "cases": [
+    {
+      "case_id": "G-01",
+      "title": "After options, keep dates and switch to one-way",
+      "passed": true,
+      "checks": [
+        {
+          "name": "origin",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "destination",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "departure_kept",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "arrive_kept",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "return_after_null",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "return_before_null",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "no_new_inbound",
+          "ok": true,
+          "detail": ""
+        }
+      ]
+    },
+    {
+      "case_id": "G-02a",
+      "title": "After options, drop hotel without touching the route",
+      "passed": true,
+      "checks": [
+        {
+          "name": "lodging",
+          "ok": true,
+          "detail": "NOT_REQUIRED"
+        },
+        {
+          "name": "hotel_in_null",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "hotel_out_null",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "no_hotel_required",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "return_kept",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "no_new_hotel_search",
+          "ok": true,
+          "detail": ""
+        }
+      ]
+    },
+    {
+      "case_id": "G-02b",
+      "title": "After options, book two hotel nights from arrival",
+      "passed": true,
+      "checks": [
+        {
+          "name": "lodging",
+          "ok": true,
+          "detail": "REQUIRED"
+        },
+        {
+          "name": "check_in",
+          "ok": true,
+          "detail": "2026-08-06"
+        },
+        {
+          "name": "check_out",
+          "ok": true,
+          "detail": "2026-08-08"
+        },
+        {
+          "name": "hotel_required",
+          "ok": true,
+          "detail": ""
+        }
+      ]
+    },
+    {
+      "case_id": "G-03a",
+      "title": "After options, move the meeting clock and keep the date",
+      "passed": true,
+      "checks": [
+        {
+          "name": "date",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "hour",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "departure_kept",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "origin",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "destination",
+          "ok": true,
+          "detail": ""
+        }
+      ]
+    },
+    {
+      "case_id": "G-03b",
+      "title": "After options, move return to the evening two days after arrival",
+      "passed": true,
+      "checks": [
+        {
+          "name": "departure_kept",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "arrive_kept",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "return_day",
+          "ok": true,
+          "detail": "2026-08-08"
+        },
+        {
+          "name": "return_after_hour",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "return_before_hour",
+          "ok": true,
+          "detail": ""
+        }
+      ]
+    },
+    {
+      "case_id": "G-04",
+      "title": "Change origin without 改为 and keep destination",
+      "passed": true,
+      "checks": [
+        {
+          "name": "origin",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "destination",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "destination_london",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "arrive_kept",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "origin_revision",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "not_dest_revision",
+          "ok": true,
+          "detail": ""
+        }
+      ]
+    }
+  ]
+}

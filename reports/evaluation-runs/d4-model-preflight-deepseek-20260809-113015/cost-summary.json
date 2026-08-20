@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "currency": "USD",
+  "price_table_version": "model-prices-openai-20260802-v1",
+  "unit": "per_1m_tokens",
+  "real_model_calls": 2,
+  "ledger_rows": 0,
+  "input_tokens_total": null,
+  "output_tokens_total": null,
+  "estimated_cost_usd_total": null,
+  "estimated_cost_usd_per_passed_case": null,
+  "notes": [
+    "Costs use configured price-table rates; cached-input discounts are not modelled.",
+    "Ledger rows are individual llm.extract_trip_intent calls with measured tokens."
+  ]
+}

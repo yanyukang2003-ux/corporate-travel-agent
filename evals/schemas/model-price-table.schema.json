@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://local.corporate-travel-agent/evals/model-price-table.schema.json",
+  "title": "Versioned model token price table",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "price_table_version",
+    "status",
+    "currency",
+    "unit",
+    "effective_at",
+    "source",
+    "models"
+  ],
+  "properties": {
+    "schema_version": {"const": 1},
+    "price_table_version": {"type": "string", "minLength": 1},
+    "status": {"enum": ["configured", "unconfigured"]},
+    "currency": {"type": "string", "minLength": 1},
+    "unit": {"const": "per_1m_tokens"},
+    "effective_at": {"type": "string", "format": "date"},
+    "source": {"type": "string", "minLength": 1},
+    "models": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["input", "output"],
+        "properties": {
+          "input": {"type": "number", "minimum": 0},
+          "output": {"type": "number", "minimum": 0},
+          "cached_input": {"type": ["number", "null"], "minimum": 0},
+          "cache_write_input": {"type": ["number", "null"], "minimum": 0}
+        }
+      }
+    }
+  }
+}

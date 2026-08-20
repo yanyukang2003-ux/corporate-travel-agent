@@ -1,0 +1,115 @@
+{
+  "schema_version": 1,
+  "run_id": "duffel-liteapi-full-chain-stability-v2-20260810-10x-1",
+  "evaluation_mode": "deterministic_live_duffel_liteapi_full_chain_stability",
+  "provider": "duffel+liteapi",
+  "provider_mode": "test+sandbox-read-only",
+  "dataset": {
+    "id": "duffel-liteapi-real-full-chain-v2",
+    "version": "2.0.0",
+    "sha256": "dd9ef5cda03ad5c20868e67f320d4b64014b7e13a136be7d954c515a2482b3be"
+  },
+  "code_revision": "workspace-v1.0.4-20260809-retry3",
+  "runner_sha256": "466ec05fac3fa94ad3d93825bef5513a7851ddc4c1db0e83520ad6921b83ab18",
+  "attempts": 10,
+  "passed_attempts": 4,
+  "failed_attempts": 6,
+  "pass_rate": 0.4,
+  "initial_attempt_successes": 3,
+  "initial_attempt_success_rate": 0.3,
+  "retry_recovered_attempts": 1,
+  "retry_lift_percentage_points": 10.0,
+  "all_attempts_passed": false,
+  "duration_ms": {
+    "total": 142070.332,
+    "mean": 14207.033,
+    "median": 16629.613,
+    "minimum": 9263.488,
+    "maximum": 16683.169,
+    "successful_mean": 10562.678,
+    "failed_mean": 16636.603
+  },
+  "retry_policy": {
+    "max_provider_attempts_per_operation": 3,
+    "backoff_base_seconds": 0.5,
+    "runs_with_retries": 7,
+    "observed_provider_retries": 13,
+    "failed_provider_attempts": 19,
+    "recovered_runs": 1,
+    "terminal_runs": 6,
+    "recovery_rate_among_retried_runs": 0.142857,
+    "retry_contract_valid_attempts": 10
+  },
+  "external_calls": {
+    "observed_total": 35,
+    "complete_chain_baseline_total": 40,
+    "maximum_allowed_total": 120,
+    "duffel": 27,
+    "liteapi": 8,
+    "booking_order_or_payment": 0
+  },
+  "failure_cluster": {
+    "attempts": [1, 2, 3, 4, 5, 6],
+    "stage": "duffel_initial_flight_search",
+    "classification": "persistent_connectivity_failure_at_duffel_boundary",
+    "error_code": "DUFFEL_TRANSPORT_CONNECTION_ERROR",
+    "cause_type": "ConnectError",
+    "message": "Duffel POST request failed transiently: ConnectError",
+    "first_started_at": "2026-08-09T16:05:14.048673+00:00",
+    "last_failed_at": "2026-08-09T16:06:55.181110+00:00",
+    "approximate_cluster_duration_seconds": 101.132,
+    "liteapi_called": false
+  },
+  "live_retry_recovery": {
+    "attempt": 7,
+    "failed_operation": "provider.search_transport.outbound",
+    "failed_attempts_before_recovery": 1,
+    "retries_used": 1,
+    "final_state": "READY_FOR_HANDOFF",
+    "external_calls": 5
+  },
+  "successful_attempt_consistency": {
+    "task_state": "READY_FOR_HANDOFF",
+    "revalidation_status": "UNCHANGED",
+    "provider_tool_trajectory_consistent": true,
+    "option_count": 3,
+    "flight_inventory_items": 42,
+    "hotel_inventory_items": 30,
+    "hotel_nightly_price_usd": 444.29,
+    "flight_price_usd": {
+      "minimum": 215.11,
+      "maximum": 227.35,
+      "range": 12.24
+    },
+    "total_cost_usd": {
+      "minimum": 1103.69,
+      "maximum": 1115.93,
+      "range": 12.24
+    }
+  },
+  "safety": {
+    "live_booking_enabled": false,
+    "booking_payment_or_order_http_observed": false,
+    "provider_secrets_archived": false,
+    "retry_contract_valid_for_all_attempts": true,
+    "failed_runs_stopped_before_liteapi": true
+  },
+  "combined_v2_observation_with_previous_3x_run": {
+    "attempts": 13,
+    "passed_attempts": 7,
+    "pass_rate": 0.538462,
+    "note": "Failures were time-clustered, so these attempts are not independent samples."
+  },
+  "attempt_results": [
+    {"attempt": 1, "passed": false, "duration_ms": 16617.904, "external_calls": 3, "provider_retries": 2, "state": "PROVIDER_FAILED"},
+    {"attempt": 2, "passed": false, "duration_ms": 16671.304, "external_calls": 3, "provider_retries": 2, "state": "PROVIDER_FAILED"},
+    {"attempt": 3, "passed": false, "duration_ms": 16641.321, "external_calls": 3, "provider_retries": 2, "state": "PROVIDER_FAILED"},
+    {"attempt": 4, "passed": false, "duration_ms": 16541.917, "external_calls": 3, "provider_retries": 2, "state": "PROVIDER_FAILED"},
+    {"attempt": 5, "passed": false, "duration_ms": 16664.004, "external_calls": 3, "provider_retries": 2, "state": "PROVIDER_FAILED"},
+    {"attempt": 6, "passed": false, "duration_ms": 16683.169, "external_calls": 3, "provider_retries": 2, "state": "PROVIDER_FAILED"},
+    {"attempt": 7, "passed": true, "duration_ms": 14316.004, "external_calls": 5, "provider_retries": 1, "state": "READY_FOR_HANDOFF"},
+    {"attempt": 8, "passed": true, "duration_ms": 9376.054, "external_calls": 4, "provider_retries": 0, "state": "READY_FOR_HANDOFF"},
+    {"attempt": 9, "passed": true, "duration_ms": 9295.167, "external_calls": 4, "provider_retries": 0, "state": "READY_FOR_HANDOFF"},
+    {"attempt": 10, "passed": true, "duration_ms": 9263.488, "external_calls": 4, "provider_retries": 0, "state": "READY_FOR_HANDOFF"}
+  ]
+}

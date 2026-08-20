@@ -1,0 +1,81 @@
+{
+  "schema_version": 1,
+  "dataset_id": "model-duffel-workflow-full-recovery-v1",
+  "dataset_version": "1.0.0",
+  "status": "frozen",
+  "evaluation_mode": "model_live_provider",
+  "provider": "duffel",
+  "provider_mode": "test",
+  "tool_choice_exposure": "orchestrator_controlled",
+  "records": 1,
+  "attempts_per_case": 3,
+  "maximum_model_calls": 6,
+  "maximum_provider_calls": 6,
+  "max_llm_attempts_per_run": 2,
+  "max_provider_attempts_per_run": 2,
+  "max_workflow_tool_calls_per_run": 4,
+  "booking_enabled": false,
+  "requested_model": "gpt-5.6",
+  "reasoning_effort": "medium",
+  "max_output_tokens_per_call": 1200,
+  "maximum_estimated_model_cost_usd": 0.15,
+  "tool_registry": {
+    "path": "evals/contracts/tool-registry-v2.json",
+    "sha256": "814b97391ebc8e8eb5c5d96368671cfec87401e4b02cad76d791a0bc18e2f2a2"
+  },
+  "price_table": {
+    "path": "evals/pricing/openai-standard-gpt-5.6-detailed-20260803-v1.json",
+    "sha256": "1bb11e4b012430d6c828c83ec4703fac5eedc6157c785979757e01c820df68f7"
+  },
+  "cases": [
+    {
+      "case_id": "model-duffel-lhr-jfk-full-recovery",
+      "traveler_id": "E1001",
+      "message": "I need to book a corporate trip from LHR to JFK. I cannot leave before 2026-09-15T00:00:00Z and I must arrive by 2026-09-17T00:00:00Z. Please keep me on flights only.",
+      "policy_currency": "USD",
+      "expected_intent": {
+        "classification": "TRIP",
+        "origin": "LHR",
+        "destination": "JFK",
+        "departure_after": "2026-09-15T00:00:00+00:00",
+        "arrive_by": "2026-09-17T00:00:00+00:00",
+        "return_after": null,
+        "return_before": null,
+        "hotel_check_in": null,
+        "hotel_check_out": null,
+        "hard_constraints": ["flight_only"],
+        "soft_preferences": []
+      },
+      "expected": {
+        "tool_sequence": [
+          "llm.extract_trip_intent",
+          "provider.search_transport.outbound"
+        ],
+        "llm_tool_calls": 1,
+        "maximum_llm_tool_calls": 2,
+        "allowed_retry_reason_codes": [
+          "TRANSIENT_LLM_TRANSPORT_FAULT"
+        ],
+        "provider_tool_calls": 1,
+        "maximum_provider_tool_calls": 2,
+        "allowed_provider_retry_reason_codes": [
+          "TRANSIENT_PROVIDER_FAULT"
+        ],
+        "provider_source_type": "AUTHORIZED_API",
+        "final_state": "WAITING_FOR_USER",
+        "minimum_options": 1,
+        "booking_intent_created": false,
+        "test_mode_disclosed": true,
+        "raw_response_archived": true
+      }
+    }
+  ],
+  "limitations": [
+    "The model extracts structured intent but does not choose tools; tool selection remains orchestrator-controlled.",
+    "Duffel Test Mode inventory is sandbox data and is not production schedule or price evidence.",
+    "OpenAI transport connection/timeouts and Duffel-declared transient read-only failures each allow one explicit retry.",
+    "Authentication, permission, malformed requests, structured-output failures, non-transient HTTP failures, and business failures are not retried.",
+    "Recovered retries remain visible in trajectory stability, request counts, latency, and cost accounting.",
+    "This flight-search-only case does not execute offer revalidation, handoff, hotel search, approval, or booking."
+  ]
+}

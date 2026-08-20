@@ -1,0 +1,57 @@
+{
+  "schema_version": 1,
+  "run_id": "deepseek-duffel-test-order-e2e-20260809",
+  "recovery_mode": "archived_external_evidence_only",
+  "recovered_at": "2026-08-09T11:20:26.653424+00:00",
+  "dataset": {
+    "id": "model-duffel-test-order-e2e-v1",
+    "version": "1.0.0",
+    "sha256": "bf8ea60499ff9dc8414fbf0f76ad072c5f33619bdd244a6f659d3dfae05a6c56"
+  },
+  "external_transaction": {
+    "duffel_http_responses": 7,
+    "offer_id": "off_0000B9C6uunkxYucNhUHgv",
+    "order_id": "ord_0000B9C6vEIwRq9ArvDxR2",
+    "order_live_mode": false,
+    "cancellation_id": "ore_0000B9C6vImrmWScltFudM",
+    "cancellation_confirmed_at": "2026-08-09T11:16:05.435950Z",
+    "refund_amount": "231.37",
+    "refund_currency": "USD",
+    "refund_to": "balance",
+    "final_order_cancelled": true
+  },
+  "evidence": {
+    "raw_response_sha256": {
+      "flight": "4d8ea9faf7484c7d8fc92ce6bec25f70b5167836d6cc6ea1b74bd3d3d726fad9",
+      "revalidation": "91e873a38adf72461dfd01b1f2bbab44d388c8ce0ae132af194b7bbc3f76cc53",
+      "order-create": "2ffbc61c9db5389c3d1a5d69ceab683c522850e980d84e3476711535fc64ffb3",
+      "order-read": "2ffbc61c9db5389c3d1a5d69ceab683c522850e980d84e3476711535fc64ffb3",
+      "cancellation-quote": "e1f4c0e591df8016fa7b55a046c5a3940e752f4705f313aa05dc8501ee5c505f",
+      "cancellation-confirm": "4a5756bfa7a269525cd13cf6c6c06c22592428a051b7fc8877d26a9ad615530b",
+      "order-final": "d39e61bf81ec2798e4f27575232f86d3bb03ce3c970c9237e17eeb125c08ba9e"
+    },
+    "raw_and_metadata_files": 14,
+    "secret_marker_paths": []
+  },
+  "checks": {
+    "seven_response_categories_present": true,
+    "all_responses_test_mode": true,
+    "duffel_airways_offer_selected": true,
+    "revalidated_offer_matches_order": true,
+    "order_readback_matches_create": true,
+    "cancellation_quote_matches_order": true,
+    "cancellation_confirmation_matches_quote": true,
+    "final_order_matches_create": true,
+    "final_order_contains_confirmed_cancellation": true,
+    "final_order_no_longer_cancellable": true,
+    "sandbox_balance_payment_completed": true,
+    "refund_returned_to_test_balance": true,
+    "raw_hashes_match_metadata": true,
+    "raw_evidence_permissions_private": true,
+    "no_secret_markers": true
+  },
+  "external_transaction_passed": true,
+  "formal_evaluation_passed": false,
+  "formal_evaluation_failure": "The evaluation-mode enum rejected model_live_provider_test_order after the external transaction, before model usage and workflow trace were persisted.",
+  "additional_external_calls": 0
+}

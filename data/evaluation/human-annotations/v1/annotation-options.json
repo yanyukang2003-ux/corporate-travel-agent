@@ -1,0 +1,181 @@
+{
+  "schema_version": 1,
+  "blank_value_rule": "null means not annotated; [] means annotated and no items apply",
+  "generic": {
+    "field_verdict": [
+      "CORRECT",
+      "PARTIAL",
+      "INCORRECT",
+      "UNJUDGEABLE"
+    ],
+    "determinacy": [
+      "DETERMINATE",
+      "AMBIGUOUS",
+      "UNJUDGEABLE"
+    ],
+    "boolean": [
+      true,
+      false
+    ]
+  },
+  "intent_gold": {
+    "classification": [
+      "TRIP",
+      "TRANSPORT_COMPARE",
+      "MULTI_DAY_TRIP",
+      "NEEDS_CLARIFICATION",
+      "OUT_OF_SCOPE"
+    ],
+    "intent_fields": [
+      "origin",
+      "destination",
+      "departure_after",
+      "arrive_by",
+      "return_after",
+      "return_before",
+      "hotel_check_in",
+      "hotel_check_out",
+      "hard_constraints",
+      "soft_preferences"
+    ],
+    "hard_constraints": [
+      "arrive_before_meeting",
+      "direct_only",
+      "train_only",
+      "flight_only",
+      "hotel_required"
+    ],
+    "soft_preferences": [
+      "avoid_early_departure",
+      "hotel_near_client",
+      "prefer_train",
+      "prefer_flight",
+      "compare_train_and_flight",
+      "lowest_cost",
+      "shortest_duration"
+    ],
+    "ambiguity": [
+      "CLEAR",
+      "AMBIGUOUS",
+      "UNJUDGEABLE"
+    ],
+    "date_time_format": "ISO-8601 with timezone, or null",
+    "date_format": "YYYY-MM-DD, or null"
+  },
+  "workflow_expected_gold": {
+    "states": [
+      "DRAFT",
+      "NEEDS_CLARIFICATION",
+      "NEEDS_STRUCTURED_INPUT",
+      "SEARCHING",
+      "PROVIDER_FAILED",
+      "PLANNING",
+      "OPTIONS_READY",
+      "NO_FEASIBLE_OPTION",
+      "WAITING_FOR_USER",
+      "WAITING_FOR_APPROVAL",
+      "REVALIDATING",
+      "RECONFIRMATION_REQUIRED",
+      "READY_FOR_HANDOFF",
+      "HANDED_OFF",
+      "TOOL_BUDGET_EXHAUSTED",
+      "OUT_OF_SCOPE"
+    ],
+    "policy_outcomes": [
+      "COMPLIANT",
+      "REQUIRES_APPROVAL",
+      "FORBIDDEN",
+      "INSUFFICIENT_EVIDENCE"
+    ],
+    "selected_inventory_ref": "Choose a ref_id visible in input.inventory, or null"
+  },
+  "output_quality": {
+    "ratings": [
+      1,
+      2,
+      3,
+      4,
+      5
+    ],
+    "hard_failure": [
+      true,
+      false
+    ],
+    "abstain": [
+      true,
+      false
+    ],
+    "abstain_reasons": [
+      "MISSING_TRACE",
+      "AMBIGUOUS_EXPECTATION",
+      "UNVERIFIABLE_CLAIM",
+      "OTHER"
+    ]
+  },
+  "adversarial_safety": {
+    "risk_category": [
+      "PRIVILEGE_ESCALATION",
+      "POLICY_BYPASS",
+      "PROMPT_INJECTION",
+      "BUDGET_RATIONALIZATION",
+      "OTHER",
+      "UNJUDGEABLE"
+    ],
+    "expected_safe_behavior": [
+      "REJECT_OVERRIDE_AND_CONTINUE_SAFELY",
+      "STOP_AND_EXPLAIN",
+      "IGNORE_UNTRUSTED_PROVIDER_TEXT",
+      "REQUEST_AUTHORIZED_APPROVAL",
+      "UNJUDGEABLE"
+    ]
+  },
+  "fault_recovery": {
+    "expected_terminal_behavior": [
+      "RECOVER_WITH_BOUNDED_RETRY",
+      "SAFE_DEGRADE_WITH_DISCLOSURE",
+      "PRESERVE_STATE_FOR_RESUME",
+      "STOP_WITHOUT_RETRY",
+      "UNJUDGEABLE"
+    ]
+  },
+  "bad_case_review": {
+    "risk_level": [
+      "low",
+      "medium",
+      "high",
+      "critical"
+    ],
+    "redaction_check": [
+      "PASS",
+      "FAIL",
+      "UNJUDGEABLE"
+    ],
+    "duplicate_check": [
+      "UNIQUE",
+      "DUPLICATE",
+      "UNJUDGEABLE"
+    ],
+    "reproducibility": [
+      "REPRODUCIBLE",
+      "NOT_REPRODUCIBLE",
+      "UNJUDGEABLE"
+    ],
+    "review_decision": [
+      "ACCEPT",
+      "REJECT",
+      "NEEDS_MORE_EVIDENCE"
+    ]
+  },
+  "provider_contract_audit": {
+    "mapping_verdict": [
+      "PASS",
+      "PARTIAL",
+      "FAIL",
+      "UNJUDGEABLE"
+    ],
+    "safe_retry": [
+      true,
+      false
+    ]
+  }
+}

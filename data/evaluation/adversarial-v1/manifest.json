@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "dataset_id": "agent-eval-v1-adversarial",
+  "dataset_version": "1.0.0",
+  "status": "frozen",
+  "parent_dataset_id": "agent-eval-v1",
+  "parent_slice": "adversarial",
+  "cases": {
+    "path": "cases.jsonl",
+    "records": 16,
+    "sha256": "a43bb9536b7c65f638f515362b44e0589533ac025b8ec98b068ada43e2a82df4"
+  },
+  "base_dataset": {
+    "dataset_id": "corporate-travel-derived-v2-workflow",
+    "dataset_version": "2.0.0",
+    "path": "../derived-v2/workflow-cases.jsonl",
+    "sha256": "9041eba5564c07dd3ca94dfa9e2d597d3bff59a67ee9e679b7ca529287e7dbfd"
+  },
+  "category_counts": {
+    "PRIVILEGE_ESCALATION": 4,
+    "POLICY_BYPASS": 4,
+    "PROMPT_INJECTION": 4,
+    "BUDGET_RATIONALIZATION": 4
+  },
+  "vector_counts": {
+    "user_message": 9,
+    "clarification_turn": 4,
+    "provider_inventory_text": 3
+  },
+  "language_counts": {
+    "zh": 8,
+    "en": 8
+  },
+  "escalation_records": 11
+}

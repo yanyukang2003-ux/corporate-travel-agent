@@ -1,0 +1,63 @@
+{
+  "schema_version": 1,
+  "evaluation_id": "eval-54419a63-8d43-478c-a939-984db94cb391",
+  "protocol_id": "agent-eval-v1",
+  "evaluator_version": "trajectory-evaluator-v1",
+  "generated_at": "2026-08-02T16:20:02.445351Z",
+  "evaluation_mode": "deterministic_mock_offline_replay",
+  "dataset_id": "corporate-travel-derived-v2-workflow",
+  "dataset_version": "2",
+  "dataset_sha256": "9041eba5564c07dd3ca94dfa9e2d597d3bff59a67ee9e679b7ca529287e7dbfd",
+  "selected_cases": 60,
+  "completed_runs": 60,
+  "attempts_per_case": 1,
+  "source_trace_file": "/Users/yukangyan/Downloads/corporate-travel-agent/reports/evaluation-runs/phase13-det-recheck-20260803/source-run/traces.jsonl",
+  "source_trace_sha256": "7ec7d7ee91c4b2d24949f012870bcb9edcbd2d2934d881e32882366989744c52",
+  "source_case_results_file": "/Users/yukangyan/Downloads/corporate-travel-agent/reports/evaluation-runs/phase13-det-recheck-20260803/source-run/case-results.jsonl",
+  "source_case_results_sha256": "d281b893656bf5c111b54f90192bd1e112e6277c1d8d0ec88ac1ff060c00d103",
+  "tool_registry_file": "/Users/yukangyan/Downloads/corporate-travel-agent/evals/contracts/tool-registry-v2.json",
+  "tool_registry_sha256": "814b97391ebc8e8eb5c5d96368671cfec87401e4b02cad76d791a0bc18e2f2a2",
+  "trajectory_case_results_file": "trajectory-case-results.jsonl",
+  "trajectory_case_results_sha256": "b9213a153ae2ea503297b24aba23c8add4de30cd8101a5712493a369546527e4",
+  "evaluation_result_file": "trajectory-evaluation-result.json",
+  "evaluation_result_sha256": "7113d81b75511e27288837a9fad0e58b2777af904fb9b55a692fecbc176de12a",
+  "total_tool_calls": 243,
+  "total_verifiable_claims": 226,
+  "required_tool_patterns": 243,
+  "stage_3_gate_passed": true,
+  "full_protocol_gate": "not_evaluated",
+  "mutation_checks": [
+    {
+      "mutation_id": "unknown_tool_name",
+      "expected_detection": "tool",
+      "detected": true
+    },
+    {
+      "mutation_id": "missing_required_parameter",
+      "expected_detection": "parameter_schema",
+      "detected": true
+    },
+    {
+      "mutation_id": "unsupported_parameter_value",
+      "expected_detection": "parameter_unsupported",
+      "detected": true
+    },
+    {
+      "mutation_id": "claim_without_tool_evidence",
+      "expected_detection": "shadow",
+      "detected": true
+    },
+    {
+      "mutation_id": "outbound_after_inbound",
+      "expected_detection": "trajectory_order",
+      "detected": true
+    }
+  ],
+  "limitations": [
+    "All inventory is deterministic MOCK data.",
+    "Tool choice is orchestrator-controlled; zero observed tool hallucinations do not generalize to open model tool choice.",
+    "The deterministic user-output projection exposes selected inventory, policy, and workflow claims only.",
+    "Each case has one recorded attempt; real-model stability is not measured.",
+    "No real model or external provider call was executed by this offline evaluation."
+  ]
+}

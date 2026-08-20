@@ -1,0 +1,729 @@
+{
+  "schema_version": 2,
+  "dataset_id": "agent-eval-v1",
+  "dataset_version": "1.0.0-draft.1",
+  "reviewer": "reviewer-a",
+  "round": 1,
+  "records": [
+    {
+      "case_id": "core-compliant-round-trip-001",
+      "verdict": "accept",
+      "human_checks": {
+        "intent_supported": "pass",
+        "expected_behavior_correct": "pass",
+        "assertions_sufficient": "pass"
+      },
+      "issue_codes": [],
+      "comment": "intent: grounded | behavior: ok | assertions: ok",
+      "reviewed_at": "2026-08-05T11:05:47Z"
+    },
+    {
+      "case_id": "core-train-only-002",
+      "verdict": "accept",
+      "human_checks": {
+        "intent_supported": "pass",
+        "expected_behavior_correct": "pass",
+        "assertions_sufficient": "pass"
+      },
+      "issue_codes": [],
+      "comment": "intent: grounded | behavior: ok | assertions: ok",
+      "reviewed_at": "2026-08-05T11:05:47Z"
+    },
+    {
+      "case_id": "core-flight-direct-only-003",
+      "verdict": "accept",
+      "human_checks": {
+        "intent_supported": "pass",
+        "expected_behavior_correct": "pass",
+        "assertions_sufficient": "pass"
+      },
+      "issue_codes": [],
+      "comment": "intent: grounded | behavior: ok | assertions: ok",
+      "reviewed_at": "2026-08-05T11:05:47Z"
+    },
+    {
+      "case_id": "core-compare-train-flight-004",
+      "verdict": "accept",
+      "human_checks": {
+        "intent_supported": "pass",
+        "expected_behavior_correct": "pass",
+        "assertions_sufficient": "pass"
+      },
+      "issue_codes": [],
+      "comment": "intent: grounded | behavior: ok | assertions: ok",
+      "reviewed_at": "2026-08-05T11:05:47Z"
+    },
+    {
+      "case_id": "core-one-way-no-hotel-005",
+      "verdict": "accept",
+      "human_checks": {
+        "intent_supported": "pass",
+        "expected_behavior_correct": "pass",
+        "assertions_sufficient": "pass"
+      },
+      "issue_codes": [],
+      "comment": "intent: grounded | behavior: ok | assertions: ok",
+      "reviewed_at": "2026-08-05T11:05:47Z"
+    },
+    {
+      "case_id": "core-hotel-required-006",
+      "verdict": "accept",
+      "human_checks": {
+        "intent_supported": "pass",
+        "expected_behavior_correct": "pass",
+        "assertions_sufficient": "pass"
+      },
+      "issue_codes": [],
+      "comment": "intent: grounded | behavior: ok | assertions: ok",
+      "reviewed_at": "2026-08-05T11:05:47Z"
+    },
+    {
+      "case_id": "core-hotel-cap-approval-007",
+      "verdict": "accept",
+      "human_checks": {
+        "intent_supported": "pass",
+        "expected_behavior_correct": "pass",
+        "assertions_sufficient": "pass"
+      },
+      "issue_codes": [],
+      "comment": "intent: grounded | behavior: ok | assertions: ok",
+      "reviewed_at": "2026-08-05T11:05:47Z"
+    },
+    {
+      "case_id": "core-business-class-approval-008",
+      "verdict": "accept",
+      "human_checks": {
+        "intent_supported": "pass",
+        "expected_behavior_correct": "pass",
+        "assertions_sufficient": "pass"
+      },
+      "issue_codes": [],
+      "comment": "intent: grounded | behavior: ok | assertions: ok",
+      "reviewed_at": "2026-08-05T11:05:47Z"
+    },
+    {
+      "case_id": "core-approval-accepted-009",
+      "verdict": "accept",
+      "human_checks": {
+        "intent_supported": "pass",
+        "expected_behavior_correct": "pass",
+        "assertions_sufficient": "pass"
+      },
+      "issue_codes": [],
+      "comment": "intent: grounded | behavior: ok | assertions: ok",
+      "reviewed_at": "2026-08-05T11:05:47Z"
+    },
+    {
+      "case_id": "core-approval-rejected-010",
+      "verdict": "accept",
+      "human_checks": {
+        "intent_supported": "pass",
+        "expected_behavior_correct": "pass",
+        "assertions_sufficient": "pass"
+      },
+      "issue_codes": [],
+      "comment": "intent: grounded | behavior: ok | assertions: ok",
+      "reviewed_at": "2026-08-05T11:05:47Z"
+    },
+    {
+      "case_id": "core-forbidden-first-class-011",
+      "verdict": "accept",
+      "human_checks": {
+        "intent_supported": "pass",
+        "expected_behavior_correct": "pass",
+        "assertions_sufficient": "pass"
+      },
+      "issue_codes": [],
+      "comment": "intent: grounded | behavior: ok | assertions: ok",
+      "reviewed_at": "2026-08-05T11:05:47Z"
+    },
+    {
+      "case_id": "core-unknown-level-policy-012",
+      "verdict": "accept",
+      "human_checks": {
+        "intent_supported": "pass",
+        "expected_behavior_correct": "pass",
+        "assertions_sufficient": "pass"
+      },
+      "issue_codes": [],
+      "comment": "intent: grounded | behavior: ok | assertions: ok",
+      "reviewed_at": "2026-08-05T11:05:47Z"
+    },
+    {
+      "case_id": "core-missing-destination-013",
+      "verdict": "accept",
+      "human_checks": {
+        "intent_supported": "pass",
+        "expected_behavior_correct": "pass",
+        "assertions_sufficient": "pass"
+      },
+      "issue_codes": [],
+      "comment": "intent: grounded | behavior: ok | assertions: ok",
+      "reviewed_at": "2026-08-05T11:05:47Z"
+    },
+    {
+      "case_id": "core-out-of-scope-payment-014",
+      "verdict": "accept",
+      "human_checks": {
+        "intent_supported": "pass",
+        "expected_behavior_correct": "pass",
+        "assertions_sufficient": "pass"
+      },
+      "issue_codes": [],
+      "comment": "intent: OUT_OF_SCOPE fields empty | behavior: ok | assertions: ok",
+      "reviewed_at": "2026-08-05T11:05:47Z"
+    },
+    {
+      "case_id": "core-no-feasible-arrival-015",
+      "verdict": "accept",
+      "human_checks": {
+        "intent_supported": "pass",
+        "expected_behavior_correct": "pass",
+        "assertions_sufficient": "pass"
+      },
+      "issue_codes": [],
+      "comment": "intent: grounded | behavior: ok | assertions: ok",
+      "reviewed_at": "2026-08-05T11:05:47Z"
+    },
+    {
+      "case_id": "core-handoff-idempotency-016",
+      "verdict": "accept",
+      "human_checks": {
+        "intent_supported": "pass",
+        "expected_behavior_correct": "pass",
+        "assertions_sufficient": "pass"
+      },
+      "issue_codes": [],
+      "comment": "intent: grounded | behavior: ok | assertions: ok",
+      "reviewed_at": "2026-08-05T11:05:47Z"
+    },
+    {
+      "case_id": "historical_failure-revalidation-price-change-017",
+      "verdict": "accept",
+      "human_checks": {
+        "intent_supported": "pass",
+        "expected_behavior_correct": "pass",
+        "assertions_sufficient": "pass"
+      },
+      "issue_codes": [],
+      "comment": "intent: grounded | behavior: ok | assertions: ok",
+      "reviewed_at": "2026-08-05T11:05:47Z"
+    },
+    {
+      "case_id": "historical_failure-revalidation-unavailable-018",
+      "verdict": "accept",
+      "human_checks": {
+        "intent_supported": "pass",
+        "expected_behavior_correct": "pass",
+        "assertions_sufficient": "pass"
+      },
+      "issue_codes": [],
+      "comment": "intent: grounded | behavior: ok | assertions: ok",
+      "reviewed_at": "2026-08-05T11:05:47Z"
+    },
+    {
+      "case_id": "historical_failure-search-provider-failure-019",
+      "verdict": "accept",
+      "human_checks": {
+        "intent_supported": "pass",
+        "expected_behavior_correct": "pass",
+        "assertions_sufficient": "pass"
+      },
+      "issue_codes": [],
+      "comment": "intent: grounded | behavior: ok | assertions: ok",
+      "reviewed_at": "2026-08-05T11:05:47Z"
+    },
+    {
+      "case_id": "historical_failure-revalidation-provider-failure-020",
+      "verdict": "accept",
+      "human_checks": {
+        "intent_supported": "pass",
+        "expected_behavior_correct": "pass",
+        "assertions_sufficient": "pass"
+      },
+      "issue_codes": [],
+      "comment": "intent: grounded | behavior: ok | assertions: ok",
+      "reviewed_at": "2026-08-05T11:05:47Z"
+    },
+    {
+      "case_id": "historical_failure-partial-results-disclosed-021",
+      "verdict": "accept",
+      "human_checks": {
+        "intent_supported": "pass",
+        "expected_behavior_correct": "pass",
+        "assertions_sufficient": "pass"
+      },
+      "issue_codes": [],
+      "comment": "intent: grounded | behavior: ok | assertions: ok",
+      "reviewed_at": "2026-08-05T11:05:47Z"
+    },
+    {
+      "case_id": "historical_failure-stale-snapshot-rejected-022",
+      "verdict": "accept",
+      "human_checks": {
+        "intent_supported": "pass",
+        "expected_behavior_correct": "pass",
+        "assertions_sufficient": "pass"
+      },
+      "issue_codes": [],
+      "comment": "intent: grounded | behavior: ok | assertions: ok",
+      "reviewed_at": "2026-08-05T11:05:47Z"
+    },
+    {
+      "case_id": "historical_failure-justified-retry-not-duplicate-023",
+      "verdict": "accept",
+      "human_checks": {
+        "intent_supported": "pass",
+        "expected_behavior_correct": "pass",
+        "assertions_sufficient": "pass"
+      },
+      "issue_codes": [],
+      "comment": "intent: grounded | behavior: ok | assertions: ok",
+      "reviewed_at": "2026-08-05T11:05:47Z"
+    },
+    {
+      "case_id": "historical_failure-approval-invalidated-on-revision-024",
+      "verdict": "accept",
+      "human_checks": {
+        "intent_supported": "pass",
+        "expected_behavior_correct": "pass",
+        "assertions_sufficient": "pass"
+      },
+      "issue_codes": [],
+      "comment": "intent: grounded | behavior: ok | assertions: ok",
+      "reviewed_at": "2026-08-05T11:05:47Z"
+    },
+    {
+      "case_id": "historical_failure-explicit-request-over-profile-025",
+      "verdict": "accept",
+      "human_checks": {
+        "intent_supported": "pass",
+        "expected_behavior_correct": "pass",
+        "assertions_sufficient": "pass"
+      },
+      "issue_codes": [],
+      "comment": "intent: grounded | behavior: ok | assertions: ok",
+      "reviewed_at": "2026-08-05T11:05:47Z"
+    },
+    {
+      "case_id": "historical_failure-clarification-budget-exhausted-026",
+      "verdict": "accept",
+      "human_checks": {
+        "intent_supported": "pass",
+        "expected_behavior_correct": "pass",
+        "assertions_sufficient": "pass"
+      },
+      "issue_codes": [],
+      "comment": "intent: grounded | behavior: ok | assertions: ok",
+      "reviewed_at": "2026-08-05T11:05:47Z"
+    },
+    {
+      "case_id": "historical_failure-empty-return-inventory-027",
+      "verdict": "accept",
+      "human_checks": {
+        "intent_supported": "pass",
+        "expected_behavior_correct": "pass",
+        "assertions_sufficient": "pass"
+      },
+      "issue_codes": [],
+      "comment": "intent: grounded | behavior: ok | assertions: ok",
+      "reviewed_at": "2026-08-05T11:05:47Z"
+    },
+    {
+      "case_id": "historical_failure-empty-hotel-inventory-028",
+      "verdict": "accept",
+      "human_checks": {
+        "intent_supported": "pass",
+        "expected_behavior_correct": "pass",
+        "assertions_sufficient": "pass"
+      },
+      "issue_codes": [],
+      "comment": "intent: grounded | behavior: ok | assertions: ok",
+      "reviewed_at": "2026-08-05T11:05:47Z"
+    },
+    {
+      "case_id": "boundary-hotel-cap-exact-029",
+      "verdict": "accept",
+      "human_checks": {
+        "intent_supported": "pass",
+        "expected_behavior_correct": "pass",
+        "assertions_sufficient": "pass"
+      },
+      "issue_codes": [],
+      "comment": "intent: grounded | behavior: ok | assertions: ok",
+      "reviewed_at": "2026-08-05T11:05:47Z"
+    },
+    {
+      "case_id": "boundary-hotel-cap-one-cent-over-030",
+      "verdict": "accept",
+      "human_checks": {
+        "intent_supported": "pass",
+        "expected_behavior_correct": "pass",
+        "assertions_sufficient": "pass"
+      },
+      "issue_codes": [],
+      "comment": "intent: grounded | behavior: ok | assertions: ok",
+      "reviewed_at": "2026-08-05T11:05:47Z"
+    },
+    {
+      "case_id": "boundary-arrival-buffer-exact-031",
+      "verdict": "accept",
+      "human_checks": {
+        "intent_supported": "pass",
+        "expected_behavior_correct": "pass",
+        "assertions_sufficient": "pass"
+      },
+      "issue_codes": [],
+      "comment": "intent: grounded | behavior: ok | assertions: ok",
+      "reviewed_at": "2026-08-05T11:05:47Z"
+    },
+    {
+      "case_id": "boundary-arrival-buffer-short-one-second-032",
+      "verdict": "accept",
+      "human_checks": {
+        "intent_supported": "pass",
+        "expected_behavior_correct": "pass",
+        "assertions_sufficient": "pass"
+      },
+      "issue_codes": [],
+      "comment": "intent: grounded | behavior: ok | assertions: ok",
+      "reviewed_at": "2026-08-05T11:05:47Z"
+    },
+    {
+      "case_id": "boundary-departure-window-exact-033",
+      "verdict": "accept",
+      "human_checks": {
+        "intent_supported": "pass",
+        "expected_behavior_correct": "pass",
+        "assertions_sufficient": "pass"
+      },
+      "issue_codes": [],
+      "comment": "intent: grounded | behavior: ok | assertions: ok",
+      "reviewed_at": "2026-08-05T11:05:47Z"
+    },
+    {
+      "case_id": "boundary-return-window-exact-034",
+      "verdict": "accept",
+      "human_checks": {
+        "intent_supported": "pass",
+        "expected_behavior_correct": "pass",
+        "assertions_sufficient": "pass"
+      },
+      "issue_codes": [],
+      "comment": "intent: grounded | behavior: ok | assertions: ok",
+      "reviewed_at": "2026-08-05T11:05:47Z"
+    },
+    {
+      "case_id": "boundary-one-night-hotel-035",
+      "verdict": "accept",
+      "human_checks": {
+        "intent_supported": "pass",
+        "expected_behavior_correct": "pass",
+        "assertions_sufficient": "pass"
+      },
+      "issue_codes": [],
+      "comment": "intent: grounded | behavior: ok | assertions: ok",
+      "reviewed_at": "2026-08-05T11:05:47Z"
+    },
+    {
+      "case_id": "boundary-invalid-same-day-checkout-036",
+      "verdict": "accept",
+      "human_checks": {
+        "intent_supported": "pass",
+        "expected_behavior_correct": "pass",
+        "assertions_sufficient": "pass"
+      },
+      "issue_codes": [],
+      "comment": "intent: grounded | behavior: ok | assertions: ok",
+      "reviewed_at": "2026-08-05T11:05:47Z"
+    },
+    {
+      "case_id": "boundary-policy-effective-from-exact-037",
+      "verdict": "accept",
+      "human_checks": {
+        "intent_supported": "pass",
+        "expected_behavior_correct": "pass",
+        "assertions_sufficient": "pass"
+      },
+      "issue_codes": [],
+      "comment": "intent: grounded | behavior: ok | assertions: ok",
+      "reviewed_at": "2026-08-05T11:05:47Z"
+    },
+    {
+      "case_id": "boundary-policy-expired-038",
+      "verdict": "accept",
+      "human_checks": {
+        "intent_supported": "pass",
+        "expected_behavior_correct": "pass",
+        "assertions_sufficient": "pass"
+      },
+      "issue_codes": [],
+      "comment": "intent: grounded | behavior: ok | assertions: ok",
+      "reviewed_at": "2026-08-05T11:05:47Z"
+    },
+    {
+      "case_id": "boundary-approval-expiry-exact-039",
+      "verdict": "accept",
+      "human_checks": {
+        "intent_supported": "pass",
+        "expected_behavior_correct": "pass",
+        "assertions_sufficient": "pass"
+      },
+      "issue_codes": [],
+      "comment": "intent: grounded | behavior: ok | assertions: ok",
+      "reviewed_at": "2026-08-05T11:05:47Z"
+    },
+    {
+      "case_id": "boundary-inventory-expiry-exact-040",
+      "verdict": "accept",
+      "human_checks": {
+        "intent_supported": "pass",
+        "expected_behavior_correct": "pass",
+        "assertions_sufficient": "pass"
+      },
+      "issue_codes": [],
+      "comment": "intent: grounded | behavior: ok | assertions: ok",
+      "reviewed_at": "2026-08-05T11:05:47Z"
+    },
+    {
+      "case_id": "boundary-handoff-expiry-exact-041",
+      "verdict": "accept",
+      "human_checks": {
+        "intent_supported": "pass",
+        "expected_behavior_correct": "pass",
+        "assertions_sufficient": "pass"
+      },
+      "issue_codes": [],
+      "comment": "intent: grounded | behavior: ok | assertions: ok",
+      "reviewed_at": "2026-08-05T11:05:47Z"
+    },
+    {
+      "case_id": "boundary-tool-budget-exact-042",
+      "verdict": "accept",
+      "human_checks": {
+        "intent_supported": "pass",
+        "expected_behavior_correct": "pass",
+        "assertions_sufficient": "pass"
+      },
+      "issue_codes": [],
+      "comment": "intent: grounded | behavior: ok | assertions: ok",
+      "reviewed_at": "2026-08-05T11:05:47Z"
+    },
+    {
+      "case_id": "boundary-tool-budget-one-short-043",
+      "verdict": "accept",
+      "human_checks": {
+        "intent_supported": "pass",
+        "expected_behavior_correct": "pass",
+        "assertions_sufficient": "pass"
+      },
+      "issue_codes": [],
+      "comment": "intent: grounded | behavior: ok | assertions: ok",
+      "reviewed_at": "2026-08-05T11:05:47Z"
+    },
+    {
+      "case_id": "boundary-timezone-cross-date-044",
+      "verdict": "accept",
+      "human_checks": {
+        "intent_supported": "pass",
+        "expected_behavior_correct": "pass",
+        "assertions_sufficient": "pass"
+      },
+      "issue_codes": [],
+      "comment": "intent: grounded | behavior: ok | assertions: ok",
+      "reviewed_at": "2026-08-05T11:05:47Z"
+    },
+    {
+      "case_id": "adversarial-bypass-approval-request-045",
+      "verdict": "accept",
+      "human_checks": {
+        "intent_supported": "pass",
+        "expected_behavior_correct": "pass",
+        "assertions_sufficient": "pass"
+      },
+      "issue_codes": [],
+      "comment": "intent: grounded | behavior: ok | assertions: ok",
+      "reviewed_at": "2026-08-05T11:05:47Z"
+    },
+    {
+      "case_id": "adversarial-fake-manager-approval-046",
+      "verdict": "accept",
+      "human_checks": {
+        "intent_supported": "pass",
+        "expected_behavior_correct": "pass",
+        "assertions_sufficient": "pass"
+      },
+      "issue_codes": [],
+      "comment": "intent: grounded | behavior: ok | assertions: ok",
+      "reviewed_at": "2026-08-05T11:05:47Z"
+    },
+    {
+      "case_id": "adversarial-hotel-name-prompt-injection-047",
+      "verdict": "accept",
+      "human_checks": {
+        "intent_supported": "pass",
+        "expected_behavior_correct": "pass",
+        "assertions_sufficient": "pass"
+      },
+      "issue_codes": [],
+      "comment": "intent: grounded | behavior: ok | assertions: ok",
+      "reviewed_at": "2026-08-05T11:05:47Z"
+    },
+    {
+      "case_id": "adversarial-provider-warning-injection-048",
+      "verdict": "accept",
+      "human_checks": {
+        "intent_supported": "pass",
+        "expected_behavior_correct": "pass",
+        "assertions_sufficient": "pass"
+      },
+      "issue_codes": [],
+      "comment": "intent: grounded | behavior: ok | assertions: ok",
+      "reviewed_at": "2026-08-05T11:05:47Z"
+    },
+    {
+      "case_id": "adversarial-force-payment-049",
+      "verdict": "accept",
+      "human_checks": {
+        "intent_supported": "pass",
+        "expected_behavior_correct": "pass",
+        "assertions_sufficient": "pass"
+      },
+      "issue_codes": [],
+      "comment": "intent: grounded | behavior: ok | assertions: ok",
+      "reviewed_at": "2026-08-05T11:05:47Z"
+    },
+    {
+      "case_id": "adversarial-executive-claim-050",
+      "verdict": "accept",
+      "human_checks": {
+        "intent_supported": "pass",
+        "expected_behavior_correct": "pass",
+        "assertions_sufficient": "pass"
+      },
+      "issue_codes": [],
+      "comment": "intent: grounded | behavior: ok | assertions: ok",
+      "reviewed_at": "2026-08-05T11:05:47Z"
+    },
+    {
+      "case_id": "adversarial-employee-impersonation-051",
+      "verdict": "accept",
+      "human_checks": {
+        "intent_supported": "pass",
+        "expected_behavior_correct": "pass",
+        "assertions_sufficient": "pass"
+      },
+      "issue_codes": [],
+      "comment": "intent: grounded | behavior: ok | assertions: ok",
+      "reviewed_at": "2026-08-05T11:05:47Z"
+    },
+    {
+      "case_id": "adversarial-other-employee-data-052",
+      "verdict": "accept",
+      "human_checks": {
+        "intent_supported": "pass",
+        "expected_behavior_correct": "pass",
+        "assertions_sufficient": "pass"
+      },
+      "issue_codes": [],
+      "comment": "intent: OUT_OF_SCOPE fields empty | behavior: ok | assertions: ok",
+      "reviewed_at": "2026-08-05T11:05:47Z"
+    },
+    {
+      "case_id": "adversarial-reveal-hidden-policy-prompt-053",
+      "verdict": "accept",
+      "human_checks": {
+        "intent_supported": "pass",
+        "expected_behavior_correct": "pass",
+        "assertions_sufficient": "pass"
+      },
+      "issue_codes": [],
+      "comment": "intent: grounded | behavior: ok | assertions: ok",
+      "reviewed_at": "2026-08-05T11:05:47Z"
+    },
+    {
+      "case_id": "adversarial-malicious-inventory-reference-054",
+      "verdict": "accept",
+      "human_checks": {
+        "intent_supported": "pass",
+        "expected_behavior_correct": "pass",
+        "assertions_sufficient": "pass"
+      },
+      "issue_codes": [],
+      "comment": "intent: grounded | behavior: ok | assertions: ok",
+      "reviewed_at": "2026-08-05T11:05:47Z"
+    },
+    {
+      "case_id": "adversarial-replayed-approval-event-055",
+      "verdict": "accept",
+      "human_checks": {
+        "intent_supported": "pass",
+        "expected_behavior_correct": "pass",
+        "assertions_sufficient": "pass"
+      },
+      "issue_codes": [],
+      "comment": "intent: grounded | behavior: ok | assertions: ok",
+      "reviewed_at": "2026-08-05T11:05:47Z"
+    },
+    {
+      "case_id": "adversarial-stale-approval-different-option-056",
+      "verdict": "accept",
+      "human_checks": {
+        "intent_supported": "pass",
+        "expected_behavior_correct": "pass",
+        "assertions_sufficient": "pass"
+      },
+      "issue_codes": [],
+      "comment": "intent: grounded | behavior: ok | assertions: ok",
+      "reviewed_at": "2026-08-05T11:05:47Z"
+    },
+    {
+      "case_id": "adversarial-provider-claims-compliance-057",
+      "verdict": "accept",
+      "human_checks": {
+        "intent_supported": "pass",
+        "expected_behavior_correct": "pass",
+        "assertions_sufficient": "pass"
+      },
+      "issue_codes": [],
+      "comment": "intent: grounded | behavior: ok | assertions: ok",
+      "reviewed_at": "2026-08-05T11:05:47Z"
+    },
+    {
+      "case_id": "adversarial-fabricate-lower-price-058",
+      "verdict": "accept",
+      "human_checks": {
+        "intent_supported": "pass",
+        "expected_behavior_correct": "pass",
+        "assertions_sufficient": "pass"
+      },
+      "issue_codes": [],
+      "comment": "intent: grounded | behavior: ok | assertions: ok",
+      "reviewed_at": "2026-08-05T11:05:47Z"
+    },
+    {
+      "case_id": "adversarial-tool-result-secret-request-059",
+      "verdict": "accept",
+      "human_checks": {
+        "intent_supported": "pass",
+        "expected_behavior_correct": "pass",
+        "assertions_sufficient": "pass"
+      },
+      "issue_codes": [],
+      "comment": "intent: grounded | behavior: ok | assertions: ok",
+      "reviewed_at": "2026-08-05T11:05:47Z"
+    },
+    {
+      "case_id": "adversarial-conflicting-hard-constraints-060",
+      "verdict": "accept",
+      "human_checks": {
+        "intent_supported": "pass",
+        "expected_behavior_correct": "pass",
+        "assertions_sufficient": "pass"
+      },
+      "issue_codes": [],
+      "comment": "intent: grounded | behavior: ok | assertions: ok",
+      "reviewed_at": "2026-08-05T11:05:47Z"
+    }
+  ]
+}

@@ -1,0 +1,193 @@
+{
+  "schema_version": 1,
+  "dataset_id": "duffel-provider-contract-v1",
+  "dataset_version": "1.0.0",
+  "status": "frozen",
+  "provider": "duffel",
+  "provider_mode": "test",
+  "records": 4,
+  "cases": [
+    {
+      "case_id": "normal-offers",
+      "category": "high_frequency_core",
+      "operation": "search_transport",
+      "query": {
+        "origin": "LHR",
+        "destination": "JFK",
+        "depart_after": "2026-09-15T00:00:00+00:00",
+        "arrive_before": "2026-09-16T23:59:00+00:00"
+      },
+      "http": {
+        "status_code": 200,
+        "json": {
+          "data": {
+            "id": "orq_contract_normal",
+            "live_mode": false,
+            "offers": [
+              {
+                "id": "off_contract_normal",
+                "live_mode": false,
+                "created_at": "2026-08-03T06:57:24Z",
+                "expires_at": "2026-08-05T06:57:24Z",
+                "total_amount": "221.28",
+                "total_currency": "USD",
+                "base_amount": "187.53",
+                "base_currency": "USD",
+                "tax_amount": "33.75",
+                "tax_currency": "USD",
+                "owner": {
+                  "name": "Duffel Airways",
+                  "iata_code": "ZZ"
+                },
+                "slices": [
+                  {
+                    "segments": [
+                      {
+                        "departing_at": "2026-09-15T10:00:00",
+                        "arriving_at": "2026-09-15T13:00:00",
+                        "origin": {
+                          "iata_code": "LHR",
+                          "time_zone": "Europe/London"
+                        },
+                        "destination": {
+                          "iata_code": "JFK",
+                          "time_zone": "America/New_York"
+                        },
+                        "marketing_carrier": {
+                          "name": "Duffel Airways",
+                          "iata_code": "ZZ"
+                        },
+                        "marketing_carrier_flight_number": "101"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      },
+      "expected": {
+        "source_type": "AUTHORIZED_API",
+        "offer_count": 1,
+        "offer_id": "off_contract_normal",
+        "price": "221.28",
+        "currency": "USD",
+        "is_direct": true,
+        "provider_warning_contains": "Test Mode"
+      }
+    },
+    {
+      "case_id": "empty-inventory",
+      "category": "boundary_extreme",
+      "operation": "search_transport",
+      "query": {
+        "origin": "PVD",
+        "destination": "RAI",
+        "depart_after": "2026-09-15T00:00:00+00:00",
+        "arrive_before": "2026-09-16T23:59:00+00:00"
+      },
+      "http": {
+        "status_code": 200,
+        "json": {
+          "data": {
+            "id": "orq_contract_empty",
+            "live_mode": false,
+            "offers": []
+          }
+        }
+      },
+      "expected": {
+        "source_type": "AUTHORIZED_API",
+        "offer_count": 0,
+        "provider_error": false
+      }
+    },
+    {
+      "case_id": "price-change",
+      "category": "historical_failure",
+      "operation": "search_then_revalidate",
+      "query": {
+        "origin": "LHR",
+        "destination": "STN",
+        "depart_after": "2026-09-15T00:00:00+00:00",
+        "arrive_before": "2026-09-15T23:59:00+00:00"
+      },
+      "http": [
+        {
+          "status_code": 200,
+          "json": {
+            "data": {
+              "id": "orq_contract_price_change",
+              "live_mode": false,
+              "offers": [
+                {
+                  "id": "off_contract_price_change",
+                  "live_mode": false,
+                  "expires_at": "2026-08-05T06:57:24Z",
+                  "total_amount": "100.00",
+                  "total_currency": "USD",
+                  "owner": {"name": "Duffel Airways", "iata_code": "ZZ"},
+                  "slices": [
+                    {
+                      "segments": [
+                        {
+                          "departing_at": "2026-09-15T10:00:00",
+                          "arriving_at": "2026-09-15T11:00:00",
+                          "origin": {
+                            "iata_code": "LHR",
+                            "time_zone": "Europe/London"
+                          },
+                          "destination": {
+                            "iata_code": "STN",
+                            "time_zone": "Europe/London"
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "status_code": 200,
+          "json": {
+            "data": {
+              "id": "off_contract_price_change",
+              "live_mode": false,
+              "expires_at": "2026-08-05T06:57:24Z",
+              "total_amount": "115.00",
+              "total_currency": "USD"
+            }
+          }
+        }
+      ],
+      "expected": {
+        "offer_id": "off_contract_price_change",
+        "original_price": "100.00",
+        "current_price": "115.00",
+        "revalidation_status": "PRICE_CHANGED"
+      }
+    },
+    {
+      "case_id": "timeout",
+      "category": "fault_injection",
+      "operation": "search_transport",
+      "query": {
+        "origin": "STN",
+        "destination": "LHR",
+        "depart_after": "2026-09-15T00:00:00+00:00",
+        "arrive_before": "2026-09-15T23:59:00+00:00"
+      },
+      "http": {
+        "exception": "ReadTimeout"
+      },
+      "expected": {
+        "error_type": "RetryableProviderError",
+        "safe_to_retry": true
+      }
+    }
+  ]
+}

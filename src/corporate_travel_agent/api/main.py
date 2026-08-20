@@ -1,0 +1,922 @@
+"""api.main：企业差旅 Agent 的 FastAPI 入口。
+
+装配 Orchestrator、鉴权、Provider 与仓库，暴露任务创建/消息/选方案/审批等 HTTP 路由。
+V1 只规划与合规校验，不代付、不预订、不退改。
+"""
+
+from __future__ import annotations
+
+import os
+from contextlib import asynccontextmanager
+from dataclasses import asdict
+from datetime import date, datetime
+from typing import Annotated, Any
+from uuid import uuid4
+
+from fastapi import Depends, FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from pydantic import BaseModel, ConfigDict, Field, model_validator
+
+from corporate_travel_agent.agent.openai_adapter import OpenAIResponsesLanguageModel
+from corporate_travel_agent.agent.orchestrator import (
+    PARTIAL_COVERAGE_METADATA_KEY,
+    LanguageModelUnavailable,
+    WorkflowError,
+)
+from corporate_travel_agent.agent.ports import LanguageModelError
+from corporate_travel_agent.demo import build_demo_system
+from corporate_travel_agent.domain.constraints import HardConstraint, SoftPreference
+from corporate_travel_agent.domain.models import InventorySnapshot, TripRequestVersion, TripTask
+from corporate_travel_agent.domain.validation import validate_trip_request_values
+from corporate_travel_agent.providers.factory import travel_provider_from_environment
+from corporate_travel_agent.services.auth import (
+    AuthenticationFailed,
+    AuthService,
+    Role,
+    UserIdentity,
+)
+from corporate_travel_agent.services.object_storage import (
+    InMemoryRawResponseObjectStore,
+    LocalRawResponseObjectStore,
+    RawResponseObjectStore,
+)
+from corporate_travel_agent.services.policy_config import (
+    load_policy_configuration_from_environment,
+)
+from corporate_travel_agent.services.provider_quote_context import (
+    InMemoryProviderQuoteContextStore,
+    ProviderQuoteContextStore,
+)
+from corporate_travel_agent.services.provider_resilience import ProviderRetryScheduler
+from corporate_travel_agent.services.repositories import (
+    ConcurrentUpdateError,
+    InMemoryTaskRepository,
+    NotFoundError,
+    TaskRepository,
+)
+from corporate_travel_agent.services.runtime_config import validate_deployment_environment
+
+provider_retry_scheduler: ProviderRetryScheduler | None = None
+
+validate_deployment_environment(os.environ)
+
+
+@asynccontextmanager
+async def _lifespan(_: FastAPI):
+    """启动/停止 Provider 延迟重试调度器，并在退出时释放资源。"""
+    if provider_retry_scheduler is not None:
+        provider_retry_scheduler.start()
+    try:
+        yield
+    finally:
+        retry_worker_drained = True
+        if provider_retry_scheduler is not None:
+            retry_worker_drained = provider_retry_scheduler.stop()
+        if retry_worker_drained:
+            provider_close = getattr(workflow.provider, "close", None)
+            if callable(provider_close):
+                provider_close()
+            repository_dispose = getattr(workflow.tasks, "dispose", None)
+            if callable(repository_dispose):
+                repository_dispose()
+
+
+app = FastAPI(
+    title="Corporate Travel Planning & Compliance Agent",
+    version="0.1.0",
+    description="V1 只规划与合规校验；不代付、不预订、不退改签。",
+    lifespan=_lifespan,
+)
+
+_cors_origins = [
+    origin.strip()
+    for origin in os.getenv(
+        "CORS_ALLOW_ORIGINS",
+        "http://127.0.0.1:5173,http://localhost:5173",
+    ).split(",")
+    if origin.strip()
+]
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=_cors_origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+def _configured_language_model() -> OpenAIResponsesLanguageModel | None:
+    """按环境变量装配 LLM；无 API Key 则返回 None。"""
+    if not os.getenv("OPENAI_API_KEY"):
+        return None
+    try:
+        return OpenAIResponsesLanguageModel(
+            model=os.getenv("OPENAI_MODEL", "gpt-5.6"),
+            fallback_model=os.getenv("OPENAI_FALLBACK_MODEL") or None,
+            request_timeout_seconds=float(os.getenv("OPENAI_TIMEOUT_SECONDS", "60")),
+        )
+    except LanguageModelError:
+        return None
+
+
+def _configured_task_repository() -> TaskRepository:
+    """按 DATABASE_URL 选择内存或 SQLAlchemy 任务仓库。"""
+    database_url = os.getenv("DATABASE_URL")
+    if not database_url:
+        return InMemoryTaskRepository()
+    try:
+        from corporate_travel_agent.services.sqlalchemy_repository import (
+            SQLAlchemyTaskRepository,
+        )
+    except ImportError as exc:
+        raise RuntimeError(
+            "DATABASE_URL requires installation with the persistence extra"
+        ) from exc
+
+    if (
+        os.getenv("DATABASE_AUTO_CREATE", "false").casefold() == "true"
+        and os.getenv("ENVIRONMENT", "development").casefold()
+        in {"production", "prod", "staging"}
+    ):
+        raise RuntimeError(
+            "DATABASE_AUTO_CREATE is forbidden when ENVIRONMENT is production/staging; "
+            "run 'alembic upgrade head' instead"
+        )
+
+    repository = SQLAlchemyTaskRepository(database_url)
+    if os.getenv("DATABASE_AUTO_CREATE", "false").casefold() == "true":
+        repository.create_schema()
+    repository.check_connection()
+    repository.check_schema()
+    return repository
+
+
+def _configured_outbox_store():
+    """装配 outbox 存储（若启用）。"""
+    from corporate_travel_agent.services.outbox import (
+        InMemoryOutboxStore,
+        SQLAlchemyOutboxStore,
+    )
+
+    engine = getattr(workflow.tasks, "engine", None)
+    if engine is None:
+        return InMemoryOutboxStore()
+    return SQLAlchemyOutboxStore(engine)
+
+
+def _configured_quote_context_store(
+    task_repository: TaskRepository,
+) -> ProviderQuoteContextStore:
+    """装配供应商报价上下文存储。"""
+    engine = getattr(task_repository, "engine", None)
+    if engine is None:
+        return InMemoryProviderQuoteContextStore()
+    from corporate_travel_agent.services.sqlalchemy_repository import (
+        SQLAlchemyProviderQuoteContextStore,
+    )
+
+    return SQLAlchemyProviderQuoteContextStore(engine)
+
+
+def _configured_raw_response_store() -> RawResponseObjectStore:
+    """装配原始 Provider 响应对象存储。"""
+    store_dir = os.getenv("RAW_RESPONSE_STORE_DIR")
+    if not store_dir:
+        return InMemoryRawResponseObjectStore()
+    return LocalRawResponseObjectStore(store_dir)
+
+
+def _configured_retention_days() -> int:
+    """原始响应保留天数。"""
+    value = int(os.getenv("RAW_RESPONSE_RETENTION_DAYS", "90"))
+    if not 1 <= value <= 3650:
+        raise RuntimeError("RAW_RESPONSE_RETENTION_DAYS must be between 1 and 3650")
+    return value
+
+
+def _configured_provider_resilience() -> tuple[float, int, tuple[float, ...], float]:
+    """读取 Provider 熔断与延迟重试相关配置。"""
+    circuit_seconds = float(os.getenv("PROVIDER_CIRCUIT_OPEN_SECONDS", "60"))
+    max_delayed_attempts = int(os.getenv("MAX_DELAYED_PROVIDER_RETRIES", "3"))
+    schedule = tuple(
+        float(value.strip())
+        for value in os.getenv("PROVIDER_DELAYED_RETRY_SECONDS", "60,180,600").split(",")
+        if value.strip()
+    )
+    poll_seconds = float(os.getenv("PROVIDER_RETRY_POLL_SECONDS", "5"))
+    if not 0 <= circuit_seconds <= 3600:
+        raise RuntimeError("PROVIDER_CIRCUIT_OPEN_SECONDS must be between 0 and 3600")
+    if not 0 <= max_delayed_attempts <= 3:
+        raise RuntimeError("MAX_DELAYED_PROVIDER_RETRIES must be between 0 and 3")
+    if len(schedule) < max_delayed_attempts or any(value < 0 for value in schedule):
+        raise RuntimeError("PROVIDER_DELAYED_RETRY_SECONDS must cover every delayed retry")
+    if poll_seconds <= 0:
+        raise RuntimeError("PROVIDER_RETRY_POLL_SECONDS must be greater than zero")
+    return circuit_seconds, max_delayed_attempts, schedule, poll_seconds
+
+
+raw_response_store = _configured_raw_response_store()
+auth_service = AuthService.from_environment()
+policy_configuration = load_policy_configuration_from_environment()
+task_repository = _configured_task_repository()
+quote_context_store = _configured_quote_context_store(task_repository)
+process_role = os.getenv("PROCESS_ROLE", "api").strip().casefold()
+if process_role not in {"api", "worker", "all"}:
+    raise RuntimeError("PROCESS_ROLE must be api, worker, or all")
+_active_policy = next(
+    (
+        item
+        for item in policy_configuration.policy_snapshots
+        if item.snapshot_id == policy_configuration.config.active_policy_snapshot_id
+    ),
+    policy_configuration.policy_snapshots[0]
+    if policy_configuration.policy_snapshots
+    else None,
+)
+configured_travel_provider = travel_provider_from_environment(
+    raw_response_store=raw_response_store,
+    policy_currency=_active_policy.currency if _active_policy is not None else None,
+    quote_context_store=quote_context_store,
+)
+(
+    provider_circuit_open_seconds,
+    max_delayed_provider_attempts,
+    delayed_provider_retry_seconds,
+    provider_retry_poll_seconds,
+) = _configured_provider_resilience()
+workflow, _provider = build_demo_system(
+    language_model=_configured_language_model(),
+    task_repository=task_repository,
+    raw_response_store=raw_response_store,
+    raw_response_retention_days=_configured_retention_days(),
+    policy_configuration=policy_configuration,
+    provider=configured_travel_provider,
+    provider_circuit_open_seconds=provider_circuit_open_seconds,
+    max_delayed_provider_attempts=max_delayed_provider_attempts,
+    delayed_provider_retry_seconds=delayed_provider_retry_seconds,
+    max_concurrent_llm_calls=int(os.getenv("MAX_CONCURRENT_LLM_CALLS", "8")),
+    max_concurrent_provider_calls=int(os.getenv("MAX_CONCURRENT_PROVIDER_CALLS", "16")),
+    tool_acquire_timeout_seconds=float(os.getenv("TOOL_ACQUIRE_TIMEOUT_SECONDS", "5")),
+    interrupted_task_stale_seconds=float(
+        os.getenv("INTERRUPTED_TASK_STALE_SECONDS", "30")
+    ),
+    provider_retry_worker_id=os.getenv("PROVIDER_RETRY_WORKER_ID") or None,
+    provider_retry_lease_seconds=float(
+        os.getenv("PROVIDER_RETRY_LEASE_SECONDS", "900")
+    ),
+)
+provider_retry_scheduler = (
+    ProviderRetryScheduler(
+        workflow,
+        poll_seconds=provider_retry_poll_seconds,
+    )
+    if process_role in {"worker", "all"}
+    else None
+)
+outbox_store = _configured_outbox_store()
+bearer_scheme = HTTPBearer(auto_error=False)
+
+
+class TripCreate(BaseModel):
+    """结构化建任务请求体。"""
+    model_config = ConfigDict(extra="forbid")
+
+    traveler_id: str = "E1001"
+    origin: str
+    destination: str
+    departure_after: datetime
+    arrive_by: datetime
+    return_after: datetime | None = None
+    return_before: datetime | None = None
+    hotel_check_in: date | None = None
+    hotel_check_out: date | None = None
+    hard_constraints: list[HardConstraint] = Field(default_factory=list)
+    soft_preferences: list[SoftPreference] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def validate_windows(self) -> TripCreate:
+        validate_trip_request_values(self.model_dump()).require_valid()
+        return self
+
+
+class NaturalLanguageTripCreate(BaseModel):
+    """自然语言建任务请求体。"""
+    model_config = ConfigDict(extra="forbid")
+
+    message: str = Field(min_length=1, max_length=4000)
+    traveler_id: str = "E1001"
+
+
+class MessageCreate(BaseModel):
+    """提交跟进消息请求体。"""
+    model_config = ConfigDict(extra="forbid")
+
+    message: str = Field(min_length=1, max_length=4000)
+
+
+class OptionSelection(BaseModel):
+    """选中方案请求体。"""
+    option_id: str
+    business_reason: str | None = None
+
+
+class ApprovalDecision(BaseModel):
+    """审批决策请求体。"""
+    approver_id: str | None = None
+    approved: bool
+    reason: str = Field(min_length=1, max_length=2000)
+
+
+class LoginRequest(BaseModel):
+    """登录请求体。"""
+    model_config = ConfigDict(extra="forbid")
+
+    user_id: str = Field(min_length=1, max_length=64)
+    password: str = Field(min_length=1, max_length=1024)
+
+
+def _current_identity(
+    credentials: Annotated[
+        HTTPAuthorizationCredentials | None,
+        Depends(bearer_scheme),
+    ],
+) -> UserIdentity:
+    """从 Bearer Token 解析当前用户身份。"""
+    token = credentials.credentials if credentials else None
+    try:
+        return auth_service.authenticate(token)
+    except AuthenticationFailed as exc:
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid or expired bearer token",
+            headers={"WWW-Authenticate": "Bearer"},
+        ) from exc
+
+
+CurrentIdentity = Annotated[UserIdentity, Depends(_current_identity)]
+
+
+@app.get("/health")
+def health() -> dict[str, Any]:
+    """健康检查：服务、LLM、仓库与 Provider 重试状态。"""
+    persistence_details: dict[str, Any] = {"backend": workflow.tasks.backend_name}
+    operational = getattr(workflow.tasks, "operational_status", None)
+    status = "ok"
+    if callable(operational):
+        try:
+            persistence_details.update(operational())
+        except Exception as exc:  # noqa: BLE001 - health must stay available
+            persistence_details["error"] = str(exc)
+            status = "degraded"
+    outbox_status: dict[str, Any] = {"backend": outbox_store.backend_name}
+    try:
+        outbox_status["unpublished_count"] = outbox_store.unpublished_count()
+    except Exception as exc:  # noqa: BLE001
+        outbox_status["error"] = str(exc)
+        status = "degraded"
+    return {
+        "status": status,
+        "booking_capability": "disabled",
+        "language_model": "configured" if workflow.language_model else "not_configured",
+        "language_model_status": (
+            getattr(workflow, "llm_runtime_status", "unknown")
+            if workflow.language_model
+            else "not_configured"
+        ),
+        "language_model_ready": bool(
+            workflow.language_model
+            and getattr(workflow, "llm_runtime_status", "unknown")
+            not in {"billing_blocked", "auth_failed"}
+        ),
+        "language_model_fallback": getattr(workflow.language_model, "fallback_model", None)
+        if workflow.language_model
+        else None,
+        "travel_provider": workflow.provider.name,
+        "travel_provider_mode": getattr(workflow.provider, "provider_mode", "deterministic"),
+        "persistence": workflow.tasks.backend_name,
+        "persistence_details": persistence_details,
+        "outbox": outbox_status,
+        "raw_response_store": raw_response_store.backend_name,
+        "authentication": "enabled" if auth_service.enabled else "disabled",
+        "policy_config": policy_configuration.source_type,
+        "policy_config_version": policy_configuration.config.config_version,
+        "active_policy_snapshot": policy_configuration.active_policy.snapshot_id,
+        "policy_config_sha256": policy_configuration.sha256,
+        "provider_resilience": {
+            "immediate_attempts": workflow.max_provider_attempts,
+            "circuit": workflow.provider_circuit_breaker.snapshot(),
+            "max_delayed_retries": (
+                workflow.delayed_provider_retry_policy.max_attempts
+            ),
+            "delayed_retry_seconds": list(
+                workflow.delayed_provider_retry_policy.delays_seconds[
+                    : workflow.delayed_provider_retry_policy.max_attempts
+                ]
+            ),
+            "process_role": process_role,
+            "retry_worker_enabled": provider_retry_scheduler is not None,
+            "retry_lease_seconds": workflow.provider_retry_lease_duration.total_seconds(),
+            "retry_metrics": workflow.provider_retry_metrics(),
+        },
+    }
+
+
+@app.post("/auth/login")
+def login(payload: LoginRequest) -> dict[str, Any]:
+    """登录并返回访问令牌。"""
+    if not auth_service.enabled:
+        raise HTTPException(status_code=409, detail="Authentication is disabled")
+    try:
+        token, expires_at = auth_service.login(payload.user_id, payload.password)
+    except AuthenticationFailed as exc:
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid user ID or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        ) from exc
+    return {
+        "access_token": token,
+        "token_type": "bearer",
+        "expires_at": expires_at,
+    }
+
+
+@app.get("/auth/me")
+def current_user(identity: CurrentIdentity) -> dict[str, Any]:
+    """返回当前登录用户信息。"""
+    return {
+        "user_id": identity.user_id,
+        "roles": sorted(role.value for role in identity.roles),
+        "employee_id": identity.employee_id,
+    }
+
+
+@app.post("/trip-tasks")
+def create_trip(
+    payload: TripCreate | NaturalLanguageTripCreate,
+    identity: CurrentIdentity,
+) -> dict[str, Any]:
+    """创建差旅任务（结构化或自然语言）。"""
+    _require_can_create(identity, payload.traveler_id)
+    if isinstance(payload, NaturalLanguageTripCreate):
+        return _run(
+            lambda: workflow.create_task_from_message(
+                payload.message, traveler_id=payload.traveler_id
+            )
+        )
+    task_id = str(uuid4())
+    request = _to_request(payload, task_id=task_id, version=1)
+    return _run(lambda: workflow.create_task(request))
+
+
+@app.get("/trip-tasks")
+def list_trips(
+    identity: CurrentIdentity,
+    summary: bool = True,
+    limit: int = 100,
+    state: str | None = None,
+) -> list[dict[str, Any]]:
+    """列出调用方可视的任务。
+
+    默认返回紧凑摘要（不含方案/工具轨迹）；传 ``summary=false`` 返回完整公开任务文档。
+    """
+    if not 1 <= limit <= 500:
+        raise HTTPException(status_code=400, detail="limit must be between 1 and 500")
+    summaries = _visible_task_summaries(identity, state=state, limit=limit)
+    if summary:
+        return [_public_task_summary(item) for item in summaries]
+    tasks = []
+    for item in summaries:
+        try:
+            task = workflow.tasks.get(item.task_id)
+        except NotFoundError:
+            continue
+        if _can_read_task(identity, task):
+            tasks.append(_public_task(task))
+    return tasks
+
+
+@app.get("/approvals/inbox")
+def approval_inbox(
+    identity: CurrentIdentity,
+    limit: int = 100,
+) -> list[dict[str, Any]]:
+    """当前审批人的待办例外审批（基于投影）。"""
+    if not 1 <= limit <= 500:
+        raise HTTPException(status_code=400, detail="limit must be between 1 and 500")
+    if not (
+        identity.has_role(Role.APPROVER) or identity.has_role(Role.ADMIN)
+    ):
+        raise HTTPException(status_code=403, detail="Approver role required")
+    manager_id = None if identity.has_role(Role.ADMIN) else identity.user_id
+    summaries = workflow.tasks.list_task_summaries(
+        manager_id=manager_id,
+        state="WAITING_FOR_APPROVAL",
+        limit=limit,
+    )
+    if identity.has_role(Role.ADMIN) and manager_id is None:
+        return [_public_task_summary(item) for item in summaries]
+    return [
+        _public_task_summary(item)
+        for item in summaries
+        if item.manager_id == identity.user_id or identity.has_role(Role.ADMIN)
+    ]
+
+
+@app.post("/trip-tasks/{task_id}/messages")
+def submit_message(
+    task_id: str,
+    payload: MessageCreate,
+    identity: CurrentIdentity,
+) -> dict[str, Any]:
+    """向任务提交自然语言跟进消息。"""
+    _require_can_operate(identity, _visible_task(task_id, identity))
+    return _run(lambda: workflow.submit_message(task_id, payload.message))
+
+
+@app.post("/trip-tasks/{task_id}/structured-request")
+def submit_structured_request(
+    task_id: str,
+    payload: TripCreate,
+    identity: CurrentIdentity,
+) -> dict[str, Any]:
+    """在澄清失败后用完整结构化请求继续。"""
+    def operation() -> TripTask:
+        task = _visible_task(task_id, identity)
+        _require_can_operate(identity, task)
+        if payload.traveler_id != task.employee.employee_id:
+            raise ValueError("traveler_id cannot change within an existing task")
+        request = _to_request(
+            payload,
+            task_id=task_id,
+            version=1 if task.request is None else task.request.version + 1,
+        )
+        return workflow.complete_with_structured_request(task_id, request)
+
+    return _run(operation)
+
+
+@app.get("/trip-tasks/{task_id}")
+def get_trip(task_id: str, identity: CurrentIdentity) -> dict[str, Any]:
+    """获取单个任务的公开视图。"""
+    return _public_task(_visible_task(task_id, identity))
+
+
+@app.post("/trip-tasks/{task_id}/select-option")
+def select_option(
+    task_id: str,
+    payload: OptionSelection,
+    identity: CurrentIdentity,
+) -> dict[str, Any]:
+    """选中某个 TravelOption。"""
+    _require_can_operate(identity, _visible_task(task_id, identity))
+    return _run(
+        lambda: workflow.select_option(
+            task_id, payload.option_id, business_reason=payload.business_reason
+        )
+    )
+
+
+@app.post("/trip-tasks/{task_id}/replan")
+def replan(task_id: str, identity: CurrentIdentity) -> dict[str, Any]:
+    """触发重试或重规划。"""
+    _require_can_operate(identity, _visible_task(task_id, identity))
+    return _run(lambda: workflow.retry_or_replan(task_id))
+
+
+@app.post("/trip-tasks/{task_id}/revise-request")
+def revise_request(
+    task_id: str,
+    payload: TripCreate,
+    identity: CurrentIdentity,
+) -> dict[str, Any]:
+    """用新版结构化请求修订并重搜。"""
+    task = _visible_task(task_id, identity)
+    _require_can_operate(identity, task)
+    if payload.traveler_id != task.employee.employee_id:
+        raise HTTPException(status_code=409, detail="traveler_id cannot change")
+    if task.request is None:
+        raise HTTPException(status_code=409, detail="Draft task has no request to revise")
+    request = _to_request(payload, task_id=task_id, version=task.request.version + 1)
+    return _run(lambda: workflow.revise_request(task_id, request))
+
+
+@app.post("/trip-tasks/{task_id}/handoff-completed")
+def handoff_completed(task_id: str, identity: CurrentIdentity) -> dict[str, Any]:
+    """标记已完成向 Provider 的交接。"""
+    _require_can_operate(identity, _visible_task(task_id, identity))
+    return _run(lambda: workflow.mark_handed_off(task_id))
+
+
+@app.post("/approvals/{task_id}/decision")
+def decide_approval(
+    task_id: str,
+    payload: ApprovalDecision,
+    identity: CurrentIdentity,
+) -> dict[str, Any]:
+    """提交例外审批决定。"""
+    task = _visible_task(task_id, identity)
+    approver_id = payload.approver_id or task.employee.manager_id
+    if auth_service.enabled:
+        _require_can_approve(identity, task)
+        if payload.approver_id and payload.approver_id != identity.user_id:
+            raise HTTPException(status_code=403, detail="Approver identity mismatch")
+        approver_id = identity.user_id
+    return _run(
+        lambda: workflow.decide_approval(
+            task_id,
+            approver_id=approver_id,
+            approved=payload.approved,
+            reason=payload.reason,
+        )
+    )
+
+
+@app.get("/trip-tasks/{task_id}/audit-events")
+def audit_events(task_id: str, identity: CurrentIdentity) -> list[dict[str, Any]]:
+    """列出任务审计事件。"""
+    _visible_task(task_id, identity)
+    try:
+        return [asdict(item) for item in workflow.tasks.events(task_id)]
+    except NotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@app.get("/trip-tasks/{task_id}/inventory-snapshots")
+def inventory_snapshots(
+    task_id: str,
+    identity: CurrentIdentity,
+) -> list[dict[str, Any]]:
+    """列出任务相关库存快照（脱敏公开视图）。"""
+    _visible_task(task_id, identity)
+    try:
+        return [_public_snapshot(item) for item in workflow.tasks.snapshots(task_id)]
+    except NotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+def _visible_task(task_id: str, identity: UserIdentity) -> TripTask:
+    """按权限取任务；不可见则 404。"""
+    try:
+        task = workflow.tasks.get(task_id)
+    except NotFoundError as exc:
+        raise HTTPException(status_code=404, detail="Task not found") from exc
+    if not _can_read_task(identity, task):
+        raise HTTPException(status_code=404, detail="Task not found")
+    return task
+
+
+def _can_read_task(identity: UserIdentity, task: TripTask) -> bool:
+    """当前身份是否可读该任务。"""
+    return (
+        identity.has_role(Role.ADMIN)
+        or (
+            identity.has_role(Role.EMPLOYEE)
+            and identity.employee_id == task.employee.employee_id
+        )
+        or (
+            identity.has_role(Role.APPROVER)
+            and identity.user_id == task.employee.manager_id
+        )
+    )
+
+
+def _require_can_create(identity: UserIdentity, traveler_id: str) -> None:
+    """校验是否可为该出行人创建任务。"""
+    if identity.has_role(Role.ADMIN):
+        return
+    if identity.has_role(Role.EMPLOYEE) and identity.employee_id == traveler_id:
+        return
+    raise HTTPException(status_code=403, detail="Cannot create a task for this traveler")
+
+
+def _require_can_operate(identity: UserIdentity, task: TripTask) -> None:
+    """校验是否可操作该任务（消息/选方案等）。"""
+    if identity.has_role(Role.ADMIN):
+        return
+    if (
+        identity.has_role(Role.EMPLOYEE)
+        and identity.employee_id == task.employee.employee_id
+    ):
+        return
+    raise HTTPException(status_code=403, detail="Only the traveler can modify this task")
+
+
+def _require_can_approve(identity: UserIdentity, task: TripTask) -> None:
+    """校验是否可审批该任务。"""
+    if (
+        identity.has_role(Role.APPROVER)
+        and identity.user_id == task.employee.manager_id
+    ):
+        return
+    raise HTTPException(status_code=403, detail="Task is outside this approver's scope")
+
+
+def _public_snapshot(snapshot: InventorySnapshot) -> dict[str, Any]:
+    """库存快照的对外脱敏序列化。"""
+    result = asdict(snapshot)
+    raw_response = snapshot.raw_response
+    result["raw_response"] = (
+        {
+            "archived": True,
+            "sha256": raw_response.sha256,
+            "size_bytes": raw_response.size_bytes,
+            "content_type": raw_response.content_type,
+            "stored_at": raw_response.stored_at,
+            "retention_until": raw_response.retention_until,
+            "access_policy": raw_response.access_policy,
+        }
+        if raw_response
+        else {"archived": False}
+    )
+    return result
+
+
+def _run(operation: Any) -> dict[str, Any]:
+    """执行 Orchestrator 操作并映射领域异常为 HTTP。"""
+    try:
+        return _public_task(operation())
+    except LanguageModelUnavailable as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    except NotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except (ConcurrentUpdateError, WorkflowError, ValueError) as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+
+
+def _visible_task_summaries(
+    identity: UserIdentity,
+    *,
+    state: str | None,
+    limit: int,
+):
+    from corporate_travel_agent.services.task_projections import TaskSummary
+
+    if identity.has_role(Role.ADMIN):
+        return workflow.tasks.list_task_summaries(state=state, limit=limit)
+    if identity.has_role(Role.EMPLOYEE) and identity.employee_id:
+        return workflow.tasks.list_task_summaries(
+            employee_id=identity.employee_id,
+            state=state,
+            limit=limit,
+        )
+    if identity.has_role(Role.APPROVER):
+        return workflow.tasks.list_task_summaries(
+            manager_id=identity.user_id,
+            state=state,
+            limit=limit,
+        )
+    empty: tuple[TaskSummary, ...] = ()
+    return empty
+
+
+def _public_task_summary(item: Any) -> dict[str, Any]:
+    """任务列表项的公开摘要。"""
+    return {
+        "task_id": item.task_id,
+        "state": item.state,
+        "employee_id": item.employee_id,
+        "manager_id": item.manager_id,
+        "policy_snapshot_id": item.policy_snapshot_id,
+        "request_version": item.request_version,
+        "selected_option_id": item.selected_option_id,
+        "clarification_rounds": item.clarification_rounds,
+        "option_count": item.option_count,
+        "failure": item.failure,
+        "provider_retry": {
+            "next_retry_at": item.next_retry_at,
+            "delayed_retry_count": item.delayed_retry_count,
+        },
+        "updated_at": item.updated_at,
+        "summary": True,
+    }
+
+
+def _public_task(task: TripTask) -> dict[str, Any]:
+    """任务详情的公开视图（含方案、澄清题等）。"""
+    return {
+        "task_id": task.task_id,
+        "state": task.state,
+        "request_version": task.request.version if task.request else None,
+        "failure": task.failure,
+        "failure_details": task.metadata.get("no_feasible_reasons", ()),
+        "provider_retry": workflow.provider_retry_status(task),
+        "coverage_notices": task.metadata.get(PARTIAL_COVERAGE_METADATA_KEY, ()),
+        "intent_fields": task.intent_fields,
+        "missing_required_fields": task.missing_required_fields,
+        "conflicts": task.intent_conflicts,
+        "assumptions": task.assumptions,
+        "clarification_question": task.clarification_question,
+        "clarification_questions": task.metadata.get("clarification_questions") or [],
+        "uncertain_slots": task.metadata.get("uncertain_slots") or [],
+        "clarification_rounds": task.clarification_rounds,
+        "manipulation_detected": bool(task.metadata.get("manipulation_detected")),
+        "tool_budget": {
+            "limit": task.tool_call_limit,
+            "used": task.tool_calls_used,
+            "remaining": task.tool_calls_remaining,
+            "blocked": task.state.value == "TOOL_BUDGET_EXHAUSTED",
+            "calls": [asdict(item) for item in task.tool_calls],
+        },
+        "messages": [
+            {
+                "role": item.role,
+                "content": item.content,
+                "created_at": item.created_at,
+            }
+            for item in task.messages
+        ],
+        "original_instruction": next(
+            (item.content for item in task.messages if item.role == "user"),
+            None,
+        ),
+        "extract_failure": task.metadata.get("extract_failure"),
+        "model_fallback": task.metadata.get("model_fallback"),
+        "options": [
+            {
+                "option_id": item.option_id,
+                "version": item.version,
+                "trip_request_version": item.trip_request_version,
+                "inventory_snapshot_ids": item.inventory_snapshot_ids,
+                "inventory_refs": item.inventory_refs,
+                "outbound": _public_transport_offer(item.outbound),
+                "inbound": (
+                    _public_transport_offer(item.inbound) if item.inbound else None
+                ),
+                "hotel": _public_hotel_offer(item.hotel) if item.hotel else None,
+                "total_cost": item.total_cost,
+                "total_duration_minutes": item.total_duration_minutes,
+                "currency": item.currency,
+                "feasibility": asdict(item.feasibility),
+                "preference_penalty": item.preference_penalty,
+                "score": item.score,
+                "policy_outcome": item.policy_decision.outcome,
+                "rule_evidence": [asdict(rule) for rule in item.policy_decision.evidence],
+                "facts": item.explanation_facts,
+            }
+            for item in task.options
+        ],
+        "selected_option_id": task.selected_option_id,
+        "approval": asdict(task.approval) if task.approval else None,
+        "booking_intent": asdict(task.booking_intent) if task.booking_intent else None,
+        "summary": False,
+    }
+
+
+def _public_transport_offer(offer: Any) -> dict[str, Any]:
+    """Serialize the itinerary fields needed by clients without provider internals."""
+    return {
+        "ref_id": offer.ref_id,
+        "snapshot_id": offer.snapshot_id,
+        "provider": offer.provider,
+        "mode": offer.mode,
+        "origin": offer.origin,
+        "destination": offer.destination,
+        "depart_at": offer.depart_at,
+        "arrive_at": offer.arrive_at,
+        "price": offer.price,
+        "seat_class": offer.seat_class,
+        "available": offer.available,
+        "is_direct": offer.is_direct,
+        "currency": offer.currency,
+    }
+
+
+def _public_hotel_offer(offer: Any) -> dict[str, Any]:
+    """Serialize hotel evidence used by the plan and approval screens."""
+    return {
+        "ref_id": offer.ref_id,
+        "snapshot_id": offer.snapshot_id,
+        "provider": offer.provider,
+        "name": offer.name,
+        "city": offer.city,
+        "check_in": offer.check_in,
+        "check_out": offer.check_out,
+        "nightly_price": offer.nightly_price,
+        "nights": offer.nights,
+        "total_price": offer.total_price,
+        "commute_minutes": offer.commute_minutes,
+        "commute_known": offer.commute_known,
+        "available": offer.available,
+        "currency": offer.currency,
+    }
+
+
+def _to_request(payload: TripCreate, *, task_id: str, version: int) -> TripRequestVersion:
+    """把 TripCreate 载荷转为 TripRequestVersion。"""
+    return TripRequestVersion(
+        task_id=task_id,
+        version=version,
+        traveler_id=payload.traveler_id,
+        origin=payload.origin,
+        destination=payload.destination,
+        departure_after=payload.departure_after,
+        arrive_by=payload.arrive_by,
+        return_after=payload.return_after,
+        return_before=payload.return_before,
+        hotel_check_in=payload.hotel_check_in,
+        hotel_check_out=payload.hotel_check_out,
+        hard_constraints=tuple(payload.hard_constraints),
+        soft_preferences=tuple(payload.soft_preferences),
+    )

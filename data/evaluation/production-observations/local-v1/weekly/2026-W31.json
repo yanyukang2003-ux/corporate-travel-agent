@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "iso_week": "2026-W31",
+  "source_mode": "offline_evaluation_backfill",
+  "daily_windows": 1,
+  "production_runs": 0,
+  "task_success_trend": "not_evaluated",
+  "latency_trend": "not_evaluated",
+  "cost_trend": "not_evaluated",
+  "reason": "At least two production windows are required for a trend decision."
+}

@@ -1,0 +1,11 @@
+{
+  "mode": "model_mock",
+  "subset_id": "agent-eval-model-smoke-v1",
+  "subset_sha256": "9e16859175d3f6d847cf6061f4e38282628b2b5a615ebd2b45a8499e7aeef08b",
+  "requested_model": "gpt-5.6-terra",
+  "price_table_version": "model-prices-openai-20260802-v1",
+  "code_revision": null,
+  "confirm_billable": true,
+  "provider_mode": "MOCK",
+  "tool_choice_exposure": "orchestrator_controlled"
+}

@@ -1,0 +1,113 @@
+{
+  "run_id": "postgres-dual-worker-20260819",
+  "started_at": "2026-08-19T12:29:14.981863+00:00",
+  "completed_at": "2026-08-19T12:31:43.043200+00:00",
+  "setup": {
+    "notes": [
+      "compose up",
+      "truncated travel_agent_uncovered",
+      "alembic upgrade head"
+    ],
+    "database_url": "postgresql+psycopg://travel_agent:travel_agent_dev@127.0.0.1:5432/travel_agent_uncovered"
+  },
+  "compete": {
+    "task_id": "lease-race-45f8179de2",
+    "calls": {
+      "search_transport": 2,
+      "calls": [
+        {
+          "name": "search_transport",
+          "pid": 32014,
+          "at": "2026-08-19T12:31:29.193233+00:00"
+        },
+        {
+          "name": "search_transport",
+          "pid": 32014,
+          "at": "2026-08-19T12:31:29.206212+00:00"
+        },
+        {
+          "name": "search_hotels",
+          "pid": 32014,
+          "at": "2026-08-19T12:31:29.229303+00:00"
+        }
+      ],
+      "search_hotels": 1
+    },
+    "final_state": "WAITING_FOR_USER",
+    "workers": [
+      {
+        "returncode": 0,
+        "stdout": "{\"worker_id\": \"worker-a\", \"processed\": [], \"live_hash\": \"fc9442205d14e1fe9598e4618c2da45331e08b737d4261218eaca6a5d28d0202\"}\n",
+        "stderr": ""
+      },
+      {
+        "returncode": 0,
+        "stdout": "{\"worker_id\": \"worker-b\", \"processed\": [\"lease-race-45f8179de2\"], \"live_hash\": \"fc9442205d14e1fe9598e4618c2da45331e08b737d4261218eaca6a5d28d0202\"}\n",
+        "stderr": ""
+      }
+    ]
+  },
+  "lease": {
+    "task_id": "lease-hold-23ee5e6135",
+    "stale_rejected": true,
+    "stale_error": "Task lease-hold-23ee5e6135 was updated concurrently",
+    "takeover_stdout": "{\"worker_id\": \"worker-takeover\", \"processed\": [\"lease-hold-23ee5e6135\"], \"live_hash\": \"fc9442205d14e1fe9598e4618c2da45331e08b737d4261218eaca6a5d28d0202\"}\n"
+  },
+  "explain": {
+    "row_count": 100002,
+    "trip_tasks_node_types": [
+      "Bitmap Heap Scan"
+    ],
+    "used_index": true,
+    "seq_scan": false,
+    "plan_file": "/Users/yukangyan/Downloads/corporate-travel-agent/reports/evaluation-runs/postgres-dual-worker-20260819/explain.json"
+  },
+  "checks": [
+    {
+      "name": "postgres_ready",
+      "ok": true,
+      "detail": "alembic upgrade head"
+    },
+    {
+      "name": "both_workers_exited_0",
+      "ok": true,
+      "detail": "[{'returncode': 0, 'stdout': '{\"worker_id\": \"worker-a\", \"processed\": [], \"live_hash\": \"fc9442205d14e1fe9598e4618c2da45331e08b737d4261218eaca6a5d28d0202\"}\\n', 'stderr': ''}, {'returncode': 0, 'stdout': '{\"worker_id\": \"worker-b\", \"processed\": [\"lease-race-45f8179de2\"], \"live_hash\": \"fc9442205d14e1fe9598e4618c2da45331e08b737d4261218eaca6a5d28d0202\"}\\n', 'stderr': ''}]"
+    },
+    {
+      "name": "single_worker_provider_job",
+      "ok": true,
+      "detail": "{'search_transport': 2, 'calls': [{'name': 'search_transport', 'pid': 32014, 'at': '2026-08-19T12:31:29.193233+00:00'}, {'name': 'search_transport', 'pid': 32014, 'at': '2026-08-19T12:31:29.206212+00:00'}, {'name': 'search_hotels', 'pid': 32014, 'at': '2026-08-19T12:31:29.229303+00:00'}], 'search_hotels': 1}"
+    },
+    {
+      "name": "final_not_double_searching",
+      "ok": true,
+      "detail": "WAITING_FOR_USER"
+    },
+    {
+      "name": "hold_claimed",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "takeover_ok",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "stale_write_rejected",
+      "ok": true,
+      "detail": "Task lease-hold-23ee5e6135 was updated concurrently"
+    },
+    {
+      "name": "explain_rows_ge_100k",
+      "ok": true,
+      "detail": "100002"
+    },
+    {
+      "name": "explain_used_index",
+      "ok": true,
+      "detail": "{'row_count': 100002, 'trip_tasks_node_types': ['Bitmap Heap Scan'], 'used_index': True, 'seq_scan': False, 'plan_file': '/Users/yukangyan/Downloads/corporate-travel-agent/reports/evaluation-runs/postgres-dual-worker-20260819/explain.json'}"
+    }
+  ],
+  "passed": true
+}

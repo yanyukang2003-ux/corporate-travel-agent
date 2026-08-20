@@ -1,0 +1,372 @@
+{
+  "schema_version": 1,
+  "evaluation_id": "eval-acdfb923-f2df-418e-a54a-6dc104a1dcdb",
+  "protocol_id": "agent-eval-v1",
+  "generated_at": "2026-08-02T16:19:15.807679Z",
+  "run_ids": [
+    "run-78b98607-2ab3-43e4-aa34-29351d77cc7f",
+    "run-e8ab01ac-4773-4108-836b-d96569c20531",
+    "run-0de5bec3-e84b-47c3-a484-55ee97dc7395",
+    "run-d12a9e6a-a191-4542-85ed-a5c2cfcf0e6a",
+    "run-6dd44c8f-2248-47c3-b9e3-5f69bceeee4c",
+    "run-b280cc05-859c-4d69-9668-5c2d0015b8ae",
+    "run-e885d441-1002-494d-bcc6-cc86b8957aed",
+    "run-b8ef71fb-3015-4e98-a8b8-ee21cc58858b",
+    "run-be85db6d-183b-4ffc-95a7-069d5bf4926a",
+    "run-e8d2dc36-bf0d-48c5-aad3-d28c936a4fc3",
+    "run-e4b29fa1-d2bb-444a-a97a-b330d8339e25",
+    "run-6bbdcef0-0a0a-4c72-aa0f-99af84150c6e",
+    "run-c2563b3d-0ee3-4301-9cf6-4a5e0c89e843",
+    "run-ad1562db-3309-4579-a9a0-f8b6cb89a7a0",
+    "run-d234f8d1-f106-45a3-b901-7fd2a39dd44d",
+    "run-52f9b57c-eb5e-477e-b7c7-665f77711bf4",
+    "run-5f2502ab-e940-4969-afd1-d91b09783b31",
+    "run-814b79e9-3a92-4a2b-a701-379fe5a70e82",
+    "run-cfafe13b-3969-4c4c-abcb-53a1e17635fd",
+    "run-2d3f63b4-c552-4730-9a0b-ea9d03d298d7",
+    "run-c5c942b1-d606-4d73-b20f-76248ad10a9f",
+    "run-2b050555-eb5d-42e3-86ed-ddb02201918a",
+    "run-12961967-bf80-43d6-b91e-828a20ee2cc6",
+    "run-cd6c05bb-75b2-4cce-8fcd-352ee0c6a941",
+    "run-7f3f2fe4-5746-4083-a8c8-7e05a88fee3f",
+    "run-479c4d83-5b5d-4463-bae5-1d841dd5d68b",
+    "run-bb99c963-714c-4a33-812c-83ec97512310",
+    "run-3e92af23-15df-4ce3-9256-ca9d0688fe24",
+    "run-7b230c14-16fc-4e1e-b34a-91baa56df0cf",
+    "run-6dd02557-f50b-4a33-bdb3-12a8ada522c3",
+    "run-9cae1dd3-34b2-4614-be30-2059a1f1a043",
+    "run-d7d54cbc-e594-415f-b3c5-06e51da3703c",
+    "run-44955907-44ec-4a2b-a92f-4bd666e4ee98",
+    "run-e682a1e5-656f-4444-8467-319aa90d8514",
+    "run-caa1edb7-21f3-4686-b231-2859f5ce1418",
+    "run-f4c0850a-84a4-4220-af96-db44aa15e4d9",
+    "run-0af61629-3a9b-4fcd-865f-7aacee8db9ea",
+    "run-f651ef16-d04f-452c-be6a-2c89344f03ce",
+    "run-9f116fa0-a5d8-4769-874c-81fcea8412f1",
+    "run-b486e397-4539-4487-a618-031ce75bd7d1",
+    "run-7fcad8f1-3142-4fe7-9e54-52b707601733",
+    "run-c315077b-4b48-4cff-8e7e-518becf1415f",
+    "run-1983e3cf-805d-47b8-90b3-1780eccbfbb9",
+    "run-31f168b7-e594-4a98-88d8-b301980fb7f2",
+    "run-e03eb625-6978-48a7-b1e6-0f16eed6c532",
+    "run-776790ea-c145-48f8-8afc-b63bb520e892",
+    "run-27e119fa-f3f9-477a-b017-45e0b70c0369",
+    "run-af470381-3e16-45a8-850e-1602a1d3c940",
+    "run-bb9e2d97-49a7-496e-a98a-edb630e0119f",
+    "run-91f45d35-8343-451f-aa4a-f267e4b4b7ef",
+    "run-5cd21e20-cc8b-49c8-9c96-75500da5bf3d",
+    "run-c9f7ef71-09ff-4988-bc4e-1f7800dd1a00",
+    "run-ff9d403b-cd6d-408d-b35e-93568ee9b737",
+    "run-578496f6-2fa6-48ff-befc-79446105ad73",
+    "run-ddfe33a5-c388-4d75-9310-efc88ad191d2",
+    "run-e050b9e3-f69e-4ef7-8c67-6272053e2d5f",
+    "run-845d428b-8c2d-489c-9ed4-2a0c511e2398",
+    "run-41108367-aa2d-4603-a316-b6699426d222",
+    "run-063cf343-10c3-4963-aa81-a0e78eee9151",
+    "run-2dcd145e-dc90-4d75-b15a-9a40f723c864",
+    "run-d9b57603-3ff6-4e7d-ad29-efe41c2ef02b",
+    "run-d5c87dc9-7906-471d-b0b0-5f3d446ac529",
+    "run-0a0dc527-36bf-4643-92d1-800d367304b0",
+    "run-f2a223fe-624f-4d3a-9b98-3c740308f3d4",
+    "run-8e6eb7a5-90a5-45ce-a372-d3a630ad569f",
+    "run-0c066928-0147-4078-a4ce-ef2f19b7cdfd",
+    "run-ee8aab35-6076-4b37-b709-fa578f81c8b1",
+    "run-26026515-2c0f-4d40-8350-f7d2f1ae76d7",
+    "run-bf6ca7e7-9b1e-49a6-bb31-5bb3f1f6671c",
+    "run-d2ef18d1-4d9f-41ff-a9a8-0ab24e66b57d",
+    "run-9f227b2c-1f08-4024-9810-43bbce0905d7",
+    "run-8b0aa574-c639-4b9a-a33a-0295557661f8"
+  ],
+  "coverage": {
+    "dataset_id": "corporate-travel-derived-v2-workflow",
+    "dataset_version": "2",
+    "selected_cases": 24,
+    "completed_runs": 72,
+    "expected_runs": 72,
+    "slices": {
+      "COMPLIANT": {
+        "runs": 12,
+        "tool_calls": 72,
+        "efficiency_passed": 12,
+        "minimum_calls": 72,
+        "excess_calls": 0
+      },
+      "NO_FEASIBLE_OPTION": {
+        "runs": 12,
+        "tool_calls": 48,
+        "efficiency_passed": 12,
+        "minimum_calls": 48,
+        "excess_calls": 0
+      },
+      "PREFERENCE_CONFLICT": {
+        "runs": 12,
+        "tool_calls": 72,
+        "efficiency_passed": 12,
+        "minimum_calls": 72,
+        "excess_calls": 0
+      },
+      "PROVIDER_FAILURE": {
+        "runs": 12,
+        "tool_calls": 42,
+        "efficiency_passed": 12,
+        "minimum_calls": 42,
+        "excess_calls": 0
+      },
+      "REQUIRES_APPROVAL": {
+        "runs": 12,
+        "tool_calls": 48,
+        "efficiency_passed": 12,
+        "minimum_calls": 48,
+        "excess_calls": 0
+      },
+      "REVALIDATION_CHANGED": {
+        "runs": 12,
+        "tool_calls": 60,
+        "efficiency_passed": 12,
+        "minimum_calls": 60,
+        "excess_calls": 0
+      }
+    }
+  },
+  "metrics": {
+    "efficiency_pass_rate": {
+      "status": "measured",
+      "value": 1.0,
+      "numerator": 72.0,
+      "denominator": 72.0,
+      "unit": "rate",
+      "exposure_note": null,
+      "confidence_note": "Deterministic D1 offline tool-efficiency evaluation."
+    },
+    "invalid_call_rate": {
+      "status": "measured",
+      "value": 0.0,
+      "numerator": 0.0,
+      "denominator": 342.0,
+      "unit": "rate",
+      "exposure_note": null,
+      "confidence_note": "Deterministic D1 offline tool-efficiency evaluation."
+    },
+    "duplicate_call_rate": {
+      "status": "measured",
+      "value": 0.0,
+      "numerator": 0.0,
+      "denominator": 342.0,
+      "unit": "rate",
+      "exposure_note": null,
+      "confidence_note": "Deterministic D1 offline tool-efficiency evaluation."
+    },
+    "normal_duplicate_call_rate": {
+      "status": "measured",
+      "value": 0.0,
+      "numerator": 0.0,
+      "denominator": 240.0,
+      "unit": "rate",
+      "exposure_note": null,
+      "confidence_note": "Deterministic D1 offline tool-efficiency evaluation."
+    },
+    "redundant_call_rate": {
+      "status": "measured",
+      "value": 0.0,
+      "numerator": 0.0,
+      "denominator": 342.0,
+      "unit": "rate",
+      "exposure_note": null,
+      "confidence_note": "Deterministic D1 offline tool-efficiency evaluation."
+    },
+    "no_gain_call_rate": {
+      "status": "measured",
+      "value": 0.0,
+      "numerator": 0.0,
+      "denominator": 342.0,
+      "unit": "rate",
+      "exposure_note": null,
+      "confidence_note": "Deterministic D1 offline tool-efficiency evaluation."
+    },
+    "excess_call_rate": {
+      "status": "measured",
+      "value": 0.0,
+      "numerator": 0.0,
+      "denominator": 342.0,
+      "unit": "rate",
+      "exposure_note": null,
+      "confidence_note": "Deterministic D1 offline tool-efficiency evaluation."
+    },
+    "minimal_path_match_rate": {
+      "status": "measured",
+      "value": 1.0,
+      "numerator": 72.0,
+      "denominator": 72.0,
+      "unit": "rate",
+      "exposure_note": null,
+      "confidence_note": "Deterministic D1 offline tool-efficiency evaluation."
+    },
+    "tool_budget_compliance_rate": {
+      "status": "measured",
+      "value": 1.0,
+      "numerator": 72.0,
+      "denominator": 72.0,
+      "unit": "rate",
+      "exposure_note": null,
+      "confidence_note": "Deterministic D1 offline tool-efficiency evaluation."
+    },
+    "tool_calls_per_passed_task_mean": {
+      "status": "measured",
+      "value": 4.75,
+      "numerator": 342.0,
+      "denominator": 72.0,
+      "unit": "calls",
+      "exposure_note": null,
+      "confidence_note": "Only stage-2 hard-passed tasks are included."
+    },
+    "tool_calls_per_passed_task_p50": {
+      "status": "measured",
+      "value": 5.0,
+      "numerator": null,
+      "denominator": 72.0,
+      "unit": "calls",
+      "exposure_note": null,
+      "confidence_note": "Linear type-7 percentile over stage-2 hard-passed tasks."
+    },
+    "tool_calls_per_passed_task_p95": {
+      "status": "measured",
+      "value": 6.0,
+      "numerator": null,
+      "denominator": 72.0,
+      "unit": "calls",
+      "exposure_note": null,
+      "confidence_note": "Linear type-7 percentile over stage-2 hard-passed tasks."
+    },
+    "tool_calls_per_passed_task_max": {
+      "status": "measured",
+      "value": 6.0,
+      "numerator": null,
+      "denominator": 72.0,
+      "unit": "calls",
+      "exposure_note": null,
+      "confidence_note": "Maximum over stage-2 hard-passed tasks."
+    },
+    "stage_4_rule_gate": {
+      "status": "measured",
+      "value": 1.0,
+      "numerator": 1.0,
+      "denominator": 1.0,
+      "unit": "boolean",
+      "exposure_note": null,
+      "confidence_note": "Stage-only rule gate; full protocol gate remains not evaluated."
+    },
+    "efficiency_pass_rate.scenario.COMPLIANT": {
+      "status": "measured",
+      "value": 1.0,
+      "numerator": 12.0,
+      "denominator": 12.0,
+      "unit": "rate",
+      "exposure_note": null,
+      "confidence_note": "Deterministic D1 offline tool-efficiency evaluation."
+    },
+    "tool_calls_mean.scenario.COMPLIANT": {
+      "status": "measured",
+      "value": 6.0,
+      "numerator": 72.0,
+      "denominator": 12.0,
+      "unit": "calls",
+      "exposure_note": null,
+      "confidence_note": "Only stage-2 hard-passed tasks are included."
+    },
+    "efficiency_pass_rate.scenario.NO_FEASIBLE_OPTION": {
+      "status": "measured",
+      "value": 1.0,
+      "numerator": 12.0,
+      "denominator": 12.0,
+      "unit": "rate",
+      "exposure_note": null,
+      "confidence_note": "Deterministic D1 offline tool-efficiency evaluation."
+    },
+    "tool_calls_mean.scenario.NO_FEASIBLE_OPTION": {
+      "status": "measured",
+      "value": 4.0,
+      "numerator": 48.0,
+      "denominator": 12.0,
+      "unit": "calls",
+      "exposure_note": null,
+      "confidence_note": "Only stage-2 hard-passed tasks are included."
+    },
+    "efficiency_pass_rate.scenario.PREFERENCE_CONFLICT": {
+      "status": "measured",
+      "value": 1.0,
+      "numerator": 12.0,
+      "denominator": 12.0,
+      "unit": "rate",
+      "exposure_note": null,
+      "confidence_note": "Deterministic D1 offline tool-efficiency evaluation."
+    },
+    "tool_calls_mean.scenario.PREFERENCE_CONFLICT": {
+      "status": "measured",
+      "value": 6.0,
+      "numerator": 72.0,
+      "denominator": 12.0,
+      "unit": "calls",
+      "exposure_note": null,
+      "confidence_note": "Only stage-2 hard-passed tasks are included."
+    },
+    "efficiency_pass_rate.scenario.PROVIDER_FAILURE": {
+      "status": "measured",
+      "value": 1.0,
+      "numerator": 12.0,
+      "denominator": 12.0,
+      "unit": "rate",
+      "exposure_note": null,
+      "confidence_note": "Deterministic D1 offline tool-efficiency evaluation."
+    },
+    "tool_calls_mean.scenario.PROVIDER_FAILURE": {
+      "status": "measured",
+      "value": 3.5,
+      "numerator": 42.0,
+      "denominator": 12.0,
+      "unit": "calls",
+      "exposure_note": null,
+      "confidence_note": "Only stage-2 hard-passed tasks are included."
+    },
+    "efficiency_pass_rate.scenario.REQUIRES_APPROVAL": {
+      "status": "measured",
+      "value": 1.0,
+      "numerator": 12.0,
+      "denominator": 12.0,
+      "unit": "rate",
+      "exposure_note": null,
+      "confidence_note": "Deterministic D1 offline tool-efficiency evaluation."
+    },
+    "tool_calls_mean.scenario.REQUIRES_APPROVAL": {
+      "status": "measured",
+      "value": 4.0,
+      "numerator": 48.0,
+      "denominator": 12.0,
+      "unit": "calls",
+      "exposure_note": null,
+      "confidence_note": "Only stage-2 hard-passed tasks are included."
+    },
+    "efficiency_pass_rate.scenario.REVALIDATION_CHANGED": {
+      "status": "measured",
+      "value": 1.0,
+      "numerator": 12.0,
+      "denominator": 12.0,
+      "unit": "rate",
+      "exposure_note": null,
+      "confidence_note": "Deterministic D1 offline tool-efficiency evaluation."
+    },
+    "tool_calls_mean.scenario.REVALIDATION_CHANGED": {
+      "status": "measured",
+      "value": 5.0,
+      "numerator": 60.0,
+      "denominator": 12.0,
+      "unit": "calls",
+      "exposure_note": null,
+      "confidence_note": "Only stage-2 hard-passed tasks are included."
+    }
+  },
+  "judge": null,
+  "cost": null,
+  "gate_status": "not_evaluated",
+  "hard_failures": [],
+  "bad_case_candidates": []
+}

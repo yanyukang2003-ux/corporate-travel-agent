@@ -1,0 +1,61 @@
+{
+  "schema_version": 1,
+  "evaluation_id": "eval-550b6e5b-82fb-4a06-a75f-f380fb31d41d",
+  "protocol_id": "agent-eval-v1",
+  "runner_version": "agent-eval-runner-v1",
+  "generated_at": "2026-08-02T15:22:48.904828Z",
+  "evaluation_mode": "real_llm_mock_provider",
+  "dataset_id": "intent-model-preflight-v1",
+  "dataset_version": "1",
+  "dataset_sha256": "3a520cafc0d6d7a8b2768f4f2412f4cf9d1bb541e121f7b2144937454b3d6a98",
+  "selected_cases": 2,
+  "attempts_per_case": 1,
+  "expected_runs": 2,
+  "completed_runs": 2,
+  "passed_runs": 1,
+  "trace_validation_passed": true,
+  "traces_file": "traces.jsonl",
+  "traces_sha256": "21e400f4c6ada6806a42833ddce76502bbd029a38651d68944335a2254dce298",
+  "case_results_file": "intent-case-results.jsonl",
+  "case_results_sha256": "ef074f2be468d397c33b9743ed02c9ca207f23065c58a1b12757bfef4ba26203",
+  "evaluation_result_file": null,
+  "evaluation_result_sha256": null,
+  "judge_inputs_file": null,
+  "judge_inputs_sha256": null,
+  "stage_2_rule_gate_passed": null,
+  "real_model_calls": 2,
+  "estimated_cost": null,
+  "limitations": [
+    "This is a two-call qualification preflight, not a quality or stability score.",
+    "The real language model only extracts intent; planning and tool selection remain orchestrator-controlled.",
+    "Inventory and provider calls are deterministic Mock data, not live providers.",
+    "The fixed two-case sample checks bilingual structured-output plumbing and cannot represent production traffic proportions."
+  ],
+  "runs": [
+    {
+      "run_id": "run-842d0e9d-07b3-429b-a931-2acbc320e6e6",
+      "case_id": "prefer-intent-0001",
+      "attempt": 1,
+      "passed": false,
+      "mismatches": [
+        "classification",
+        "missing_fields"
+      ],
+      "trace_steps": 5,
+      "tool_steps": 1,
+      "rule_quality_passed": false,
+      "rule_quality_score": 0.0
+    },
+    {
+      "run_id": "run-9ba5789e-46bb-4cc5-91c9-19439849c940",
+      "case_id": "open-train-missing-fields-0085",
+      "attempt": 1,
+      "passed": true,
+      "mismatches": [],
+      "trace_steps": 5,
+      "tool_steps": 1,
+      "rule_quality_passed": true,
+      "rule_quality_score": 1.0
+    }
+  ]
+}

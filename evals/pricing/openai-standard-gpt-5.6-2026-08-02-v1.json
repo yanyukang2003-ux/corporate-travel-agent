@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "price_table_version": "openai-standard-gpt-5.6-2026-08-02-v1",
+  "status": "configured",
+  "currency": "USD",
+  "unit": "per_1m_tokens",
+  "effective_at": "2026-08-02",
+  "source": "OpenAI API official pricing, Standard short-context text rates: https://developers.openai.com/api/docs/pricing. The official GPT-5.6 model page states that gpt-5.6 routes to gpt-5.6-sol: https://developers.openai.com/api/docs/models/gpt-5.6-sol. Preflight inputs are far below the 272K long-context threshold; cached input and cache-write rates are outside this evaluator's uncached input/output schema.",
+  "models": {
+    "gpt-5.6": {
+      "input": 5.0,
+      "output": 30.0
+    },
+    "gpt-5.6-sol": {
+      "input": 5.0,
+      "output": 30.0
+    }
+  }
+}

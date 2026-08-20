@@ -1,0 +1,49 @@
+[build-system]
+requires = ["hatchling>=1.25"]
+build-backend = "hatchling.build"
+
+[project]
+name = "corporate-travel-agent"
+version = "0.1.0"
+description = "Evidence-first corporate travel planning and compliance agent framework"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+  "fastapi>=0.115,<1",
+  "httpx>=0.27,<1",
+  "pydantic>=2.9,<3",
+  "uvicorn[standard]>=0.30,<1",
+]
+
+[project.optional-dependencies]
+llm = [
+  "openai>=1.66,<3",
+]
+persistence = [
+  "alembic>=1.14,<2",
+  "psycopg[binary]>=3.2,<4",
+  "sqlalchemy>=2.0,<3",
+]
+dev = [
+  "pytest>=8.3,<9",
+  "pytest-cov>=5,<7",
+  "ruff>=0.7,<1",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/corporate_travel_agent"]
+
+[tool.hatch.build.targets.wheel.force-include]
+"src/corporate_travel_agent/config/default_policy.json" = "corporate_travel_agent/config/default_policy.json"
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+addopts = "-q"
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]

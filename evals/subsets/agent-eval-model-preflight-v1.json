@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "subset_id": "agent-eval-model-preflight-v1",
+  "status": "frozen",
+  "parent_subset_id": "agent-eval-model-smoke-v1",
+  "source_dataset_id": "agent-eval-v1",
+  "source_dataset_version": "1.0.3",
+  "source_case_file_sha256": "87fde4f17f42626ebf08c62df3198b8267a7839ddc2daa55ba3df6077bfe7c07",
+  "records": 2,
+  "attempts_per_case": 1,
+  "expected_model_calls_max": 2,
+  "selection": "Fixed connectivity sample drawn from agent-eval-model-smoke-v1 before observing scores: first English core case_id and first zh-CN core case_id in the parent subset (sorted by case_id).",
+  "case_ids": [
+    "core-business-class-approval-008",
+    "core-approval-accepted-009"
+  ],
+  "languages": {
+    "core-business-class-approval-008": "en",
+    "core-approval-accepted-009": "zh-CN"
+  },
+  "categories": {
+    "core-business-class-approval-008": "core",
+    "core-approval-accepted-009": "core"
+  }
+}

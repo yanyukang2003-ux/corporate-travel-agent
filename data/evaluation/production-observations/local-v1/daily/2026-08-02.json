@@ -1,0 +1,171 @@
+{
+  "schema_version": 1,
+  "date": "2026-08-02",
+  "source_mode": "offline_evaluation_backfill",
+  "observation_events": 7,
+  "production_runs": 0,
+  "metrics": {
+    "task_pass_rate": {
+      "status": "measured",
+      "value": 1.0,
+      "unit": "rate",
+      "source": "quality.task_pass_rate"
+    },
+    "trajectory_pass_rate": {
+      "status": "measured",
+      "value": 1.0,
+      "unit": "rate",
+      "source": "trajectory.trajectory_pass_rate"
+    },
+    "tool_hallucination_call_rate": {
+      "status": "measured",
+      "value": 0.0,
+      "unit": "rate",
+      "source": "trajectory.tool_hallucination_call_rate"
+    },
+    "parameter_hallucination_call_rate": {
+      "status": "measured",
+      "value": 0.0,
+      "unit": "rate",
+      "source": "trajectory.parameter_hallucination_call_rate"
+    },
+    "shadow_hallucination_claim_rate": {
+      "status": "measured",
+      "value": 0.0,
+      "unit": "rate",
+      "source": "trajectory.shadow_hallucination_claim_rate"
+    },
+    "efficiency_pass_rate": {
+      "status": "measured",
+      "value": 1.0,
+      "unit": "rate",
+      "source": "efficiency.efficiency_pass_rate"
+    },
+    "recoverable_fault_success_rate": {
+      "status": "measured",
+      "value": 0.3333333333333333,
+      "unit": "rate",
+      "source": "recovery.recoverable_fault_success_rate"
+    },
+    "unsafe_recovery_rate": {
+      "status": "measured",
+      "value": 0.0,
+      "unit": "rate",
+      "source": "recovery.unsafe_recovery_rate"
+    },
+    "pass_power_3": {
+      "status": "measured",
+      "value": 1.0,
+      "unit": "rate",
+      "source": "performance.pass_power_3"
+    },
+    "mixed_run_rate": {
+      "status": "measured",
+      "value": 0.0,
+      "unit": "rate",
+      "source": "performance.mixed_run_rate"
+    },
+    "total_latency_ms_p95": {
+      "status": "measured",
+      "value": 1.303,
+      "unit": "ms",
+      "source": "performance.total_latency_ms_p95"
+    },
+    "cost_per_successful_task": {
+      "status": "not_applicable",
+      "value": null,
+      "unit": "USD",
+      "source": "performance.estimated_cost_per_successful_task"
+    },
+    "safety_events": {
+      "status": "measured",
+      "value": 0.0,
+      "unit": "events",
+      "source": "trajectory_and_recovery"
+    },
+    "bad_case_candidates": {
+      "status": "measured",
+      "value": 7.0,
+      "unit": "cases",
+      "source": "d6.candidates"
+    },
+    "release_gate": {
+      "status": "measured",
+      "value": 0.0,
+      "unit": "boolean",
+      "source": "regression.release_gate"
+    }
+  },
+  "alerts": [
+    {
+      "alert_id": "alert-f02bd892-57a5-43de-9c1d-b0db1a8c1ffa",
+      "alert_type": "SAFETY_EVENT",
+      "severity": "critical",
+      "status": "clear",
+      "threshold": "any safety event triggers immediately",
+      "actual": 0.0,
+      "evidence": [
+        "window:2026-08-02"
+      ]
+    },
+    {
+      "alert_id": "alert-3795f97b-d2ee-418e-80e1-2e09f638d044",
+      "alert_type": "TASK_SUCCESS_DROP",
+      "severity": "high",
+      "status": "not_evaluated",
+      "threshold": "24h success falls by more than 5 points",
+      "actual": null,
+      "evidence": [
+        "production_runs:0"
+      ]
+    },
+    {
+      "alert_id": "alert-42ed9c1e-7ba8-4b5b-8db1-7272c868bb72",
+      "alert_type": "LATENCY_REGRESSION",
+      "severity": "warning",
+      "status": "not_evaluated",
+      "threshold": "P95 grows 30% for two windows",
+      "actual": null,
+      "evidence": [
+        "production_runs:0"
+      ]
+    },
+    {
+      "alert_id": "alert-15de4ac7-4469-4ad2-bffc-c9a7eed3cbe9",
+      "alert_type": "COST_REGRESSION",
+      "severity": "warning",
+      "status": "not_evaluated",
+      "threshold": "unit cost grows 30% for two windows",
+      "actual": null,
+      "evidence": [
+        "production_runs:0"
+      ]
+    },
+    {
+      "alert_id": "alert-bb70659e-b297-4dc8-8ec0-675c0890886e",
+      "alert_type": "REPEATED_FAILURE_SIGNATURE",
+      "severity": "high",
+      "status": "not_evaluated",
+      "threshold": "same signature appears 3 times in 24h",
+      "actual": null,
+      "evidence": [
+        "production_runs:0"
+      ]
+    },
+    {
+      "alert_id": "alert-4670fb72-628d-4bc6-9934-7d22264cfcbc",
+      "alert_type": "OFFLINE_RELEASE_GATE_FAILED",
+      "severity": "high",
+      "status": "triggered",
+      "threshold": "offline release gate must pass",
+      "actual": 0.0,
+      "evidence": [
+        "stage7.release_gate"
+      ]
+    }
+  ],
+  "limitations": [
+    "The window contains offline evaluation artifacts, not production requests.",
+    "No raw user text or raw provider response is stored."
+  ]
+}

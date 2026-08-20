@@ -1,0 +1,409 @@
+{
+  "schema_version": 1,
+  "runner_version": "model-live-provider-eval-runner-v1",
+  "grader_version": "model-live-provider-grader-v3",
+  "generated_at": "2026-08-09T09:15:29.690699+00:00",
+  "evaluation_mode": "model_live_provider",
+  "provider": "duffel",
+  "provider_mode": "test",
+  "tool_choice_exposure": "orchestrator_controlled",
+  "dataset": {
+    "id": "model-duffel-workflow-deepseek-full-recovery-v1",
+    "version": "1.0.0",
+    "sha256": "67e33420596a03f5201942bf899442683b53549f7122ecd6eefa2072ebbb1416",
+    "records": 1,
+    "attempts_per_case": 3
+  },
+  "model": {
+    "requested": "deepseek-v4-pro",
+    "actual_models": [
+      "deepseek-v4-pro"
+    ],
+    "reasoning_effort": "medium",
+    "usage_contract": "input_output_total"
+  },
+  "price_table": {
+    "version": "model-prices-openai-20260802-v1",
+    "sha256": "dd2a754fb067cbb147677d6d75ac462f4f327480776696fadc8c6547cbdbbf46",
+    "currency": "USD"
+  },
+  "runs": {
+    "expected": 3,
+    "completed": 3,
+    "passed": 3,
+    "pass_at_1": 1.0,
+    "pass_power_3": 1.0,
+    "pass_at_3": 1.0,
+    "mixed_run_rate": 0.0,
+    "intent_consistency_rate": 1.0,
+    "trajectory_consistency_rate": 1.0
+  },
+  "calls": {
+    "model": 3,
+    "provider": 3,
+    "model_cap": 6,
+    "provider_cap": 6
+  },
+  "latency_ms": {
+    "total": {
+      "count": 3.0,
+      "total": 15336.765,
+      "mean": 5112.255,
+      "p50": 5039.304,
+      "p95": 5373.143,
+      "maximum": 5373.143
+    },
+    "llm": {
+      "count": 3.0,
+      "total": 7618.739,
+      "mean": 2539.58,
+      "p50": 2346.253,
+      "p95": 3027.207,
+      "maximum": 3027.207
+    },
+    "provider": {
+      "count": 3.0,
+      "total": 7707.196,
+      "mean": 2569.065,
+      "p50": 2575.791,
+      "p95": 2787.584,
+      "maximum": 2787.584
+    }
+  },
+  "tokens": {
+    "input_tokens": 5739,
+    "output_tokens": 620,
+    "cached_input_tokens": 2048,
+    "cache_write_input_tokens": null,
+    "reasoning_output_tokens": null,
+    "total_tokens": 6359
+  },
+  "estimated_cost_usd": 0.003035865,
+  "hallucination": {
+    "tool_hallucination": {
+      "model_exposure": "not_exposed",
+      "system_unknown_tool_call_rate": 0.0,
+      "count": 0
+    },
+    "parameter_hallucination": {
+      "model_exposure": "measured",
+      "evaluable_attempts": 3,
+      "not_evaluable_attempts": 0,
+      "failed_attempt_rate": 0.0,
+      "failed_attempts": 0
+    },
+    "shadow_hallucination": {
+      "model_exposure": "not_exposed",
+      "evaluable_attempts": 3,
+      "not_evaluable_attempts": 0,
+      "system_evidence_proxy_failure_rate": 0.0,
+      "failed_attempts": 0
+    }
+  },
+  "operational_reliability": {
+    "infrastructure_failures": 0,
+    "infrastructure_failure_rate": 0.0,
+    "completed_model_response_rate": 1.0,
+    "failures_by_category": {}
+  },
+  "resource_accounting": {
+    "accounted_attempts": 3,
+    "unaccounted_attempts": 0,
+    "all_attempt_accounting_coverage": 1.0,
+    "completed_model_responses": 3,
+    "accounted_model_responses": 3,
+    "completed_response_accounting_coverage": 1.0,
+    "estimated_cost_is_lower_bound": false,
+    "outbound_requests": 6,
+    "traced_outbound_requests": 6,
+    "outbound_request_trace_coverage": 1.0,
+    "failed_before_response_requests": 0
+  },
+  "retries": {
+    "maximum_llm_attempts_per_run": 2,
+    "external_model_request_cap": 6,
+    "failed_model_requests": 0,
+    "retry_attempts": 0,
+    "recovered_retries": 0,
+    "error_layers": {},
+    "terminal_error_causes": {},
+    "maximum_provider_attempts_per_run": 2,
+    "external_provider_request_cap": 6,
+    "failed_provider_requests": 0,
+    "provider_retry_attempts": 0,
+    "recovered_provider_retries": 0,
+    "provider_error_layers": {},
+    "provider_terminal_error_causes": {},
+    "common_terminal_error_causes": []
+  },
+  "tool_efficiency": {
+    "expected_calls_per_run": 2,
+    "actual_calls_per_run": 2.0,
+    "invalid_calls": 0,
+    "duplicate_calls": 0,
+    "authorized_retry_calls": 0,
+    "unjustified_duplicate_calls": 0,
+    "retry_overhead_rate": 0.0,
+    "calls_per_successful_run": 2.0,
+    "order_pass_rate": 1.0
+  },
+  "gates": {
+    "integration_gate": true,
+    "three_run_stability_gate": true,
+    "resource_accounting_gate": true,
+    "booking_safety_gate": true,
+    "cost_ceiling_gate": true
+  },
+  "maximum_estimated_model_cost_usd": 0.05,
+  "attempt_results": [
+    {
+      "actual_model": "deepseek-v4-pro",
+      "attempt": 1,
+      "billing_price_key": "deepseek-v4-pro",
+      "booking_intent_created": false,
+      "case_id": "model-duffel-deepseek-lhr-jfk-full-recovery",
+      "checks": {
+        "actual_model_recorded": true,
+        "authorized_api_snapshot": true,
+        "booking_not_created": true,
+        "detailed_token_usage_recorded": true,
+        "exact_intent_parameters": true,
+        "exact_llm_call_count": true,
+        "exact_provider_call_count": true,
+        "exact_provider_parameters": true,
+        "exact_tool_sequence": true,
+        "expected_final_state": true,
+        "inventory_evidence_backed": true,
+        "known_tool_registry_only": true,
+        "minimum_options": true,
+        "price_mapping_available": true,
+        "provider_retry_contract_valid": true,
+        "raw_response_archived": true,
+        "retry_contract_valid": true,
+        "test_mode_disclosed": true
+      },
+      "completed_at": "2026-08-09T09:14:33.872651+00:00",
+      "duration_ms": 5039.304,
+      "estimated_cost_usd": 0.001009635,
+      "failure": null,
+      "failure_category": null,
+      "intent_mismatches": [],
+      "intent_signature": "e8b5aaea0d35954f7f7c41110375003f76509217bc856e9bda6a0a0505fd9e5b",
+      "llm_calls": 1,
+      "llm_error_diagnostics": [],
+      "llm_latency_ms": 2245.279,
+      "llm_retry_count": 0,
+      "normalized_offer_count": 42,
+      "option_count": 3,
+      "parameter_hallucination_evaluable": true,
+      "passed": true,
+      "price_table_sha256": "dd2a754fb067cbb147677d6d75ac462f4f327480776696fadc8c6547cbdbbf46",
+      "provider_calls": 1,
+      "provider_error_diagnostics": [],
+      "provider_latency_ms": 2787.584,
+      "provider_notices": [
+        "duffel-flight-fd38c4dfccf5ff5b: Duffel Test Mode sandbox inventory; schedules and prices are not production data",
+        "duffel-flight-fd38c4dfccf5ff5b: Duffel response was capped at 50 normalized offers"
+      ],
+      "provider_parameter_mismatches": [],
+      "provider_retry_count": 0,
+      "raw_response_hashes": [
+        "1705dfb2d138bd9297c5f11a1d5c5a75c48460a3cb0815c0881e75aa859b2236"
+      ],
+      "reasoning_effort": "medium",
+      "requested_model": "deepseek-v4-pro",
+      "run_id": "model-duffel-deepseek-lhr-jfk-full-recovery-attempt-1",
+      "service_tier": null,
+      "shadow_evidence_evaluable": true,
+      "snapshot_count": 1,
+      "started_at": "2026-08-09T09:14:28.833328+00:00",
+      "task_state": "WAITING_FOR_USER",
+      "tool_sequence": [
+        "llm.extract_trip_intent",
+        "provider.search_transport.outbound"
+      ],
+      "trajectory_signature": "d8ca9a2fb659509d41dd9d6a75012720f74fd7716914c3dc4b2e2eee6933c313",
+      "unknown_tool_calls": [],
+      "usage": {
+        "cache_write_input_tokens": null,
+        "cached_input_tokens": 640,
+        "input_tokens": 1913,
+        "output_tokens": 204,
+        "reasoning_output_tokens": null,
+        "total_tokens": 2117
+      }
+    },
+    {
+      "actual_model": "deepseek-v4-pro",
+      "attempt": 2,
+      "billing_price_key": "deepseek-v4-pro",
+      "booking_intent_created": false,
+      "case_id": "model-duffel-deepseek-lhr-jfk-full-recovery",
+      "checks": {
+        "actual_model_recorded": true,
+        "authorized_api_snapshot": true,
+        "booking_not_created": true,
+        "detailed_token_usage_recorded": true,
+        "exact_intent_parameters": true,
+        "exact_llm_call_count": true,
+        "exact_provider_call_count": true,
+        "exact_provider_parameters": true,
+        "exact_tool_sequence": true,
+        "expected_final_state": true,
+        "inventory_evidence_backed": true,
+        "known_tool_registry_only": true,
+        "minimum_options": true,
+        "price_mapping_available": true,
+        "provider_retry_contract_valid": true,
+        "raw_response_archived": true,
+        "retry_contract_valid": true,
+        "test_mode_disclosed": true
+      },
+      "completed_at": "2026-08-09T09:14:39.272382+00:00",
+      "duration_ms": 5373.143,
+      "estimated_cost_usd": 0.001013115,
+      "failure": null,
+      "failure_category": null,
+      "intent_mismatches": [],
+      "intent_signature": "e8b5aaea0d35954f7f7c41110375003f76509217bc856e9bda6a0a0505fd9e5b",
+      "llm_calls": 1,
+      "llm_error_diagnostics": [],
+      "llm_latency_ms": 3027.207,
+      "llm_retry_count": 0,
+      "normalized_offer_count": 42,
+      "option_count": 3,
+      "parameter_hallucination_evaluable": true,
+      "passed": true,
+      "price_table_sha256": "dd2a754fb067cbb147677d6d75ac462f4f327480776696fadc8c6547cbdbbf46",
+      "provider_calls": 1,
+      "provider_error_diagnostics": [],
+      "provider_latency_ms": 2343.821,
+      "provider_notices": [
+        "duffel-flight-73e33f56710f8aa3: Duffel Test Mode sandbox inventory; schedules and prices are not production data",
+        "duffel-flight-73e33f56710f8aa3: Duffel response was capped at 50 normalized offers"
+      ],
+      "provider_parameter_mismatches": [],
+      "provider_retry_count": 0,
+      "raw_response_hashes": [
+        "a6398d056ccd09ab79f2aaa9f863c606e3f640bb6418260bac22b28a9fc3858c"
+      ],
+      "reasoning_effort": "medium",
+      "requested_model": "deepseek-v4-pro",
+      "run_id": "model-duffel-deepseek-lhr-jfk-full-recovery-attempt-2",
+      "service_tier": null,
+      "shadow_evidence_evaluable": true,
+      "snapshot_count": 1,
+      "started_at": "2026-08-09T09:14:33.899220+00:00",
+      "task_state": "WAITING_FOR_USER",
+      "tool_sequence": [
+        "llm.extract_trip_intent",
+        "provider.search_transport.outbound"
+      ],
+      "trajectory_signature": "d8ca9a2fb659509d41dd9d6a75012720f74fd7716914c3dc4b2e2eee6933c313",
+      "unknown_tool_calls": [],
+      "usage": {
+        "cache_write_input_tokens": null,
+        "cached_input_tokens": 640,
+        "input_tokens": 1913,
+        "output_tokens": 208,
+        "reasoning_output_tokens": null,
+        "total_tokens": 2121
+      }
+    },
+    {
+      "actual_model": "deepseek-v4-pro",
+      "attempt": 3,
+      "billing_price_key": "deepseek-v4-pro",
+      "booking_intent_created": false,
+      "case_id": "model-duffel-deepseek-lhr-jfk-full-recovery",
+      "checks": {
+        "actual_model_recorded": true,
+        "authorized_api_snapshot": true,
+        "booking_not_created": true,
+        "detailed_token_usage_recorded": true,
+        "exact_intent_parameters": true,
+        "exact_llm_call_count": true,
+        "exact_provider_call_count": true,
+        "exact_provider_parameters": true,
+        "exact_tool_sequence": true,
+        "expected_final_state": true,
+        "inventory_evidence_backed": true,
+        "known_tool_registry_only": true,
+        "minimum_options": true,
+        "price_mapping_available": true,
+        "provider_retry_contract_valid": true,
+        "raw_response_archived": true,
+        "retry_contract_valid": true,
+        "test_mode_disclosed": true
+      },
+      "completed_at": "2026-08-09T09:14:44.222172+00:00",
+      "duration_ms": 4924.318,
+      "estimated_cost_usd": 0.001013115,
+      "failure": null,
+      "failure_category": null,
+      "intent_mismatches": [],
+      "intent_signature": "e8b5aaea0d35954f7f7c41110375003f76509217bc856e9bda6a0a0505fd9e5b",
+      "llm_calls": 1,
+      "llm_error_diagnostics": [],
+      "llm_latency_ms": 2346.253,
+      "llm_retry_count": 0,
+      "normalized_offer_count": 42,
+      "option_count": 3,
+      "parameter_hallucination_evaluable": true,
+      "passed": true,
+      "price_table_sha256": "dd2a754fb067cbb147677d6d75ac462f4f327480776696fadc8c6547cbdbbf46",
+      "provider_calls": 1,
+      "provider_error_diagnostics": [],
+      "provider_latency_ms": 2575.791,
+      "provider_notices": [
+        "duffel-flight-53a8145da9cad520: Duffel Test Mode sandbox inventory; schedules and prices are not production data",
+        "duffel-flight-53a8145da9cad520: Duffel response was capped at 50 normalized offers"
+      ],
+      "provider_parameter_mismatches": [],
+      "provider_retry_count": 0,
+      "raw_response_hashes": [
+        "02041e421d323e6e4af5d08b2e0f3420f93346d8655536f9701692873b29eb40"
+      ],
+      "reasoning_effort": "medium",
+      "requested_model": "deepseek-v4-pro",
+      "run_id": "model-duffel-deepseek-lhr-jfk-full-recovery-attempt-3",
+      "service_tier": null,
+      "shadow_evidence_evaluable": true,
+      "snapshot_count": 1,
+      "started_at": "2026-08-09T09:14:39.297837+00:00",
+      "task_state": "WAITING_FOR_USER",
+      "tool_sequence": [
+        "llm.extract_trip_intent",
+        "provider.search_transport.outbound"
+      ],
+      "trajectory_signature": "d8ca9a2fb659509d41dd9d6a75012720f74fd7716914c3dc4b2e2eee6933c313",
+      "unknown_tool_calls": [],
+      "usage": {
+        "cache_write_input_tokens": null,
+        "cached_input_tokens": 768,
+        "input_tokens": 1913,
+        "output_tokens": 208,
+        "reasoning_output_tokens": null,
+        "total_tokens": 2121
+      }
+    }
+  ],
+  "trace_count": 3,
+  "limitations": [
+    "The model extracts structured intent but does not choose tools; tool selection remains orchestrator-controlled.",
+    "Duffel Test Mode inventory is sandbox data and is not production schedule or price evidence.",
+    "Model transport connection/timeouts and Duffel-declared transient read-only failures each allow one explicit retry.",
+    "Authentication, permission, malformed requests, structured-output failures, non-transient HTTP failures, and business failures are not retried.",
+    "DeepSeek Chat usage requires input, output, and total tokens; unavailable cache-write and reasoning details are not fabricated, and cost uses cache-miss rates as a conservative upper bound.",
+    "Recovered retries remain visible in trajectory stability, request counts, latency, and cost accounting.",
+    "This flight-search-only case does not execute offer revalidation, handoff, hotel search, approval, or booking."
+  ],
+  "artifacts": {
+    "source_traces_file": "traces.jsonl",
+    "source_traces_sha256": "42048693bc85c4ada91aa2d17614f77b6041c01e785eb872c56a9cc47bad2659",
+    "source_case_results_file": "case-results.jsonl",
+    "source_case_results_sha256": "ecf69419f06924a25af632bbc03ce56ed01b5c5b49b43224cc976cf617063704",
+    "raw_response_root": "raw-provider-responses",
+    "regrade_only": true
+  }
+}

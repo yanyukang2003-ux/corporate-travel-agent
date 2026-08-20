@@ -1,0 +1,80 @@
+{
+  "case_file": "cases.jsonl",
+  "case_file_sha256": "87fde4f17f42626ebf08c62df3198b8267a7839ddc2daa55ba3df6077bfe7c07",
+  "case_schema": "../../../evals/schemas/evaluation-case.schema.json",
+  "composition": {
+    "adversarial": 16,
+    "boundary": 16,
+    "core": 16,
+    "historical_failure": 12
+  },
+  "dataset_id": "agent-eval-v1",
+  "dataset_version": "1.0.3",
+  "final_states": {
+    "HANDED_OFF": 1,
+    "NEEDS_CLARIFICATION": 5,
+    "NEEDS_STRUCTURED_INPUT": 1,
+    "NO_FEASIBLE_OPTION": 8,
+    "OUT_OF_SCOPE": 2,
+    "PROVIDER_FAILED": 6,
+    "READY_FOR_HANDOFF": 15,
+    "RECONFIRMATION_REQUIRED": 2,
+    "TOOL_BUDGET_EXHAUSTED": 1,
+    "WAITING_FOR_APPROVAL": 8,
+    "WAITING_FOR_USER": 11
+  },
+  "frozen_at": "2026-08-09",
+  "generated_at": "2026-08-09",
+  "judge_rubric": "../../../evals/rubrics/output-quality-v1.json",
+  "known_limitations": [
+    "All inventory is synthetic replay/mock data; this dataset does not establish live-provider quality.",
+    "Deterministic hard-assertion baselines pass; real-model-in-the-loop smoke is a separate mode.",
+    "Search tool order warnings (FIXED_SIBLING_SEARCH_ORDER) remain soft/non-blocking.",
+    "Human review used solo second-pass rather than dual independent full review."
+  ],
+  "languages": {
+    "en": 9,
+    "zh-CN": 51
+  },
+  "model_smoke_subset": {
+    "path": "../../../evals/subsets/agent-eval-model-smoke-v1.json",
+    "records": 24,
+    "subset_id": "agent-eval-model-smoke-v1"
+  },
+  "policy_outcomes": {
+    "COMPLIANT": 27,
+    "FORBIDDEN": 2,
+    "INSUFFICIENT_EVIDENCE": 2,
+    "REQUIRES_APPROVAL": 13
+  },
+  "records": 60,
+  "review": {
+    "freeze_allowed": true,
+    "human_review_required": false,
+    "human_reviewed_records": 60,
+    "notes": "Single-owner freeze: reviewer-a accepted all 60 cases; solo second-pass confirmed 20 stratified cases. Re-run examples/build_agent_eval_v1.py only when SPECS change; then re-validate review artifacts and subset source hashes.",
+    "review_mode": "solo_second_pass",
+    "reviewer_a_path": "reviews/round-1/reviewer-a.json",
+    "reviewer_a_verdict_counts": {
+      "accept": 60
+    },
+    "solo_second_pass_decision_counts": {
+      "confirm": 20
+    },
+    "solo_second_pass_path": "reviews/round-1/solo-second-pass.jsonl"
+  },
+  "risk_levels": {
+    "critical": 32,
+    "high": 25,
+    "medium": 3
+  },
+  "schema_version": 1,
+  "splits": {
+    "development": 40,
+    "regression": 20
+  },
+  "status": "frozen",
+  "tool_registry": "../../../evals/contracts/tool-registry-v2.json",
+  "world_fixture_file": "fixtures/worlds.json",
+  "world_fixture_sha256": "0895a999330efcb647f970e8d8dffcf72c4e351b9cd5eb08f9e9f943fff5758e"
+}

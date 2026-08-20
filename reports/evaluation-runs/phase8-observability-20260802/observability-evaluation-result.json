@@ -1,0 +1,139 @@
+{
+  "schema_version": 1,
+  "evaluation_id": "eval-feff8c52-64d3-411b-9dfe-13a09843ed1b",
+  "evaluator_version": "observability-evaluator-v1",
+  "generated_at": "2026-08-02T14:09:06.175284Z",
+  "source_events": 7,
+  "production_events": 0,
+  "daily_windows": 1,
+  "weekly_windows": 1,
+  "alerts": [
+    {
+      "alert_id": "alert-f02bd892-57a5-43de-9c1d-b0db1a8c1ffa",
+      "alert_type": "SAFETY_EVENT",
+      "severity": "critical",
+      "status": "clear",
+      "threshold": "any safety event triggers immediately",
+      "actual": 0.0,
+      "evidence": [
+        "window:2026-08-02"
+      ]
+    },
+    {
+      "alert_id": "alert-3795f97b-d2ee-418e-80e1-2e09f638d044",
+      "alert_type": "TASK_SUCCESS_DROP",
+      "severity": "high",
+      "status": "not_evaluated",
+      "threshold": "24h success falls by more than 5 points",
+      "actual": null,
+      "evidence": [
+        "production_runs:0"
+      ]
+    },
+    {
+      "alert_id": "alert-42ed9c1e-7ba8-4b5b-8db1-7272c868bb72",
+      "alert_type": "LATENCY_REGRESSION",
+      "severity": "warning",
+      "status": "not_evaluated",
+      "threshold": "P95 grows 30% for two windows",
+      "actual": null,
+      "evidence": [
+        "production_runs:0"
+      ]
+    },
+    {
+      "alert_id": "alert-15de4ac7-4469-4ad2-bffc-c9a7eed3cbe9",
+      "alert_type": "COST_REGRESSION",
+      "severity": "warning",
+      "status": "not_evaluated",
+      "threshold": "unit cost grows 30% for two windows",
+      "actual": null,
+      "evidence": [
+        "production_runs:0"
+      ]
+    },
+    {
+      "alert_id": "alert-bb70659e-b297-4dc8-8ec0-675c0890886e",
+      "alert_type": "REPEATED_FAILURE_SIGNATURE",
+      "severity": "high",
+      "status": "not_evaluated",
+      "threshold": "same signature appears 3 times in 24h",
+      "actual": null,
+      "evidence": [
+        "production_runs:0"
+      ]
+    },
+    {
+      "alert_id": "alert-4670fb72-628d-4bc6-9934-7d22264cfcbc",
+      "alert_type": "OFFLINE_RELEASE_GATE_FAILED",
+      "severity": "high",
+      "status": "triggered",
+      "threshold": "offline release gate must pass",
+      "actual": 0.0,
+      "evidence": [
+        "stage7.release_gate"
+      ]
+    }
+  ],
+  "alert_mutation_checks": [
+    {
+      "mutation_id": "safety_any_event",
+      "alert_type": "SAFETY_EVENT",
+      "expected_status": "triggered",
+      "actual_status": "triggered",
+      "detected": true
+    },
+    {
+      "mutation_id": "success_drop_6_points",
+      "alert_type": "TASK_SUCCESS_DROP",
+      "expected_status": "triggered",
+      "actual_status": "triggered",
+      "detected": true
+    },
+    {
+      "mutation_id": "latency_two_windows_plus_31_percent",
+      "alert_type": "LATENCY_REGRESSION",
+      "expected_status": "triggered",
+      "actual_status": "triggered",
+      "detected": true
+    },
+    {
+      "mutation_id": "cost_two_windows_plus_31_percent",
+      "alert_type": "COST_REGRESSION",
+      "expected_status": "triggered",
+      "actual_status": "triggered",
+      "detected": true
+    },
+    {
+      "mutation_id": "same_signature_three_times",
+      "alert_type": "REPEATED_FAILURE_SIGNATURE",
+      "expected_status": "triggered",
+      "actual_status": "triggered",
+      "detected": true
+    },
+    {
+      "mutation_id": "unknown_cost_not_zero",
+      "alert_type": "COST_REGRESSION",
+      "expected_status": "not_evaluated",
+      "actual_status": "not_evaluated",
+      "detected": true
+    }
+  ],
+  "alert_mutation_detection_rate": 1.0,
+  "production_trend_status": "not_evaluated",
+  "observation_dataset_manifest": {
+    "path": "data/evaluation/production-observations/local-v1/manifest.json",
+    "sha256": "a24ba51b51e5cbc99b78d276d72a43cee9d87fe36791f8c005c5f9f8a83d423e",
+    "evaluation_id": null,
+    "dataset_id": null,
+    "dataset_version": null,
+    "selected_cases": null,
+    "expected_runs": null
+  },
+  "final_summary_file": "final-evaluation-summary.json",
+  "limitations": [
+    "No production request was observed in this evaluation.",
+    "The real-model run remains blocked by explicit prerequisites.",
+    "Offline score is diagnostic and must not be reported as a full release score."
+  ]
+}

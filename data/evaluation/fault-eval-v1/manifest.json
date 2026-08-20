@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "dataset_id": "fault-eval-v1",
+  "dataset_version": "1.0.0",
+  "status": "frozen",
+  "cases": {
+    "path": "cases.jsonl",
+    "records": 16,
+    "sha256": "e39b9918a4085cac1e7f599bebf5311e7c749e4694cd9f159a3e8e1b2013a901"
+  },
+  "base_dataset": {
+    "dataset_id": "corporate-travel-derived-v2-workflow",
+    "dataset_version": "2.0.0",
+    "path": "../derived-v2/workflow-cases.jsonl",
+    "sha256": "9041eba5564c07dd3ca94dfa9e2d597d3bff59a67ee9e679b7ca529287e7dbfd"
+  },
+  "fault_counts": {
+    "timeout": 2,
+    "retryable_error": 2,
+    "non_retryable_error": 2,
+    "permission_denied": 2,
+    "empty_result": 2,
+    "stale_snapshot": 2,
+    "partial_result": 2,
+    "process_restart": 2
+  },
+  "autonomous_recovery_candidate_records": 6,
+  "safe_degradation_allowed_records": 14,
+  "evaluation_mode": "deterministic_mock",
+  "real_model_calls": 0
+}

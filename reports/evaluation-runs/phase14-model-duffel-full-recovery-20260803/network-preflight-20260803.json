@@ -1,0 +1,113 @@
+{
+  "schema_version": 1,
+  "preflight_id": "D11-network-preflight-v1",
+  "executed_at": "2026-08-03T09:33:21Z",
+  "purpose": "Verify the real inherited proxy/TLS path before a new billable D11 rerun.",
+  "success_criteria": {
+    "curl_exit_code": 0,
+    "tls_verify_result": 0,
+    "http_response_required": true,
+    "consecutive_passes_per_provider": 3
+  },
+  "route": {
+    "mode": "inherited_environment_proxy",
+    "observed_remote_ip": "127.0.0.1"
+  },
+  "dataset": {
+    "records": 6,
+    "authentication_sent": false,
+    "travel_data_sent": false,
+    "model_inference_requested": false,
+    "duffel_offer_or_order_requested": false
+  },
+  "probes": [
+    {
+      "id": "openai_tls_01",
+      "provider": "openai",
+      "method": "GET",
+      "path": "/v1/models",
+      "http_status": 401,
+      "curl_exit_code": 0,
+      "tls_verify_result": 0,
+      "connect_seconds": 0.000317,
+      "tls_seconds": 0.480108,
+      "total_seconds": 0.680883,
+      "passed": true
+    },
+    {
+      "id": "openai_tls_02",
+      "provider": "openai",
+      "method": "GET",
+      "path": "/v1/models",
+      "http_status": 401,
+      "curl_exit_code": 0,
+      "tls_verify_result": 0,
+      "connect_seconds": 0.000474,
+      "tls_seconds": 0.449565,
+      "total_seconds": 0.755533,
+      "passed": true
+    },
+    {
+      "id": "openai_tls_03",
+      "provider": "openai",
+      "method": "GET",
+      "path": "/v1/models",
+      "http_status": 401,
+      "curl_exit_code": 0,
+      "tls_verify_result": 0,
+      "connect_seconds": 0.000466,
+      "tls_seconds": 0.446827,
+      "total_seconds": 0.631929,
+      "passed": true
+    },
+    {
+      "id": "duffel_tls_01",
+      "provider": "duffel",
+      "method": "GET",
+      "path": "/air/airlines",
+      "http_status": 400,
+      "curl_exit_code": 0,
+      "tls_verify_result": 0,
+      "connect_seconds": 0.000438,
+      "tls_seconds": 0.739631,
+      "total_seconds": 1.049381,
+      "passed": true
+    },
+    {
+      "id": "duffel_tls_02",
+      "provider": "duffel",
+      "method": "GET",
+      "path": "/air/airlines",
+      "http_status": 400,
+      "curl_exit_code": 0,
+      "tls_verify_result": 0,
+      "connect_seconds": 0.000282,
+      "tls_seconds": 0.44912,
+      "total_seconds": 0.753149,
+      "passed": true
+    },
+    {
+      "id": "duffel_tls_03",
+      "provider": "duffel",
+      "method": "GET",
+      "path": "/air/airlines",
+      "http_status": 400,
+      "curl_exit_code": 0,
+      "tls_verify_result": 0,
+      "connect_seconds": 0.000497,
+      "tls_seconds": 0.476417,
+      "total_seconds": 0.802249,
+      "passed": true
+    }
+  ],
+  "summary": {
+    "passed_probes": 6,
+    "total_probes": 6,
+    "openai_consecutive_passes": 3,
+    "duffel_consecutive_passes": 3,
+    "route_ready_for_billable_rerun": true,
+    "billable_rerun_authorized": false
+  },
+  "interpretation": "The inherited proxy path completed TLS and reached both provider HTTP layers. A new billable D11 rerun still requires explicit authorization.",
+  "official_openai_error_guidance": "https://developers.openai.com/api/docs/guides/error-codes#python-library-error-types"
+}

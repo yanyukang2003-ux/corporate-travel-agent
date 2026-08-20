@@ -1,0 +1,255 @@
+{
+  "schema_version": 1,
+  "evaluation_id": "eval-0c8b2ce9-d01a-49c5-9d85-c59057acd54e",
+  "protocol_id": "agent-eval-v1",
+  "generated_at": "2026-08-02T15:43:40.030382Z",
+  "run_ids": [
+    "run-8c778efb-3096-483a-be0b-bebf132399ab",
+    "run-7a0cc5e6-fc4c-42de-afa9-189747311acb"
+  ],
+  "coverage": {
+    "dataset_id": "intent-model-preflight-v1",
+    "dataset_version": "1",
+    "selected_cases": 2,
+    "completed_runs": 2,
+    "expected_runs": 2,
+    "slices": {
+      "evaluation_mode": "real_llm_mock_provider",
+      "attempts_per_case": 1
+    }
+  },
+  "metrics": {
+    "pass_at_1": {
+      "status": "measured",
+      "value": 0.5,
+      "numerator": 1.0,
+      "denominator": 2.0,
+      "unit": "rate",
+      "exposure_note": null,
+      "confidence_note": "Exact aggregation over the fixed attempt matrix."
+    },
+    "pass_power_3": {
+      "status": "measured",
+      "value": 0.5,
+      "numerator": 1.0,
+      "denominator": 2.0,
+      "unit": "rate",
+      "exposure_note": null,
+      "confidence_note": "Exact aggregation over the fixed attempt matrix."
+    },
+    "pass_at_3": {
+      "status": "measured",
+      "value": 0.5,
+      "numerator": 1.0,
+      "denominator": 2.0,
+      "unit": "rate",
+      "exposure_note": null,
+      "confidence_note": "Exact aggregation over the fixed attempt matrix."
+    },
+    "mixed_run_rate": {
+      "status": "measured",
+      "value": 0.0,
+      "numerator": 0.0,
+      "denominator": 2.0,
+      "unit": "rate",
+      "exposure_note": null,
+      "confidence_note": "Exact aggregation over the fixed attempt matrix."
+    },
+    "output_consistency_rate": {
+      "status": "measured",
+      "value": 1.0,
+      "numerator": 2.0,
+      "denominator": 2.0,
+      "unit": "rate",
+      "exposure_note": null,
+      "confidence_note": "Exact aggregation over the fixed attempt matrix."
+    },
+    "trajectory_consistency_rate": {
+      "status": "measured",
+      "value": 1.0,
+      "numerator": 2.0,
+      "denominator": 2.0,
+      "unit": "rate",
+      "exposure_note": null,
+      "confidence_note": "Exact aggregation over the fixed attempt matrix."
+    },
+    "total_latency_ms_mean": {
+      "status": "measured",
+      "value": 5959.996,
+      "numerator": 5959.996,
+      "denominator": 2.0,
+      "unit": "ms",
+      "exposure_note": null,
+      "confidence_note": null
+    },
+    "total_latency_ms_p50": {
+      "status": "measured",
+      "value": 2593.405,
+      "numerator": 2593.405,
+      "denominator": 2.0,
+      "unit": "ms",
+      "exposure_note": null,
+      "confidence_note": null
+    },
+    "total_latency_ms_p95": {
+      "status": "measured",
+      "value": 9326.587,
+      "numerator": 9326.587,
+      "denominator": 2.0,
+      "unit": "ms",
+      "exposure_note": null,
+      "confidence_note": null
+    },
+    "total_latency_ms_max": {
+      "status": "measured",
+      "value": 9326.587,
+      "numerator": 9326.587,
+      "denominator": 2.0,
+      "unit": "ms",
+      "exposure_note": null,
+      "confidence_note": null
+    },
+    "tool_latency_ms_mean": {
+      "status": "measured",
+      "value": 5958.370208,
+      "numerator": 5958.370208,
+      "denominator": 2.0,
+      "unit": "ms",
+      "exposure_note": null,
+      "confidence_note": null
+    },
+    "tool_latency_ms_p95": {
+      "status": "measured",
+      "value": 9324.77925,
+      "numerator": 9324.77925,
+      "denominator": 2.0,
+      "unit": "ms",
+      "exposure_note": null,
+      "confidence_note": null
+    },
+    "external_calls_total": {
+      "status": "measured",
+      "value": 2.0,
+      "numerator": 2.0,
+      "denominator": 2.0,
+      "unit": "calls",
+      "exposure_note": null,
+      "confidence_note": null
+    },
+    "external_calls_per_run_mean": {
+      "status": "measured",
+      "value": 1.0,
+      "numerator": 1.0,
+      "denominator": 2.0,
+      "unit": "calls",
+      "exposure_note": null,
+      "confidence_note": null
+    },
+    "external_calls_per_run_p95": {
+      "status": "measured",
+      "value": 1.0,
+      "numerator": 1.0,
+      "denominator": 2.0,
+      "unit": "calls",
+      "exposure_note": null,
+      "confidence_note": null
+    },
+    "input_tokens_total": {
+      "status": "measured",
+      "value": 2097.0,
+      "numerator": 2097.0,
+      "denominator": 2.0,
+      "unit": "tokens",
+      "exposure_note": null,
+      "confidence_note": null
+    },
+    "output_tokens_total": {
+      "status": "measured",
+      "value": 818.0,
+      "numerator": 818.0,
+      "denominator": 2.0,
+      "unit": "tokens",
+      "exposure_note": null,
+      "confidence_note": null
+    },
+    "total_tokens_per_run_mean": {
+      "status": "measured",
+      "value": 1457.5,
+      "numerator": 2915.0,
+      "denominator": 2.0,
+      "unit": "tokens_per_run",
+      "exposure_note": null,
+      "confidence_note": null
+    },
+    "estimated_cost_total": {
+      "status": "measured",
+      "value": 0.01401,
+      "numerator": 0.01401,
+      "denominator": 1.0,
+      "unit": "USD",
+      "exposure_note": null,
+      "confidence_note": null
+    },
+    "estimated_cost_per_successful_task": {
+      "status": "measured",
+      "value": 0.003958,
+      "numerator": 0.003958,
+      "denominator": 1.0,
+      "unit": "USD",
+      "exposure_note": null,
+      "confidence_note": null
+    },
+    "cost_regression_rate": {
+      "status": "unavailable",
+      "value": null,
+      "numerator": null,
+      "denominator": null,
+      "unit": "rate",
+      "exposure_note": "No frozen Stage 7 baseline exists.",
+      "confidence_note": null
+    },
+    "latency_p95_regression_rate": {
+      "status": "unavailable",
+      "value": null,
+      "numerator": null,
+      "denominator": null,
+      "unit": "rate",
+      "exposure_note": "No frozen Stage 7 baseline exists.",
+      "confidence_note": null
+    },
+    "real_model_stability_gate": {
+      "status": "unavailable",
+      "value": null,
+      "numerator": null,
+      "denominator": null,
+      "unit": "boolean",
+      "exposure_note": "This source run is deterministic Mock and cannot satisfy the real-model gate.",
+      "confidence_note": null
+    }
+  },
+  "judge": null,
+  "cost": {
+    "currency": "USD",
+    "price_table_version": "model-prices-openai-20260802-v1",
+    "total": 0.01401,
+    "per_successful_task": 0.003958
+  },
+  "gate_status": "not_evaluated",
+  "hard_failures": [
+    {
+      "case_id": "prefer-intent-0001",
+      "run_id": "run-8c778efb-3096-483a-be0b-bebf132399ab",
+      "failure_type": "not_all_attempts_passed",
+      "evidence": [
+        "run-8c778efb-3096-483a-be0b-bebf132399ab"
+      ]
+    }
+  ],
+  "bad_case_candidates": [
+    {
+      "case_id": "prefer-intent-0001",
+      "failure_signature": "4736e14cf9b83885eac3052e92507fe71d62d6f22a517e2c74432d8c7d8c00dd",
+      "review_status": "pending"
+    }
+  ]
+}

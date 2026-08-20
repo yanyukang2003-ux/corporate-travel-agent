@@ -1,0 +1,30 @@
+{
+  "scenario": "circuit",
+  "passed": true,
+  "checks": {
+    "first_waiting": true,
+    "second_waiting": true,
+    "first_used_three_attempts": true,
+    "second_did_not_call_provider": true,
+    "second_scheduled_retry": true
+  },
+  "first_state": "WAITING_FOR_PROVIDER",
+  "second_state": "WAITING_FOR_PROVIDER",
+  "outbound_calls_total": 3,
+  "second_retry": {
+    "status": "scheduled",
+    "resume_operation": "SEARCH",
+    "delayed_attempts_completed": 0,
+    "max_delayed_attempts": 3,
+    "next_retry_at": "2026-08-10T12:01:00+00:00",
+    "last_error_code": "PROVIDER_CIRCUIT_OPEN",
+    "last_error_layer": "provider_circuit_breaker",
+    "user_message": "供应商暂时不可用，任务会在后台自动重试。",
+    "circuit": {
+      "state": "OPEN",
+      "open_seconds": 60.0,
+      "opened_at": "2026-08-10T12:00:00+00:00",
+      "open_until": "2026-08-10T12:01:00+00:00"
+    }
+  }
+}

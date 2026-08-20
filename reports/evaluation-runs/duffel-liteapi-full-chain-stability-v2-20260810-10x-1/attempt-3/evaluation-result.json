@@ -1,0 +1,133 @@
+{
+  "schema_version": 1,
+  "run_id": "attempt-3",
+  "evaluation_mode": "deterministic_live_duffel_liteapi_full_chain",
+  "provider": "duffel+liteapi",
+  "provider_mode": "test+sandbox-read-only",
+  "dataset": {
+    "id": "duffel-liteapi-real-full-chain-v2",
+    "version": "2.0.0",
+    "sha256": "dd9ef5cda03ad5c20868e67f320d4b64014b7e13a136be7d954c515a2482b3be",
+    "case_id": "real-lhr-jfk-flight-hotel-select-revalidate-handoff"
+  },
+  "code_revision": "workspace-v1.0.4-20260809-retry3",
+  "started_at": "2026-08-09T16:05:47.876025+00:00",
+  "completed_at": "2026-08-09T16:06:04.517045+00:00",
+  "duration_ms": 16641.321,
+  "request": {
+    "origin": "LHR",
+    "destination": "JFK",
+    "departure_after": "2026-09-15T00:00:00+00:00",
+    "arrive_by": "2026-09-17T00:00:00+00:00",
+    "hotel_check_in": "2026-09-15",
+    "hotel_check_out": "2026-09-17",
+    "currency": "USD"
+  },
+  "external_calls": {
+    "total": 3,
+    "duffel": 3,
+    "liteapi": 0,
+    "base": 4,
+    "maximum": 12
+  },
+  "external_requests_by_provider": {
+    "duffel": [
+      {
+        "provider": "duffel",
+        "method": "POST",
+        "path": "/air/offer_requests"
+      },
+      {
+        "provider": "duffel",
+        "method": "POST",
+        "path": "/air/offer_requests"
+      },
+      {
+        "provider": "duffel",
+        "method": "POST",
+        "path": "/air/offer_requests"
+      }
+    ],
+    "liteapi": []
+  },
+  "provider_tool_calls": [
+    "provider.search_transport.outbound",
+    "provider.search_transport.outbound",
+    "provider.search_transport.outbound"
+  ],
+  "successful_provider_tool_calls": [],
+  "provider_tool_call_records": [
+    {
+      "sequence": 1,
+      "tool_name": "provider.search_transport.outbound",
+      "status": "FAILED",
+      "retryable": true,
+      "retry_of": null,
+      "reason_code": null,
+      "error_code": "DUFFEL_TRANSPORT_CONNECTION_ERROR",
+      "error_layer": "duffel_transport"
+    },
+    {
+      "sequence": 2,
+      "tool_name": "provider.search_transport.outbound",
+      "status": "FAILED",
+      "retryable": true,
+      "retry_of": 1,
+      "reason_code": "TRANSIENT_PROVIDER_FAULT",
+      "error_code": "DUFFEL_TRANSPORT_CONNECTION_ERROR",
+      "error_layer": "duffel_transport"
+    },
+    {
+      "sequence": 3,
+      "tool_name": "provider.search_transport.outbound",
+      "status": "FAILED",
+      "retryable": true,
+      "retry_of": 2,
+      "reason_code": "TRANSIENT_PROVIDER_FAULT",
+      "error_code": "DUFFEL_TRANSPORT_CONNECTION_ERROR",
+      "error_layer": "duffel_transport"
+    }
+  ],
+  "retry_policy": {
+    "max_provider_attempts": 3,
+    "backoff_base_seconds": 0.5,
+    "provider_retries": 2,
+    "failed_provider_attempts": 3
+  },
+  "task_state": "PROVIDER_FAILED",
+  "task_failure": "Duffel POST request failed transiently: ConnectError",
+  "option_count": 0,
+  "selection_error": "No compliant flight-and-hotel option was available",
+  "unexpected_error": null,
+  "selected_option": null,
+  "revalidation": null,
+  "handoff": null,
+  "snapshots": [],
+  "checks": {
+    "workflow_completed_without_exception": true,
+    "selection_succeeded": false,
+    "default_retry_policy_applied": true,
+    "external_call_budget_respected": true,
+    "duffel_call_budget_respected": true,
+    "liteapi_call_budget_respected": true,
+    "provider_retry_contract_valid": true,
+    "duffel_search_then_revalidate": false,
+    "liteapi_search_then_quote_refresh": false,
+    "flight_snapshot_authorized": false,
+    "hotel_snapshot_authorized": false,
+    "minimum_combined_options": false,
+    "selected_option_has_both_providers": false,
+    "selected_prices_use_policy_currency": false,
+    "selected_option_policy_compliant": false,
+    "both_quotes_revalidated": false,
+    "allowed_revalidation_status": false,
+    "expected_provider_tool_sequence": true,
+    "conditional_final_state": false,
+    "conditional_booking_intent": false,
+    "unchanged_handoff_covers_flight_and_hotel": true,
+    "search_and_revalidation_archived": false,
+    "no_booking_payment_or_order_http": true,
+    "provider_secrets_not_archived": true
+  },
+  "passed": false
+}

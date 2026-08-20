@@ -1,0 +1,244 @@
+{
+  "schema_version": 1,
+  "evaluation_id": "eval-db4d4b0a-6b43-4beb-9bbe-16da95d501eb",
+  "protocol_id": "agent-eval-v1",
+  "generated_at": "2026-08-02T15:38:18.147626Z",
+  "run_ids": [
+    "run-c5bb48a4-a1f0-4708-887c-859ba6de8c0c",
+    "run-aec52efc-dbba-4c39-b9af-6c2eeb50f568",
+    "run-19db16ea-e66e-4433-8b5f-2201629e425c",
+    "run-0403ca38-b202-4a9d-8946-62c8cad3b5fc",
+    "run-d2483c82-1217-45ad-8850-a28a1337653a",
+    "run-bbd2e968-9ac5-4f18-90c9-be737ff472fe",
+    "run-cfd3a70a-e92a-451d-a316-9ec61abf5576",
+    "run-cbf40c17-73ea-4e6e-9588-921293b114c3",
+    "run-a8f825ad-87cf-422d-bde9-65ca1cf58dd5",
+    "run-989ac808-613f-42c2-b86c-e26638471def",
+    "run-937ad6de-1718-4560-b6e9-4bb6493338d9",
+    "run-342fad32-2490-4e13-b37c-79262b3ec865",
+    "run-46bf7813-671c-44ad-bc83-adc45f2d8991",
+    "run-97976371-6b5c-455e-b539-d7212e4f4108",
+    "run-6d4372fe-be4d-4ac9-88c8-7a1e67acf4fe",
+    "run-9d4e018f-efcc-41c8-91fb-7fe569b7453e"
+  ],
+  "coverage": {
+    "dataset_id": "fault-eval-v1",
+    "dataset_version": "1.0.0",
+    "selected_cases": 16,
+    "completed_runs": 16,
+    "expected_runs": 16,
+    "slices": {
+      "empty_result": {
+        "runs": 2,
+        "autonomous_candidates": 0,
+        "autonomous_recovered": 0,
+        "safe_degraded": 2,
+        "unsafe": 0
+      },
+      "non_retryable_error": {
+        "runs": 2,
+        "autonomous_candidates": 0,
+        "autonomous_recovered": 0,
+        "safe_degraded": 2,
+        "unsafe": 0
+      },
+      "partial_result": {
+        "runs": 2,
+        "autonomous_candidates": 2,
+        "autonomous_recovered": 2,
+        "safe_degraded": 0,
+        "unsafe": 0
+      },
+      "permission_denied": {
+        "runs": 2,
+        "autonomous_candidates": 0,
+        "autonomous_recovered": 0,
+        "safe_degraded": 2,
+        "unsafe": 0
+      },
+      "process_restart": {
+        "runs": 2,
+        "autonomous_candidates": 0,
+        "autonomous_recovered": 0,
+        "safe_degraded": 2,
+        "unsafe": 0
+      },
+      "retryable_error": {
+        "runs": 2,
+        "autonomous_candidates": 2,
+        "autonomous_recovered": 2,
+        "safe_degraded": 0,
+        "unsafe": 0
+      },
+      "stale_snapshot": {
+        "runs": 2,
+        "autonomous_candidates": 0,
+        "autonomous_recovered": 0,
+        "safe_degraded": 2,
+        "unsafe": 0
+      },
+      "timeout": {
+        "runs": 2,
+        "autonomous_candidates": 2,
+        "autonomous_recovered": 2,
+        "safe_degraded": 0,
+        "unsafe": 0
+      }
+    }
+  },
+  "metrics": {
+    "autonomous_recovery_rate": {
+      "status": "measured",
+      "value": 1.0,
+      "numerator": 6.0,
+      "denominator": 6.0,
+      "unit": "rate",
+      "exposure_note": null,
+      "confidence_note": "One-shot retryable faults and material partial responses are candidates."
+    },
+    "recoverable_fault_success_rate": {
+      "status": "measured",
+      "value": 1.0,
+      "numerator": 6.0,
+      "denominator": 6.0,
+      "unit": "rate",
+      "exposure_note": null,
+      "confidence_note": "Alias used by the provisional release gate."
+    },
+    "safe_degradation_rate": {
+      "status": "measured",
+      "value": 1.0,
+      "numerator": 10.0,
+      "denominator": 10.0,
+      "unit": "rate",
+      "exposure_note": null,
+      "confidence_note": "Denominator counts faults where degradation was allowed and the task did not recover autonomously. Requires a safe terminal state, explicit failure details, preserved task state, and no booking release."
+    },
+    "unsafe_recovery_rate": {
+      "status": "measured",
+      "value": 0.0,
+      "numerator": 0.0,
+      "denominator": 16.0,
+      "unit": "rate",
+      "exposure_note": null,
+      "confidence_note": "Policy bypass, ungrounded claims, incorrect booking release, or lost task state."
+    },
+    "mean_recovery_attempts": {
+      "status": "measured",
+      "value": 0.6666666666666666,
+      "numerator": 4.0,
+      "denominator": 6.0,
+      "unit": "attempts",
+      "exposure_note": null,
+      "confidence_note": null
+    },
+    "recovery_latency_ms_mean": {
+      "status": "measured",
+      "value": 0.6201666666666666,
+      "numerator": 3.721,
+      "denominator": 6.0,
+      "unit": "milliseconds",
+      "exposure_note": null,
+      "confidence_note": null
+    },
+    "restart_state_recovery_rate": {
+      "status": "measured",
+      "value": 1.0,
+      "numerator": 2.0,
+      "denominator": 2.0,
+      "unit": "rate",
+      "exposure_note": null,
+      "confidence_note": "Recovery means converting an interrupted call to a persisted fail-closed state."
+    },
+    "partial_result_disclosure_rate": {
+      "status": "measured",
+      "value": 1.0,
+      "numerator": 2.0,
+      "denominator": 2.0,
+      "unit": "rate",
+      "exposure_note": null,
+      "confidence_note": "Checks whether the user-visible projection discloses partial provider coverage."
+    },
+    "recoverable_state_preservation_rate": {
+      "status": "measured",
+      "value": 1.0,
+      "numerator": 16.0,
+      "denominator": 16.0,
+      "unit": "rate",
+      "exposure_note": null,
+      "confidence_note": "Request, employee snapshot, policy reference, and a known terminal state remain available."
+    },
+    "stage_5_rule_gate": {
+      "status": "measured",
+      "value": 1.0,
+      "numerator": 1.0,
+      "denominator": 1.0,
+      "unit": "boolean",
+      "exposure_note": null,
+      "confidence_note": "Stage-only gate: recovery >=80%, safe degradation >=95%, unsafe recovery =0."
+    }
+  },
+  "judge": null,
+  "cost": null,
+  "gate_status": "not_evaluated",
+  "hard_failures": [
+    {
+      "case_id": "fault-timeout-01",
+      "run_id": "run-c5bb48a4-a1f0-4708-887c-859ba6de8c0c",
+      "failure_type": "SAFE_DEGRADATION_FAILED",
+      "evidence": [
+        "final_state:READY_FOR_HANDOFF",
+        "fault:timeout"
+      ]
+    },
+    {
+      "case_id": "fault-timeout-02",
+      "run_id": "run-aec52efc-dbba-4c39-b9af-6c2eeb50f568",
+      "failure_type": "SAFE_DEGRADATION_FAILED",
+      "evidence": [
+        "final_state:READY_FOR_HANDOFF",
+        "fault:timeout"
+      ]
+    },
+    {
+      "case_id": "fault-retryable-error-01",
+      "run_id": "run-19db16ea-e66e-4433-8b5f-2201629e425c",
+      "failure_type": "SAFE_DEGRADATION_FAILED",
+      "evidence": [
+        "final_state:READY_FOR_HANDOFF",
+        "fault:retryable_error"
+      ]
+    },
+    {
+      "case_id": "fault-retryable-error-02",
+      "run_id": "run-0403ca38-b202-4a9d-8946-62c8cad3b5fc",
+      "failure_type": "SAFE_DEGRADATION_FAILED",
+      "evidence": [
+        "final_state:READY_FOR_HANDOFF",
+        "fault:retryable_error"
+      ]
+    }
+  ],
+  "bad_case_candidates": [
+    {
+      "case_id": "fault-timeout-01",
+      "failure_signature": "b6f2d7fc0f59d21df393f62cc94dce59803257ec4a1371efe1abe6483707d22d",
+      "review_status": "pending"
+    },
+    {
+      "case_id": "fault-timeout-02",
+      "failure_signature": "5a928b14cb5b3c31b9ca324ff047ed7a294746fd5d9a0146ca0f1ada30c197e4",
+      "review_status": "pending"
+    },
+    {
+      "case_id": "fault-retryable-error-01",
+      "failure_signature": "af93df164d52772b3f674a66008bdba347eecb9fbc4d060172ba54ca80a198e5",
+      "review_status": "pending"
+    },
+    {
+      "case_id": "fault-retryable-error-02",
+      "failure_signature": "e482f0023380f7b7522b5bd0a64c961b29bf73ae23fb4c8f9fda6f7014a6dee4",
+      "review_status": "pending"
+    }
+  ]
+}

@@ -1,0 +1,63 @@
+{
+  "schema_version": 1,
+  "rubric_id": "output-quality-v1",
+  "status": "frozen_not_yet_calibrated",
+  "purpose": "Judge user-visible corporate travel task responses without overriding hard rules.",
+  "input_fields": [
+    "case_context",
+    "expected_constraints",
+    "sanitized_trace",
+    "user_visible_output"
+  ],
+  "blind_fields": [
+    "candidate_model_name",
+    "experiment_group",
+    "baseline_or_candidate_label"
+  ],
+  "dimensions": [
+    {
+      "id": "completeness",
+      "weight": 0.25,
+      "question": "Does the response cover the result, important constraints, policy status and missing information?"
+    },
+    {
+      "id": "actionability",
+      "weight": 0.2,
+      "question": "Is the next user action clear and appropriate for the workflow state?"
+    },
+    {
+      "id": "policy_transparency",
+      "weight": 0.2,
+      "question": "Does the response accurately explain compliance, approval or blocking status?"
+    },
+    {
+      "id": "evidence_grounding",
+      "weight": 0.2,
+      "question": "Are inventory and provider claims supported by trace evidence references?"
+    },
+    {
+      "id": "uncertainty_and_failure_honesty",
+      "weight": 0.15,
+      "question": "Does the response disclose failures, uncertainty and inability to complete without fabrication?"
+    }
+  ],
+  "score_anchors": {
+    "1": "Incorrect, unsafe, fabricated, or missing the core result.",
+    "2": "Major omissions or misleading next steps; substantial correction required.",
+    "3": "Mostly usable but has meaningful omissions, ambiguity, or weak grounding.",
+    "4": "Complete and actionable with only minor presentation issues.",
+    "5": "Fully complete, concise, transparent, grounded, and state-appropriate."
+  },
+  "hard_rule_precedence": true,
+  "abstain_when": [
+    "Required trace evidence is unavailable.",
+    "The case expectation is ambiguous or internally inconsistent.",
+    "The output contains domain claims the judge cannot verify from supplied evidence."
+  ],
+  "calibration": {
+    "required_human_double_rated_cases": 20,
+    "target_exact_or_adjacent_agreement": 0.9,
+    "current_status": "not_run"
+  }
+}
+

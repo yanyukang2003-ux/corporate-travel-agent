@@ -1,0 +1,138 @@
+{
+  "schema_version": 1,
+  "run_id": "deepseek-duffel-test-order-e2e-formal-20260809-rerun-1",
+  "evaluation_mode": "model_live_provider_test_order",
+  "dataset": {
+    "id": "model-duffel-test-order-e2e-v1",
+    "version": "1.0.0",
+    "sha256": "bf8ea60499ff9dc8414fbf0f76ad072c5f33619bdd244a6f659d3dfae05a6c56",
+    "case_id": "model-duffel-test-order-lhr-jfk"
+  },
+  "started_at": "2026-08-09T11:35:02.617191+00:00",
+  "completed_at": "2026-08-09T11:35:10.447755+00:00",
+  "duration_ms": 7830.537,
+  "model": {
+    "requested": "deepseek-v4-pro",
+    "actual": "deepseek-v4-pro",
+    "reasoning_effort": "medium",
+    "prompt_version": "trip-intent-v3",
+    "usage": {
+      "input_tokens": 1909,
+      "output_tokens": 204,
+      "total_tokens": 2113,
+      "cached_input_tokens": 768,
+      "cache_write_input_tokens": null,
+      "reasoning_output_tokens": null
+    },
+    "estimated_cost_usd": 0.001007895,
+    "price_table_version": "model-prices-openai-20260802-v1",
+    "price_table_sha256": "dd2a754fb067cbb147677d6d75ac462f4f327480776696fadc8c6547cbdbbf46"
+  },
+  "workflow": {
+    "state": "HANDED_OFF",
+    "tools": [
+      "llm.extract_trip_intent",
+      "provider.search_transport.outbound",
+      "provider.revalidate",
+      "provider.create_deep_link"
+    ],
+    "selected_offer_ref": "off_0000B9C8cTdDgdsgQHvBLw",
+    "booking_intent_created": true
+  },
+  "provider": {
+    "http_calls": 2,
+    "http_sequence": [
+      "POST /air/offer_requests",
+      "GET /air/offers/{offer_id}"
+    ],
+    "revalidation_status": "UNCHANGED",
+    "search_response_archived": true,
+    "revalidation_responses_archived": 1
+  },
+  "test_order": {
+    "created": true,
+    "order_id": "ord_0000B9C8cluJd0lTCzXKeQ",
+    "live_mode": false,
+    "read_back": true,
+    "available_actions": [
+      "cancel",
+      "change",
+      "update"
+    ],
+    "http_calls": 5,
+    "http_sequence": [
+      "POST /air/orders",
+      "GET /air/orders/{order_id}",
+      "POST /air/order_cancellations",
+      "POST /air/order_cancellations/{cancellation_id}/actions/confirm",
+      "GET /air/orders/{order_id}"
+    ],
+    "raw_responses_archived": 5,
+    "request_payload_sha256": [
+      "8df4b02e80c5327db2ecda28438d5a64c55df7a845cf08753d92a356fe8f55a5",
+      "dadfa9a9f7e1f59226d9a1d0c2754d952da14ad5b44d631553892e09aeabddb9"
+    ]
+  },
+  "cancellation": {
+    "quote_created": true,
+    "cancellation_id": "ore_0000B9C8cqOawNMV83jZOS",
+    "refund_amount": "221.85",
+    "refund_currency": "USD",
+    "refund_to": "balance",
+    "confirmed": true,
+    "final_order_cancelled": true,
+    "cleanup_status": "cancelled"
+  },
+  "external_calls": {
+    "total": 7,
+    "model": 1,
+    "duffel_read_or_search": 2,
+    "duffel_order_or_cleanup": 5
+  },
+  "evidence": {
+    "raw_response_archives": 7,
+    "secret_marker_paths": [],
+    "synthetic_passenger_disclosed": true,
+    "synthetic_passenger_values_excluded_from_result": true
+  },
+  "checks": {
+    "runner_completed_without_failure": true,
+    "workflow_trace_complete": true,
+    "one_real_model_call": true,
+    "actual_model_matches_frozen_model": true,
+    "model_usage_complete": true,
+    "model_cost_within_ceiling": true,
+    "intent_matches_frozen_case": true,
+    "workflow_tool_sequence": true,
+    "workflow_provider_call_cap": true,
+    "provider_http_sequence": true,
+    "provider_http_call_cap": true,
+    "revalidation_unchanged": true,
+    "duffel_airways_offer_selected": true,
+    "workflow_handed_off": true,
+    "internal_booking_intent_created": true,
+    "test_order_created": true,
+    "test_order_read_back": true,
+    "test_order_http_sequence": true,
+    "test_order_http_call_cap": true,
+    "total_duffel_call_cap": true,
+    "cancellation_quote_test_mode": true,
+    "cancellation_confirmed": true,
+    "final_order_cancelled": true,
+    "cleanup_completed": true,
+    "all_external_responses_archived": true,
+    "write_payload_hashes_recorded": true,
+    "no_secret_markers": true,
+    "live_booking_remained_disabled": true
+  },
+  "passed": true,
+  "failure": null,
+  "trace_error": null,
+  "limitations": [
+    "This creates and cancels one external Duffel Test Mode Order; it never uses a live token or production inventory.",
+    "The passenger identity is fixed synthetic data using example.com and is not a real traveller.",
+    "Duffel Test Mode balance payment is sandbox-only and does not collect a customer card payment.",
+    "Order and cancellation writes are never retried automatically.",
+    "The test exercises one-way flight booking only; hotel, ancillary, seat, webhook, change, and production ticketing flows remain out of scope."
+  ]
+}

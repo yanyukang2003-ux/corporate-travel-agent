@@ -1,0 +1,77 @@
+{
+  "schema_version": 1,
+  "run_id": "duffel-liteapi-full-chain-20260809-1",
+  "evaluation_mode": "deterministic_live_duffel_liteapi_full_chain",
+  "provider": "duffel+liteapi",
+  "provider_mode": "test+sandbox-read-only",
+  "dataset": {
+    "id": "duffel-liteapi-real-full-chain-v1",
+    "version": "1.0.0",
+    "sha256": "aa575b23c54481ad035afb6912cc199fecadbbb2cad211477bbd924d1a8f8008",
+    "case_id": "real-lhr-jfk-flight-hotel-select-revalidate-handoff"
+  },
+  "code_revision": "workspace-v1.0.3-20260809-liteapi",
+  "started_at": "2026-08-09T15:20:22.834498+00:00",
+  "completed_at": "2026-08-09T15:20:27.839405+00:00",
+  "duration_ms": 5005.152,
+  "request": {
+    "origin": "LHR",
+    "destination": "JFK",
+    "departure_after": "2026-09-15T00:00:00+00:00",
+    "arrive_by": "2026-09-17T00:00:00+00:00",
+    "hotel_check_in": "2026-09-15",
+    "hotel_check_out": "2026-09-17",
+    "currency": "USD"
+  },
+  "external_calls": {
+    "total": 1,
+    "duffel": 1,
+    "liteapi": 0
+  },
+  "external_requests_by_provider": {
+    "duffel": [
+      {
+        "provider": "duffel",
+        "method": "POST",
+        "path": "/air/offer_requests"
+      }
+    ],
+    "liteapi": []
+  },
+  "provider_tool_calls": [
+    "provider.search_transport.outbound"
+  ],
+  "task_state": "PROVIDER_FAILED",
+  "option_count": 0,
+  "selection_error": "No compliant flight-and-hotel option was available",
+  "unexpected_error": null,
+  "selected_option": null,
+  "revalidation": null,
+  "handoff": null,
+  "snapshots": [],
+  "checks": {
+    "workflow_completed_without_exception": true,
+    "selection_succeeded": false,
+    "exact_external_call_cap": false,
+    "duffel_call_cap": false,
+    "liteapi_call_cap": false,
+    "duffel_search_then_revalidate": false,
+    "liteapi_search_then_quote_refresh": false,
+    "flight_snapshot_authorized": false,
+    "hotel_snapshot_authorized": false,
+    "minimum_combined_options": false,
+    "selected_option_has_both_providers": false,
+    "selected_prices_use_policy_currency": false,
+    "selected_option_policy_compliant": false,
+    "both_quotes_revalidated": false,
+    "allowed_revalidation_status": false,
+    "expected_provider_tool_sequence": false,
+    "conditional_final_state": false,
+    "conditional_booking_intent": false,
+    "unchanged_handoff_covers_flight_and_hotel": true,
+    "search_and_revalidation_archived": false,
+    "no_booking_payment_or_order_http": true,
+    "provider_secrets_not_archived": true
+  },
+  "passed": false
+}

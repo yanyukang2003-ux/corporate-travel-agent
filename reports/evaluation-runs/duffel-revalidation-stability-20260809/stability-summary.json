@@ -1,0 +1,92 @@
+{
+  "schema_version": 1,
+  "run_id": "duffel-revalidation-stability-20260809",
+  "evaluation_mode": "deterministic_live_provider_stability",
+  "provider": "duffel",
+  "provider_mode": "test",
+  "dataset": {
+    "id": "duffel-real-revalidation-smoke-v1",
+    "version": "1.0.0",
+    "sha256": "b995025f8b44c170b06eabc3102f7378a0e8625b52a628038cc64dd640dfffd9",
+    "case_id": "duffel-real-lhr-jfk-search-select-revalidate"
+  },
+  "started_at": "2026-08-09T09:53:36.980013+00:00",
+  "completed_at": "2026-08-09T09:53:45.948818+00:00",
+  "duration_ms": 8968.506,
+  "runs": {
+    "attempts": 3,
+    "passed_attempts": 3,
+    "pass_at_1": 1.0,
+    "pass_at_3": 1.0,
+    "pass_power_3": 1.0,
+    "mixed_run_rate": 0.0
+  },
+  "external_calls": {
+    "expected": 6,
+    "observed": 6,
+    "per_attempt": [
+      2,
+      2,
+      2
+    ]
+  },
+  "revalidation_status_counts": {
+    "UNCHANGED": 3
+  },
+  "provider_tool_signatures": [
+    [
+      "provider.search_transport.outbound",
+      "provider.revalidate",
+      "provider.create_deep_link"
+    ],
+    [
+      "provider.search_transport.outbound",
+      "provider.revalidate",
+      "provider.create_deep_link"
+    ],
+    [
+      "provider.search_transport.outbound",
+      "provider.revalidate",
+      "provider.create_deep_link"
+    ]
+  ],
+  "request_signatures": [
+    [
+      "POST /air/offer_requests",
+      "GET /air/offers/{offer_id}"
+    ],
+    [
+      "POST /air/offer_requests",
+      "GET /air/offers/{offer_id}"
+    ],
+    [
+      "POST /air/offer_requests",
+      "GET /air/offers/{offer_id}"
+    ]
+  ],
+  "evidence": {
+    "search_raw_response_archives": 3,
+    "revalidation_raw_response_archives": 3,
+    "secret_marker_paths": []
+  },
+  "safety": {
+    "internal_booking_intents_created": 3,
+    "duffel_orders_created": 0,
+    "payments_submitted": 0
+  },
+  "checks": {
+    "three_attempt_results_present": true,
+    "all_subrunners_exited_zero": true,
+    "all_attempts_passed": true,
+    "exact_total_external_calls": true,
+    "two_external_calls_per_attempt": true,
+    "request_sequence_consistent": true,
+    "provider_tool_trajectory_consistent": true,
+    "revalidation_status_consistent": true,
+    "search_archives_complete": true,
+    "revalidation_archives_complete": true,
+    "no_order_or_payment_calls": true,
+    "no_secret_markers": true
+  },
+  "passed": true
+}

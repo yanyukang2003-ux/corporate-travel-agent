@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "subset_id": "intent-model-preflight-v1",
+  "status": "frozen",
+  "source_dataset_id": "corporate-travel-derived-v2-intent",
+  "source_dataset_version": "2",
+  "source_dataset_sha256": "d7fc86025e163f96075d1cac729bb1e417f72b858beba14e881b83415d880ee2",
+  "parent_subset_id": "intent-model-smoke-v1",
+  "parent_subset_sha256": "185b2c90005dcad5d6a0457b1bbc1eea490a9cd9fbd8f3904e8aa0834587eb7f",
+  "records": 2,
+  "selection": "Fixed connectivity and structured-output qualification sample: one English curated preference-rich case and one Chinese legacy missing-fields case; selected before observing any real-model score.",
+  "languages": {"en": 1, "zh": 1},
+  "cohorts": {"CURATED_FULL_SPLIT": 1, "LEGACY_TARGETED": 1},
+  "scenarios": {"PREFERENCE_RICH_TRIP": 1, "MISSING_FIELDS": 1},
+  "case_ids": [
+    "prefer-intent-0001",
+    "open-train-missing-fields-0085"
+  ]
+}

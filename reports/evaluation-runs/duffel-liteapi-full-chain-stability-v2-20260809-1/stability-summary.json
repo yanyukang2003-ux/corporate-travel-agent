@@ -1,0 +1,102 @@
+{
+  "schema_version": 1,
+  "run_id": "duffel-liteapi-full-chain-stability-v2-20260809-1",
+  "evaluation_mode": "deterministic_live_duffel_liteapi_full_chain_stability",
+  "provider": "duffel+liteapi",
+  "provider_mode": "test+sandbox-read-only",
+  "dataset": {
+    "id": "duffel-liteapi-real-full-chain-v2",
+    "version": "2.0.0",
+    "sha256": "dd9ef5cda03ad5c20868e67f320d4b64014b7e13a136be7d954c515a2482b3be"
+  },
+  "code_revision": "workspace-v1.0.4-20260809-retry3",
+  "runner_sha256": "466ec05fac3fa94ad3d93825bef5513a7851ddc4c1db0e83520ad6921b83ab18",
+  "attempts": 3,
+  "passed_attempts": 3,
+  "failed_attempts": 0,
+  "pass_rate": 1.0,
+  "pass_power_3": 1.0,
+  "mixed_run_rate": 0.0,
+  "all_attempts_passed": true,
+  "duration_ms": {
+    "total": 36324.555,
+    "mean": 12108.185,
+    "median": 9677.964,
+    "minimum": 7317.373,
+    "maximum": 19329.218
+  },
+  "retry_policy": {
+    "max_provider_attempts_per_operation": 3,
+    "backoff_base_seconds": 0.5,
+    "observed_provider_retries": 0,
+    "failed_provider_attempts": 0,
+    "recovered_retries": 0,
+    "retry_contract_valid_attempts": 3,
+    "note": "No transient provider failure occurred in this sample, so live retry recovery was not exercised."
+  },
+  "external_calls": {
+    "observed_total": 12,
+    "baseline_total": 12,
+    "maximum_allowed_total": 36,
+    "duffel": 6,
+    "liteapi": 6,
+    "booking_order_or_payment": 0
+  },
+  "consistency": {
+    "task_state": "READY_FOR_HANDOFF",
+    "revalidation_status": "UNCHANGED",
+    "provider_tool_trajectory_consistent": true,
+    "option_count": 3,
+    "flight_inventory_items": 42,
+    "hotel_inventory_items": 30,
+    "hotel_nightly_price_usd": 444.29,
+    "flight_price_usd": {
+      "minimum": 214.44,
+      "maximum": 216.62,
+      "range": 2.18
+    },
+    "total_cost_usd": {
+      "minimum": 1103.02,
+      "maximum": 1105.20,
+      "range": 2.18
+    }
+  },
+  "safety": {
+    "live_booking_enabled": false,
+    "booking_payment_or_order_http_observed": false,
+    "provider_secrets_archived": false,
+    "raw_responses_archived_for_completed_provider_calls": true
+  },
+  "previous_run_comparison": {
+    "run_id": "duffel-liteapi-full-chain-stability-20260809",
+    "previous_pass_rate": 0.666667,
+    "current_pass_rate": 1.0,
+    "causal_claim": false
+  },
+  "attempt_results": [
+    {
+      "attempt": 1,
+      "passed": true,
+      "duration_ms": 19329.218,
+      "external_calls": 4,
+      "provider_retries": 0,
+      "result_path": "attempt-1/evaluation-result.json"
+    },
+    {
+      "attempt": 2,
+      "passed": true,
+      "duration_ms": 9677.964,
+      "external_calls": 4,
+      "provider_retries": 0,
+      "result_path": "attempt-2/evaluation-result.json"
+    },
+    {
+      "attempt": 3,
+      "passed": true,
+      "duration_ms": 7317.373,
+      "external_calls": 4,
+      "provider_retries": 0,
+      "result_path": "attempt-3/evaluation-result.json"
+    }
+  ]
+}

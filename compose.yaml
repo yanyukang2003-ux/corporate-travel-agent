@@ -1,0 +1,19 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: travel_agent
+      POSTGRES_PASSWORD: travel_agent_dev
+      POSTGRES_USER: travel_agent
+    ports:
+      - "127.0.0.1:5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U travel_agent -d travel_agent"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    volumes:
+      - travel-agent-postgres:/var/lib/postgresql/data
+
+volumes:
+  travel-agent-postgres:

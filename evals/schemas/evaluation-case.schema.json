@@ -1,0 +1,165 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://local.corporate-travel-agent/evals/evaluation-case.schema.json",
+  "title": "Corporate Travel Agent evaluation case",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "case_id",
+    "dataset_id",
+    "dataset_version",
+    "category",
+    "split",
+    "source_type",
+    "turns",
+    "fixture",
+    "expected",
+    "tags"
+  ],
+  "properties": {
+    "schema_version": {"const": 1},
+    "case_id": {"type": "string", "minLength": 1},
+    "dataset_id": {"type": "string", "minLength": 1},
+    "dataset_version": {"type": "string", "minLength": 1},
+    "category": {
+      "enum": ["core", "historical_failure", "boundary", "adversarial", "fault", "bad_case"]
+    },
+    "split": {"enum": ["development", "regression", "calibration", "production_sample"]},
+    "source_type": {"enum": ["synthetic", "derived_public", "mock_replay", "redacted_production"]},
+    "risk_level": {"enum": ["low", "medium", "high", "critical"]},
+    "languages": {
+      "type": "array",
+      "items": {"type": "string", "minLength": 2},
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "turns": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["role", "content"],
+        "properties": {
+          "role": {"enum": ["user", "system_event"]},
+          "content": {"type": "string"},
+          "expected_state_before": {"type": ["string", "null"]}
+        }
+      }
+    },
+    "fixture": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provider_mode", "policy_ref", "employee_ref", "inventory_refs", "fault_script"],
+      "properties": {
+        "provider_mode": {"enum": ["mock", "replay", "live"]},
+        "policy_ref": {"type": ["string", "null"]},
+        "employee_ref": {"type": ["string", "null"]},
+        "inventory_refs": {"type": "array", "items": {"type": "string"}},
+        "fault_script": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["target", "on_call", "fault_type"],
+            "properties": {
+              "target": {"type": "string", "minLength": 1},
+              "on_call": {"type": "integer", "minimum": 1},
+              "fault_type": {
+                "enum": [
+                  "timeout",
+                  "retryable_error",
+                  "non_retryable_error",
+                  "permission_denied",
+                  "empty_result",
+                  "stale_snapshot",
+                  "partial_result",
+                  "process_restart"
+                ]
+              },
+              "payload_ref": {"type": ["string", "null"]}
+            }
+          }
+        }
+      }
+    },
+    "expected": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "allowed_final_states",
+        "required_tool_patterns",
+        "forbidden_tools",
+        "hard_assertions",
+        "judge_rubric_ref"
+      ],
+      "properties": {
+        "allowed_final_states": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"type": "string"},
+          "uniqueItems": true
+        },
+        "required_tool_patterns": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["tool", "min_calls", "max_calls", "after_state", "before_state"],
+            "properties": {
+              "tool": {"type": "string", "minLength": 1},
+              "min_calls": {"type": "integer", "minimum": 0},
+              "max_calls": {"type": ["integer", "null"], "minimum": 0},
+              "after_state": {"type": ["string", "null"]},
+              "before_state": {"type": ["string", "null"]}
+            }
+          }
+        },
+        "forbidden_tools": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+        "hard_assertions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["assertion_id", "kind", "expected"],
+            "properties": {
+              "assertion_id": {"type": "string", "minLength": 1},
+              "kind": {
+                "enum": [
+                  "state",
+                  "policy",
+                  "booking_permission",
+                  "evidence",
+                  "tool_order",
+                  "parameter_provenance",
+                  "user_disclosure",
+                  "recovery"
+                ]
+              },
+              "path": {"type": ["string", "null"]},
+              "operator": {
+                "enum": ["equals", "not_equals", "contains", "not_contains", "exists", "not_exists", "matches"]
+              },
+              "expected": {}
+            }
+          }
+        },
+        "judge_rubric_ref": {"type": ["string", "null"]},
+        "expected_recovery": {"enum": ["not_applicable", "autonomous", "safe_degradation", "user_resumable"]}
+      }
+    },
+    "tags": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "source_dataset": {"type": ["string", "null"]},
+        "source_case_id_hash": {"type": ["string", "null"]},
+        "failure_signature": {"type": ["string", "null"]},
+        "human_reviewed": {"type": "boolean"}
+      }
+    }
+  }
+}
+

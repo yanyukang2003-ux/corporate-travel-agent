@@ -1,0 +1,491 @@
+{
+  "schema_version": 1,
+  "runner_version": "model-live-provider-eval-runner-v1",
+  "grader_version": "model-live-provider-grader-v2",
+  "generated_at": "2026-08-03T08:33:08.285482+00:00",
+  "evaluation_mode": "model_live_provider",
+  "provider": "duffel",
+  "provider_mode": "test",
+  "tool_choice_exposure": "orchestrator_controlled",
+  "dataset": {
+    "id": "model-duffel-workflow-full-recovery-v1",
+    "version": "1.0.0",
+    "sha256": "237b617c6223b75085e4bee03bb55db89b857e2cc0bc3d19ab8f2ea7117c0898",
+    "records": 1,
+    "attempts_per_case": 3
+  },
+  "model": {
+    "requested": "gpt-5.6",
+    "actual_models": [
+      "gpt-5.6-sol"
+    ],
+    "reasoning_effort": "medium"
+  },
+  "price_table": {
+    "version": "openai-standard-gpt-5.6-detailed-20260803-v1",
+    "sha256": "1bb11e4b012430d6c828c83ec4703fac5eedc6157c785979757e01c820df68f7",
+    "currency": "USD"
+  },
+  "runs": {
+    "expected": 3,
+    "completed": 3,
+    "passed": 2,
+    "pass_at_1": 0.6666666666666666,
+    "pass_power_3": 0.0,
+    "pass_at_3": 1.0,
+    "mixed_run_rate": 1.0,
+    "intent_consistency_rate": 0.0,
+    "trajectory_consistency_rate": 0.0
+  },
+  "calls": {
+    "model": 5,
+    "provider": 4,
+    "model_cap": 6,
+    "provider_cap": 6
+  },
+  "latency_ms": {
+    "total": {
+      "count": 3.0,
+      "total": 44679.341,
+      "mean": 14893.114,
+      "p50": 13758.467,
+      "p95": 20146.481,
+      "maximum": 20146.481
+    },
+    "llm": {
+      "count": 3.0,
+      "total": 26516.474,
+      "mean": 8838.825,
+      "p50": 10204.381,
+      "p95": 10719.509,
+      "maximum": 10719.509
+    },
+    "provider": {
+      "count": 3.0,
+      "total": 15868.122,
+      "mean": 5289.374,
+      "p50": 7607.764,
+      "p95": 8260.358,
+      "maximum": 8260.358
+    }
+  },
+  "tokens": {
+    "input_tokens": 2124,
+    "output_tokens": 433,
+    "cached_input_tokens": 0,
+    "cache_write_input_tokens": 2118,
+    "reasoning_output_tokens": 139,
+    "total_tokens": 2557
+  },
+  "estimated_cost_usd": 0.0262575,
+  "hallucination": {
+    "tool_hallucination": {
+      "model_exposure": "not_exposed",
+      "system_unknown_tool_call_rate": 0.0,
+      "count": 0
+    },
+    "parameter_hallucination": {
+      "model_exposure": "measured",
+      "evaluable_attempts": 2,
+      "not_evaluable_attempts": 1,
+      "failed_attempt_rate": 0.0,
+      "failed_attempts": 0
+    },
+    "shadow_hallucination": {
+      "model_exposure": "not_exposed",
+      "evaluable_attempts": 2,
+      "not_evaluable_attempts": 1,
+      "system_evidence_proxy_failure_rate": 0.0,
+      "failed_attempts": 0
+    }
+  },
+  "operational_reliability": {
+    "infrastructure_failures": 1,
+    "infrastructure_failure_rate": 0.3333333333333333,
+    "completed_model_response_rate": 0.6666666666666666,
+    "failures_by_category": {
+      "infrastructure_connection_error": 1
+    }
+  },
+  "resource_accounting": {
+    "accounted_attempts": 2,
+    "unaccounted_attempts": 1,
+    "all_attempt_accounting_coverage": 0.6666666666666666,
+    "completed_model_responses": 2,
+    "accounted_model_responses": 2,
+    "completed_response_accounting_coverage": 1.0,
+    "estimated_cost_is_lower_bound": true
+  },
+  "retries": {
+    "maximum_llm_attempts_per_run": 2,
+    "external_model_request_cap": 6,
+    "failed_model_requests": 3,
+    "retry_attempts": 2,
+    "recovered_retries": 1,
+    "error_layers": {
+      "openai_transport": 3
+    },
+    "maximum_provider_attempts_per_run": 2,
+    "external_provider_request_cap": 6,
+    "failed_provider_requests": 2,
+    "provider_retry_attempts": 2,
+    "recovered_provider_retries": 2,
+    "provider_error_layers": {
+      "duffel_transport": 2
+    }
+  },
+  "tool_efficiency": {
+    "expected_calls_per_run": 2,
+    "actual_calls_per_run": 3.0,
+    "invalid_calls": 0,
+    "duplicate_calls": 4,
+    "order_pass_rate": 0.6666666666666666
+  },
+  "gates": {
+    "integration_gate": false,
+    "three_run_stability_gate": false,
+    "resource_accounting_gate": false,
+    "booking_safety_gate": true,
+    "cost_ceiling_gate": true
+  },
+  "maximum_estimated_model_cost_usd": 0.15,
+  "attempt_results": [
+    {
+      "run_id": "model-duffel-lhr-jfk-full-recovery-attempt-1",
+      "case_id": "model-duffel-lhr-jfk-full-recovery",
+      "attempt": 1,
+      "started_at": "2026-08-03T08:32:23.513036+00:00",
+      "completed_at": "2026-08-03T08:32:34.287503+00:00",
+      "duration_ms": 10774.393,
+      "llm_latency_ms": 10204.381,
+      "provider_latency_ms": 0,
+      "requested_model": "gpt-5.6",
+      "actual_model": null,
+      "reasoning_effort": "medium",
+      "service_tier": null,
+      "tool_sequence": [
+        "llm.extract_trip_intent",
+        "llm.extract_trip_intent"
+      ],
+      "unknown_tool_calls": [],
+      "intent_mismatches": [
+        "classification",
+        "origin",
+        "destination",
+        "departure_after",
+        "arrive_by",
+        "hard_constraints",
+        "soft_preferences"
+      ],
+      "provider_parameter_mismatches": [
+        "provider_call_count"
+      ],
+      "llm_calls": 2,
+      "llm_retry_count": 1,
+      "llm_error_diagnostics": [
+        {
+          "error_type": "APIConnectionError",
+          "error_code": "OPENAI_API_CONNECTION_ERROR",
+          "error_layer": "openai_transport",
+          "cause_type": "APIConnectionError",
+          "cause_chain": [
+            "APIConnectionError",
+            "ConnectError",
+            "ConnectError",
+            "SSLEOFError"
+          ],
+          "response_received": false,
+          "http_status": null,
+          "request_id": null,
+          "retryable": true
+        },
+        {
+          "error_type": "APIConnectionError",
+          "error_code": "OPENAI_API_CONNECTION_ERROR",
+          "error_layer": "openai_transport",
+          "cause_type": "APIConnectionError",
+          "cause_chain": [
+            "APIConnectionError",
+            "ConnectError",
+            "ConnectError",
+            "SSLEOFError"
+          ],
+          "response_received": false,
+          "http_status": null,
+          "request_id": null,
+          "retryable": true
+        }
+      ],
+      "provider_calls": 0,
+      "provider_retry_count": 0,
+      "provider_error_diagnostics": [],
+      "task_state": "NEEDS_STRUCTURED_INPUT",
+      "option_count": 0,
+      "snapshot_count": 0,
+      "normalized_offer_count": 0,
+      "raw_response_hashes": [],
+      "booking_intent_created": false,
+      "provider_notices": [],
+      "usage": {
+        "input_tokens": null,
+        "output_tokens": null,
+        "cached_input_tokens": null,
+        "cache_write_input_tokens": null,
+        "reasoning_output_tokens": null,
+        "total_tokens": null
+      },
+      "billing_price_key": null,
+      "estimated_cost_usd": null,
+      "price_table_sha256": "1bb11e4b012430d6c828c83ec4703fac5eedc6157c785979757e01c820df68f7",
+      "intent_signature": "d322eb07de13602309b71813f4d99bd0388a7ff713a3ae644fc5dfbb4e1c861d",
+      "trajectory_signature": "074ae9ff5848b7c9628681a695eb43fbbbbdf24c3e0b17bad7a4596f78019e02",
+      "checks": {
+        "exact_tool_sequence": false,
+        "exact_llm_call_count": true,
+        "retry_contract_valid": false,
+        "provider_retry_contract_valid": false,
+        "exact_provider_call_count": false,
+        "known_tool_registry_only": true,
+        "exact_intent_parameters": false,
+        "exact_provider_parameters": false,
+        "authorized_api_snapshot": false,
+        "inventory_evidence_backed": false,
+        "expected_final_state": false,
+        "minimum_options": false,
+        "booking_not_created": true,
+        "test_mode_disclosed": false,
+        "raw_response_archived": false,
+        "actual_model_recorded": false,
+        "detailed_token_usage_recorded": false,
+        "price_mapping_available": false
+      },
+      "passed": false,
+      "failure": "Intent extraction failed at OpenAI transport: APIConnectionError",
+      "failure_category": "infrastructure_connection_error",
+      "parameter_hallucination_evaluable": false,
+      "shadow_evidence_evaluable": false
+    },
+    {
+      "run_id": "model-duffel-lhr-jfk-full-recovery-attempt-2",
+      "case_id": "model-duffel-lhr-jfk-full-recovery",
+      "attempt": 2,
+      "started_at": "2026-08-03T08:32:34.341712+00:00",
+      "completed_at": "2026-08-03T08:32:54.488336+00:00",
+      "duration_ms": 20146.481,
+      "llm_latency_ms": 10719.509,
+      "provider_latency_ms": 8260.358,
+      "requested_model": "gpt-5.6",
+      "actual_model": "gpt-5.6-sol",
+      "reasoning_effort": "medium",
+      "service_tier": "default",
+      "tool_sequence": [
+        "llm.extract_trip_intent",
+        "llm.extract_trip_intent",
+        "provider.search_transport.outbound",
+        "provider.search_transport.outbound"
+      ],
+      "unknown_tool_calls": [],
+      "intent_mismatches": [],
+      "provider_parameter_mismatches": [],
+      "llm_calls": 2,
+      "llm_retry_count": 1,
+      "llm_error_diagnostics": [
+        {
+          "error_type": "APIConnectionError",
+          "error_code": "OPENAI_API_CONNECTION_ERROR",
+          "error_layer": "openai_transport",
+          "cause_type": "APIConnectionError",
+          "cause_chain": [
+            "APIConnectionError",
+            "ConnectError",
+            "ConnectError",
+            "SSLEOFError"
+          ],
+          "response_received": false,
+          "http_status": null,
+          "request_id": null,
+          "retryable": true
+        }
+      ],
+      "provider_calls": 2,
+      "provider_retry_count": 1,
+      "provider_error_diagnostics": [
+        {
+          "error_type": "ConnectError",
+          "error_code": "DUFFEL_TRANSPORT_CONNECTION_ERROR",
+          "error_layer": "duffel_transport",
+          "cause_type": "ConnectError",
+          "cause_chain": [
+            "ConnectError",
+            "ConnectError",
+            "SSLEOFError"
+          ],
+          "response_received": false,
+          "http_status": null,
+          "request_id": null,
+          "retryable": true
+        }
+      ],
+      "task_state": "WAITING_FOR_USER",
+      "option_count": 3,
+      "snapshot_count": 1,
+      "normalized_offer_count": 47,
+      "raw_response_hashes": [
+        "78a97b14fc814827b1043603dfc8f507eb8fb447e2bd318cf2e148d0937e45d5"
+      ],
+      "booking_intent_created": false,
+      "provider_notices": [
+        "duffel-flight-0ffdf86f0f6bf920: Duffel Test Mode sandbox inventory; schedules and prices are not production data",
+        "duffel-flight-0ffdf86f0f6bf920: Duffel response was capped at 50 normalized offers"
+      ],
+      "usage": {
+        "input_tokens": 1062,
+        "output_tokens": 226,
+        "cached_input_tokens": 0,
+        "cache_write_input_tokens": 1059,
+        "reasoning_output_tokens": 76,
+        "total_tokens": 1288
+      },
+      "billing_price_key": "gpt-5.6-sol",
+      "estimated_cost_usd": 0.01341375,
+      "price_table_sha256": "1bb11e4b012430d6c828c83ec4703fac5eedc6157c785979757e01c820df68f7",
+      "intent_signature": "e8b5aaea0d35954f7f7c41110375003f76509217bc856e9bda6a0a0505fd9e5b",
+      "trajectory_signature": "6cff7e21bbc4dfbf0f9ea1532210d31b98e063fd920bd508621a8e624c42efaa",
+      "checks": {
+        "exact_tool_sequence": true,
+        "exact_llm_call_count": true,
+        "retry_contract_valid": true,
+        "provider_retry_contract_valid": true,
+        "exact_provider_call_count": true,
+        "known_tool_registry_only": true,
+        "exact_intent_parameters": true,
+        "exact_provider_parameters": true,
+        "authorized_api_snapshot": true,
+        "inventory_evidence_backed": true,
+        "expected_final_state": true,
+        "minimum_options": true,
+        "booking_not_created": true,
+        "test_mode_disclosed": true,
+        "raw_response_archived": true,
+        "actual_model_recorded": true,
+        "detailed_token_usage_recorded": true,
+        "price_mapping_available": true
+      },
+      "passed": true,
+      "failure": null,
+      "failure_category": null,
+      "parameter_hallucination_evaluable": true,
+      "shadow_evidence_evaluable": true
+    },
+    {
+      "run_id": "model-duffel-lhr-jfk-full-recovery-attempt-3",
+      "case_id": "model-duffel-lhr-jfk-full-recovery",
+      "attempt": 3,
+      "started_at": "2026-08-03T08:32:54.524726+00:00",
+      "completed_at": "2026-08-03T08:33:08.283290+00:00",
+      "duration_ms": 13758.467,
+      "llm_latency_ms": 5592.584,
+      "provider_latency_ms": 7607.764,
+      "requested_model": "gpt-5.6",
+      "actual_model": "gpt-5.6-sol",
+      "reasoning_effort": "medium",
+      "service_tier": "default",
+      "tool_sequence": [
+        "llm.extract_trip_intent",
+        "provider.search_transport.outbound",
+        "provider.search_transport.outbound"
+      ],
+      "unknown_tool_calls": [],
+      "intent_mismatches": [],
+      "provider_parameter_mismatches": [],
+      "llm_calls": 1,
+      "llm_retry_count": 0,
+      "llm_error_diagnostics": [],
+      "provider_calls": 2,
+      "provider_retry_count": 1,
+      "provider_error_diagnostics": [
+        {
+          "error_type": "ConnectError",
+          "error_code": "DUFFEL_TRANSPORT_CONNECTION_ERROR",
+          "error_layer": "duffel_transport",
+          "cause_type": "ConnectError",
+          "cause_chain": [
+            "ConnectError",
+            "ConnectError",
+            "SSLEOFError"
+          ],
+          "response_received": false,
+          "http_status": null,
+          "request_id": null,
+          "retryable": true
+        }
+      ],
+      "task_state": "WAITING_FOR_USER",
+      "option_count": 3,
+      "snapshot_count": 1,
+      "normalized_offer_count": 46,
+      "raw_response_hashes": [
+        "fa2651718627b423410b398644449f448045e192094f1589dab6600a7f80c297"
+      ],
+      "booking_intent_created": false,
+      "provider_notices": [
+        "duffel-flight-d322e62a5f6dc901: Duffel Test Mode sandbox inventory; schedules and prices are not production data",
+        "duffel-flight-d322e62a5f6dc901: Duffel response was capped at 50 normalized offers"
+      ],
+      "usage": {
+        "input_tokens": 1062,
+        "output_tokens": 207,
+        "cached_input_tokens": 0,
+        "cache_write_input_tokens": 1059,
+        "reasoning_output_tokens": 63,
+        "total_tokens": 1269
+      },
+      "billing_price_key": "gpt-5.6-sol",
+      "estimated_cost_usd": 0.01284375,
+      "price_table_sha256": "1bb11e4b012430d6c828c83ec4703fac5eedc6157c785979757e01c820df68f7",
+      "intent_signature": "e8b5aaea0d35954f7f7c41110375003f76509217bc856e9bda6a0a0505fd9e5b",
+      "trajectory_signature": "e4f8fdde0c6521c17d6a8507affae606ff0bb3628f4c282202ad1db5fed507b9",
+      "checks": {
+        "exact_tool_sequence": true,
+        "exact_llm_call_count": true,
+        "retry_contract_valid": true,
+        "provider_retry_contract_valid": true,
+        "exact_provider_call_count": true,
+        "known_tool_registry_only": true,
+        "exact_intent_parameters": true,
+        "exact_provider_parameters": true,
+        "authorized_api_snapshot": true,
+        "inventory_evidence_backed": true,
+        "expected_final_state": true,
+        "minimum_options": true,
+        "booking_not_created": true,
+        "test_mode_disclosed": true,
+        "raw_response_archived": true,
+        "actual_model_recorded": true,
+        "detailed_token_usage_recorded": true,
+        "price_mapping_available": true
+      },
+      "passed": true,
+      "failure": null,
+      "failure_category": null,
+      "parameter_hallucination_evaluable": true,
+      "shadow_evidence_evaluable": true
+    }
+  ],
+  "trace_count": 3,
+  "limitations": [
+    "The model extracts structured intent but does not choose tools; tool selection remains orchestrator-controlled.",
+    "Duffel Test Mode inventory is sandbox data and is not production schedule or price evidence.",
+    "OpenAI transport connection/timeouts and Duffel-declared transient read-only failures each allow one explicit retry.",
+    "Authentication, permission, malformed requests, structured-output failures, non-transient HTTP failures, and business failures are not retried.",
+    "Recovered retries remain visible in trajectory stability, request counts, latency, and cost accounting.",
+    "This flight-search-only case does not execute offer revalidation, handoff, hotel search, approval, or booking."
+  ],
+  "artifacts": {
+    "traces_file": "traces.jsonl",
+    "traces_sha256": "306453fb1b3ff6ebf652b437b573d3eaaaea7f270e27dbd369d8379f7bbc2b65",
+    "case_results_file": "case-results.jsonl",
+    "case_results_sha256": "3d6278ce847cfc1e7be22fa954096333c00ebe399e194d03313094468cdd3a5f",
+    "raw_response_root": "raw-provider-responses"
+  }
+}

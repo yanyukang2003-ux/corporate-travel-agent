@@ -1,0 +1,376 @@
+{
+  "schema_version": 1,
+  "runner_version": "model-live-provider-eval-runner-v1",
+  "grader_version": "model-live-provider-grader-v2",
+  "generated_at": "2026-08-03T08:14:28.634841+00:00",
+  "evaluation_mode": "model_live_provider",
+  "provider": "duffel",
+  "provider_mode": "test",
+  "tool_choice_exposure": "orchestrator_controlled",
+  "dataset": {
+    "id": "model-duffel-workflow-recovery-v1",
+    "version": "1.0.0",
+    "sha256": "00fa4dbe262428cb8b94682d4993ca20aecbe98864de13404c6f27f8d06d5d80",
+    "records": 1,
+    "attempts_per_case": 3
+  },
+  "model": {
+    "requested": "gpt-5.6",
+    "actual_models": [
+      "gpt-5.6-sol"
+    ],
+    "reasoning_effort": "medium"
+  },
+  "price_table": {
+    "version": "openai-standard-gpt-5.6-detailed-20260803-v1",
+    "sha256": "1bb11e4b012430d6c828c83ec4703fac5eedc6157c785979757e01c820df68f7",
+    "currency": "USD"
+  },
+  "runs": {
+    "expected": 3,
+    "completed": 3,
+    "passed": 2,
+    "pass_at_1": 0.6666666666666666,
+    "pass_power_3": 0.0,
+    "pass_at_3": 1.0,
+    "mixed_run_rate": 1.0,
+    "intent_consistency_rate": 1.0,
+    "trajectory_consistency_rate": 0.0
+  },
+  "calls": {
+    "model": 3,
+    "provider": 3,
+    "model_cap": 6,
+    "provider_cap": 3
+  },
+  "latency_ms": {
+    "total": {
+      "count": 3.0,
+      "total": 31278.062,
+      "mean": 10426.021,
+      "p50": 9750.366,
+      "p95": 12571.164,
+      "maximum": 12571.164
+    },
+    "llm": {
+      "count": 3.0,
+      "total": 19739.992,
+      "mean": 6579.997,
+      "p50": 5773.613,
+      "p95": 9221.73,
+      "maximum": 9221.73
+    },
+    "provider": {
+      "count": 3.0,
+      "total": 11528.569,
+      "mean": 3842.856,
+      "p50": 3346.721,
+      "p95": 5002.476,
+      "maximum": 5002.476
+    }
+  },
+  "tokens": {
+    "input_tokens": 3183,
+    "output_tokens": 607,
+    "cached_input_tokens": 0,
+    "cache_write_input_tokens": 3174,
+    "reasoning_output_tokens": 169,
+    "total_tokens": 3790
+  },
+  "estimated_cost_usd": 0.0380925,
+  "hallucination": {
+    "tool_hallucination": {
+      "model_exposure": "not_exposed",
+      "system_unknown_tool_call_rate": 0.0,
+      "count": 0
+    },
+    "parameter_hallucination": {
+      "model_exposure": "measured",
+      "evaluable_attempts": 3,
+      "not_evaluable_attempts": 0,
+      "failed_attempt_rate": 0.0,
+      "failed_attempts": 0
+    },
+    "shadow_hallucination": {
+      "model_exposure": "not_exposed",
+      "evaluable_attempts": 2,
+      "not_evaluable_attempts": 1,
+      "system_evidence_proxy_failure_rate": 0.0,
+      "failed_attempts": 0
+    }
+  },
+  "operational_reliability": {
+    "infrastructure_failures": 0,
+    "infrastructure_failure_rate": 0.0,
+    "completed_model_response_rate": 1.0,
+    "failures_by_category": {
+      "provider_failure": 1
+    }
+  },
+  "resource_accounting": {
+    "accounted_attempts": 3,
+    "unaccounted_attempts": 0,
+    "all_attempt_accounting_coverage": 1.0,
+    "completed_model_responses": 3,
+    "accounted_model_responses": 3,
+    "completed_response_accounting_coverage": 1.0,
+    "estimated_cost_is_lower_bound": false
+  },
+  "retries": {
+    "maximum_llm_attempts_per_run": 2,
+    "external_model_request_cap": 6,
+    "failed_model_requests": 0,
+    "retry_attempts": 0,
+    "recovered_retries": 0,
+    "error_layers": {}
+  },
+  "tool_efficiency": {
+    "expected_calls_per_run": 2,
+    "actual_calls_per_run": 2.0,
+    "invalid_calls": 0,
+    "duplicate_calls": 0,
+    "order_pass_rate": 1.0
+  },
+  "gates": {
+    "integration_gate": false,
+    "three_run_stability_gate": false,
+    "resource_accounting_gate": true,
+    "booking_safety_gate": true,
+    "cost_ceiling_gate": true
+  },
+  "maximum_estimated_model_cost_usd": 0.15,
+  "attempt_results": [
+    {
+      "run_id": "model-duffel-lhr-jfk-recovery-attempt-1",
+      "case_id": "model-duffel-lhr-jfk-recovery",
+      "attempt": 1,
+      "started_at": "2026-08-03T08:13:57.267538+00:00",
+      "completed_at": "2026-08-03T08:14:09.838791+00:00",
+      "duration_ms": 12571.164,
+      "llm_latency_ms": 9221.73,
+      "provider_latency_ms": 3346.721,
+      "requested_model": "gpt-5.6",
+      "actual_model": "gpt-5.6-sol",
+      "reasoning_effort": "medium",
+      "service_tier": "default",
+      "tool_sequence": [
+        "llm.extract_trip_intent",
+        "provider.search_transport.outbound"
+      ],
+      "unknown_tool_calls": [],
+      "intent_mismatches": [],
+      "provider_parameter_mismatches": [],
+      "llm_calls": 1,
+      "llm_retry_count": 0,
+      "llm_error_diagnostics": [],
+      "provider_calls": 1,
+      "task_state": "WAITING_FOR_USER",
+      "option_count": 3,
+      "snapshot_count": 1,
+      "normalized_offer_count": 47,
+      "raw_response_hashes": [
+        "0eb84769e38b89c10379b0fc4bf2a7c5b70ba799ad446997e85818b9ebe0fe3b"
+      ],
+      "booking_intent_created": false,
+      "provider_notices": [
+        "duffel-flight-09c9a4900268da08: Duffel Test Mode sandbox inventory; schedules and prices are not production data",
+        "duffel-flight-09c9a4900268da08: Duffel response was capped at 50 normalized offers"
+      ],
+      "usage": {
+        "input_tokens": 1061,
+        "output_tokens": 209,
+        "cached_input_tokens": 0,
+        "cache_write_input_tokens": 1058,
+        "reasoning_output_tokens": 59,
+        "total_tokens": 1270
+      },
+      "billing_price_key": "gpt-5.6-sol",
+      "estimated_cost_usd": 0.0128975,
+      "price_table_sha256": "1bb11e4b012430d6c828c83ec4703fac5eedc6157c785979757e01c820df68f7",
+      "intent_signature": "e8b5aaea0d35954f7f7c41110375003f76509217bc856e9bda6a0a0505fd9e5b",
+      "trajectory_signature": "d8ca9a2fb659509d41dd9d6a75012720f74fd7716914c3dc4b2e2eee6933c313",
+      "checks": {
+        "exact_tool_sequence": true,
+        "exact_llm_call_count": true,
+        "retry_contract_valid": true,
+        "exact_provider_call_count": true,
+        "known_tool_registry_only": true,
+        "exact_intent_parameters": true,
+        "exact_provider_parameters": true,
+        "authorized_api_snapshot": true,
+        "inventory_evidence_backed": true,
+        "expected_final_state": true,
+        "minimum_options": true,
+        "booking_not_created": true,
+        "test_mode_disclosed": true,
+        "raw_response_archived": true,
+        "actual_model_recorded": true,
+        "detailed_token_usage_recorded": true,
+        "price_mapping_available": true
+      },
+      "passed": true,
+      "failure": null,
+      "failure_category": null,
+      "parameter_hallucination_evaluable": true,
+      "shadow_evidence_evaluable": true
+    },
+    {
+      "run_id": "model-duffel-lhr-jfk-recovery-attempt-2",
+      "case_id": "model-duffel-lhr-jfk-recovery",
+      "attempt": 2,
+      "started_at": "2026-08-03T08:14:09.875551+00:00",
+      "completed_at": "2026-08-03T08:14:19.625987+00:00",
+      "duration_ms": 9750.366,
+      "llm_latency_ms": 4744.649,
+      "provider_latency_ms": 5002.476,
+      "requested_model": "gpt-5.6",
+      "actual_model": "gpt-5.6-sol",
+      "reasoning_effort": "medium",
+      "service_tier": "default",
+      "tool_sequence": [
+        "llm.extract_trip_intent",
+        "provider.search_transport.outbound"
+      ],
+      "unknown_tool_calls": [],
+      "intent_mismatches": [],
+      "provider_parameter_mismatches": [],
+      "llm_calls": 1,
+      "llm_retry_count": 0,
+      "llm_error_diagnostics": [],
+      "provider_calls": 1,
+      "task_state": "PROVIDER_FAILED",
+      "option_count": 0,
+      "snapshot_count": 0,
+      "normalized_offer_count": 0,
+      "raw_response_hashes": [],
+      "booking_intent_created": false,
+      "provider_notices": [],
+      "usage": {
+        "input_tokens": 1061,
+        "output_tokens": 202,
+        "cached_input_tokens": 0,
+        "cache_write_input_tokens": 1058,
+        "reasoning_output_tokens": 58,
+        "total_tokens": 1263
+      },
+      "billing_price_key": "gpt-5.6-sol",
+      "estimated_cost_usd": 0.0126875,
+      "price_table_sha256": "1bb11e4b012430d6c828c83ec4703fac5eedc6157c785979757e01c820df68f7",
+      "intent_signature": "e8b5aaea0d35954f7f7c41110375003f76509217bc856e9bda6a0a0505fd9e5b",
+      "trajectory_signature": "cef33d17359af95c9bec3ef8835f3d5f81721d82e2b9680fef4c5937d256a84c",
+      "checks": {
+        "exact_tool_sequence": true,
+        "exact_llm_call_count": true,
+        "retry_contract_valid": true,
+        "exact_provider_call_count": true,
+        "known_tool_registry_only": true,
+        "exact_intent_parameters": true,
+        "exact_provider_parameters": true,
+        "authorized_api_snapshot": false,
+        "inventory_evidence_backed": false,
+        "expected_final_state": false,
+        "minimum_options": false,
+        "booking_not_created": true,
+        "test_mode_disclosed": false,
+        "raw_response_archived": false,
+        "actual_model_recorded": true,
+        "detailed_token_usage_recorded": true,
+        "price_mapping_available": true
+      },
+      "passed": false,
+      "failure": "Duffel POST request failed transiently: ConnectError",
+      "failure_category": "provider_failure",
+      "parameter_hallucination_evaluable": true,
+      "shadow_evidence_evaluable": false
+    },
+    {
+      "run_id": "model-duffel-lhr-jfk-recovery-attempt-3",
+      "case_id": "model-duffel-lhr-jfk-recovery",
+      "attempt": 3,
+      "started_at": "2026-08-03T08:14:19.677028+00:00",
+      "completed_at": "2026-08-03T08:14:28.633625+00:00",
+      "duration_ms": 8956.532,
+      "llm_latency_ms": 5773.613,
+      "provider_latency_ms": 3179.372,
+      "requested_model": "gpt-5.6",
+      "actual_model": "gpt-5.6-sol",
+      "reasoning_effort": "medium",
+      "service_tier": "default",
+      "tool_sequence": [
+        "llm.extract_trip_intent",
+        "provider.search_transport.outbound"
+      ],
+      "unknown_tool_calls": [],
+      "intent_mismatches": [],
+      "provider_parameter_mismatches": [],
+      "llm_calls": 1,
+      "llm_retry_count": 0,
+      "llm_error_diagnostics": [],
+      "provider_calls": 1,
+      "task_state": "WAITING_FOR_USER",
+      "option_count": 3,
+      "snapshot_count": 1,
+      "normalized_offer_count": 47,
+      "raw_response_hashes": [
+        "2bed526a6fa71d947b6d0073ea7c5e409f84e78e90d7c9f7f8f131c8192a00b4"
+      ],
+      "booking_intent_created": false,
+      "provider_notices": [
+        "duffel-flight-f18c7ca5855a9afd: Duffel Test Mode sandbox inventory; schedules and prices are not production data",
+        "duffel-flight-f18c7ca5855a9afd: Duffel response was capped at 50 normalized offers"
+      ],
+      "usage": {
+        "input_tokens": 1061,
+        "output_tokens": 196,
+        "cached_input_tokens": 0,
+        "cache_write_input_tokens": 1058,
+        "reasoning_output_tokens": 52,
+        "total_tokens": 1257
+      },
+      "billing_price_key": "gpt-5.6-sol",
+      "estimated_cost_usd": 0.0125075,
+      "price_table_sha256": "1bb11e4b012430d6c828c83ec4703fac5eedc6157c785979757e01c820df68f7",
+      "intent_signature": "e8b5aaea0d35954f7f7c41110375003f76509217bc856e9bda6a0a0505fd9e5b",
+      "trajectory_signature": "d8ca9a2fb659509d41dd9d6a75012720f74fd7716914c3dc4b2e2eee6933c313",
+      "checks": {
+        "exact_tool_sequence": true,
+        "exact_llm_call_count": true,
+        "retry_contract_valid": true,
+        "exact_provider_call_count": true,
+        "known_tool_registry_only": true,
+        "exact_intent_parameters": true,
+        "exact_provider_parameters": true,
+        "authorized_api_snapshot": true,
+        "inventory_evidence_backed": true,
+        "expected_final_state": true,
+        "minimum_options": true,
+        "booking_not_created": true,
+        "test_mode_disclosed": true,
+        "raw_response_archived": true,
+        "actual_model_recorded": true,
+        "detailed_token_usage_recorded": true,
+        "price_mapping_available": true
+      },
+      "passed": true,
+      "failure": null,
+      "failure_category": null,
+      "parameter_hallucination_evaluable": true,
+      "shadow_evidence_evaluable": true
+    }
+  ],
+  "trace_count": 3,
+  "limitations": [
+    "The model extracts structured intent but does not choose tools; tool selection remains orchestrator-controlled.",
+    "Duffel Test Mode inventory is sandbox data and is not production schedule or price evidence.",
+    "Only OpenAI transport connection and timeout failures are eligible for one explicit retry; HTTP, authentication, schema, and business failures are not retried.",
+    "A recovered retry can satisfy the integration contract but remains visible in trajectory stability, request counts, latency, and lower-bound cost accounting.",
+    "This flight-search-only case does not execute offer revalidation, handoff, hotel search, approval, or booking."
+  ],
+  "artifacts": {
+    "traces_file": "traces.jsonl",
+    "traces_sha256": "05cbcbc994a482d20d21201813bbc50bec52c0e4be2e693d6848cdfc70e9fc8c",
+    "case_results_file": "case-results.jsonl",
+    "case_results_sha256": "1edf8272cff18f090e30492ea8fc2880488f5e23e00e3787e23050f00fbf44ec",
+    "raw_response_root": "raw-provider-responses"
+  }
+}

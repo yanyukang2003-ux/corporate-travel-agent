@@ -1,0 +1,285 @@
+{
+  "schema_version": 1,
+  "evaluation_id": "eval-114e34b2-3def-46a4-87b3-f41c066cdc19",
+  "protocol_id": "agent-eval-v1",
+  "generated_at": "2026-08-02T11:54:37.404042Z",
+  "run_ids": [
+    "run-d6d0cf92-bfd6-4df8-8993-62733ef20b32",
+    "run-3ef734bd-cfe8-48ce-81e1-1c1e552dad1f",
+    "run-ffdd03ec-1eef-4eef-a875-d439f0c5ce49",
+    "run-96fba926-c959-4324-bfb2-fa4d9db9ee31",
+    "run-70b440e7-f99a-486f-ad8f-743fd8d0ae72",
+    "run-6bd24b93-a9ad-46c6-9da6-ad8b763ca63f",
+    "run-dd34caa7-ea62-4a2a-b000-7d48542602f3",
+    "run-f169c5f1-9a4e-476c-beda-7b5a4ded998c",
+    "run-5e616a89-18cd-4e24-9827-275bb3ff526f",
+    "run-324ff63c-049b-4d07-bb4a-bb2a00352b19",
+    "run-4f75c16c-6a89-4a68-87c7-a7360362e06b",
+    "run-68a01676-0c11-4bf6-b7dc-e7b208be944c",
+    "run-5042e3e4-9570-4147-ae2c-adeccf322ce9",
+    "run-5294a0c9-6e86-469f-9382-521b92147c6f",
+    "run-b8c479de-e092-4ef2-b6eb-9b94ce741e0a",
+    "run-6e81b2eb-ac29-4443-87fd-1bffde3375ad",
+    "run-4ffae529-ff75-49e7-82dc-aacb0464f7cb",
+    "run-27e10842-51d4-4b5a-875e-15a4b7365a5c",
+    "run-92915f3b-9fc3-4e61-a4a9-f68d2022cadc",
+    "run-4bf7a0dd-7b7b-4cc8-b1f0-ac0692e4d7f4",
+    "run-5f12698d-8e16-4c9d-8c2b-2fc9fbca58ff",
+    "run-4fe70730-b20d-45db-b6a7-9cf179353eea",
+    "run-0c284658-69f0-49c2-afa5-4383f8d673aa",
+    "run-b6db4077-2fc2-421b-a468-5daa90bc6452",
+    "run-6350489a-8b7b-419a-a0dd-0c59d65ee1f2",
+    "run-0a49dbb5-44a9-4d27-9184-feb4e026812e",
+    "run-b22da5b4-371c-49f0-8f53-e1dbdaa11d4a",
+    "run-385d0d58-d6df-4e01-abb6-0a0cf20c6a69",
+    "run-4cf38f33-830a-4afa-a0ae-2467cf7a9db8",
+    "run-69e025bf-9a52-437b-9684-1ec67ba2b187",
+    "run-a171da66-2d3b-4596-921e-4dc42e33a5bd",
+    "run-8721a317-257f-48e3-acfd-ce6392c0bd7b",
+    "run-905fa79b-d572-4aa6-9007-d4f74c4a463f",
+    "run-c9ef9193-75dd-4bde-a82a-f4ab316ea056",
+    "run-3fdd696a-864f-4eec-a09b-b635b7e10c7d",
+    "run-41bf4e52-1cf4-4689-b317-caa308a759ff",
+    "run-918f0e3f-64d8-45a3-ab9e-bb35fecc28ca",
+    "run-f15eb732-ad65-409f-b04c-729bedd62583",
+    "run-4420f6be-6851-4dba-b09c-48af11262bd5",
+    "run-f483edb8-1e99-4861-b22d-b213fc9567f1",
+    "run-83dee40a-4c43-42ef-9ef3-27ed2c3cad4e",
+    "run-719ad3ff-988c-4bb3-9f97-c98833f1bd0b",
+    "run-dc54f772-5d28-4884-b5cd-7db2a83278d8",
+    "run-6aea94a6-7405-4454-a9f1-9d07a552bbe2",
+    "run-9300e6ef-b7b9-44bd-b730-ecd7fadbedbd",
+    "run-a8069c8c-b843-4d58-ae4f-e4c01f325c7e",
+    "run-96b34167-b598-485b-8569-0de01d22c1a9",
+    "run-9b966085-02ce-46e6-85a8-bd3b05cc3e89",
+    "run-638b354e-d363-4901-8087-b6753c9d6cfc",
+    "run-c9d33af1-e586-4015-b776-6c95a71223af",
+    "run-ea9fb3e0-05f6-474d-a233-8a7c466c1eee",
+    "run-154e5f76-572e-4ae9-971a-94a998504815",
+    "run-6363662d-6971-44a7-b882-74a768e07ae6",
+    "run-54c191c3-c2cb-4612-9564-e5e8738fbad9",
+    "run-35579ebd-5c96-4e10-b1eb-692412c27d8f",
+    "run-d32e3123-ed52-48f4-84fd-2792fb0d00f0",
+    "run-64d48385-5c42-453e-935d-5c21553b8599",
+    "run-1ff54991-3a8a-4d3a-b69d-87a1a94eb88b",
+    "run-abc39344-bf64-4e57-90bd-d0ae73b59f38",
+    "run-0ecd8ca8-326a-441c-809b-81c999c60b4f"
+  ],
+  "coverage": {
+    "dataset_id": "corporate-travel-derived-v2-workflow",
+    "dataset_version": "2",
+    "selected_cases": 60,
+    "completed_runs": 60,
+    "expected_runs": 60,
+    "slices": {
+      "COMPLIANT": {
+        "runs": 20,
+        "trajectory_passed": 20,
+        "findings": 0
+      },
+      "NO_FEASIBLE_OPTION": {
+        "runs": 8,
+        "trajectory_passed": 8,
+        "findings": 0
+      },
+      "PREFERENCE_CONFLICT": {
+        "runs": 10,
+        "trajectory_passed": 10,
+        "findings": 0
+      },
+      "PROVIDER_FAILURE": {
+        "runs": 6,
+        "trajectory_passed": 6,
+        "findings": 0
+      },
+      "REQUIRES_APPROVAL": {
+        "runs": 10,
+        "trajectory_passed": 10,
+        "findings": 0
+      },
+      "REVALIDATION_CHANGED": {
+        "runs": 6,
+        "trajectory_passed": 6,
+        "findings": 0
+      }
+    }
+  },
+  "metrics": {
+    "trajectory_pass_rate": {
+      "status": "measured",
+      "value": 1.0,
+      "numerator": 60.0,
+      "denominator": 60.0,
+      "unit": "rate",
+      "exposure_note": null,
+      "confidence_note": "Deterministic D1 offline trajectory evaluation."
+    },
+    "required_tool_coverage": {
+      "status": "measured",
+      "value": 1.0,
+      "numerator": 243.0,
+      "denominator": 243.0,
+      "unit": "rate",
+      "exposure_note": null,
+      "confidence_note": "Deterministic D1 offline trajectory evaluation."
+    },
+    "forbidden_tool_call_rate": {
+      "status": "measured",
+      "value": 0.0,
+      "numerator": 0.0,
+      "denominator": 60.0,
+      "unit": "rate",
+      "exposure_note": null,
+      "confidence_note": "Deterministic D1 offline trajectory evaluation."
+    },
+    "order_violation_rate": {
+      "status": "measured",
+      "value": 0.0,
+      "numerator": 0.0,
+      "denominator": 60.0,
+      "unit": "rate",
+      "exposure_note": null,
+      "confidence_note": "Deterministic D1 offline trajectory evaluation."
+    },
+    "tool_hallucination_call_rate": {
+      "status": "measured",
+      "value": 0.0,
+      "numerator": 0.0,
+      "denominator": 243.0,
+      "unit": "rate",
+      "exposure_note": "Tool choice is orchestrator-controlled in this run.",
+      "confidence_note": "Deterministic D1 offline trajectory evaluation."
+    },
+    "tool_hallucination_run_rate": {
+      "status": "measured",
+      "value": 0.0,
+      "numerator": 0.0,
+      "denominator": 60.0,
+      "unit": "rate",
+      "exposure_note": "Tool choice is orchestrator-controlled in this run.",
+      "confidence_note": "Deterministic D1 offline trajectory evaluation."
+    },
+    "parameter_hallucination_call_rate": {
+      "status": "measured",
+      "value": 0.0,
+      "numerator": 0.0,
+      "denominator": 243.0,
+      "unit": "rate",
+      "exposure_note": null,
+      "confidence_note": "Deterministic D1 offline trajectory evaluation."
+    },
+    "parameter_hallucination_run_rate": {
+      "status": "measured",
+      "value": 0.0,
+      "numerator": 0.0,
+      "denominator": 60.0,
+      "unit": "rate",
+      "exposure_note": null,
+      "confidence_note": "Deterministic D1 offline trajectory evaluation."
+    },
+    "parameter_schema_error_rate": {
+      "status": "measured",
+      "value": 0.0,
+      "numerator": 0.0,
+      "denominator": 243.0,
+      "unit": "rate",
+      "exposure_note": null,
+      "confidence_note": "Deterministic D1 offline trajectory evaluation."
+    },
+    "parameter_unsupported_value_rate": {
+      "status": "measured",
+      "value": 0.0,
+      "numerator": 0.0,
+      "denominator": 243.0,
+      "unit": "rate",
+      "exposure_note": null,
+      "confidence_note": "Deterministic D1 offline trajectory evaluation."
+    },
+    "shadow_hallucination_claim_rate": {
+      "status": "measured",
+      "value": 0.0,
+      "numerator": 0.0,
+      "denominator": 226.0,
+      "unit": "rate",
+      "exposure_note": null,
+      "confidence_note": "Deterministic D1 offline trajectory evaluation."
+    },
+    "shadow_hallucination_run_rate": {
+      "status": "measured",
+      "value": 0.0,
+      "numerator": 0.0,
+      "denominator": 60.0,
+      "unit": "rate",
+      "exposure_note": null,
+      "confidence_note": "Deterministic D1 offline trajectory evaluation."
+    },
+    "stage_3_rule_gate": {
+      "status": "measured",
+      "value": 1.0,
+      "numerator": 1.0,
+      "denominator": 1.0,
+      "unit": "boolean",
+      "exposure_note": null,
+      "confidence_note": "Stage-only rule gate; the full protocol gate remains not evaluated."
+    },
+    "trajectory_pass_rate.scenario.COMPLIANT": {
+      "status": "measured",
+      "value": 1.0,
+      "numerator": 20.0,
+      "denominator": 20.0,
+      "unit": "rate",
+      "exposure_note": null,
+      "confidence_note": "Deterministic D1 offline trajectory evaluation."
+    },
+    "trajectory_pass_rate.scenario.NO_FEASIBLE_OPTION": {
+      "status": "measured",
+      "value": 1.0,
+      "numerator": 8.0,
+      "denominator": 8.0,
+      "unit": "rate",
+      "exposure_note": null,
+      "confidence_note": "Deterministic D1 offline trajectory evaluation."
+    },
+    "trajectory_pass_rate.scenario.PREFERENCE_CONFLICT": {
+      "status": "measured",
+      "value": 1.0,
+      "numerator": 10.0,
+      "denominator": 10.0,
+      "unit": "rate",
+      "exposure_note": null,
+      "confidence_note": "Deterministic D1 offline trajectory evaluation."
+    },
+    "trajectory_pass_rate.scenario.PROVIDER_FAILURE": {
+      "status": "measured",
+      "value": 1.0,
+      "numerator": 6.0,
+      "denominator": 6.0,
+      "unit": "rate",
+      "exposure_note": null,
+      "confidence_note": "Deterministic D1 offline trajectory evaluation."
+    },
+    "trajectory_pass_rate.scenario.REQUIRES_APPROVAL": {
+      "status": "measured",
+      "value": 1.0,
+      "numerator": 10.0,
+      "denominator": 10.0,
+      "unit": "rate",
+      "exposure_note": null,
+      "confidence_note": "Deterministic D1 offline trajectory evaluation."
+    },
+    "trajectory_pass_rate.scenario.REVALIDATION_CHANGED": {
+      "status": "measured",
+      "value": 1.0,
+      "numerator": 6.0,
+      "denominator": 6.0,
+      "unit": "rate",
+      "exposure_note": null,
+      "confidence_note": "Deterministic D1 offline trajectory evaluation."
+    }
+  },
+  "judge": null,
+  "cost": null,
+  "gate_status": "not_evaluated",
+  "hard_failures": [],
+  "bad_case_candidates": []
+}

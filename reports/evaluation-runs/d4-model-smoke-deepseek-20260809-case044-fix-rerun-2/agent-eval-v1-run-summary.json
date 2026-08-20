@@ -1,0 +1,124 @@
+{
+  "schema_version": 1,
+  "dataset_id": "agent-eval-v1",
+  "dataset_version": "1.0.2",
+  "mode": "model_mock",
+  "subset_id": "agent-eval-deepseek-case044-v1",
+  "runner_version": "d4-agent-eval-model-mock-v2-sequential-turns",
+  "attempts_per_case": 1,
+  "selected_cases": 1,
+  "completed_runs": 1,
+  "passed_cases": 1,
+  "failed_cases": 0,
+  "error_cases": 0,
+  "real_model_calls": 2,
+  "input_tokens_total": 3790,
+  "output_tokens_total": 527,
+  "estimated_cost_usd_total": 0.00210714,
+  "currency": "USD",
+  "price_table_version": "model-prices-openai-20260802-v1",
+  "assertion_pass_rate": 1.0,
+  "case_results": [
+    {
+      "case_id": "boundary-timezone-cross-date-044",
+      "category": "boundary",
+      "split": "regression",
+      "mode": "model_mock",
+      "attempt": 1,
+      "passed": true,
+      "final_state": "WAITING_FOR_USER",
+      "policy_outcome": "COMPLIANT",
+      "real_model_calls": 2,
+      "input_tokens": 3790,
+      "output_tokens": 527,
+      "estimated_cost_usd": 0.00210714,
+      "llm_calls": [
+        {
+          "call_index": 1,
+          "model": "deepseek-v4-pro",
+          "requested_model": "deepseek-v4-pro",
+          "prompt_version": "trip-intent-v3",
+          "duration_ms": 3938,
+          "response_id": "05119913-a0d1-4766-ab4f-c193ce61d34b",
+          "input_tokens": 1878,
+          "output_tokens": 326,
+          "cached_input_tokens": 1792,
+          "cache_write_input_tokens": null,
+          "reasoning_output_tokens": null,
+          "total_tokens": 2204,
+          "estimated_cost_usd": 0.00110055
+        },
+        {
+          "call_index": 2,
+          "model": "deepseek-v4-pro",
+          "requested_model": "deepseek-v4-pro",
+          "prompt_version": "trip-intent-v3",
+          "duration_ms": 2408,
+          "response_id": "5bb64265-f34b-462a-9ce0-8f23a7d2972f",
+          "input_tokens": 1912,
+          "output_tokens": 201,
+          "cached_input_tokens": 1792,
+          "cache_write_input_tokens": null,
+          "reasoning_output_tokens": null,
+          "total_tokens": 2113,
+          "estimated_cost_usd": 0.00100659
+        }
+      ],
+      "tools_called": [
+        "llm.extract_trip_intent",
+        "provider.search_transport.outbound",
+        "provider.search_transport.inbound"
+      ],
+      "error": null,
+      "notes": [
+        "model intent message chars=157",
+        "sequential_llm_turn: after state=NO_FEASIBLE_OPTION → submit_message → state=WAITING_FOR_USER chars=146",
+        "real_model_calls=2"
+      ],
+      "intent_classification": "TRIP",
+      "intent_conflicts": [],
+      "soft_conflicts": [],
+      "missing_required_fields": [],
+      "param_loop_final_action": "accept",
+      "param_loop": {
+        "pattern": "claude_code_param_loop_v1",
+        "rounds": [
+          {
+            "extract_index": 0,
+            "decision": {
+              "action": "accept",
+              "schema": {
+                "ok": true,
+                "layer": "schema",
+                "issues": [],
+                "missing": [],
+                "conflicts": [],
+                "soft_conflicts": []
+              },
+              "business": {
+                "ok": true,
+                "layer": "business",
+                "issues": [],
+                "missing": [],
+                "conflicts": [],
+                "soft_conflicts": []
+              },
+              "missing": [],
+              "conflicts": [],
+              "soft_conflicts": [],
+              "repairable_missing": [],
+              "tool_use_error": null,
+              "notes": []
+            },
+            "rejected_fields": []
+          }
+        ],
+        "final_action": "accept",
+        "final_tool_use_error": null,
+        "max_repair_attempts": 2
+      },
+      "clarification_question": null,
+      "failed_assertions": []
+    }
+  ]
+}

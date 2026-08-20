@@ -1,0 +1,92 @@
+{
+  "schema_version": 1,
+  "dataset_id": "model-duffel-test-order-e2e-v1",
+  "dataset_version": "1.0.0",
+  "status": "frozen",
+  "evaluation_mode": "model_live_provider_test_order",
+  "provider": "duffel",
+  "provider_mode": "test",
+  "records": 1,
+  "attempts_per_case": 1,
+  "maximum_model_calls": 1,
+  "maximum_workflow_provider_calls": 3,
+  "maximum_provider_http_calls": 2,
+  "maximum_test_order_http_calls": 5,
+  "maximum_total_duffel_http_calls": 7,
+  "max_workflow_tool_calls": 6,
+  "live_booking_enabled": false,
+  "test_order_enabled": true,
+  "test_order_cancellation_required": true,
+  "requested_model": "deepseek-v4-pro",
+  "reasoning_effort": "medium",
+  "max_output_tokens_per_call": 1200,
+  "usage_contract": "input_output_total",
+  "maximum_estimated_model_cost_usd": 0.01,
+  "required_provider_owner": "Duffel Airways",
+  "price_table": {
+    "path": "evals/pricing/model-prices-openai-20260802-v1.json",
+    "sha256": "dd2a754fb067cbb147677d6d75ac462f4f327480776696fadc8c6547cbdbbf46"
+  },
+  "cases": [
+    {
+      "case_id": "model-duffel-test-order-lhr-jfk",
+      "traveler_id": "E1001",
+      "message": "I need to book a corporate trip from LHR to JFK. I cannot leave before 2026-09-15T00:00:00Z and I must arrive by 2026-09-17T00:00:00Z. Please keep me on flights only.",
+      "policy_currency": "USD",
+      "expected_intent": {
+        "origin": "LHR",
+        "destination": "JFK",
+        "departure_after": "2026-09-15T00:00:00+00:00",
+        "arrive_by": "2026-09-17T00:00:00+00:00",
+        "return_after": null,
+        "return_before": null,
+        "hotel_check_in": null,
+        "hotel_check_out": null,
+        "hard_constraints": ["flight_only"],
+        "soft_preferences": []
+      },
+      "synthetic_passenger": {
+        "given_name": "Test",
+        "family_name": "Traveller",
+        "born_on": "1990-01-01",
+        "gender": "m",
+        "title": "mr",
+        "email": "test-traveller@example.com",
+        "phone_number": "+442080160508",
+        "synthetic": true
+      },
+      "expected": {
+        "workflow_tool_sequence": [
+          "llm.extract_trip_intent",
+          "provider.search_transport.outbound",
+          "provider.revalidate",
+          "provider.create_deep_link"
+        ],
+        "provider_http_sequence": [
+          "POST /air/offer_requests",
+          "GET /air/offers/{offer_id}"
+        ],
+        "test_order_http_sequence": [
+          "POST /air/orders",
+          "GET /air/orders/{order_id}",
+          "POST /air/order_cancellations",
+          "POST /air/order_cancellations/{cancellation_id}/actions/confirm",
+          "GET /air/orders/{order_id}"
+        ],
+        "revalidation_status": "UNCHANGED",
+        "final_workflow_state": "HANDED_OFF",
+        "order_live_mode": false,
+        "cancellation_live_mode": false,
+        "cancellation_confirmed": true,
+        "final_order_cancelled": true
+      }
+    }
+  ],
+  "limitations": [
+    "This creates and cancels one external Duffel Test Mode Order; it never uses a live token or production inventory.",
+    "The passenger identity is fixed synthetic data using example.com and is not a real traveller.",
+    "Duffel Test Mode balance payment is sandbox-only and does not collect a customer card payment.",
+    "Order and cancellation writes are never retried automatically.",
+    "The test exercises one-way flight booking only; hotel, ancillary, seat, webhook, change, and production ticketing flows remain out of scope."
+  ]
+}

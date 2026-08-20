@@ -1,0 +1,39 @@
+:root {
+  font-family: Inter, "SF Pro Text", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  color: #1d2b2d;
+  background: #f4f4f0;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  --ink: #173139;
+  --ink-2: #24464a;
+  --paper: #ffffff;
+  --canvas: #f4f4f0;
+  --line: #dedfd8;
+  --line-soft: #eaeae5;
+  --muted: #6e7a78;
+  --muted-2: #939d9a;
+  --accent: #e4643d;
+  --accent-dark: #c54c2a;
+  --green: #287860;
+  --blue: #376d8b;
+  --amber: #a76729;
+  --danger: #a94439;
+  --shadow: 0 12px 32px rgba(23, 49, 57, 0.08);
+}
+
+* { box-sizing: border-box; }
+html { min-width: 320px; background: var(--canvas); }
+body { margin: 0; min-width: 320px; min-height: 100vh; }
+button, input, textarea { font: inherit; }
+button { color: inherit; }
+button, a { -webkit-tap-highlight-color: transparent; }
+::selection { background: #f2c2ad; color: var(--ink); }
+
+.icon {
+  flex: 0 0 auto;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
