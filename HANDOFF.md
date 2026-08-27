@@ -8,11 +8,11 @@
 
 ## 1. 当前阶段一句话
 
-**最新一轮见 §23：新语义链路已进评测（D15 门禁 PASS）、LLM Judge 已接通、前端演示数据
-已清除、此前 33 个文件的未提交工作树已进版本库（分支 `semantic-entrypoint-and-judge`）。**
+**最新一轮见 §24：前端已切到语义入口（并在浏览器里真跑验证）、真实模型跑出两个只有
+真模型才暴露的提示词缺陷并已修、语义入口的出错路径/持久化/红队用例补齐测试
+（`pytest 614`）。分支 `semantic-entrypoint-and-judge`，工作树干净。**
 
-**待项目所有者拍板的一件事：前端新建任务实际仍走旧链路，切到语义入口是一行改动。**
-详见 §23.1。
+**§23 遗留的那件待拍板事项已完成：前端新建任务现在走 `/semantic/trip-tasks`。**
 
 以下为 2026-08-19 及更早的状态，仍然有效：
 
@@ -1193,8 +1193,9 @@ npm test      10 passed
 
 ### 23.8 未做
 
-- **前端切语义入口**（等拍板，一行）
-- §18.3 A–I 九类红队 runner 仍走 legacy，本轮只接了 D1/D2 主集
+- ~~**前端切语义入口**（等拍板，一行）~~ → **已完成，见 §24.3**
+- ~~§18.3 A–I 九类红队 runner 仍走 legacy~~ → **可移植的部分已接，见 §24.5**；
+  本轮（§23）只接了 D1/D2 主集
 - Judge 真实计费跑一次；找第二个标注者做真正的人工双评
 - D6 回流仍 0；D3 真实快照仍 0/20
 - CI 仍无评测门禁，只跑单测 + lint + PG 冒烟
@@ -1202,6 +1203,151 @@ npm test      10 passed
 
 ---
 
-*交接更新 2026-08-27。本轮见 §23（语义入口进评测 D15 / LLM Judge / 前端去演示数据 / 工作树已提交）。*
-*沟通标准见新建的 `AGENTS.md`：先解释名词再用，先给结论再给细节，诚实优先于漂亮。*
-*A–F 见 §19；G 见 §20；H 见 §21；I 见 §22。*
+## 24. 2026-08-27（第二轮）：前端切语义入口 + 真实跑 + 补齐测试
+
+**一句话：** 前端已切到新链路并在浏览器里真跑通；真实跑 DeepSeek 抓到两个提示词缺陷
+（已修）；语义入口的出错路径、持久化、红队用例补齐了测试。`pytest 590 → 614`。
+
+### 24.0 名词
+
+| 词 | 意思 |
+|---|---|
+| 信封结构 | 模型返回的 JSON 最外层长什么样：哪些字段在顶层，哪些在 `intent` 里面 |
+| 脚本化替身 | 假装成模型、按预设剧本返回固定结果的测试用对象。不联网、不花钱 |
+| 红队用例 | 专门用刁钻说法去撞系统的测试用例（§18.3 A–I） |
+
+### 24.1 真实跑抓到的两个 bug（重点）
+
+**这是本轮最有价值的产出。两个都只有真模型才会暴露，确定性替身永远测不出。**
+
+**Bug 1｜模型把顶层字段塞进了 `intent` 里。**
+DeepSeek 走 chat 接口（`response_format: json_object`），没有严格 schema 强制。
+原提示词只丢了一份 `$defs` schema，没说清信封结构，模型就把 `evidence`、
+`confidence`、`manipulation_detected` 等嵌进了 `intent` 内部 → 6 个 extra_forbidden
+校验错误，整份解释作废。
+
+**Bug 2｜多轮时证据丢失。**
+用户最后一句只补了返程时间，模型就只给返程的证据，`origin`/`destination` 的引用没了
+→ 宿主的「READY 必须有四项证据」规则把它拒了。**宿主规则是对的**，是提示词从没把这条
+规则告诉模型。
+
+**两次都是提示词缺陷，不是宿主 bug** —— 宿主两次都做了正确的事：停下、不查库存、
+记下原因。这正是本轮新增的
+`test_model_failure_pauses_for_structured_input_and_records_the_reason` 锁的行为。
+
+修法：提示词显式写出顶层键列表、`intent` 的键列表、**绝不能出现在 `intent` 里**的键；
+并写明 READY 时必须为 origin/destination/departure_after/arrive_by 各给一条证据，
+**可以引用更早的轮次**。提示词版本 `semantic-trip-intent-v1 → v3`。
+
+**D15 数字不受影响**：那轮用的是确定性替身 `deterministic-semantic-v1`，不是这个适配器。
+
+### 24.2 修完后的真实端到端（上海→东京）
+
+| 步骤 | 结果 |
+|---|---|
+| 建任务 | 模型读懂整句，但「9月13日晚上回来」太模糊 → **只问一句，0 次库存调用** |
+| 回答追问 | 编译出往返两段查询 |
+| 查库存 | 真实 Duffel 航班 + 真实 LiteAPI 酒店（沙箱只读） |
+| 出方案 | 3 个方案，政策判定 `COMPLIANT` 并附规则证据 |
+| 审计链 | `SEARCH_COMMAND_COMPILED` 确实排在进入 SEARCHING **之前** |
+
+前端那一单（北京→大阪）返回「无可行方案」，是**正确结果**：沙箱返回了航班但没有一班
+能在截止时间前到，并逐条列出被过滤的报价。没有幻觉，没有偷偷放宽时间窗。
+
+### 24.3 前端已切语义入口
+
+`frontend/src/App.tsx:1186`：`createLegacyNaturalLanguage` → `createSemanticNaturalLanguage`。
+
+浏览器实测确认：服务端访问日志三次 POST **全部**打到 `/semantic/*`，`/legacy/` 零次。
+旧链路仍保留为 ADR-0002 的回滚保险；历史 legacy 任务继续走自己的路由。
+
+**注意：前端测试只覆盖 `src/utils/*.test.ts`，没有组件级测试，因此"新建任务走哪个
+入口"这件事没有前端单测守着**，只有这次浏览器实跑作证。
+
+### 24.4 新增测试（+24 条，590 → 614）
+
+| 文件 | 条数 | 覆盖 |
+|---|---:|---|
+| `tests/test_semantic_entrypoint_reliability.py` | 11 | 模型挂了 / 引用对不上 / 预算用超 / 追问用尽 / 审计留痕 / 决策历史上限 |
+| `tests/test_semantic_entrypoint_persistence.py` | 6 | 落库与重启恢复 / 重启后仍拒旧路由 / Provider 重试不重新解释意图 / 延迟重试 / 中断恢复 |
+| `tests/test_api.py`（新增） | 4 | HTTP 端到端：建任务、追问、跨入口 409、模型挂了不返回"看起来已规划好"的任务 |
+| `tests/test_semantic_intent.py`（新增） | 2 | 锁住 24.1 两个提示词修复 |
+| `tests/test_semantic_entrypoint_evaluation.py`（新增） | 1 | 红队 runner 进 CI |
+| `tests/semantic_fixtures.py` | — | 共享脚本化替身（不是测试文件，pytest 不收集） |
+
+审计事件只存哈希不存明文，所以断言是拿 `stable_hash(期望值)` 去比对哈希。
+
+### 24.5 红队用例走语义入口
+
+**关键结论：A–I runner 不能机械移植，改一行是做不到的。**
+
+旧 runner 把模型脚本成「什么都没抽到」，然后断言**宿主**的旧机器自己算对
+（自己把「下下周三」解析成 9 月 2 日、自己把「酒店不要了」翻译成清空住宿字段）。
+ADR-0002 把这些机器从语义链路里**删掉了**——这些职责在新链路里归模型。
+
+新建 `examples/run_semantic_redteam_acceptance.py`，只移植**在新链路里仍归宿主**的职责：
+
+| 组 | 条数 | 内容 |
+|---|---:|---|
+| SI | 8 | 能力边界：模型判 UNSUPPORTED，宿主必须披露原因且**一次库存都不查**；含 2 条对照组 |
+| SG | 6 | 改口：整份重新编译，不留旧值，旧方案作废，不做多余的搜索 |
+| SH | 3 | 读不准就别查：二选一日期 / 二选一城市 / 条件住宿 |
+
+`17/17 PASS`，报告在 `reports/evaluation-runs/semantic-redteam-20260827/`。
+`tests/test_semantic_entrypoint_evaluation.py` 里有一条单测把它拉进 CI。
+
+**明确没有移植的（runner 和报告里都写死了）：**
+
+1. **§18.3 H-01/03/04/05 日期解析正确性**（下下周三、8/5 与 8.5、春节不编公历、
+   跨年）。它已经进了模型，用脚本化替身断言等于自己写答案自己批改。要验只能真跑
+   计费模型。
+2. **§18.3 I 的正则兜底**。语义链路没有兜底层，模型不可用时直接停在结构化表单。
+3. **§18.3 A–E / F**。走结构化入口或根本不经过意图链路，与入口无关。
+
+### 24.6 提交
+
+分支 `semantic-entrypoint-and-judge`，5 个 commit，工作树干净：
+
+```
+5b50045 feat(frontend): create new tasks through the semantic entrypoint
+3cd98c2 test(semantic): run the portable red-team cases through the new entrypoint
+1da4dda test(semantic): cover persistence, restart recovery and provider retry
+3ddd4ac fix(intent): make the semantic prompt state the response envelope
+55e8aae test(semantic): cover the entrypoint's failure and audit paths
+```
+
+### 24.7 验收
+
+```
+pytest        614 passed（新增 24）
+ruff          All checks passed
+npm run build ✓
+npm test      10 passed
+npm run lint  ✓
+真实跑        DeepSeek + Duffel/LiteAPI 沙箱，端到端出方案；浏览器实跑确认走语义入口
+```
+
+### 24.8 本轮顺带发现，**未改**
+
+**`config/travel-policy.json` 的城市表里没有大阪。** 东京/北京/上海都有别名会规范成
+英文，大阪没有，所以一路是中文「大阪」。Duffel 仍能解析，不影响结果。加城市属于政策
+数据变更（酒店限价按城市键），需要项目所有者决定。
+
+### 24.9 仍未做
+
+- **Judge 真实计费跑**仍为 0；人工双评仍缺第二个标注者，`calibration_status` 必须
+  继续报 `insufficient_samples`
+- **日期解析正确性在语义链路上没有任何验证**（见 24.5 第 1 条），这是当前最大的
+  测试空白，需要一次计费模型跑
+- 前端无组件级测试，入口选择靠人工验证
+- D6 回流仍 0；D3 真实快照仍 0/20
+- CI 仍无评测门禁，只跑单测 + lint + PG 冒烟
+- `recover_interrupted_tasks()` 仍全表 `list_tasks()`
+- 本轮真实跑用的是内存存储（本机 Postgres 没起），未在 PG 上真实跑过语义任务
+
+---
+
+*交接更新 2026-08-27（第二轮）。本轮见 §24（前端切语义入口 / 真实跑抓到两个提示词
+缺陷 / 补齐出错路径、持久化、红队测试）。*
+*沟通标准见 `AGENTS.md`：先解释名词再用，先给结论再给细节，诚实优先于漂亮。*
+*上一轮见 §23；A–F 见 §19；G 见 §20；H 见 §21；I 见 §22。*
