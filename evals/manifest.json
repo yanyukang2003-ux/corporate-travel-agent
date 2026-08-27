@@ -6,8 +6,8 @@
   "project": {
     "name": "corporate-travel-agent",
     "version": "0.1.0",
-    "code_revision": null,
-    "code_revision_status": "unavailable_not_a_git_worktree"
+    "code_revision": "ab16606edceba8726279b33386872c91db5dbc0a",
+    "code_revision_status": "recorded"
   },
   "runner": {
     "version": "agent-eval-runner-v1",
@@ -399,6 +399,23 @@
         "result_sha256": "962a01d34b64ed8c28fd3830661d234db804254a338bd9d3ef84fbfed36f71f6",
         "report_sha256": "18bcf375cfacf1cdf1c61b6b57815f56616f8ce920b2553a12c616af66092ec9"
       }
+    },
+    {
+      "id": "D15",
+      "dataset_id": "corporate-travel-derived-v2-semantic-entrypoint",
+      "version": "1",
+      "status": "rolling",
+      "classification": "SYNTHETIC_DERIVED",
+      "path": "data/evaluation/derived-v2",
+      "records": 540,
+      "workflow_records": 60,
+      "intent_records": 480,
+      "intent_entrypoint": "semantic",
+      "runner": "examples/run_semantic_entrypoint_evaluation.py",
+      "runner_version": "semantic-entrypoint-runner-v1",
+      "inventory_source": "MOCK",
+      "real_provider_snapshots": 0,
+      "notes": "Same frozen cases as D1/D2, executed through create_task_from_semantic_message. classification_accuracy is not_applicable on the semantic side by design."
     }
   ],
   "schemas": {
@@ -870,5 +887,16 @@
       "source_dataset": "D14",
       "use": "One explicitly gated DeepSeek plus Duffel Test Mode Order create, read, cancel, and final-read transaction"
     }
+  },
+  "judge": {
+    "rubric_id": "output-quality-v1",
+    "rubric_path": "evals/rubrics/output-quality-v1.json",
+    "rubric_sha256": "9ed4721a38738ad4a6ad1141b47baf113b142297802410e462cf02547b310096",
+    "judge_prompt_version": "output-quality-judge-v1",
+    "runner": "examples/run_output_quality_judge.py",
+    "calibration_annotations": "data/evaluation/human-annotations/v1/to-label/03-output-quality.jsonl",
+    "calibration_annotations_sha256": "a379687d68ecbc29ae7f69beb4bc9a57e05c9db68078db4dcfee410e8d069fd1",
+    "calibration_status": "not_run",
+    "calibration_note": "The pipeline is implemented and dry-run verified. No billed judge run has been executed, and the available human labels are single-annotator round 1, which is not human double-rating."
   }
 }

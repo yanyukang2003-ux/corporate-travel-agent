@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from datetime import UTC, datetime
 from typing import Any, Literal
 
@@ -293,8 +294,14 @@ def build_evaluation_result(
     selected_cases: int,
     expected_runs: int,
     evaluations: tuple[WorkflowCaseEvaluation, ...],
+    judge_scores: Mapping[str, float | None] | None = None,
+    judge_summary: JudgeSummary | None = None,
 ) -> EvaluationResult:
-    """汇总多用例质量评估为 EvaluationResult。"""
+    """汇总多用例质量评估为 EvaluationResult。
+
+    ``judge_scores`` 按 ``run_id`` 提供已弃权则为 ``None`` 的 Judge 加权分。缺席时
+    ``judge_quality_score`` 保持 ``unavailable``，绝不用 0 或规则分顶替。
+    """
     total = len(evaluations)
     hard_passed = sum(item.hard_pass for item in evaluations)
     quality_passed = sum(item.rule_quality_pass for item in evaluations)
@@ -319,15 +326,7 @@ def build_evaluation_result(
             unit="score_0_to_1",
             confidence_note="Deterministic structural rubric; not an LLM Judge score.",
         ),
-        "judge_quality_score": MetricResult(
-            status="unavailable",
-            value=None,
-            numerator=None,
-            denominator=None,
-            unit="score_1_to_5",
-            exposure_note="No independent natural-language response or Judge call in this run.",
-            confidence_note=f"Rubric {OUTPUT_RUBRIC_VERSION} is frozen for later calibration.",
-        ),
+        "judge_quality_score": _judge_metric(evaluations, judge_scores, judge_summary),
         "stage_2_rule_gate": MetricResult(
             status="measured",
             value=float(hard_passed == total and quality_passed == total),
@@ -391,12 +390,96 @@ def build_evaluation_result(
             slices=slices,
         ),
         metrics=metrics,
-        judge=None,
+        judge=judge_summary,
         cost=None,
         gate_status="not_evaluated",
         hard_failures=tuple(hard_failures),
         bad_case_candidates=tuple(bad_cases),
     )
+
+
+def _judge_metric(
+    evaluations: tuple[WorkflowCaseEvaluation, ...],
+    judge_scores: Mapping[str, float | None] | None,
+    judge_summary: JudgeSummary | None,
+) -> MetricResult:
+    """构造 Judge 指标；未评测、全弃权、未校准三种情况都必须区分开。"""
+    if judge_scores is None:
+        return MetricResult(
+            status="unavailable",
+            value=None,
+            numerator=None,
+            denominator=None,
+            unit="score_1_to_5",
+            exposure_note="No Judge call was made for this run.",
+            confidence_note=(
+                f"Rubric {OUTPUT_RUBRIC_VERSION} is frozen; run the judge separately "
+                "to populate this metric."
+            ),
+        )
+    scored = [
+        judge_scores[item.run_id]
+        for item in evaluations
+        if item.run_id in judge_scores and judge_scores[item.run_id] is not None
+    ]
+    covered = sum(1 for item in evaluations if item.run_id in judge_scores)
+    if not scored:
+        return MetricResult(
+            status="unavailable",
+            value=None,
+            numerator=None,
+            denominator=float(covered),
+            unit="score_1_to_5",
+            exposure_note="Every judged run abstained; abstentions are never scored as 0.",
+            confidence_note=_calibration_note(judge_summary),
+        )
+    return MetricResult(
+        status="measured",
+        value=sum(scored) / len(scored),
+        numerator=float(sum(scored)),
+        denominator=float(len(scored)),
+        unit="score_1_to_5",
+        exposure_note=(
+            f"{len(scored)}/{len(evaluations)} runs scored; "
+            f"{covered - len(scored)} abstained and are excluded from the mean."
+        ),
+        confidence_note=_calibration_note(judge_summary),
+    )
+
+
+def _calibration_note(judge_summary: JudgeSummary | None) -> str:
+    if judge_summary is None or judge_summary.agreement_rate is None:
+        return (
+            "The judge is not calibrated against human labels in this run; "
+            "treat the score as uncalibrated."
+        )
+    return (
+        f"Judge {judge_summary.judge_id} calibrated on {judge_summary.calibration_set} "
+        f"with adjacent agreement {judge_summary.agreement_rate:.3f}."
+    )
+
+
+def apply_judge_scores(
+    evaluations: tuple[WorkflowCaseEvaluation, ...],
+    judge_scores: Mapping[str, float | None],
+) -> tuple[WorkflowCaseEvaluation, ...]:
+    """把 Judge 分数附回用例评估；硬断言结论不受影响。"""
+    updated: list[WorkflowCaseEvaluation] = []
+    for evaluation in evaluations:
+        if evaluation.run_id not in judge_scores:
+            updated.append(evaluation)
+            continue
+        score = judge_scores[evaluation.run_id]
+        updated.append(
+            evaluation.model_copy(
+                update={
+                    "judge_quality_score": score,
+                    # 弃权保持 unavailable，不因为"跑过 Judge"就算作已评测。
+                    "judge_status": "measured" if score is not None else "unavailable",
+                }
+            )
+        )
+    return tuple(updated)
 
 
 def build_judge_input(

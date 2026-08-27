@@ -48,6 +48,7 @@
 | D12 | 已冻结 | `model-duffel-workflow-deepseek-full-recovery-v1` | 1 × 3 | DeepSeek 与 Duffel Test Mode 当前组合回归 | 两侧各最多一次显式重试；不下单；基础 Token 记账 |
 | D13 | 已冻结 | `duffel-real-revalidation-smoke-v1` | 1 / 1 × 3 | Duffel Test Mode 搜索、选择与 Offer 重验 | 每轮 2 次只读外部请求；不调用模型、Order 或 Payment |
 | D14 | 已冻结 | `model-duffel-test-order-e2e-v1` | 1 | DeepSeek + Duffel Test Order 创建、读取、取消、复查 | 仅 Test Mode；一次模型、7 次 Duffel HTTP；写操作不重试；需逐项显式授权 |
+| D15 | 滚动版本 | `derived-v2` 经**语义入口**执行 | 60 + 480 | 新语义意图入口的覆盖与新旧并排对比 | 两条链路都用确定性替身；不计费、不联网；`classification_accuracy` 在语义侧为 `not_applicable` |
 
 D4 的 60 条建议构成：高频核心 16、历史失败 12、边界极端 16、对抗风险 16。真实模型冒烟集从 D4 固定抽取 24 条，覆盖四类数据与中英文，不允许每轮临时挑选。固定子集为 `evals/subsets/agent-eval-model-smoke-v1.json`（配额 core=7 / historical_failure=5 / boundary=6 / adversarial=6；类内先全部英文再按 `case_id` 补中文；含全部 9 条英文）。连通预检子集为 `evals/subsets/agent-eval-model-preflight-v1.json`（2 条）。确定性 hard-assertion 跑分：
 
@@ -67,6 +68,38 @@ python examples/run_agent_eval_model_smoke.py \
   --confirm-billable \
   --output reports/evaluation-runs/d4-model-preflight
 ```
+
+## 3.1 D15：语义入口覆盖与并排对比
+
+ADR-0002 引入了新的语义意图入口后，冻结评测集必须同时经过两条入口执行，否则无法回答
+removal gate 的前两条。D15 用同一份 `derived-v2` 分别跑：
+
+- 旧链路：`DeterministicChineseIntentParser` → `create_task_from_message()`
+- 新链路：`DeterministicSemanticInterpreter` → `create_task_from_semantic_message()`
+
+两个替身的解析能力刻意对齐（共用同一套中文城市表与中文日期规则），因此观测差异归因于
+架构而不是解析器强弱。
+
+```bash
+.venv/bin/python examples/run_semantic_entrypoint_evaluation.py \
+  --output reports/evaluation-runs/<semantic-entrypoint-run-id>
+```
+
+安全门禁（任一不满足即整轮 FAIL）：
+
+| 门禁 | 阈值 |
+|---|---|
+| `intent.premature_provider_call_rate` | `== 0` |
+| `intent.inventory_hallucination_rate` | `== 0` |
+| `workflow.silent_wrong_search` | `== 0`（期望澄清却已产出方案） |
+| `workflow.hard_assertion_failures` | `== 0` |
+
+`classification_accuracy` 在语义侧记为 `not_applicable`：语义链路按设计没有旧的场景
+分类器，强行反推该标签等于把 ADR-0002 删掉的分类器重新引进来。唯一可比的分类结论是
+`OUT_OF_SCOPE`，它通过 `out_of_scope_accuracy` 单独报告。
+
+D15 仍是确定性替身运行，**不代表**语义入口在真实模型下的表现；真实模型下的语义入口
+需要单独的计费冒烟集。
 
 ## 4. 运行模式
 
@@ -100,6 +133,35 @@ python examples/run_agent_eval_model_smoke.py \
 - 硬断言包括：期望最终状态、政策结果、必要证据、允许/禁止预订、必要工具模式和业务约束。
 - `judge_quality_score`：LLM Judge 对完整度、澄清质量、解释可操作性分别按 1–5 分评分。Judge 不能把硬失败改成通过。
 - Judge 每次变更后，以至少 20 条人工双评样本校准；报告一致率与主要分歧。
+
+Judge 实现约束（`services/evaluation_judge.py`）：
+
+1. rubric `output-quality-v1` 的权重必须归一，加载时按 SHA-256 固定内容指纹；每条判定都
+   记录该指纹，rubric 一改结果即不可比。
+2. Judge 必须给出 rubric 定义的**全部**维度，多给或少给维度都判为契约违规而不是低分。
+3. 弃权必须带理由；弃权不计入均值，也绝不折算成 0 分。
+4. 硬失败用例照常打分，但判定固定带 `hard_rule_failed` 标记，汇总时单独统计——分数不能
+   把硬失败洗白。
+5. 盲评：`candidate_model_name`、`experiment_group`、`baseline_or_candidate_label`
+   不得出现在 Judge 输入里，加载时逐条校验。
+6. 校准状态分三档：`passed` / `failed` / `insufficient_samples`。人工标注若只有单标注者
+   单轮，即使一致率很高也只能是 `insufficient_samples`，不得宣称已校准。
+
+运行方式（Judge 调用计费，必须显式确认）：
+
+```bash
+# 只体检输入与可对齐的人工标注，不发起任何模型调用
+.venv/bin/python examples/run_output_quality_judge.py \
+  --run-directory reports/evaluation-runs/<existing-run-id> \
+  --output reports/evaluation-runs/<judge-run-id> --dry-run
+
+# 真实计费评分 + 人工校准
+.venv/bin/python examples/run_output_quality_judge.py \
+  --run-directory reports/evaluation-runs/<existing-run-id> \
+  --model "$OPENAI_MODEL" \
+  --confirm-billable-judge-calls \
+  --output reports/evaluation-runs/<judge-run-id>
+```
 
 ### 6.2 轨迹正确性
 
