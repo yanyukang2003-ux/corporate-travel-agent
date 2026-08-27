@@ -8,6 +8,11 @@ from time import monotonic
 from typing import Any
 from zoneinfo import ZoneInfo
 
+from corporate_travel_agent.agent.journey_semantics import (
+    infer_booking_scope,
+    message_is_return_leg_only,
+)
+from corporate_travel_agent.domain.enums import BookingScope
 from corporate_travel_agent.services.locations import DEFAULT_CITY_TIMEZONES, CityNormalizer
 
 from .ports import IntentExtractionResult, LLMCallMetadata
@@ -79,6 +84,14 @@ class GroundedLocalIntentParser:
         else:
             reference_time = reference_time.astimezone(timezone)
 
+        booking_scope = infer_booking_scope(
+            message,
+            prior_fields=(
+                context.get("prior_fields")
+                if isinstance(context.get("prior_fields"), dict)
+                else None
+            ),
+        )
         origin, destination = self._cities(message)
         from corporate_travel_agent.services.locations import resolve_location_timezone
 
@@ -91,37 +104,60 @@ class GroundedLocalIntentParser:
 
         outbound_day = self._outbound_date(message, reference_time)
         return_day = self._return_date(message, reference_time, outbound_day)
-        departure_after = (
-            datetime.combine(outbound_day, time(8, 0), tzinfo=origin_tz)
-            if outbound_day is not None
-            else None
-        )
-        arrive_by = None
-        if outbound_day is not None and re.search(
-            r"开会|会议|抵达|到达|最晚|\d+\s*点|\bmeeting\b|\barrive\b",
-            message,
-            re.I,
-        ):
-            arrive_by = datetime.combine(outbound_day, time(18, 0), tzinfo=dest_tz)
         evening_return = bool(re.search(r"晚上|今晚|tonight", message, re.I))
-        return_after = (
-            datetime.combine(
-                return_day,
-                time(18, 0) if evening_return else time(13, 0),
-                tzinfo=dest_tz,
+        if booking_scope is BookingScope.RETURN_ONLY:
+            primary_day = return_day or outbound_day
+            departure_after = (
+                datetime.combine(
+                    primary_day,
+                    time(18, 0) if evening_return else time(13, 0),
+                    tzinfo=origin_tz,
+                )
+                if primary_day is not None
+                else None
             )
-            if return_day is not None
-            else None
-        )
-        return_before = (
-            datetime.combine(
-                return_day,
-                time(23, 0) if evening_return else time(22, 0),
-                tzinfo=dest_tz,
+            arrive_by = (
+                datetime.combine(
+                    primary_day,
+                    time(23, 0) if evening_return else time(22, 0),
+                    tzinfo=dest_tz,
+                )
+                if primary_day is not None
+                else None
             )
-            if return_day is not None
-            else None
-        )
+            return_after = None
+            return_before = None
+        else:
+            departure_after = (
+                datetime.combine(outbound_day, time(8, 0), tzinfo=origin_tz)
+                if outbound_day is not None
+                else None
+            )
+            arrive_by = None
+            if outbound_day is not None and re.search(
+                r"开会|会议|抵达|到达|最晚|\d+\s*点|\bmeeting\b|\barrive\b",
+                message,
+                re.I,
+            ):
+                arrive_by = datetime.combine(outbound_day, time(18, 0), tzinfo=dest_tz)
+            return_after = (
+                datetime.combine(
+                    return_day,
+                    time(18, 0) if evening_return else time(13, 0),
+                    tzinfo=dest_tz,
+                )
+                if return_day is not None
+                else None
+            )
+            return_before = (
+                datetime.combine(
+                    return_day,
+                    time(23, 0) if evening_return else time(22, 0),
+                    tzinfo=dest_tz,
+                )
+                if return_day is not None
+                else None
+            )
 
         hard: list[str] = []
         soft: list[str] = []
@@ -259,6 +295,7 @@ class GroundedLocalIntentParser:
             "return": [],
             "round_trip": [],
         }
+        return_leg_only = message_is_return_leg_only(message)
         for start, end in _iter_clause_spans(message):
             clause = message[start:end]
             scope = _clause_scope(clause)
@@ -271,7 +308,7 @@ class GroundedLocalIntentParser:
             if len(clause_mentions) < 2:
                 continue
             pair = (clause_mentions[0], clause_mentions[1])
-            if scope == "return":
+            if scope == "return" and not return_leg_only:
                 pair = (pair[1], pair[0])
             scoped_routes[scope].append(pair)
 
@@ -297,10 +334,8 @@ class GroundedLocalIntentParser:
             city = unique[0]
             index = mentions[0][0]
             window = message[max(0, index - 2) : index + 12]
-            from corporate_travel_agent.agent.intent_calibration import message_is_return_leg_only
-
             if message_is_return_leg_only(message):
-                return None, city
+                return city, None
             if "从" in window or "出发" in window:
                 return city, None
             return None, city

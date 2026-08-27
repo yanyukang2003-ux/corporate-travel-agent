@@ -49,12 +49,35 @@ class TransportMode(StrEnum):
     TRAIN = "TRAIN"
 
 
+class BookingScope(StrEnum):
+    """本次请求要预订哪些交通航段。"""
+
+    OUTBOUND_ONLY = "OUTBOUND_ONLY"
+    RETURN_ONLY = "RETURN_ONLY"
+    ROUND_TRIP = "ROUND_TRIP"
+
+
+class TripLegRole(StrEnum):
+    """航段在整趟差旅中的角色。"""
+
+    OUTBOUND = "OUTBOUND"
+    RETURN = "RETURN"
+
+
 class LodgingRequirement(StrEnum):
     """住宿需求三态：必须 / 不需要 / 未说明。"""
 
     REQUIRED = "REQUIRED"
     NOT_REQUIRED = "NOT_REQUIRED"
     UNSPECIFIED = "UNSPECIFIED"
+
+
+class IntentEntrypoint(StrEnum):
+    """创建并继续自然语言任务时固定使用的意图流程。"""
+
+    STRUCTURED = "structured"
+    LEGACY = "legacy"
+    SEMANTIC = "semantic"
 
 
 class SourceType(StrEnum):

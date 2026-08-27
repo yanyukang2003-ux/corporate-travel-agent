@@ -9,6 +9,7 @@ from typing import Any
 
 from .enums import (
     ApprovalStatus,
+    BookingScope,
     PolicyOutcome,
     RawResponseAccessPolicy,
     RevalidationStatus,
@@ -16,6 +17,7 @@ from .enums import (
     TaskState,
     ToolCallStatus,
     TransportMode,
+    TripLegRole,
 )
 
 # Provider 无法证明客户通勤时间时的哨兵值（分钟）。
@@ -60,8 +62,19 @@ class PolicySnapshot:
 
 
 @dataclass(frozen=True, slots=True)
+class TripLeg:
+    """一次真实执行的交通航段；起讫城市和时间均按该航段方向表达。"""
+
+    role: TripLegRole
+    origin: str
+    destination: str
+    depart_after: datetime
+    arrive_before: datetime
+
+
+@dataclass(frozen=True, slots=True)
 class TripRequestVersion:
-    """一次行程请求的不可变版本（城市、时间窗、硬约束与软偏好）。"""
+    """一次行程请求的不可变版本（预订范围、航段、住宿与偏好）。"""
 
     task_id: str
     version: int
@@ -76,7 +89,49 @@ class TripRequestVersion:
     hotel_check_out: date | None
     hard_constraints: tuple[str, ...] = ()
     soft_preferences: tuple[str, ...] = ()
+    # None 仅用于兼容旧持久化载荷；新请求必须显式写入。
+    booking_scope: BookingScope | None = None
     created_at: datetime = field(default_factory=lambda: datetime.now(UTC))
+
+    @property
+    def resolved_booking_scope(self) -> BookingScope:
+        """返回有效预订范围；旧载荷按是否存在返程窗口推导。"""
+        if self.booking_scope is not None:
+            return self.booking_scope
+        if self.return_after is not None or self.return_before is not None:
+            return BookingScope.ROUND_TRIP
+        return BookingScope.OUTBOUND_ONLY
+
+    def transport_legs(self) -> tuple[TripLeg, ...]:
+        """把兼容请求字段投影为 Provider 可直接执行的真实方向航段。"""
+        scope = self.resolved_booking_scope
+        primary_role = (
+            TripLegRole.RETURN if scope is BookingScope.RETURN_ONLY else TripLegRole.OUTBOUND
+        )
+        legs = [
+            TripLeg(
+                role=primary_role,
+                origin=self.origin,
+                destination=self.destination,
+                depart_after=self.departure_after,
+                arrive_before=self.arrive_by,
+            )
+        ]
+        if (
+            scope is BookingScope.ROUND_TRIP
+            and self.return_after is not None
+            and self.return_before is not None
+        ):
+            legs.append(
+                TripLeg(
+                    role=TripLegRole.RETURN,
+                    origin=self.destination,
+                    destination=self.origin,
+                    depart_after=self.return_after,
+                    arrive_before=self.return_before,
+                )
+            )
+        return tuple(legs)
 
 
 @dataclass(frozen=True, slots=True)

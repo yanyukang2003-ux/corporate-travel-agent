@@ -116,7 +116,7 @@ def test_calendar_mentions_keep_exact_source_span() -> None:
     }
 
 
-def test_single_return_scoped_calendar_date_never_fills_outbound() -> None:
+def test_return_only_calendar_date_fills_the_real_direction_primary_leg() -> None:
     parser = _parser()
     result = parser.extract_trip_intent(
         "返程8月25日晚上从上海回北京",
@@ -125,15 +125,16 @@ def test_single_return_scoped_calendar_date_never_fills_outbound() -> None:
         context={"reference_time": REF.isoformat(), "timezone": "Asia/Shanghai"},
     )
     fields = result.payload.fields
-    assert fields.origin == "Beijing"
-    assert fields.destination == "Shanghai"
-    assert fields.departure_after is None
-    assert fields.arrive_by is None
-    assert fields.return_after is not None
-    assert fields.return_after.date().isoformat() == "2026-08-25"
+    assert fields.origin == "Shanghai"
+    assert fields.destination == "Beijing"
+    assert fields.departure_after is not None
+    assert fields.departure_after.date().isoformat() == "2026-08-25"
+    assert fields.arrive_by is not None
+    assert fields.return_after is None
+    assert fields.return_before is None
 
 
-def test_single_return_scoped_weekday_never_fills_outbound() -> None:
+def test_return_only_weekday_fills_the_single_primary_leg() -> None:
     parser = _parser()
     result = parser.extract_trip_intent(
         "下周四下午返程",
@@ -142,10 +143,10 @@ def test_single_return_scoped_weekday_never_fills_outbound() -> None:
         context={"reference_time": REF.isoformat(), "timezone": "Asia/Shanghai"},
     )
     fields = result.payload.fields
-    assert fields.departure_after is None
-    assert fields.arrive_by is None
-    assert fields.return_after is not None
-    assert fields.return_after.date().isoformat() == "2026-08-27"
+    assert fields.departure_after is not None
+    assert fields.departure_after.date().isoformat() == "2026-08-27"
+    assert fields.arrive_by is not None
+    assert fields.return_after is None
 
 
 def test_return_first_dates_bind_by_clause_semantics_not_mention_order() -> None:

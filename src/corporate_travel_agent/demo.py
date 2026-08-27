@@ -14,6 +14,7 @@ from corporate_travel_agent.agent.orchestrator import (
 )
 from corporate_travel_agent.agent.ports import (
     LanguageModelPort,
+    SemanticLanguageModelPort,
     WorkflowTraceObserverPort,
 )
 from corporate_travel_agent.domain.enums import TransportMode
@@ -44,6 +45,7 @@ SHANGHAI_TZ = ZoneInfo("Asia/Shanghai")
 def build_demo_system(
     *,
     language_model: LanguageModelPort | None = None,
+    semantic_language_model: SemanticLanguageModelPort | None = None,
     clock: Callable[[], datetime] | None = None,
     max_tool_calls: int = 12,
     max_provider_attempts: int = MAX_PROVIDER_ATTEMPTS,
@@ -173,6 +175,7 @@ def build_demo_system(
         ),
         provider=provider,
         language_model=language_model,
+        semantic_language_model=semantic_language_model,
         clock=effective_clock,
         max_tool_calls=max_tool_calls,
         max_provider_attempts=max_provider_attempts,

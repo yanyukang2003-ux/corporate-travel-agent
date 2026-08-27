@@ -26,11 +26,13 @@ from corporate_travel_agent.agent.error_recovery import (
 from corporate_travel_agent.agent.ports import (
     LanguageModelError,
     LanguageModelPort,
+    SemanticLanguageModelPort,
     WorkflowTraceEvent,
     WorkflowTraceObserverPort,
 )
 from corporate_travel_agent.domain.enums import (
     ApprovalStatus,
+    IntentEntrypoint,
     LodgingRequirement,
     PolicyOutcome,
     RevalidationStatus,
@@ -139,11 +141,12 @@ class TripWorkflowOrchestrator:
         policies: InMemoryPolicyRepository,
         provider: TravelInventoryProvider,
         language_model: LanguageModelPort | None = None,
+        semantic_language_model: SemanticLanguageModelPort | None = None,
         planner: ItineraryPlanner | None = None,
         state_machine: StateMachine | None = None,
         clock: Callable[[], datetime] | None = None,
         timezone_name: str = "Asia/Shanghai",
-        max_clarification_rounds: int = 3,
+        max_clarification_rounds: int = 5,
         max_tool_calls: int = 12,
         max_provider_attempts: int = MAX_PROVIDER_ATTEMPTS,
         max_llm_attempts: int = MAX_LLM_ATTEMPTS,
@@ -187,6 +190,15 @@ class TripWorkflowOrchestrator:
         self.policies = policies
         self.provider = provider
         self.language_model = language_model
+        self.semantic_language_model = semantic_language_model
+        if semantic_language_model is not None:
+            from corporate_travel_agent.agent.semantic_intent import (
+                ConversationIntentInterpreter,
+            )
+
+            self.intent_interpreter = ConversationIntentInterpreter(semantic_language_model)
+        else:
+            self.intent_interpreter = None
         self.fallback_model = getattr(language_model, "fallback_model", None)
         self.llm_runtime_status = "unknown"
         self.planner = planner or ItineraryPlanner()
@@ -244,7 +256,10 @@ class TripWorkflowOrchestrator:
             employee=employee,
             policy_snapshot_id=policy.snapshot_id,
             tool_call_limit=self.max_tool_calls,
-            metadata={"policy_content_hash": policy.content_hash},
+            metadata={
+                "policy_content_hash": policy.content_hash,
+                "intent_entrypoint": IntentEntrypoint.STRUCTURED.value,
+            },
         )
         self.tasks.add(task)
         self._audit(task, "TASK_CREATED", request, {"state": task.state.value})
@@ -272,16 +287,56 @@ class TripWorkflowOrchestrator:
             intent_fields=self._empty_intent_fields(),
             messages=[ConversationMessage(role="user", content=message)],
             tool_call_limit=self.max_tool_calls,
-            metadata={"policy_content_hash": policy.content_hash},
+            metadata={
+                "policy_content_hash": policy.content_hash,
+                "intent_entrypoint": IntentEntrypoint.LEGACY.value,
+            },
         )
         self.tasks.add(task)
         self._audit(task, "TASK_CREATED_FROM_MESSAGE", message, {"state": task.state.value})
         return self._extract_and_continue(task, message)
 
+    def create_task_from_semantic_message(
+        self,
+        message: str,
+        *,
+        traveler_id: str,
+        task_id: str | None = None,
+    ) -> TripTask:
+        """用新语义入口创建任务；只运行完整对话解释流程。"""
+        message = self._validate_message(message)
+        if self.intent_interpreter is None:
+            raise LanguageModelUnavailable("No semantic language model adapter is configured")
+        employee = self.employees.snapshot(traveler_id)
+        policy = self.policies.current()
+        task = TripTask(
+            task_id=task_id or str(uuid4()),
+            state=TaskState.DRAFT,
+            request=None,
+            employee=employee,
+            policy_snapshot_id=policy.snapshot_id,
+            intent_fields=self._empty_intent_fields(),
+            messages=[ConversationMessage(role="user", content=message)],
+            tool_call_limit=self.max_tool_calls,
+            metadata={
+                "policy_content_hash": policy.content_hash,
+                "intent_entrypoint": IntentEntrypoint.SEMANTIC.value,
+            },
+        )
+        self.tasks.add(task)
+        self._audit(
+            task,
+            "SEMANTIC_TASK_CREATED_FROM_MESSAGE",
+            message,
+            {"state": task.state.value},
+        )
+        return self._interpret_and_continue_semantically(task)
+
     def submit_message(self, task_id: str, message: str) -> TripTask:
         """提交跟进消息：澄清、改意图或再抽取后继续。"""
         message = self._validate_message(message)
         task = self.tasks.get(task_id)
+        self._require_intent_entrypoint(task, IntentEntrypoint.LEGACY)
         allowed = {
             TaskState.NEEDS_CLARIFICATION,
             TaskState.NEEDS_STRUCTURED_INPUT,
@@ -368,6 +423,7 @@ class TripWorkflowOrchestrator:
                     "arrive_by": None,
                     "return_after": None,
                     "return_before": None,
+                    "booking_scope": None,
                     # Drop hotel from prior trip unless this message re-states hotel need.
                     "hotel_check_in": None,
                     "hotel_check_out": None,
@@ -394,6 +450,56 @@ class TripWorkflowOrchestrator:
             if applied is not None:
                 return applied
         return self._extract_and_continue(task, message)
+
+    def submit_semantic_message(self, task_id: str, message: str) -> TripTask:
+        """向新语义任务追加消息；完整 ledger 重新解释，不执行旧字段 patch。"""
+        message = self._validate_message(message)
+        task = self.tasks.get(task_id)
+        self._require_intent_entrypoint(task, IntentEntrypoint.SEMANTIC)
+        if self.intent_interpreter is None:
+            raise LanguageModelUnavailable("No semantic language model adapter is configured")
+        allowed = {
+            TaskState.NEEDS_CLARIFICATION,
+            TaskState.NEEDS_STRUCTURED_INPUT,
+            TaskState.WAITING_FOR_USER,
+            TaskState.NO_FEASIBLE_OPTION,
+            TaskState.PROVIDER_FAILED,
+            TaskState.WAITING_FOR_PROVIDER,
+            TaskState.OUT_OF_SCOPE,
+        }
+        if task.state not in allowed:
+            raise WorkflowError(f"Cannot submit semantic message in {task.state.value}")
+        prior_state = task.state
+        if prior_state is TaskState.NEEDS_CLARIFICATION:
+            self._audit(task, "SEMANTIC_CLARIFICATION_RECEIVED", message, task.clarification_rounds)
+        elif prior_state in {TaskState.NEEDS_STRUCTURED_INPUT, TaskState.OUT_OF_SCOPE}:
+            task.failure = None
+            task.clarification_question = None
+            self._audit(
+                task,
+                "SEMANTIC_CONVERSATION_REOPENED",
+                message,
+                {"from_state": prior_state.value},
+            )
+        else:
+            task.failure = None
+            task.clarification_question = None
+            task.metadata.pop(PROVIDER_RETRY_METADATA_KEY, None)
+            task.metadata["pending_revision"] = {
+                "from_state": prior_state.value,
+                "had_options": bool(task.options),
+                "had_request": task.request is not None,
+                "selected_option_id": task.selected_option_id,
+            }
+            self._audit(
+                task,
+                "SEMANTIC_REVISION_RECEIVED",
+                message,
+                task.metadata["pending_revision"],
+            )
+        self._transition(task, TaskState.DRAFT)
+        task.messages.append(ConversationMessage(role="user", content=message))
+        return self._interpret_and_continue_semantically(task)
 
     def complete_with_structured_request(
         self, task_id: str, request: TripRequestVersion
@@ -459,6 +565,12 @@ class TripWorkflowOrchestrator:
 
         self._maybe_reset_superseded_destination(task, message)
         self._maybe_reset_superseded_origin(task, message)
+        from corporate_travel_agent.agent.journey_semantics import infer_booking_scope
+
+        task.intent_fields["booking_scope"] = infer_booking_scope(
+            message,
+            prior_fields=task.intent_fields,
+        ).value
         from corporate_travel_agent.agent.local_intent import GroundedLocalIntentParser
 
         evidence_parser = GroundedLocalIntentParser(self.city_normalizer)
@@ -946,6 +1058,182 @@ class TripWorkflowOrchestrator:
 
         return self._begin_search_from_intent(task)
 
+    def _interpret_and_continue_semantically(self, task: TripTask) -> TripTask:
+        """Use one full-conversation interpretation and validate only at command compile."""
+        from corporate_travel_agent.agent.search_command import compile_search_command
+        from corporate_travel_agent.agent.semantic_intent import (
+            ConversationLedger,
+            IntentDecisionStatus,
+            semantic_fields,
+        )
+
+        if self.intent_interpreter is None:
+            raise LanguageModelUnavailable("No semantic intent interpreter is configured")
+        ledger = ConversationLedger.from_messages(task.messages)
+        context: dict[str, Any] = {
+            "reference_time": self.clock().isoformat(),
+            "timezone": self.timezone_name,
+            "clarification_round": task.clarification_rounds,
+            "max_clarification_rounds": self.max_clarification_rounds,
+        }
+        try:
+            result = self._invoke_tool(
+                task,
+                tool_name="llm.interpret_trip_intent",
+                tool_kind="LLM",
+                counts_toward_budget=True,
+                input_value={
+                    "task_id": task.task_id,
+                    "traveler_id": task.employee.employee_id,
+                    "conversation_turns": len(ledger.turns),
+                    "latest_user_turn": ledger.latest_user_message,
+                },
+                operation=lambda: self.intent_interpreter.interpret(
+                    ledger,
+                    task_id=task.task_id,
+                    traveler_id=task.employee.employee_id,
+                    context=context,
+                ),
+            )
+        except ToolBudgetExceeded:
+            return self._stop_for_tool_budget(task, "llm.interpret_trip_intent")
+        except LanguageModelError as exc:
+            task.failure = str(exc)
+            task.metadata["semantic_intent_failure"] = exc.trace_details()
+            task.clarification_question = None
+            self._transition(task, TaskState.NEEDS_STRUCTURED_INPUT)
+            self._audit(
+                task,
+                "SEMANTIC_INTENT_FAILED",
+                {"turns": len(ledger.turns)},
+                task.metadata["semantic_intent_failure"],
+            )
+            return task
+
+        self._note_llm_success()
+        decision = result.decision
+        self._record_semantic_decision(task, decision)
+        task.metadata.setdefault("llm_calls", []).append(asdict(result.metadata))
+        task.metadata["intent_confidence"] = decision.confidence
+        task.metadata["manipulation_detected"] = decision.manipulation_detected
+        # This is the sole semantic-to-shared-domain projection in the semantic entrypoint.
+        task.intent_fields = self._canonicalize_intent_cities(semantic_fields(decision))
+        task.assumptions = tuple(decision.assumptions)
+
+        if decision.status is IntentDecisionStatus.OUT_OF_SCOPE:
+            task.request = None
+            task.options = []
+            task.selected_option_id = None
+            task.failure = "The request is outside the corporate travel planning scope"
+            task.missing_required_fields = ()
+            task.intent_conflicts = tuple(decision.conflicts)
+            self._transition(task, TaskState.OUT_OF_SCOPE)
+            self._audit(task, "SEMANTIC_INTENT_OUT_OF_SCOPE", ledger.render(), decision)
+            return task
+
+        version = task.request.version + 1 if task.request is not None else 1
+        compiled = compile_search_command(
+            decision,
+            task_id=task.task_id,
+            traveler_id=task.employee.employee_id,
+            version=version,
+            city_normalizer=self.city_normalizer,
+            created_at=self.clock(),
+        )
+        if not compiled.ready:
+            return self._pause_for_semantic_clarification(
+                task,
+                question=compiled.clarification_question,
+                missing=compiled.missing,
+                conflicts=compiled.conflicts,
+                unsupported=decision.status is IntentDecisionStatus.UNSUPPORTED,
+            )
+
+        assert compiled.command is not None
+        task.request = compiled.command.request
+        task.missing_required_fields = ()
+        task.intent_conflicts = ()
+        task.clarification_question = None
+        task.failure = None
+        task.metadata.pop("pending_revision", None)
+        task.metadata.pop("clarification_questions", None)
+        task.metadata.pop("clarification_pending_slots", None)
+        task.metadata.pop("uncertain_slots", None)
+        task.options = []
+        task.selected_option_id = None
+        task.booking_intent = None
+        task.approval = None
+        self._audit(
+            task,
+            "SEARCH_COMMAND_COMPILED",
+            decision.intent.summary,
+            task.request,
+        )
+        return self._search_and_plan(task, self._policy_for(task))
+
+    def _pause_for_semantic_clarification(
+        self,
+        task: TripTask,
+        *,
+        question: str | None,
+        missing: tuple[str, ...],
+        conflicts: tuple[str, ...],
+        unsupported: bool,
+    ) -> TripTask:
+        """Pause without ever converting unresolved semantics into a search."""
+        task.missing_required_fields = missing
+        task.intent_conflicts = conflicts
+        if not task.metadata.get("pending_revision"):
+            task.request = None
+            task.options = []
+            task.selected_option_id = None
+            task.booking_intent = None
+            task.approval = None
+        task.failure = None
+        task.clarification_rounds += 1
+        if task.clarification_rounds > self.max_clarification_rounds:
+            task.clarification_question = None
+            task.failure = (
+                "Semantic ambiguity remains after the clarification limit; "
+                "use the structured form"
+            )
+            self._transition(task, TaskState.NEEDS_STRUCTURED_INPUT)
+            self._audit(
+                task,
+                "SEMANTIC_CLARIFICATION_EXHAUSTED",
+                {"missing": missing, "conflicts": conflicts},
+                task.failure,
+            )
+            return task
+        task.clarification_question = question or "请确认我对这次出行的理解。"
+        task.messages.append(
+            ConversationMessage(role="assistant", content=task.clarification_question)
+        )
+        self._transition(task, TaskState.NEEDS_CLARIFICATION)
+        self._audit(
+            task,
+            "SEMANTIC_CLARIFICATION_REQUESTED",
+            {
+                "missing": missing,
+                "conflicts": conflicts,
+                "unsupported": unsupported,
+            },
+            task.clarification_question,
+        )
+        return task
+
+    def _record_semantic_decision(self, task: TripTask, decision: Any) -> None:
+        payload = decision.model_dump(mode="json")
+        record = {
+            "source": IntentEntrypoint.SEMANTIC.value,
+            "turn_count": len(task.messages),
+            "decision": payload,
+        }
+        task.metadata["semantic_intent"] = record
+        history = list(task.metadata.get("semantic_intent_history") or ())
+        history.append(record)
+        task.metadata["semantic_intent_history"] = history[-20:]
+
     @staticmethod
     def _empty_intent_fields() -> dict[str, Any]:
         """返回空意图字段模板。"""
@@ -959,6 +1247,7 @@ class TripWorkflowOrchestrator:
             "hotel_check_in": None,
             "hotel_check_out": None,
             "client_location": None,
+            "booking_scope": None,
             "lodging_requirement": LodgingRequirement.UNSPECIFIED.value,
             "hard_constraints": [],
             "soft_preferences": [],
@@ -1013,6 +1302,7 @@ class TripWorkflowOrchestrator:
             context={
                 "reference_time": self.clock().isoformat(),
                 "timezone": self.timezone_name,
+                "prior_fields": self._json_safe_fields(task.intent_fields),
             },
         )
         merged, _rejected, provenance = merge_model_fields_anti_fabrication(
@@ -1419,6 +1709,20 @@ class TripWorkflowOrchestrator:
         )
 
     @staticmethod
+    def _require_intent_entrypoint(
+        task: TripTask, expected: IntentEntrypoint
+    ) -> None:
+        actual = task.metadata.get("intent_entrypoint")
+        # Persisted tasks created before entrypoint separation are legacy-compatible.
+        if actual is None and expected is IntentEntrypoint.LEGACY:
+            return
+        if actual != expected.value:
+            raise WorkflowError(
+                f"Task uses {actual or 'unknown'} intent entrypoint; "
+                f"continue it through the {expected.value} entrypoint"
+            )
+
+    @staticmethod
     def _prior_user_turn_count(task: TripTask) -> int:
         return sum(1 for item in task.messages if item.role == "user")
 
@@ -1780,6 +2084,8 @@ class TripWorkflowOrchestrator:
 
     def _build_request(self, task: TripTask) -> TripRequestVersion:
         """从任务意图字段构造 TripRequestVersion。"""
+        from corporate_travel_agent.agent.journey_semantics import booking_scope_for_fields
+
         fields = task.intent_fields
         return TripRequestVersion(
             task_id=task.task_id,
@@ -1795,6 +2101,13 @@ class TripWorkflowOrchestrator:
             hotel_check_out=fields["hotel_check_out"],
             hard_constraints=tuple(fields["hard_constraints"]),
             soft_preferences=tuple(fields["soft_preferences"]),
+            booking_scope=booking_scope_for_fields(
+                fields,
+                user_message=next(
+                    (item.content for item in reversed(task.messages) if item.role == "user"),
+                    "",
+                ),
+            ),
             created_at=self.clock(),
         )
 
@@ -1993,9 +2306,8 @@ class TripWorkflowOrchestrator:
         task.failure = None
         task.metadata.pop("no_feasible_reasons", None)
         request = self._request(task)
-        required_calls = 1
-        if request.return_after is not None:
-            required_calls += 1
+        transport_legs = request.transport_legs()
+        required_calls = len(transport_legs)
         if request.hotel_check_in and request.hotel_check_out:
             required_calls += 1
         if task.tool_calls_remaining < required_calls:
@@ -2007,11 +2319,12 @@ class TripWorkflowOrchestrator:
         if not self._prepare_provider_operation(task, resume_operation="SEARCH"):
             return task
         try:
+            primary_leg = transport_legs[0]
             outbound_query = TransportSearchQuery(
-                origin=request.origin,
-                destination=request.destination,
-                depart_after=request.departure_after,
-                arrive_before=request.arrive_by,
+                origin=primary_leg.origin,
+                destination=primary_leg.destination,
+                depart_after=primary_leg.depart_after,
+                arrive_before=primary_leg.arrive_before,
             )
             outbound_snapshot = self._invoke_tool(
                 task,
@@ -2021,12 +2334,13 @@ class TripWorkflowOrchestrator:
                 operation=lambda: self.provider.search_transport(outbound_query),
             )
             inbound_snapshot = None
-            if request.return_after is not None:
+            if len(transport_legs) > 1:
+                return_leg = transport_legs[1]
                 inbound_query = TransportSearchQuery(
-                    origin=request.destination,
-                    destination=request.origin,
-                    depart_after=request.return_after,
-                    arrive_before=request.return_before,
+                    origin=return_leg.origin,
+                    destination=return_leg.destination,
+                    depart_after=return_leg.depart_after,
+                    arrive_before=return_leg.arrive_before,
                 )
                 inbound_snapshot = self._invoke_tool(
                     task,

@@ -1549,7 +1549,7 @@ def run_model_observation(
     )
     controls = world.get("execution_controls") or {}
     max_tool_calls = int(controls.get("tool_call_limit") or 12)
-    max_clarification_rounds = int(controls.get("max_clarification_rounds") or 3)
+    max_clarification_rounds = int(controls.get("max_clarification_rounds") or 5)
     # Match production/demo city alias normalization (北京→Beijing, etc.).
     policy_configuration = load_policy_configuration()
     workflow = TripWorkflowOrchestrator(

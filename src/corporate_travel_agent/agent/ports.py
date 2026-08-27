@@ -4,11 +4,14 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, Protocol
+from typing import TYPE_CHECKING, Any, Protocol
 
 from corporate_travel_agent.domain.models import TravelOptionVersion
 
 from .schemas import IntentExtractionSchema
+
+if TYPE_CHECKING:
+    from .semantic_intent import IntentDecision
 
 
 @dataclass(frozen=True, slots=True)
@@ -36,6 +39,14 @@ class IntentExtractionResult:
     """意图抽取结果：结构化 payload + 调用元数据。"""
 
     payload: IntentExtractionSchema
+    metadata: LLMCallMetadata
+
+
+@dataclass(frozen=True, slots=True)
+class IntentInterpretationResult:
+    """完整对话语义解释结果及单次模型调用元数据。"""
+
+    decision: IntentDecision
     metadata: LLMCallMetadata
 
 
@@ -138,6 +149,21 @@ class LanguageModelPort(Protocol):
     def explain_verified_options(
         self, options: tuple[TravelOptionVersion, ...]
     ) -> dict[str, str]: ...
+
+
+class SemanticLanguageModelPort(Protocol):
+    """完整对话语义解释端口；不暴露旧字段抽取能力。"""
+
+    semantic_prompt_version: str
+
+    def interpret_trip_intent(
+        self,
+        conversation: str,
+        *,
+        task_id: str,
+        traveler_id: str,
+        context: dict[str, Any],
+    ) -> IntentInterpretationResult: ...
 
 
 class FactsOnlyExplanationAdapter:

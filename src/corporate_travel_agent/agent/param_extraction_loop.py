@@ -13,7 +13,8 @@
   - 仅 ``provided_fields`` 可写槽位（白名单合并在外层）。
   - 城市（origin/destination）从不由 LLM 修复，只走用户澄清。
   - 日期/酒店槽在用户文本可支撑时，最多 ``MAX_INTENT_REPAIR_ATTEMPTS`` 次模型修复，否则澄清。
-  - 确定性 P0 默认（白名单推导）在 L2 之前运行且不编造城市——见 ``intent_calibration.apply_safe_defaults``。
+  - 确定性 P0 默认（白名单推导）在 L2 之前运行且不编造城市——
+    见 ``intent_calibration.apply_safe_defaults``。
 
 错误文案形状对齐 Claude Code ``formatZodValidationError``，便于修复提示与审计。
 """

@@ -5,6 +5,7 @@ from corporate_travel_agent.agent.intent_evidence import (
     build_intent_evidence,
     validate_model_field_evidence,
 )
+from corporate_travel_agent.domain.enums import BookingScope
 
 SH = ZoneInfo("Asia/Shanghai")
 REF = datetime(2026, 8, 19, 15, 0, tzinfo=SH)
@@ -27,6 +28,22 @@ def test_return_scoped_span_rejects_outbound_slot_but_accepts_return_slot() -> N
     assert result.field_evidence["return_after"]["raw"] == "8月25日"
     assert result.field_evidence["return_after"]["start"] == 2
     assert result.field_evidence["return_after"]["end"] == 7
+
+
+def test_return_scoped_span_supports_primary_slot_for_return_only_booking() -> None:
+    message = "返程8月25日从上海回北京"
+    evidence = build_intent_evidence(message, reference_time=REF)
+    day = datetime(2026, 8, 25, 18, 0, tzinfo=SH)
+
+    result = validate_model_field_evidence(
+        extracted_fields={"departure_after": day},
+        provided_fields={"departure_after"},
+        prior_fields={"booking_scope": BookingScope.RETURN_ONLY.value},
+        evidence=evidence,
+    )
+
+    assert result.accepted_fields == frozenset({"departure_after"})
+    assert result.rejected_fields == ()
 
 
 def test_unmentioned_date_is_rejected_as_untraceable() -> None:

@@ -14,6 +14,8 @@ from dataclasses import dataclass
 from datetime import date, datetime, timedelta
 from typing import Any
 
+from corporate_travel_agent.domain.enums import BookingScope
+
 from .intent_calibration import iter_calendar_date_mentions, resolve_calendar_mention
 
 _DELIMITER_RE = re.compile(r"[，,。\.；;！？!?\n]")
@@ -251,6 +253,7 @@ def validate_model_field_evidence(
     accepted: set[str] = set()
     rejected: list[str] = []
     traces: dict[str, dict[str, Any]] = {}
+    return_only = prior_fields.get("booking_scope") == BookingScope.RETURN_ONLY.value
     for name in provided_fields:
         value = extracted_fields.get(name)
         if value in (None, "", []):
@@ -273,7 +276,12 @@ def validate_model_field_evidence(
             traces[name] = match.as_dict()
             continue
         if name in _DATE_FIELDS:
-            match, reason = _date_evidence(name, value, evidence.dates)
+            match, reason = _date_evidence(
+                name,
+                value,
+                evidence.dates,
+                return_as_primary=return_only,
+            )
             if match is None:
                 if reason == "untraceable_source_span" and not reject_untraceable:
                     accepted.add(name)
@@ -344,7 +352,11 @@ def _city_evidence(
 
 
 def _date_evidence(
-    field_name: str, value: Any, mentions: tuple[SourceEvidence, ...]
+    field_name: str,
+    value: Any,
+    mentions: tuple[SourceEvidence, ...],
+    *,
+    return_as_primary: bool = False,
 ) -> tuple[SourceEvidence | None, str]:
     value_day = value.date() if isinstance(value, datetime) else value
     if not isinstance(value_day, date):
@@ -355,11 +367,14 @@ def _date_evidence(
             field_name in {"departure_after", "arrive_by"}
             and mentions
             and all(item.scope == "return" for item in mentions)
+            and not return_as_primary
         ):
             return None, "source_scope_mismatch"
         return None, "untraceable_source_span"
     if field_name in {"departure_after", "arrive_by"}:
         compatible = {"outbound", "round_trip", "ambiguous"}
+        if return_as_primary:
+            compatible.add("return")
     elif field_name in {"return_after", "return_before"}:
         compatible = {"return", "round_trip"}
     else:

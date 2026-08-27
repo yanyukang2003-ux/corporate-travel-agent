@@ -253,16 +253,16 @@
         }
       },
       "hotel_city_caps": {
-        "CN-SHA": "600",
-        "US-NYC": "350",
-        "US-PHL": "280",
-        "US-LAX": "300",
-        "US-SFO": "320",
-        "GB-LON": "320",
-        "FR-PAR": "300",
-        "JP-TYO": "280",
-        "SG-SIN": "260",
-        "HK-HKG": "300"
+        "CN-SHA": "200",
+        "US-NYC": "200",
+        "US-PHL": "200",
+        "US-LAX": "200",
+        "US-SFO": "200",
+        "GB-LON": "200",
+        "FR-PAR": "200",
+        "JP-TYO": "200",
+        "SG-SIN": "200",
+        "HK-HKG": "200"
       },
       "exception_allowed_rule_ids": [
         "transport.flight.seat_class",

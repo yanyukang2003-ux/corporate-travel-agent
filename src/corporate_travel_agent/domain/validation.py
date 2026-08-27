@@ -8,6 +8,7 @@ from datetime import date, datetime
 from typing import Any
 
 from .constraints import SUPPORTED_HARD_CONSTRAINTS, SUPPORTED_SOFT_PREFERENCES
+from .enums import BookingScope
 from .models import TripRequestVersion
 
 
@@ -55,6 +56,7 @@ def validate_trip_request(request: TripRequestVersion) -> TripRequestValidation:
             "arrive_by": request.arrive_by,
             "return_after": request.return_after,
             "return_before": request.return_before,
+            "booking_scope": request.booking_scope,
             "hotel_check_in": request.hotel_check_in,
             "hotel_check_out": request.hotel_check_out,
             "hard_constraints": request.hard_constraints,
@@ -105,12 +107,38 @@ def validate_trip_request_values(fields: Mapping[str, Any]) -> TripRequestValida
 
     return_after = fields.get("return_after")
     return_before = fields.get("return_before")
+    raw_scope = fields.get("booking_scope")
+    scope: BookingScope | None = None
+    if isinstance(raw_scope, BookingScope):
+        scope = raw_scope
+    elif isinstance(raw_scope, str):
+        try:
+            scope = BookingScope(raw_scope)
+        except ValueError:
+            conflicts.append("booking_scope is invalid")
+    elif raw_scope is not None:
+        conflicts.append("booking_scope is invalid")
+    if scope is None and raw_scope is None:
+        scope = (
+            BookingScope.ROUND_TRIP
+            if return_after is not None or return_before is not None
+            else BookingScope.OUTBOUND_ONLY
+        )
     if return_after is not None and not isinstance(return_after, datetime):
         conflicts.append("return_after must be a datetime")
     if return_before is not None and not isinstance(return_before, datetime):
         conflicts.append("return_before must be a datetime")
     if (return_after is None) != (return_before is None):
         missing.append("return_before" if return_before is None else "return_after")
+    if scope is BookingScope.ROUND_TRIP:
+        if return_after is None:
+            missing.append("return_after")
+        if return_before is None:
+            missing.append("return_before")
+    elif scope in {BookingScope.OUTBOUND_ONLY, BookingScope.RETURN_ONLY} and (
+        return_after is not None or return_before is not None
+    ):
+        conflicts.append("single-leg booking must not contain return fields")
     _require_aware(return_after, "return_after", conflicts)
     _require_aware(return_before, "return_before", conflicts)
     if (

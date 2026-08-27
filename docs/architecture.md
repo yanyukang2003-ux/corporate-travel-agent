@@ -49,9 +49,39 @@ flowchart LR
 | 方案解释 | 仅引用 `explanation_facts` | 生成事实集 |
 | 审批有效性、幂等和交接 | 否 | 是 |
 
-`LanguageModelPort` 固定三个能力：意图抽取、白名单查询调整和已验证方案解释。生产实现必须使用结构化输出，并在进入领域层前完成 schema 校验。
+语言模型只负责完整对话的语义解释、白名单查询调整和已验证方案解释。生产实现必须使用结构化输出，并在进入领域层前完成 schema 校验。
 
-自然语言入口使用两层验证：
+新的意图 seam 是一个深模块：
+
+```text
+ConversationLedger -> ConversationIntentInterpreter -> IntentDecision
+                                                |
+                                                v
+                                   compile_search_command
+                                                |
+                            clarification <-----+-----> TripRequestVersion
+```
+
+`ConversationLedger` 是原始语义事实来源。`SemanticIntent` 可以保留多个候选城市、条件、
+未决信息和后续修正；它不是搜索参数。仅当 `IntentDecision.status == READY` 时，
+`compile_search_command()` 才能生成经过确定性校验的请求。编译器不补城市或日期默认值，
+任何会改变搜索结果的歧义都返回澄清。
+
+新旧链路通过不同入口并行存在，不使用运行时 mode 分支：
+
+- 旧链路：`POST /legacy/trip-tasks` 和
+  `POST /legacy/trip-tasks/{task_id}/messages`；
+- 新链路：`POST /semantic/trip-tasks` 和
+  `POST /semantic/trip-tasks/{task_id}/messages`；
+- 结构化入口：`POST /trip-tasks`。
+
+任务创建时固定 `intent_entrypoint`，后续消息不得跨入口提交。旧入口只调用
+`LanguageModelPort.extract_trip_intent`；新入口只调用
+`SemanticLanguageModelPort.interpret_trip_intent`，不会回退到旧抽取。二者仅在产出经过验证的
+`TripRequestVersion` 后共享搜索、政策、审批和交接流程。删除旧链路的评测门槛见
+[ADR-0002](adr/0002-single-owner-semantic-intent.md)。
+
+旧 `legacy` 自然语言入口使用两层验证：
 
 1. `IntentExtractionSchema` 限定模型只能返回差旅行程字段、字段来源、缺失项、冲突、假设和操纵标记；
 2. Orchestrator 独立重算必填项、时区、时间顺序、返程/酒店成对字段以及互斥硬约束。
@@ -78,7 +108,7 @@ stateDiagram-v2
     [*] --> DRAFT
     DRAFT --> NEEDS_CLARIFICATION: 缺字段或冲突
     NEEDS_CLARIFICATION --> DRAFT: 用户补充
-    DRAFT --> NEEDS_STRUCTURED_INPUT: 三轮耗尽或模型失败
+    DRAFT --> NEEDS_STRUCTURED_INPUT: 五轮耗尽或模型失败
     DRAFT --> OUT_OF_SCOPE: 非差旅范围请求
     DRAFT --> TOOL_BUDGET_EXHAUSTED: LLM 预算不足
     DRAFT --> SEARCHING

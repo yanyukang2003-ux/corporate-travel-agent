@@ -14,7 +14,15 @@ from datetime import date, datetime, time, timedelta
 from typing import Any
 from zoneinfo import ZoneInfo
 
-from corporate_travel_agent.domain.enums import LodgingRequirement
+from corporate_travel_agent.agent.journey_semantics import (
+    booking_scope_for_fields,
+    normalize_journey_fields,
+    return_from_city_span,
+)
+from corporate_travel_agent.agent.journey_semantics import (
+    message_is_return_leg_only as _message_is_return_leg_only,
+)
+from corporate_travel_agent.domain.enums import BookingScope, LodgingRequirement
 from corporate_travel_agent.services.locations import route_timezones
 
 # 白名单默认——仅这些可在无模型重抽时填充。
@@ -23,6 +31,12 @@ DEFAULT_ARRIVE_BY_HOUR = 18
 DEFAULT_RETURN_AFTER_HOUR = 13
 DEFAULT_RETURN_BEFORE_HOUR = 18
 MAX_INTENT_REPAIR_ATTEMPTS = 2
+
+
+def message_is_return_leg_only(message: str) -> bool:
+    """兼容旧导入路径；具体语义集中在 journey_semantics。"""
+
+    return _message_is_return_leg_only(message)
 
 _SLOT_FIELDS = (
     "origin",
@@ -124,13 +138,6 @@ _RETURN_REVISION_RE = re.compile(
 )
 _RETURN_SCOPED_RELATIVE_DAY_RE = re.compile(
     r"(?:返程|回程|返回).{0,8}(?:后天|明天)|(?:后天|明天).{0,8}(?:返程|回程|返回)"
-)
-_RETURN_FROM_CITY_ONLY_RE = re.compile(
-    r"从(?P<city>.{1,20}?)(?:回来|返回|返程)"
-)
-_HAS_OUTBOUND_ROUTE_RE = re.compile(
-    r"从.{1,20}?(?:去|到|至|出发)|from\s+.+\s+to\s+",
-    re.I,
 )
 _TWO_NIGHTS_RE = re.compile(
     r"住两晚|订两晚|两晚酒店|two[- ]nights?|\b2\s+nights?\b",
@@ -260,7 +267,7 @@ def search_ready_missing(
     for name in ("origin", "destination", "departure_after", "arrive_by"):
         if fields.get(name) in (None, ""):
             missing.append(name)
-    if message_is_return_leg_only(user_message):
+    if booking_scope_for_fields(fields, user_message=user_message) is BookingScope.ROUND_TRIP:
         if fields.get("return_after") is None:
             missing.append("return_after")
         if fields.get("return_before") is None:
@@ -692,60 +699,26 @@ def iter_invalid_date_tokens(message: str) -> tuple[str, ...]:
     return tuple(dict.fromkeys(found))
 
 
-def message_is_return_leg_only(message: str) -> bool:
-    """用户只在说返程（从某地回来），没有给出程路线。"""
-    text = message or ""
-    if _HAS_OUTBOUND_ROUTE_RE.search(text):
-        return False
-    return bool(
-        _RETURN_FROM_CITY_ONLY_RE.search(text)
-        or re.search(r"^(?:只要|只订|仅)?(?:返程|回程)(?:\s|$|，|,|。)", text)
-    )
-
-
-def return_from_city_span(message: str) -> str | None:
-    """「从北京回来」中的城市原文；若同时有「从X去Y」则不算。"""
-    if _HAS_OUTBOUND_ROUTE_RE.search(message or ""):
-        return None
-    match = _RETURN_FROM_CITY_ONLY_RE.search(message or "")
-    if match is None:
-        return None
-    return (match.group("city") or "").strip() or None
-
-
 def apply_return_from_city_semantics(
     fields: dict[str, Any],
     *,
     user_message: str,
     provenance: dict[str, str],
 ) -> tuple[dict[str, Any], list[str], dict[str, str]]:
-    """「从北京回来」把北京当作目的地/返程出发地，而不是去程出发城市。"""
+    """兼容入口：把旧去程归一化字段转换为真实方向的预订航段。"""
     span = return_from_city_span(user_message)
-    if not span:
-        return dict(fields), [], dict(provenance)
     from corporate_travel_agent.agent.clarification_questions import lookup_clarification_city
     from corporate_travel_agent.agent.local_intent import GroundedLocalIntentParser
 
-    city = lookup_clarification_city(span) or GroundedLocalIntentParser()._lookup_span(span)
-    if not city:
-        return dict(fields), [], dict(provenance)
-    updated = dict(fields)
-    prov = dict(provenance)
-    notes: list[str] = []
-    origin = updated.get("origin") if isinstance(updated.get("origin"), str) else None
-    dest = updated.get("destination") if isinstance(updated.get("destination"), str) else None
-    origin_match = bool(origin and origin.casefold() == city.casefold())
-    dest_match = bool(dest and dest.casefold() == city.casefold())
-    if origin_match and (dest is None or dest_match):
-        updated["origin"] = None
-        prov.pop("origin", None)
-        notes.append(f"return_from_city: origin is home, not {city}")
-    if dest is None or dest_match or origin_match:
-        if dest != city:
-            updated["destination"] = city
-            prov["destination"] = "return_from_city"
-            notes.append(f"return_from_city: destination={city}")
-    return updated, notes, prov
+    city = None
+    if span:
+        city = lookup_clarification_city(span) or GroundedLocalIntentParser()._lookup_span(span)
+    return normalize_journey_fields(
+        fields,
+        user_message=user_message,
+        provenance=provenance,
+        return_from_city=city,
+    )
 
 
 def _clear_date_slots(

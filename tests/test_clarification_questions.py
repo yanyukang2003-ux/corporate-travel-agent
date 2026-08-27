@@ -629,31 +629,35 @@ def test_time_window_keeps_next_wednesday_from_original_message() -> None:
 
 
 def test_invalid_date_and_return_from_beijing() -> None:
+    from corporate_travel_agent.agent.clarification_questions import (
+        detect_uncertain_slots,
+    )
+    from corporate_travel_agent.agent.clarification_questions import (
+        lookup_clarification_city as lookup_city,
+    )
     from corporate_travel_agent.agent.intent_calibration import (
         apply_return_from_city_semantics,
         iter_invalid_date_tokens,
         message_is_return_leg_only,
         search_ready_missing,
     )
-    from corporate_travel_agent.agent.clarification_questions import detect_uncertain_slots
     from corporate_travel_agent.agent.local_intent import GroundedLocalIntentParser
 
     message = "2.31从北京回来"
     assert "2.31" in iter_invalid_date_tokens(message)
     assert message_is_return_leg_only(message)
-    from corporate_travel_agent.agent.clarification_questions import lookup_clarification_city as lookup_city
 
     origin, destination = GroundedLocalIntentParser()._cities(message)
-    assert origin is None
-    assert lookup_city(destination or "") == "Beijing"
+    assert lookup_city(origin or "") == "Beijing"
+    assert destination is None
 
     updated, notes, _ = apply_return_from_city_semantics(
         {"origin": "Beijing", "destination": "Beijing"},
         user_message=message,
         provenance={"origin": "model", "destination": "model"},
     )
-    assert updated["origin"] is None
-    assert updated["destination"] == "Beijing"
+    assert updated["origin"] == "Beijing"
+    assert updated["destination"] is None
     assert notes
 
     uncertain = detect_uncertain_slots(
@@ -665,8 +669,11 @@ def test_invalid_date_and_return_from_beijing() -> None:
     assert "travel_date" in uncertain
 
     ready = search_ready_missing(updated, classification="TRIP", user_message=message)
-    assert "origin" in ready.missing
-    assert "return_after" in ready.missing
+    assert "destination" in ready.missing
+    assert "origin" not in ready.missing
+    assert "departure_after" in ready.missing
+    assert "arrive_by" in ready.missing
+    assert "return_after" not in ready.missing
     bundle = build_clarification_bundle(
         missing=ready.missing,
         uncertain=uncertain,
@@ -678,10 +685,27 @@ def test_invalid_date_and_return_from_beijing() -> None:
     ids = [item.id for item in bundle.questions]
     assert "return_trip" not in ids
     assert "cities" in ids
+    cities = next(item for item in bundle.questions if item.id == "cities")
+    assert "回到哪座城市" in cities.question
+    assert "destination:Hong Kong" in [option.value for option in cities.options]
     times = next(item for item in bundle.questions if item.input_kind == "time_range")
-    assert times.id == "return_times"
+    assert times.id == "times"
+    assert times.slots == ("departure_after", "arrive_by")
     assert "只要去程" not in times.question
     assert "2.31" in times.question
+
+
+def test_return_from_city_does_not_overwrite_destination() -> None:
+    from corporate_travel_agent.agent.intent_calibration import apply_return_from_city_semantics
+
+    updated, notes, _ = apply_return_from_city_semantics(
+        {"origin": None, "destination": "Beijing"},
+        user_message="下周三从北京回来",
+        provenance={"destination": "model"},
+    )
+    assert updated["origin"] == "Beijing"
+    assert updated["destination"] is None
+    assert any("from-city" in item or "origin=Beijing" in item for item in notes)
 
 
 def test_iso_return_window_applies() -> None:
@@ -706,4 +730,3 @@ def test_iso_return_window_applies() -> None:
     assert updated["return_before"].hour == 18
     assert updated["return_after"].date().isoformat() == "2026-09-01"
     assert notes
-

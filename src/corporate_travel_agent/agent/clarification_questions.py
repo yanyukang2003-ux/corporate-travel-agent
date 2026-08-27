@@ -15,7 +15,8 @@ import re
 from dataclasses import asdict, dataclass
 from typing import Any
 
-from corporate_travel_agent.domain.enums import LodgingRequirement
+from corporate_travel_agent.agent.journey_semantics import booking_scope_for_fields
+from corporate_travel_agent.domain.enums import BookingScope, LodgingRequirement
 
 # TripTask.metadata 中的澄清相关键
 CLARIFICATION_QUESTIONS_KEY = "clarification_questions"
@@ -285,14 +286,16 @@ def detect_uncertain_slots(
         iter_invalid_date_tokens,
         message_has_ambiguous_weekday_choice,
         message_is_lunar_or_holiday_without_gregorian,
-        message_is_return_leg_only,
     )
 
     if iter_invalid_date_tokens(user_message):
         uncertain.append("travel_date")
 
     # 只说「从北京回来」已经是在安排返程，不要再问「需不需要返程 / 只要去程」。
-    return_leg_only = message_is_return_leg_only(user_message)
+    return_leg_only = (
+        booking_scope_for_fields(fields, user_message=user_message)
+        is BookingScope.RETURN_ONLY
+    )
     return_talk = message_mentions_return(user_message) and not message_mentions_one_way(
         user_message
     )
@@ -348,7 +351,12 @@ def detect_uncertain_slots(
     return tuple(dict.fromkeys(uncertain))
 
 
-def _city_question(missing: tuple[str, ...], fields: dict[str, Any]) -> ClarificationQuestion:
+def _city_question(
+    missing: tuple[str, ...],
+    fields: dict[str, Any],
+    *,
+    return_leg_only: bool = False,
+) -> ClarificationQuestion:
     """出发/目的城市澄清：目录城市可点选，不再只给空白输入框。"""
     origin_missing = "origin" in missing
     dest_missing = "destination" in missing
@@ -366,8 +374,9 @@ def _city_question(missing: tuple[str, ...], fields: dict[str, Any]) -> Clarific
         elif dest_missing and not origin_missing:
             if known_origin and str(known_origin).casefold() == folded:
                 continue
+            dest_prefix = "回到" if return_leg_only else "目的城市"
             options.append(
-                QuestionOption(label, f"目的城市 {label}", f"destination:{canonical}")
+                QuestionOption(label, f"{dest_prefix} {label}", f"destination:{canonical}")
             )
         else:
             options.append(
@@ -378,6 +387,12 @@ def _city_question(missing: tuple[str, ...], fields: dict[str, Any]) -> Clarific
     elif origin_missing:
         dest_label = known_dest or "已识别目的地"
         question = f"请选择出发城市。当前目的地是 {dest_label}。"
+    elif return_leg_only:
+        origin_label = known_origin or "已识别出发地"
+        question = (
+            f"请选择回到哪座城市。当前是从 {origin_label} 返回，"
+            f"不是把 {origin_label} 当作目的地。"
+        )
     else:
         origin_label = known_origin or "已识别出发地"
         question = f"请选择目的城市。当前出发地是 {origin_label}。"
@@ -406,7 +421,20 @@ def _time_questions(
         shown = "、".join(invalid_tokens)
         invalid_note = f"{shown} 不是有效公历日期。请改选真实日期，再选定时间区间。"
 
-    if return_leg_only or (need_return and not need_depart and not need_arrive):
+    if return_leg_only:
+        questions.append(
+            ClarificationQuestion(
+                id="times",
+                header="返程航段时间",
+                question=invalid_note or "请选择这段返程的出发日期，以及出发和到达时间区间。",
+                options=(),
+                slots=("departure_after", "arrive_by"),
+                input_kind="time_range",
+            )
+        )
+        return questions
+
+    if need_return and not need_depart and not need_arrive:
         questions.append(
             ClarificationQuestion(
                 id="return_times",
@@ -417,9 +445,6 @@ def _time_questions(
                 input_kind="time_range",
             )
         )
-        if return_leg_only:
-            return questions
-
     if need_depart or need_arrive:
         questions.append(
             ClarificationQuestion(
@@ -448,7 +473,6 @@ def build_clarification_bundle(
     """为缺失 + 不确定槽构建 AskUserQuestion 风格提示。"""
     from corporate_travel_agent.agent.intent_calibration import (
         iter_invalid_date_tokens,
-        message_is_return_leg_only,
     )
 
     missing = tuple(dict.fromkeys(missing))
@@ -459,19 +483,24 @@ def build_clarification_bundle(
 
     questions: list[ClarificationQuestion] = []
     current = fields or {}
-    return_leg_only = message_is_return_leg_only(user_message)
+    return_leg_only = (
+        booking_scope_for_fields(current, user_message=user_message)
+        is BookingScope.RETURN_ONLY
+    )
     invalid_tokens = iter_invalid_date_tokens(user_message)
     if return_leg_only:
         uncertain = tuple(item for item in uncertain if item != "return_trip")
         extra_missing = [
             name
-            for name in ("return_after", "return_before")
+            for name in ("departure_after", "arrive_by")
             if current.get(name) is None
         ]
         missing = tuple(dict.fromkeys([*missing, *extra_missing]))
 
     if "origin" in missing or "destination" in missing:
-        questions.append(_city_question(missing, current))
+        questions.append(
+            _city_question(missing, current, return_leg_only=return_leg_only)
+        )
 
     time_missing = tuple(
         name
@@ -484,7 +513,7 @@ def build_clarification_bundle(
                 _time_questions(
                     time_missing
                     or (
-                        ("return_after", "return_before")
+                        ("departure_after", "arrive_by")
                         if return_leg_only
                         else ("departure_after", "arrive_by")
                     ),
@@ -1131,7 +1160,8 @@ def _apply_clock_arrive_by(
             hour = 12
     elif clock_option is not None:
         if clock_option.lastindex and clock_option.lastindex >= 2:
-            if clock_option.group(0).startswith("arrive:") or clock_option.group(0).startswith("depart:"):
+            option_text = clock_option.group(0)
+            if option_text.startswith("arrive:") or option_text.startswith("depart:"):
                 hour = int(clock_option.group(2))
                 minute = int(clock_option.group(3))
             else:

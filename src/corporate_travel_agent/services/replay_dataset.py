@@ -225,25 +225,14 @@ def build_task_replay_cases(
         (
             "transport",
             TransportSearchQuery(
-                origin=request.origin,
-                destination=request.destination,
-                depart_after=request.departure_after,
-                arrive_before=request.arrive_by,
+                origin=leg.origin,
+                destination=leg.destination,
+                depart_after=leg.depart_after,
+                arrive_before=leg.arrive_before,
             ),
         )
+        for leg in request.transport_legs()
     ]
-    if request.return_after is not None:
-        expected.append(
-            (
-                "transport",
-                TransportSearchQuery(
-                    origin=request.destination,
-                    destination=request.origin,
-                    depart_after=request.return_after,
-                    arrive_before=request.return_before,
-                ),
-            )
-        )
     if request.hotel_check_in is not None and request.hotel_check_out is not None:
         expected.append(
             (

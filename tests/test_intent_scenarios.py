@@ -218,7 +218,7 @@ SCENARIOS = [
         "payload": intent_payload(overrides={"return_before": None}),
         # A sole return-scoped day cannot be reused as the outbound/arrival day.
         "state": TaskState.NEEDS_CLARIFICATION,
-        "missing": ("departure_after", "arrive_by"),
+        "conflict": "arrive_by must be later than departure_after",
     },
     {
         "name": "partial_return_missing_after",
@@ -261,7 +261,7 @@ SCENARIOS = [
         "message": "返程时间写反了",
         "payload": intent_payload(overrides={"return_before": RETURN_AFTER}),
         "state": TaskState.NEEDS_CLARIFICATION,
-        "conflict": "return_before must be later than return_after",
+        "conflict": "arrive_by must be later than departure_after",
     },
     {
         "name": "hotel_dates_reversed",
@@ -573,7 +573,7 @@ class ClarificationFlowTests(unittest.TestCase):
             inbound_calls_before,
         )
 
-    def test_three_round_budget_falls_back_to_structured_input(self) -> None:
+    def test_five_round_budget_falls_back_to_structured_input(self) -> None:
         missing = intent_payload(
             overrides={
                 "origin": None,
@@ -583,17 +583,17 @@ class ClarificationFlowTests(unittest.TestCase):
             },
             provided_fields=[],
         )
-        # Plenty of scripted empties for any accidental repair attempts + 3 clarification turns.
+        # Plenty of scripted empties for any accidental repair attempts + 5 clarification turns.
         model = ScriptedLanguageModel([missing] * 12)
         workflow, _ = build_demo_system(language_model=model, clock=lambda: REFERENCE_TIME)
         task = workflow.create_task_from_message(
             "我要出差", traveler_id="E1001", task_id="clarification-budget"
         )
-        for reply in ("还没想好", "暂时不知道", "确实不确定"):
+        for reply in ("还没想好", "暂时不知道", "确实不确定", "还不确定", "请再问一次"):
             task = workflow.submit_message(task.task_id, reply)
 
         self.assertEqual(task.state, TaskState.NEEDS_STRUCTURED_INPUT)
-        self.assertEqual(task.clarification_rounds, 3)
+        self.assertEqual(task.clarification_rounds, 5)
         self.assertIn("budget exhausted", task.failure)
 
     def test_language_model_failure_prefers_clarification(self) -> None:
@@ -791,7 +791,7 @@ class ClarificationFlowTests(unittest.TestCase):
         model = ScriptedLanguageModel([first, london])
         workflow, _ = build_demo_system(language_model=model, clock=lambda: clock)
         task = workflow.create_task_from_message(
-            "下周三从北京去上海，周四上午十点前到，当天下午回，不住酒店。",
+            "下周三从北京去上海，周四上午十点前到，不住酒店。",
             traveler_id="E1001",
             task_id="dest-change-london",
         )
@@ -1171,8 +1171,10 @@ class ClarificationFlowTests(unittest.TestCase):
         )
         complete = intent_payload(
             overrides={
-                "return_after": None,
-                "return_before": None,
+                "departure_after": datetime(2026, 8, 26, 8, 0, tzinfo=SHANGHAI_TZ),
+                "arrive_by": datetime(2026, 8, 27, 10, 0, tzinfo=SHANGHAI_TZ),
+                "return_after": datetime(2026, 8, 27, 12, 0, tzinfo=SHANGHAI_TZ),
+                "return_before": datetime(2026, 8, 27, 18, 0, tzinfo=SHANGHAI_TZ),
                 "hotel_check_in": None,
                 "hotel_check_out": None,
                 "hard_constraints": ["arrive_before_meeting"],
@@ -1183,6 +1185,8 @@ class ClarificationFlowTests(unittest.TestCase):
                 "destination",
                 "departure_after",
                 "arrive_by",
+                "return_after",
+                "return_before",
                 "hard_constraints",
                 "soft_preferences",
             ],

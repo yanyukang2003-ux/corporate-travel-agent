@@ -5,7 +5,12 @@ from decimal import Decimal
 
 from corporate_travel_agent.agent.orchestrator import WorkflowError
 from corporate_travel_agent.demo import build_demo_system, make_demo_request
-from corporate_travel_agent.domain.enums import ApprovalStatus, PolicyOutcome, TaskState
+from corporate_travel_agent.domain.enums import (
+    ApprovalStatus,
+    BookingScope,
+    PolicyOutcome,
+    TaskState,
+)
 from corporate_travel_agent.workflow.state_machine import InvalidTransition, StateMachine
 
 
@@ -24,6 +29,34 @@ class WorkflowTests(unittest.TestCase):
             all("G-BUFFER-FAIL" not in option.inventory_refs for option in task.options)
         )
         self.assertTrue(all(option.inventory_snapshot_ids for option in task.options))
+
+    def test_return_only_search_uses_the_declared_leg_without_reversing_again(self) -> None:
+        request = replace(
+            make_demo_request(task_id="trip-return-only"),
+            booking_scope=BookingScope.RETURN_ONLY,
+            return_after=None,
+            return_before=None,
+            hotel_check_in=None,
+            hotel_check_out=None,
+        )
+
+        task = self.workflow.create_task(request)
+
+        self.assertTrue(task.options)
+        self.assertTrue(
+            all(
+                (option.outbound.origin, option.outbound.destination)
+                == ("Beijing", "Shanghai")
+                for option in task.options
+            )
+        )
+        self.assertTrue(all(option.inbound is None for option in task.options))
+        transport_calls = [
+            item
+            for item in task.tool_calls
+            if item.tool_name.startswith("provider.search_transport")
+        ]
+        self.assertEqual(len(transport_calls), 1)
 
     def test_compliant_selection_is_revalidated_before_handoff(self) -> None:
         task = self.workflow.create_task(make_demo_request(task_id="trip-compliant"))

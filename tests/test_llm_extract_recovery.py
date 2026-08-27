@@ -107,7 +107,7 @@ def test_billing_failure_uses_local_parser_instead_of_clarify() -> None:
         assert "client_location" in (task.metadata.get("uncertain_slots") or [])
 
 
-def test_llm_primary_path_does_not_get_polluted_by_return_only_local_date() -> None:
+def test_llm_return_only_path_is_normalized_to_one_real_direction_leg() -> None:
     day = datetime(2026, 8, 25, 18, 0, tzinfo=SH)
     payload = IntentExtractionSchema(
         classification="MULTI_DAY_TRIP",
@@ -150,13 +150,17 @@ def test_llm_primary_path_does_not_get_polluted_by_return_only_local_date() -> N
     first_prior = model.calls[0]["context"]["prior_fields"]
     assert first_prior["departure_after"] is None
     assert first_prior["return_after"] is None
-    assert task.intent_fields["departure_after"] is None
-    assert task.intent_fields["arrive_by"] is None
-    assert task.intent_fields["return_after"] is not None
+    assert task.intent_fields["booking_scope"] == "RETURN_ONLY"
+    assert task.intent_fields["origin"] == "Shanghai"
+    assert task.intent_fields["destination"] == "Beijing"
+    assert task.intent_fields["departure_after"] == day
+    assert task.intent_fields["arrive_by"] == datetime(2026, 8, 25, 23, 0, tzinfo=SH)
+    assert task.intent_fields["return_after"] is None
+    assert task.intent_fields["return_before"] is None
     rejected = task.metadata["intent_calibration"]["repair_rejected_fields"]
-    assert "departure_after:source_scope_mismatch" in rejected
-    assert "arrive_by:source_scope_mismatch" in rejected
-    assert task.state is TaskState.NEEDS_CLARIFICATION
+    assert "departure_after:source_scope_mismatch" not in rejected
+    assert "arrive_by:source_scope_mismatch" not in rejected
+    assert task.state in {TaskState.NO_FEASIBLE_OPTION, TaskState.WAITING_FOR_USER}
 
 
 def test_billing_failure_without_cities_does_not_spend_clarify_round() -> None:
