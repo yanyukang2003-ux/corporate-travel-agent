@@ -1,13 +1,13 @@
 import unittest
 from decimal import Decimal
 
-from corporate_travel_agent.demo import build_demo_system, make_demo_request
+from corporate_travel_agent.demo import DEMO_CLOCK, build_demo_system, make_demo_request
 from corporate_travel_agent.domain.enums import PolicyOutcome
 
 
 class PolicyEvidenceTests(unittest.TestCase):
     def test_every_decision_has_versioned_rule_evidence(self) -> None:
-        workflow, _ = build_demo_system()
+        workflow, _ = build_demo_system(clock=lambda: DEMO_CLOCK)
         task = workflow.create_task(make_demo_request(task_id="trip-policy-evidence"))
 
         for option in task.options:
@@ -19,7 +19,7 @@ class PolicyEvidenceTests(unittest.TestCase):
                 self.assertTrue(evidence.threshold)
 
     def test_hotel_over_cap_is_not_silently_treated_as_compliant(self) -> None:
-        workflow, _ = build_demo_system()
+        workflow, _ = build_demo_system(clock=lambda: DEMO_CLOCK)
         task = workflow.create_task(make_demo_request(task_id="trip-hotel-cap"))
         near_hotel_option = next(item for item in task.options if item.hotel.ref_id == "HT-NEAR")
 

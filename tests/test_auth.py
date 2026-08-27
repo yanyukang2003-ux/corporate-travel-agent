@@ -52,6 +52,25 @@ def _auth_service() -> AuthService:
     )
 
 
+@pytest.fixture(autouse=True)
+def _demo_clock():
+    """把 app 的时钟冻结在演示库存之前。
+
+    演示库存是写死的 2026-08-05；可行性校验现在会拒绝"已经起飞"的班次，所以用真实
+    时钟跑这些测试，等真实时间越过那天就会全部变成"无可行方案"。冻结时钟测的才是
+    HTTP 链路本身，而不是"今天是几号"。
+    """
+    from corporate_travel_agent.api import main as api_main
+    from corporate_travel_agent.demo import DEMO_CLOCK
+
+    previous = api_main.workflow.clock
+    api_main.workflow.clock = lambda: DEMO_CLOCK
+    try:
+        yield
+    finally:
+        api_main.workflow.clock = previous
+
+
 @pytest.fixture
 def secured_client(monkeypatch) -> TestClient:
     monkeypatch.setattr(api_main, "auth_service", _auth_service())

@@ -17,7 +17,7 @@ from corporate_travel_agent.agent.orchestrator import (
     TRANSIENT_RETRY_REASON,
 )
 from corporate_travel_agent.agent.ports import WorkflowTraceEvent
-from corporate_travel_agent.demo import build_demo_system, make_demo_request
+from corporate_travel_agent.demo import DEMO_CLOCK, build_demo_system, make_demo_request
 from corporate_travel_agent.domain.enums import PolicyOutcome, TaskState, ToolCallStatus
 from corporate_travel_agent.domain.models import InventorySnapshot
 from corporate_travel_agent.providers.base import (
@@ -103,6 +103,7 @@ class _BlockingRetryProcessor:
 
 
 def _workflow_with(provider_factory, **kwargs):
+    kwargs.setdefault("clock", lambda: DEMO_CLOCK)
     workflow, mock = build_demo_system(**kwargs)
     workflow.provider = provider_factory(mock)
     return workflow, mock
@@ -186,7 +187,7 @@ class BoundedProviderRetryTests(unittest.TestCase):
         self.assertEqual(retry["max_delayed_attempts"], 3)
 
     def test_first_delayed_retry_recovers_the_task(self) -> None:
-        now = [datetime(2026, 8, 10, tzinfo=UTC)]
+        now = [datetime(2026, 8, 1, tzinfo=UTC)]
         workflow, _ = _workflow_with(
             lambda mock: _FaultyTransportProvider(
                 mock, RetryableProviderError("upstream is down"), fail_times=3
@@ -208,7 +209,7 @@ class BoundedProviderRetryTests(unittest.TestCase):
         self.assertEqual(retry["delayed_attempts_completed"], 1)
 
     def test_three_delayed_retries_exhaust_to_terminal_failure(self) -> None:
-        now = [datetime(2026, 8, 10, tzinfo=UTC)]
+        now = [datetime(2026, 8, 1, tzinfo=UTC)]
         workflow, _ = _workflow_with(
             lambda mock: _FaultyTransportProvider(
                 mock, RetryableProviderError("upstream is down"), fail_times=99
@@ -243,7 +244,7 @@ class BoundedProviderRetryTests(unittest.TestCase):
         self.assertIsNone(workflow.provider_retry_status(task))
 
     def test_open_circuit_schedules_new_task_without_calling_provider(self) -> None:
-        now = [datetime(2026, 8, 10, tzinfo=UTC)]
+        now = [datetime(2026, 8, 1, tzinfo=UTC)]
         workflow, mock = build_demo_system(
             clock=lambda: now[0],
             retry_sleep=lambda _: None,
@@ -365,7 +366,7 @@ class PartialCoverageDisclosureTests(unittest.TestCase):
         self.assertIn("PROVIDER_COVERAGE_INCOMPLETE", events)
 
     def test_complete_coverage_records_no_notice(self) -> None:
-        workflow, _ = build_demo_system()
+        workflow, _ = build_demo_system(clock=lambda: DEMO_CLOCK)
 
         task = workflow.create_task(make_demo_request(task_id="partial-absent"))
 

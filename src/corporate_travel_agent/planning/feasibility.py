@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 from corporate_travel_agent.domain.models import (
     FeasibilityResult,
@@ -22,10 +22,19 @@ class FeasibilityValidator:
         inbound: TransportOffer | None,
         hotel: HotelOffer | None,
         arrival_buffer_minutes: int,
+        *,
+        now: datetime,
     ) -> FeasibilityResult:
-        """校验单组库存是否满足请求窗口、路由与到达缓冲；任一失败则不可行。"""
+        """校验单组库存是否满足请求窗口、路由与到达缓冲；任一失败则不可行。
+
+        ``now`` 是必填的：请求窗口只说明旅行者能接受什么，不说明现在还赶不赶得上。
+        下午两点搜"今天从北京去上海"，上午九点那班已经飞了——窗口检查看不出这件事，
+        只有和当前时刻比才看得出。
+        """
         reasons: list[str] = []
 
+        if outbound.depart_at <= now:
+            reasons.append("outbound has already departed")
         if not outbound.available:
             reasons.append("outbound inventory is unavailable")
         if outbound.origin != request.origin or outbound.destination != request.destination:
@@ -48,6 +57,8 @@ class FeasibilityValidator:
             if inbound is None:
                 reasons.append("return transport is required")
             else:
+                if inbound.depart_at <= now:
+                    reasons.append("return has already departed")
                 if not inbound.available:
                     reasons.append("return inventory is unavailable")
                 if inbound.origin != request.destination or inbound.destination != request.origin:

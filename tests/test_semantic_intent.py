@@ -339,7 +339,7 @@ def test_openai_adapter_uses_semantic_schema_and_complete_ledger() -> None:
     )
 
     assert result.decision == expected
-    assert result.metadata.prompt_version == "semantic-trip-intent-v6"
+    assert result.metadata.prompt_version == "semantic-trip-intent-v8"
     assert result.metadata.evidence_contract_version == "conversation-turn-v1"
 
 
@@ -627,3 +627,39 @@ def test_a_fabricated_quote_is_still_a_hard_model_failure() -> None:
         )
 
     assert excinfo.value.error_code == "INTENT_EVIDENCE_QUOTE_INVALID"
+
+
+def test_prompt_tells_the_model_to_commit_to_a_date_it_can_compute() -> None:
+    """"读不准就问"这条规矩会外溢，把模型变得连算得出来的日期也不敢定。
+
+    实测：H-01「下下周三」在 v3 通过，加了年份歧义段落后 v4/v5/v6 连续失败——模型
+    算出了 2026-09-02 却只肯反问"是不是这一天"。所以要给一条方向相反的硬指令。
+    """
+    prompt = OpenAISemanticIntentLanguageModel._semantic_system_prompt(
+        {"reference_time": "2026-08-19T15:00:00+08:00", "timezone": "Asia/Shanghai"}
+    )
+
+    assert "exactly one correct answer" in prompt
+    assert "yours to compute" in prompt
+    assert "下下周三" in prompt
+    # 必须点名禁止"把算术推回给用户"和"让用户确认你已经算出来的日期"。
+    assert "hand the arithmetic back" in prompt
+    assert "confirm a date you already worked out" in prompt
+    # 同时必须保留"真有两种读法才问"的边界，否则又会倒向另一头。
+    assert "two or more real readings" in prompt
+
+
+def test_prompt_pins_the_month_first_reading_of_numeric_dates() -> None:
+    """`8/5` 被读成 5 月 8 日就会连带触发年份规则，问出"是不是明年"。
+
+    实测：`8/5从北京去上海开会`（参照 2026-08-01）3 次全部追问年份，而同义的
+    `8.5` 3 次全部正确解析成 2026-08-05。错的是日/月顺序，不是年份规则。
+    """
+    prompt = OpenAISemanticIntentLanguageModel._semantic_system_prompt(
+        {"reference_time": "2026-08-01T09:00:00+08:00", "timezone": "Asia/Shanghai"}
+    )
+
+    assert "month-first" in prompt
+    assert "never May 8" in prompt
+    # 顺序必须先定月日、再判年份，否则读错的日期会被年份规则"正确地"拦下来。
+    assert prompt.index("month-first") < prompt.index("bare month/day with no year")

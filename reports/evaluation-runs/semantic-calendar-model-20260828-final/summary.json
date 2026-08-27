@@ -1,0 +1,1088 @@
+{
+  "started_at": "2026-08-27T20:35:13.542800+00:00",
+  "finished_at": "2026-08-27T20:36:53.556695+00:00",
+  "runner_version": "semantic-calendar-model-runner-v1",
+  "gate_id": "H-semantic",
+  "entrypoint": "semantic",
+  "inventory": "mock",
+  "model": "deepseek-v4-pro",
+  "semantic_prompt_version": "semantic-trip-intent-v8",
+  "model_calls_attempted": 24,
+  "model_calls_with_usage": 24,
+  "model_calls_without_usage": 0,
+  "price_table_version": "model-prices-openai-20260802-v1",
+  "price_table_sha256": "dd2a754fb067cbb147677d6d75ac462f4f327480776696fadc8c6547cbdbbf46",
+  "currency": "USD",
+  "estimated_cost_usd": 0.032952555,
+  "measurement_only": true,
+  "repeats": 3,
+  "unstable_cases": [],
+  "passed": 8,
+  "total": 8,
+  "cases": [
+    {
+      "case_id": "H-01",
+      "title": "下下周三 = 下下个星期的星期三",
+      "message": "下下周三从北京去上海开会",
+      "reference_time": "2026-08-19T15:00:00+08:00",
+      "passed": true,
+      "checks": [
+        {
+          "name": "departure_date",
+          "ok": true,
+          "detail": "expected 2026-09-02, got 2026-09-02"
+        }
+      ],
+      "state": "NEEDS_CLARIFICATION",
+      "intent_fields": {
+        "origin": "Beijing",
+        "destination": "Shanghai",
+        "departure_after": "2026-09-02 00:00:00+08:00",
+        "booking_scope": "OUTBOUND_ONLY",
+        "lodging_requirement": "UNSPECIFIED"
+      },
+      "clarification_question": "请确认这些出行信息后我再搜索：arrive_by。",
+      "conflicts": [],
+      "assumptions": [
+        "下下周三按参考时间 2026-08-19（周三）计算为 2026-09-02。",
+        "未说明返程，默认仅预订去程。"
+      ],
+      "failure": null,
+      "llm_calls": [
+        {
+          "prompt_version": "semantic-trip-intent-v8",
+          "model": "deepseek-v4-pro",
+          "duration_ms": 5198,
+          "requested_model": "deepseek-v4-pro",
+          "reasoning_effort": "medium",
+          "response_id": "74b2d598-86b5-48e3-8dd2-402c8bd21460",
+          "input_tokens": 2410,
+          "output_tokens": 370,
+          "cached_input_tokens": 256,
+          "cache_write_input_tokens": null,
+          "reasoning_output_tokens": null,
+          "total_tokens": 2780,
+          "service_tier": null,
+          "evidence_contract_version": "conversation-turn-v1",
+          "envelope_repaired": false
+        },
+        {
+          "prompt_version": "semantic-trip-intent-v8",
+          "model": "deepseek-v4-pro",
+          "duration_ms": 3877,
+          "requested_model": "deepseek-v4-pro",
+          "reasoning_effort": "medium",
+          "response_id": "d338f4bf-6092-4958-b457-b6d0a07f15e8",
+          "input_tokens": 2410,
+          "output_tokens": 370,
+          "cached_input_tokens": 2304,
+          "cache_write_input_tokens": null,
+          "reasoning_output_tokens": null,
+          "total_tokens": 2780,
+          "service_tier": null,
+          "evidence_contract_version": "conversation-turn-v1",
+          "envelope_repaired": false
+        },
+        {
+          "prompt_version": "semantic-trip-intent-v8",
+          "model": "deepseek-v4-pro",
+          "duration_ms": 3762,
+          "requested_model": "deepseek-v4-pro",
+          "reasoning_effort": "medium",
+          "response_id": "75e4ed3e-f05d-42fb-aed8-321a6e3d7e30",
+          "input_tokens": 2410,
+          "output_tokens": 369,
+          "cached_input_tokens": 2304,
+          "cache_write_input_tokens": null,
+          "reasoning_output_tokens": null,
+          "total_tokens": 2779,
+          "service_tier": null,
+          "evidence_contract_version": "conversation-turn-v1",
+          "envelope_repaired": false
+        }
+      ],
+      "attempts": 3,
+      "passes": 3,
+      "pass_rate": 1.0,
+      "stable": true,
+      "all_attempts": [
+        {
+          "passed": true,
+          "state": "NEEDS_CLARIFICATION",
+          "clarification_question": "请确认这些出行信息后我再搜索：arrive_by。",
+          "intent_fields": {
+            "origin": "Beijing",
+            "destination": "Shanghai",
+            "departure_after": "2026-09-02 00:00:00+08:00",
+            "booking_scope": "OUTBOUND_ONLY",
+            "lodging_requirement": "UNSPECIFIED"
+          }
+        },
+        {
+          "passed": true,
+          "state": "NEEDS_CLARIFICATION",
+          "clarification_question": "请确认这些出行信息后我再搜索：arrive_by。",
+          "intent_fields": {
+            "origin": "Beijing",
+            "destination": "Shanghai",
+            "departure_after": "2026-09-02 00:00:00+08:00",
+            "booking_scope": "OUTBOUND_ONLY",
+            "lodging_requirement": "UNSPECIFIED"
+          }
+        },
+        {
+          "passed": true,
+          "state": "NEEDS_CLARIFICATION",
+          "clarification_question": "请确认这些出行信息后我再搜索：arrive_by。",
+          "intent_fields": {
+            "origin": "Beijing",
+            "destination": "Shanghai",
+            "departure_after": "2026-09-02 00:00:00+08:00",
+            "booking_scope": "OUTBOUND_ONLY",
+            "lodging_requirement": "UNSPECIFIED"
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "H-02",
+      "title": "这周五还是下周五：不许自己挑一个",
+      "message": "这周五还是下周五从北京去上海",
+      "reference_time": "2026-08-19T15:00:00+08:00",
+      "passed": true,
+      "checks": [
+        {
+          "name": "departure_unresolved",
+          "ok": true,
+          "detail": "None"
+        },
+        {
+          "name": "arrive_unresolved",
+          "ok": true,
+          "detail": "None"
+        },
+        {
+          "name": "clarifies",
+          "ok": true,
+          "detail": "NEEDS_CLARIFICATION"
+        },
+        {
+          "name": "no_options",
+          "ok": true,
+          "detail": "0"
+        },
+        {
+          "name": "question_names_the_ambiguity",
+          "ok": true,
+          "detail": "请问您希望这周五还是下周五出发？"
+        },
+        {
+          "name": "no_search_on_unresolved",
+          "ok": true,
+          "detail": "0"
+        }
+      ],
+      "state": "NEEDS_CLARIFICATION",
+      "intent_fields": {
+        "origin": "Beijing",
+        "destination": "Shanghai",
+        "booking_scope": "OUTBOUND_ONLY",
+        "lodging_requirement": "UNSPECIFIED"
+      },
+      "clarification_question": "请问您希望这周五还是下周五出发？",
+      "conflicts": [
+        "unresolved uncertainty: 出发日期未确定：这周五还是下周五"
+      ],
+      "assumptions": [],
+      "failure": null,
+      "llm_calls": [
+        {
+          "prompt_version": "semantic-trip-intent-v8",
+          "model": "deepseek-v4-pro",
+          "duration_ms": 3908,
+          "requested_model": "deepseek-v4-pro",
+          "reasoning_effort": "medium",
+          "response_id": "63be04d9-9e6a-49de-bac8-f682f38f897d",
+          "input_tokens": 2411,
+          "output_tokens": 363,
+          "cached_input_tokens": 2304,
+          "cache_write_input_tokens": null,
+          "reasoning_output_tokens": null,
+          "total_tokens": 2774,
+          "service_tier": null,
+          "evidence_contract_version": "conversation-turn-v1",
+          "envelope_repaired": false
+        },
+        {
+          "prompt_version": "semantic-trip-intent-v8",
+          "model": "deepseek-v4-pro",
+          "duration_ms": 3995,
+          "requested_model": "deepseek-v4-pro",
+          "reasoning_effort": "medium",
+          "response_id": "5a9e875a-e13e-4183-9dd5-b7abae69ea22",
+          "input_tokens": 2411,
+          "output_tokens": 387,
+          "cached_input_tokens": 2304,
+          "cache_write_input_tokens": null,
+          "reasoning_output_tokens": null,
+          "total_tokens": 2798,
+          "service_tier": null,
+          "evidence_contract_version": "conversation-turn-v1",
+          "envelope_repaired": false
+        },
+        {
+          "prompt_version": "semantic-trip-intent-v8",
+          "model": "deepseek-v4-pro",
+          "duration_ms": 4182,
+          "requested_model": "deepseek-v4-pro",
+          "reasoning_effort": "medium",
+          "response_id": "427b27ca-f8bd-4869-bf81-b7acdb029370",
+          "input_tokens": 2411,
+          "output_tokens": 355,
+          "cached_input_tokens": 2304,
+          "cache_write_input_tokens": null,
+          "reasoning_output_tokens": null,
+          "total_tokens": 2766,
+          "service_tier": null,
+          "evidence_contract_version": "conversation-turn-v1",
+          "envelope_repaired": false
+        }
+      ],
+      "attempts": 3,
+      "passes": 3,
+      "pass_rate": 1.0,
+      "stable": true,
+      "all_attempts": [
+        {
+          "passed": true,
+          "state": "NEEDS_CLARIFICATION",
+          "clarification_question": "请问您希望这周五还是下周五出发？",
+          "intent_fields": {
+            "origin": "Beijing",
+            "destination": "Shanghai",
+            "booking_scope": "OUTBOUND_ONLY",
+            "lodging_requirement": "UNSPECIFIED"
+          }
+        },
+        {
+          "passed": true,
+          "state": "NEEDS_CLARIFICATION",
+          "clarification_question": "请问您是指这周五（2026-08-21）还是下周五（2026-08-28）出发？",
+          "intent_fields": {
+            "origin": "Beijing",
+            "destination": "Shanghai",
+            "booking_scope": "OUTBOUND_ONLY",
+            "lodging_requirement": "UNSPECIFIED"
+          }
+        },
+        {
+          "passed": true,
+          "state": "NEEDS_CLARIFICATION",
+          "clarification_question": "请问您是指这周五还是下周五出发？",
+          "intent_fields": {
+            "origin": "Beijing",
+            "destination": "Shanghai",
+            "booking_scope": "OUTBOUND_ONLY",
+            "lodging_requirement": "UNSPECIFIED"
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "H-03a",
+      "title": "8/5 在该日之前 = 今年 8 月 5 日",
+      "message": "8/5从北京去上海开会",
+      "reference_time": "2026-08-01T09:00:00+08:00",
+      "passed": true,
+      "checks": [
+        {
+          "name": "departure_date",
+          "ok": true,
+          "detail": "expected 2026-08-05, got 2026-08-05"
+        }
+      ],
+      "state": "NEEDS_CLARIFICATION",
+      "intent_fields": {
+        "origin": "Beijing",
+        "destination": "Shanghai",
+        "departure_after": "2026-08-05 00:00:00+08:00",
+        "booking_scope": "OUTBOUND_ONLY",
+        "lodging_requirement": "UNSPECIFIED"
+      },
+      "clarification_question": "请确认这些出行信息后我再搜索：arrive_by。",
+      "conflicts": [],
+      "assumptions": [
+        "8/5 按当前年份 2026 解析为 2026-08-05。",
+        "未说明返程，默认仅预订去程。"
+      ],
+      "failure": null,
+      "llm_calls": [
+        {
+          "prompt_version": "semantic-trip-intent-v8",
+          "model": "deepseek-v4-pro",
+          "duration_ms": 4258,
+          "requested_model": "deepseek-v4-pro",
+          "reasoning_effort": "medium",
+          "response_id": "01e2a42b-6b4f-483a-a3ea-8e1274d544d7",
+          "input_tokens": 2410,
+          "output_tokens": 366,
+          "cached_input_tokens": 384,
+          "cache_write_input_tokens": null,
+          "reasoning_output_tokens": null,
+          "total_tokens": 2776,
+          "service_tier": null,
+          "evidence_contract_version": "conversation-turn-v1",
+          "envelope_repaired": false
+        },
+        {
+          "prompt_version": "semantic-trip-intent-v8",
+          "model": "deepseek-v4-pro",
+          "duration_ms": 4472,
+          "requested_model": "deepseek-v4-pro",
+          "reasoning_effort": "medium",
+          "response_id": "36411b47-90a8-4402-84fd-a8dbf97dfd1b",
+          "input_tokens": 2410,
+          "output_tokens": 366,
+          "cached_input_tokens": 2304,
+          "cache_write_input_tokens": null,
+          "reasoning_output_tokens": null,
+          "total_tokens": 2776,
+          "service_tier": null,
+          "evidence_contract_version": "conversation-turn-v1",
+          "envelope_repaired": false
+        },
+        {
+          "prompt_version": "semantic-trip-intent-v8",
+          "model": "deepseek-v4-pro",
+          "duration_ms": 4471,
+          "requested_model": "deepseek-v4-pro",
+          "reasoning_effort": "medium",
+          "response_id": "4fadb7a7-9833-483d-b433-7cead6cbef3b",
+          "input_tokens": 2410,
+          "output_tokens": 379,
+          "cached_input_tokens": 2304,
+          "cache_write_input_tokens": null,
+          "reasoning_output_tokens": null,
+          "total_tokens": 2789,
+          "service_tier": null,
+          "evidence_contract_version": "conversation-turn-v1",
+          "envelope_repaired": false
+        }
+      ],
+      "attempts": 3,
+      "passes": 3,
+      "pass_rate": 1.0,
+      "stable": true,
+      "all_attempts": [
+        {
+          "passed": true,
+          "state": "NEEDS_CLARIFICATION",
+          "clarification_question": "请确认这些出行信息后我再搜索：arrive_by。",
+          "intent_fields": {
+            "origin": "Beijing",
+            "destination": "Shanghai",
+            "departure_after": "2026-08-05 00:00:00+08:00",
+            "booking_scope": "OUTBOUND_ONLY",
+            "lodging_requirement": "UNSPECIFIED"
+          }
+        },
+        {
+          "passed": true,
+          "state": "NEEDS_CLARIFICATION",
+          "clarification_question": "请确认这些出行信息后我再搜索：arrive_by。",
+          "intent_fields": {
+            "origin": "Beijing",
+            "destination": "Shanghai",
+            "departure_after": "2026-08-05 00:00:00+08:00",
+            "client_location": "上海",
+            "booking_scope": "OUTBOUND_ONLY",
+            "lodging_requirement": "UNSPECIFIED"
+          }
+        },
+        {
+          "passed": true,
+          "state": "NEEDS_CLARIFICATION",
+          "clarification_question": "请确认这些出行信息后我再搜索：arrive_by。",
+          "intent_fields": {
+            "origin": "Beijing",
+            "destination": "Shanghai",
+            "departure_after": "2026-08-05 00:00:00+08:00",
+            "client_location": "上海",
+            "booking_scope": "OUTBOUND_ONLY",
+            "lodging_requirement": "UNSPECIFIED"
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "H-03b",
+      "title": "8.5 在该日之前 = 今年 8 月 5 日",
+      "message": "8.5从北京去上海开会",
+      "reference_time": "2026-08-01T09:00:00+08:00",
+      "passed": true,
+      "checks": [
+        {
+          "name": "departure_date",
+          "ok": true,
+          "detail": "expected 2026-08-05, got 2026-08-05"
+        }
+      ],
+      "state": "NEEDS_CLARIFICATION",
+      "intent_fields": {
+        "origin": "Beijing",
+        "destination": "Shanghai",
+        "departure_after": "2026-08-05 00:00:00+08:00",
+        "client_location": "上海",
+        "booking_scope": "OUTBOUND_ONLY",
+        "lodging_requirement": "UNSPECIFIED"
+      },
+      "clarification_question": "请确认这些出行信息后我再搜索：arrive_by。",
+      "conflicts": [],
+      "assumptions": [
+        "8.5 按中文习惯理解为 8月5日",
+        "未提及返程，默认仅预订去程",
+        "开会地点视为上海"
+      ],
+      "failure": null,
+      "llm_calls": [
+        {
+          "prompt_version": "semantic-trip-intent-v8",
+          "model": "deepseek-v4-pro",
+          "duration_ms": 3807,
+          "requested_model": "deepseek-v4-pro",
+          "reasoning_effort": "medium",
+          "response_id": "6ad59457-2983-4c22-87bd-4017f42f86ad",
+          "input_tokens": 2410,
+          "output_tokens": 365,
+          "cached_input_tokens": 2304,
+          "cache_write_input_tokens": null,
+          "reasoning_output_tokens": null,
+          "total_tokens": 2775,
+          "service_tier": null,
+          "evidence_contract_version": "conversation-turn-v1",
+          "envelope_repaired": false
+        },
+        {
+          "prompt_version": "semantic-trip-intent-v8",
+          "model": "deepseek-v4-pro",
+          "duration_ms": 4038,
+          "requested_model": "deepseek-v4-pro",
+          "reasoning_effort": "medium",
+          "response_id": "393de17e-bc6f-4bde-9954-a7d2cbb4c187",
+          "input_tokens": 2410,
+          "output_tokens": 383,
+          "cached_input_tokens": 2304,
+          "cache_write_input_tokens": null,
+          "reasoning_output_tokens": null,
+          "total_tokens": 2793,
+          "service_tier": null,
+          "evidence_contract_version": "conversation-turn-v1",
+          "envelope_repaired": false
+        },
+        {
+          "prompt_version": "semantic-trip-intent-v8",
+          "model": "deepseek-v4-pro",
+          "duration_ms": 4294,
+          "requested_model": "deepseek-v4-pro",
+          "reasoning_effort": "medium",
+          "response_id": "448c055d-fdd7-4cb2-82c9-a8e3e54c403d",
+          "input_tokens": 2410,
+          "output_tokens": 373,
+          "cached_input_tokens": 2304,
+          "cache_write_input_tokens": null,
+          "reasoning_output_tokens": null,
+          "total_tokens": 2783,
+          "service_tier": null,
+          "evidence_contract_version": "conversation-turn-v1",
+          "envelope_repaired": false
+        }
+      ],
+      "attempts": 3,
+      "passes": 3,
+      "pass_rate": 1.0,
+      "stable": true,
+      "all_attempts": [
+        {
+          "passed": true,
+          "state": "NEEDS_CLARIFICATION",
+          "clarification_question": "请确认这些出行信息后我再搜索：arrive_by。",
+          "intent_fields": {
+            "origin": "Beijing",
+            "destination": "Shanghai",
+            "departure_after": "2026-08-05 00:00:00+08:00",
+            "client_location": "上海",
+            "booking_scope": "OUTBOUND_ONLY",
+            "lodging_requirement": "UNSPECIFIED"
+          }
+        },
+        {
+          "passed": true,
+          "state": "NEEDS_CLARIFICATION",
+          "clarification_question": "请确认这些出行信息后我再搜索：arrive_by。",
+          "intent_fields": {
+            "origin": "Beijing",
+            "destination": "Shanghai",
+            "departure_after": "2026-08-05 00:00:00+08:00",
+            "booking_scope": "OUTBOUND_ONLY",
+            "lodging_requirement": "UNSPECIFIED"
+          }
+        },
+        {
+          "passed": true,
+          "state": "NEEDS_CLARIFICATION",
+          "clarification_question": "请确认这些出行信息后我再搜索：arrive_by。",
+          "intent_fields": {
+            "origin": "Beijing",
+            "destination": "Shanghai",
+            "departure_after": "2026-08-05 00:00:00+08:00",
+            "booking_scope": "OUTBOUND_ONLY",
+            "lodging_requirement": "UNSPECIFIED"
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "H-03c",
+      "title": "2026.8.5 写了年份就按年份，哪怕已经过去",
+      "message": "2026.8.5从北京去上海开会",
+      "reference_time": "2026-08-19T15:00:00+08:00",
+      "passed": true,
+      "checks": [
+        {
+          "name": "departure_date",
+          "ok": true,
+          "detail": "expected 2026-08-05, got 2026-08-05"
+        }
+      ],
+      "state": "NEEDS_CLARIFICATION",
+      "intent_fields": {
+        "origin": "Beijing",
+        "destination": "Shanghai",
+        "departure_after": "2026-08-05 00:00:00+08:00",
+        "booking_scope": "OUTBOUND_ONLY",
+        "lodging_requirement": "UNSPECIFIED"
+      },
+      "clarification_question": "日期已过：出发日期 2026-08-05 在今天（2026-08-19）之前，请改成今天之后的日期。",
+      "conflicts": [
+        "日期已过：出发日期 2026-08-05 在今天（2026-08-19）之前，请改成今天之后的日期。"
+      ],
+      "assumptions": [],
+      "failure": null,
+      "llm_calls": [
+        {
+          "prompt_version": "semantic-trip-intent-v8",
+          "model": "deepseek-v4-pro",
+          "duration_ms": 3455,
+          "requested_model": "deepseek-v4-pro",
+          "reasoning_effort": "medium",
+          "response_id": "5ebff6cf-a067-427d-aada-c12c0d296fc0",
+          "input_tokens": 2413,
+          "output_tokens": 332,
+          "cached_input_tokens": 2304,
+          "cache_write_input_tokens": null,
+          "reasoning_output_tokens": null,
+          "total_tokens": 2745,
+          "service_tier": null,
+          "evidence_contract_version": "conversation-turn-v1",
+          "envelope_repaired": false
+        },
+        {
+          "prompt_version": "semantic-trip-intent-v8",
+          "model": "deepseek-v4-pro",
+          "duration_ms": 4126,
+          "requested_model": "deepseek-v4-pro",
+          "reasoning_effort": "medium",
+          "response_id": "43766324-c71d-4093-bfd1-dfa1173213e5",
+          "input_tokens": 2413,
+          "output_tokens": 373,
+          "cached_input_tokens": 2304,
+          "cache_write_input_tokens": null,
+          "reasoning_output_tokens": null,
+          "total_tokens": 2786,
+          "service_tier": null,
+          "evidence_contract_version": "conversation-turn-v1",
+          "envelope_repaired": false
+        },
+        {
+          "prompt_version": "semantic-trip-intent-v8",
+          "model": "deepseek-v4-pro",
+          "duration_ms": 4044,
+          "requested_model": "deepseek-v4-pro",
+          "reasoning_effort": "medium",
+          "response_id": "78cd36a1-79c9-42ee-855a-15efd672f9b3",
+          "input_tokens": 2413,
+          "output_tokens": 361,
+          "cached_input_tokens": 2304,
+          "cache_write_input_tokens": null,
+          "reasoning_output_tokens": null,
+          "total_tokens": 2774,
+          "service_tier": null,
+          "evidence_contract_version": "conversation-turn-v1",
+          "envelope_repaired": false
+        }
+      ],
+      "attempts": 3,
+      "passes": 3,
+      "pass_rate": 1.0,
+      "stable": true,
+      "all_attempts": [
+        {
+          "passed": true,
+          "state": "NEEDS_CLARIFICATION",
+          "clarification_question": "日期已过：出发日期 2026-08-05 在今天（2026-08-19）之前，请改成今天之后的日期。",
+          "intent_fields": {
+            "origin": "Beijing",
+            "destination": "Shanghai",
+            "departure_after": "2026-08-05 00:00:00+08:00",
+            "booking_scope": "OUTBOUND_ONLY",
+            "lodging_requirement": "UNSPECIFIED"
+          }
+        },
+        {
+          "passed": true,
+          "state": "NEEDS_CLARIFICATION",
+          "clarification_question": "日期已过：出发日期 2026-08-05 在今天（2026-08-19）之前，请改成今天之后的日期。",
+          "intent_fields": {
+            "origin": "Beijing",
+            "destination": "Shanghai",
+            "departure_after": "2026-08-05 00:00:00+08:00",
+            "booking_scope": "OUTBOUND_ONLY",
+            "lodging_requirement": "UNSPECIFIED"
+          }
+        },
+        {
+          "passed": true,
+          "state": "NEEDS_CLARIFICATION",
+          "clarification_question": "日期已过：出发日期 2026-08-05 在今天（2026-08-19）之前，请改成今天之后的日期。",
+          "intent_fields": {
+            "origin": "Beijing",
+            "destination": "Shanghai",
+            "departure_after": "2026-08-05 00:00:00+08:00",
+            "booking_scope": "OUTBOUND_ONLY",
+            "lodging_requirement": "UNSPECIFIED"
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "H-03d",
+      "title": "没写年份的 8/5 已经过去：问哪一年或报日期已过，绝不顺延到明年",
+      "message": "8/5从北京去上海开会",
+      "reference_time": "2026-08-19T15:00:00+08:00",
+      "passed": true,
+      "checks": [
+        {
+          "name": "clarifies",
+          "ok": true,
+          "detail": "NEEDS_CLARIFICATION"
+        },
+        {
+          "name": "no_options",
+          "ok": true,
+          "detail": "0"
+        },
+        {
+          "name": "question_names_the_ambiguity",
+          "ok": true,
+          "detail": "您说的8月5日是指明年（2027年）吗？"
+        },
+        {
+          "name": "not_rolled_forward",
+          "ok": true,
+          "detail": "None"
+        },
+        {
+          "name": "no_search_on_unresolved",
+          "ok": true,
+          "detail": "0"
+        }
+      ],
+      "state": "NEEDS_CLARIFICATION",
+      "intent_fields": {
+        "origin": "Beijing",
+        "destination": "Shanghai",
+        "booking_scope": "OUTBOUND_ONLY",
+        "lodging_requirement": "UNSPECIFIED"
+      },
+      "clarification_question": "您说的8月5日是指明年（2027年）吗？",
+      "conflicts": [
+        "unresolved uncertainty: 8/5 在参考时间 2026-08-19 之前，年份不明确"
+      ],
+      "assumptions": [],
+      "failure": null,
+      "llm_calls": [
+        {
+          "prompt_version": "semantic-trip-intent-v8",
+          "model": "deepseek-v4-pro",
+          "duration_ms": 4341,
+          "requested_model": "deepseek-v4-pro",
+          "reasoning_effort": "medium",
+          "response_id": "7c5f5b0d-72ad-4520-aa08-cef25d1f2861",
+          "input_tokens": 2410,
+          "output_tokens": 375,
+          "cached_input_tokens": 2304,
+          "cache_write_input_tokens": null,
+          "reasoning_output_tokens": null,
+          "total_tokens": 2785,
+          "service_tier": null,
+          "evidence_contract_version": "conversation-turn-v1",
+          "envelope_repaired": false
+        },
+        {
+          "prompt_version": "semantic-trip-intent-v8",
+          "model": "deepseek-v4-pro",
+          "duration_ms": 4000,
+          "requested_model": "deepseek-v4-pro",
+          "reasoning_effort": "medium",
+          "response_id": "ed732c85-88b0-4de0-8d48-1b08b31eed07",
+          "input_tokens": 2410,
+          "output_tokens": 375,
+          "cached_input_tokens": 2304,
+          "cache_write_input_tokens": null,
+          "reasoning_output_tokens": null,
+          "total_tokens": 2785,
+          "service_tier": null,
+          "evidence_contract_version": "conversation-turn-v1",
+          "envelope_repaired": false
+        },
+        {
+          "prompt_version": "semantic-trip-intent-v8",
+          "model": "deepseek-v4-pro",
+          "duration_ms": 4385,
+          "requested_model": "deepseek-v4-pro",
+          "reasoning_effort": "medium",
+          "response_id": "dd416d09-4d42-43bf-9422-fc84e19fcc9f",
+          "input_tokens": 2410,
+          "output_tokens": 372,
+          "cached_input_tokens": 2304,
+          "cache_write_input_tokens": null,
+          "reasoning_output_tokens": null,
+          "total_tokens": 2782,
+          "service_tier": null,
+          "evidence_contract_version": "conversation-turn-v1",
+          "envelope_repaired": false
+        }
+      ],
+      "attempts": 3,
+      "passes": 3,
+      "pass_rate": 1.0,
+      "stable": true,
+      "all_attempts": [
+        {
+          "passed": true,
+          "state": "NEEDS_CLARIFICATION",
+          "clarification_question": "您说的8月5日是指明年（2027年）吗？",
+          "intent_fields": {
+            "origin": "Beijing",
+            "destination": "Shanghai",
+            "booking_scope": "OUTBOUND_ONLY",
+            "lodging_requirement": "UNSPECIFIED"
+          }
+        },
+        {
+          "passed": true,
+          "state": "NEEDS_CLARIFICATION",
+          "clarification_question": "您说的8月5日是指明年（2027年）吗？",
+          "intent_fields": {
+            "origin": "Beijing",
+            "destination": "Shanghai",
+            "booking_scope": "OUTBOUND_ONLY",
+            "lodging_requirement": "UNSPECIFIED"
+          }
+        },
+        {
+          "passed": true,
+          "state": "NEEDS_CLARIFICATION",
+          "clarification_question": "您说的8月5日是指明年（2027年）吗？",
+          "intent_fields": {
+            "origin": "Beijing",
+            "destination": "Shanghai",
+            "booking_scope": "OUTBOUND_ONLY",
+            "lodging_requirement": "UNSPECIFIED"
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "H-04",
+      "title": "春节不许编成某个公历日",
+      "message": "春节从北京去上海出差",
+      "reference_time": "2026-08-19T15:00:00+08:00",
+      "passed": true,
+      "checks": [
+        {
+          "name": "departure_unresolved",
+          "ok": true,
+          "detail": "None"
+        },
+        {
+          "name": "clarifies",
+          "ok": true,
+          "detail": "NEEDS_CLARIFICATION"
+        },
+        {
+          "name": "no_options",
+          "ok": true,
+          "detail": "0"
+        },
+        {
+          "name": "origin",
+          "ok": true,
+          "detail": "Beijing"
+        },
+        {
+          "name": "destination",
+          "ok": true,
+          "detail": "Shanghai"
+        },
+        {
+          "name": "no_search_on_unresolved",
+          "ok": true,
+          "detail": "0"
+        }
+      ],
+      "state": "NEEDS_CLARIFICATION",
+      "intent_fields": {
+        "origin": "Beijing",
+        "destination": "Shanghai",
+        "booking_scope": "OUTBOUND_ONLY",
+        "lodging_requirement": "UNSPECIFIED"
+      },
+      "clarification_question": "请问您计划在春节期间的哪一天出发？",
+      "conflicts": [
+        "unresolved uncertainty: 春节的具体日期未明确"
+      ],
+      "assumptions": [],
+      "failure": null,
+      "llm_calls": [
+        {
+          "prompt_version": "semantic-trip-intent-v8",
+          "model": "deepseek-v4-pro",
+          "duration_ms": 3556,
+          "requested_model": "deepseek-v4-pro",
+          "reasoning_effort": "medium",
+          "response_id": "1829477d-47d3-4699-a176-1029dbcd126c",
+          "input_tokens": 2408,
+          "output_tokens": 307,
+          "cached_input_tokens": 2304,
+          "cache_write_input_tokens": null,
+          "reasoning_output_tokens": null,
+          "total_tokens": 2715,
+          "service_tier": null,
+          "evidence_contract_version": "conversation-turn-v1",
+          "envelope_repaired": false
+        },
+        {
+          "prompt_version": "semantic-trip-intent-v8",
+          "model": "deepseek-v4-pro",
+          "duration_ms": 3584,
+          "requested_model": "deepseek-v4-pro",
+          "reasoning_effort": "medium",
+          "response_id": "ed62df0b-a166-4702-9ba8-584148cec27c",
+          "input_tokens": 2408,
+          "output_tokens": 307,
+          "cached_input_tokens": 2304,
+          "cache_write_input_tokens": null,
+          "reasoning_output_tokens": null,
+          "total_tokens": 2715,
+          "service_tier": null,
+          "evidence_contract_version": "conversation-turn-v1",
+          "envelope_repaired": false
+        },
+        {
+          "prompt_version": "semantic-trip-intent-v8",
+          "model": "deepseek-v4-pro",
+          "duration_ms": 3481,
+          "requested_model": "deepseek-v4-pro",
+          "reasoning_effort": "medium",
+          "response_id": "a2de5835-cefd-4f46-a2b4-e44447336872",
+          "input_tokens": 2408,
+          "output_tokens": 307,
+          "cached_input_tokens": 2304,
+          "cache_write_input_tokens": null,
+          "reasoning_output_tokens": null,
+          "total_tokens": 2715,
+          "service_tier": null,
+          "evidence_contract_version": "conversation-turn-v1",
+          "envelope_repaired": false
+        }
+      ],
+      "attempts": 3,
+      "passes": 3,
+      "pass_rate": 1.0,
+      "stable": true,
+      "all_attempts": [
+        {
+          "passed": true,
+          "state": "NEEDS_CLARIFICATION",
+          "clarification_question": "请问您计划在春节期间的哪一天出发？",
+          "intent_fields": {
+            "origin": "Beijing",
+            "destination": "Shanghai",
+            "booking_scope": "OUTBOUND_ONLY",
+            "lodging_requirement": "UNSPECIFIED"
+          }
+        },
+        {
+          "passed": true,
+          "state": "NEEDS_CLARIFICATION",
+          "clarification_question": "请问您计划在春节期间的哪一天出发？",
+          "intent_fields": {
+            "origin": "Beijing",
+            "destination": "Shanghai",
+            "booking_scope": "OUTBOUND_ONLY",
+            "lodging_requirement": "UNSPECIFIED"
+          }
+        },
+        {
+          "passed": true,
+          "state": "NEEDS_CLARIFICATION",
+          "clarification_question": "请问您计划在春节期间的哪一天出发？",
+          "intent_fields": {
+            "origin": "Beijing",
+            "destination": "Shanghai",
+            "booking_scope": "OUTBOUND_ONLY",
+            "lodging_requirement": "UNSPECIFIED"
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "H-05",
+      "title": "12月30日去、1月2日回：返程跨到下一年",
+      "message": "12月30日从北京去上海开会，1月2日回",
+      "reference_time": "2026-08-19T15:00:00+08:00",
+      "passed": true,
+      "checks": [
+        {
+          "name": "departure_date",
+          "ok": true,
+          "detail": "expected 2026-12-30, got 2026-12-30"
+        },
+        {
+          "name": "return_date",
+          "ok": true,
+          "detail": "expected 2027-01-02, got 2027-01-02"
+        }
+      ],
+      "state": "NEEDS_CLARIFICATION",
+      "intent_fields": {
+        "origin": "Beijing",
+        "destination": "Shanghai",
+        "departure_after": "2026-12-30 00:00:00+08:00",
+        "return_after": "2027-01-02 00:00:00+08:00",
+        "client_location": "上海",
+        "booking_scope": "ROUND_TRIP",
+        "lodging_requirement": "UNSPECIFIED"
+      },
+      "clarification_question": "请确认这些出行信息后我再搜索：arrive_by。",
+      "conflicts": [],
+      "assumptions": [
+        "去程日期为2026-12-30，返程日期为2027-01-02。",
+        "出发和到达时间未指定，按全天处理。"
+      ],
+      "failure": null,
+      "llm_calls": [
+        {
+          "prompt_version": "semantic-trip-intent-v8",
+          "model": "deepseek-v4-pro",
+          "duration_ms": 4631,
+          "requested_model": "deepseek-v4-pro",
+          "reasoning_effort": "medium",
+          "response_id": "4ddcce1e-f47d-4195-b929-f368287aa2a4",
+          "input_tokens": 2417,
+          "output_tokens": 455,
+          "cached_input_tokens": 2304,
+          "cache_write_input_tokens": null,
+          "reasoning_output_tokens": null,
+          "total_tokens": 2872,
+          "service_tier": null,
+          "evidence_contract_version": "conversation-turn-v1",
+          "envelope_repaired": true
+        },
+        {
+          "prompt_version": "semantic-trip-intent-v8",
+          "model": "deepseek-v4-pro",
+          "duration_ms": 4479,
+          "requested_model": "deepseek-v4-pro",
+          "reasoning_effort": "medium",
+          "response_id": "26248e73-9425-4019-a686-3fdc83cbc29d",
+          "input_tokens": 2417,
+          "output_tokens": 472,
+          "cached_input_tokens": 2304,
+          "cache_write_input_tokens": null,
+          "reasoning_output_tokens": null,
+          "total_tokens": 2889,
+          "service_tier": null,
+          "evidence_contract_version": "conversation-turn-v1",
+          "envelope_repaired": true
+        },
+        {
+          "prompt_version": "semantic-trip-intent-v8",
+          "model": "deepseek-v4-pro",
+          "duration_ms": 4882,
+          "requested_model": "deepseek-v4-pro",
+          "reasoning_effort": "medium",
+          "response_id": "26474cef-24b5-40f9-91a5-521785af47aa",
+          "input_tokens": 2417,
+          "output_tokens": 461,
+          "cached_input_tokens": 2304,
+          "cache_write_input_tokens": null,
+          "reasoning_output_tokens": null,
+          "total_tokens": 2878,
+          "service_tier": null,
+          "evidence_contract_version": "conversation-turn-v1",
+          "envelope_repaired": true
+        }
+      ],
+      "attempts": 3,
+      "passes": 3,
+      "pass_rate": 1.0,
+      "stable": true,
+      "all_attempts": [
+        {
+          "passed": true,
+          "state": "NEEDS_CLARIFICATION",
+          "clarification_question": "请确认这些出行信息后我再搜索：arrive_by。",
+          "intent_fields": {
+            "origin": "Beijing",
+            "destination": "Shanghai",
+            "departure_after": "2026-12-30 00:00:00+08:00",
+            "return_after": "2027-01-02 00:00:00+08:00",
+            "client_location": "上海",
+            "booking_scope": "ROUND_TRIP",
+            "lodging_requirement": "UNSPECIFIED"
+          }
+        },
+        {
+          "passed": true,
+          "state": "NEEDS_CLARIFICATION",
+          "clarification_question": "请确认这些出行信息后我再搜索：arrive_by。",
+          "intent_fields": {
+            "origin": "Beijing",
+            "destination": "Shanghai",
+            "departure_after": "2026-12-30 00:00:00+08:00",
+            "return_after": "2027-01-02 00:00:00+08:00",
+            "client_location": "上海",
+            "booking_scope": "ROUND_TRIP",
+            "lodging_requirement": "UNSPECIFIED"
+          }
+        },
+        {
+          "passed": true,
+          "state": "NEEDS_CLARIFICATION",
+          "clarification_question": "请确认这些出行信息后我再搜索：arrive_by。",
+          "intent_fields": {
+            "origin": "Beijing",
+            "destination": "Shanghai",
+            "departure_after": "2026-12-30 00:00:00+08:00",
+            "return_after": "2027-01-02 00:00:00+08:00",
+            "client_location": "上海",
+            "booking_scope": "ROUND_TRIP",
+            "lodging_requirement": "UNSPECIFIED"
+          }
+        }
+      ]
+    }
+  ]
+}

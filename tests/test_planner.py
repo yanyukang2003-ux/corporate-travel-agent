@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import UTC, date, datetime
 from decimal import Decimal
 from zoneinfo import ZoneInfo
 
@@ -116,6 +116,10 @@ def _hotel(
     )
 
 
+# 所有报价都在这个时刻之后：可行性校验会拒绝已经起飞的班次。
+NOW = datetime(2026, 8, 5, 0, 0, tzinfo=UTC)
+
+
 def test_identical_hotel_rates_do_not_fill_the_recommendation_list() -> None:
     planner = ItineraryPlanner()
     options = planner.plan(
@@ -130,6 +134,7 @@ def test_identical_hotel_rates_do_not_fill_the_recommendation_list() -> None:
             _hotel("litehotel_ccc"),
         ],
         limit=3,
+        now=NOW,
     )
 
     hotel_names = {option.hotel.name for option in options if option.hotel}
@@ -149,6 +154,7 @@ def test_unknown_commute_does_not_apply_near_client_penalty() -> None:
         inbound_offers=[_return_flight()],
         hotel_offers=[_hotel("litehotel_unknown")],
         limit=1,
+        now=NOW,
     )
     known_far = planner.plan(
         _request(),
@@ -158,6 +164,7 @@ def test_unknown_commute_does_not_apply_near_client_penalty() -> None:
         inbound_offers=[_return_flight()],
         hotel_offers=[_hotel("litehotel_far", commute_minutes=90)],
         limit=1,
+        now=NOW,
     )
 
     assert unknown[0].preference_penalty == Decimal("0")
@@ -179,6 +186,7 @@ def test_distinct_hotels_remain_available_as_separate_options() -> None:
             _hotel("H3", name="Park Hotel", nightly_price="600"),
         ],
         limit=3,
+        now=NOW,
     )
 
     assert [option.hotel.name for option in options if option.hotel] == [
@@ -186,3 +194,46 @@ def test_distinct_hotels_remain_available_as_separate_options() -> None:
         "Garden Hotel",
         "Park Hotel",
     ]
+
+
+def test_an_already_departed_flight_is_never_offered() -> None:
+    """下午两点搜今天的票，上午九点那班已经飞了——不能出现在方案里。
+
+    请求窗口只说明旅行者能接受什么，不说明现在还赶不赶得上：`departure_after`
+    是下界，早上九点的航班满足"今天出发"，但此刻已经起飞。只有和当前时刻比才看得出。
+    """
+    planner = ItineraryPlanner()
+    afternoon = datetime(2026, 8, 20, 14, 0, tzinfo=SH)
+
+    options = planner.plan(
+        _request(),
+        _employee(),
+        _policy(),
+        outbound_offers=[_flight("MORNING", hour=9), _flight("LATER", hour=15)],
+        inbound_offers=[_return_flight()],
+        hotel_offers=[_hotel("litehotel_a")],
+        limit=3,
+        now=afternoon,
+    )
+
+    offered = {item.outbound.ref_id for item in options}
+    assert "MORNING" not in offered
+    assert "LATER" in offered
+
+
+def test_a_departure_exactly_now_is_treated_as_gone() -> None:
+    planner = ItineraryPlanner()
+    depart = datetime(2026, 8, 20, 9, 0, tzinfo=SH)
+
+    options = planner.plan(
+        _request(),
+        _employee(),
+        _policy(),
+        outbound_offers=[_flight("ON-THE-DOT", hour=9)],
+        inbound_offers=[_return_flight()],
+        hotel_offers=[_hotel("litehotel_a")],
+        limit=3,
+        now=depart,
+    )
+
+    assert options == []

@@ -9,7 +9,7 @@ from pathlib import Path
 import pytest
 
 from corporate_travel_agent.agent.orchestrator import WorkflowError
-from corporate_travel_agent.demo import build_demo_system, make_demo_request
+from corporate_travel_agent.demo import DEMO_CLOCK, build_demo_system, make_demo_request
 from corporate_travel_agent.domain.enums import PolicyOutcome
 from corporate_travel_agent.services.policy_config import (
     PolicyConfigurationError,
@@ -54,7 +54,7 @@ def test_external_configuration_controls_policy_and_approval_path(tmp_path: Path
     policies[0]["hotel_city_caps"]["CN-SHA"] = "800"
 
     loaded = _load_external(tmp_path, payload)
-    workflow, _ = build_demo_system(policy_configuration=loaded)
+    workflow, _ = build_demo_system(policy_configuration=loaded, clock=lambda: DEMO_CLOCK)
     task = workflow.create_task(make_demo_request(task_id="external-policy"))
     near_hotel_option = next(item for item in task.options if item.hotel.ref_id == "HT-NEAR")
     hotel_evidence = next(
@@ -133,7 +133,7 @@ def test_repository_retains_historical_policy_snapshots() -> None:
 
 
 def test_task_rejects_reused_snapshot_id_with_changed_content() -> None:
-    workflow, _ = build_demo_system()
+    workflow, _ = build_demo_system(clock=lambda: DEMO_CLOCK)
     task = workflow.create_task(make_demo_request(task_id="policy-content-pinning"))
     changed_policy = replace(
         workflow.policies.current(),

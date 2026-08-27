@@ -167,6 +167,14 @@ def _dates_already_passed(intent: Any, now: datetime) -> list[str]:
                 f"{PAST_DATE_PREFIX}：{label} {value.date().isoformat()} "
                 f"在今天（{today.isoformat()}）之前，请改成今天之后的日期。"
             )
+    # 到达时限按**精确时刻**比：截止时间一旦过去，这趟行程已经不可能成立，
+    # 和它是不是"今天"无关。这也是"下午还去订上午必须到的票"的那一半。
+    arrive_by = intent.arrive_by
+    if isinstance(arrive_by, datetime) and arrive_by <= now:
+        problems.append(
+            f"{PAST_DATE_PREFIX}：要求的到达时限 {arrive_by.isoformat()} 已经过了，"
+            "请给一个还没到的时间。"
+        )
     return problems
 
 

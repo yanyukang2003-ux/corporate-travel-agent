@@ -303,7 +303,8 @@ def _markdown(payload: dict[str, Any]) -> str:
         f"- model: `{payload['model']}`",
         "- entrypoint: `semantic`",
         "- inventory: `mock`（不碰 Duffel / LiteAPI）",
-        f"- result: **{passed}/{total} PASS**",
+        f"- result: **{passed}/{total} PASS**（每条跑 {payload.get('repeats', 1)} 次，"
+        f"全部通过才记 PASS）",
         f"- 估算费用: **{payload['estimated_cost_usd']:.6f} {payload['currency']}**"
         f"（价目表 `{payload['price_table_version']}`，缓存折扣未建模）",
         f"- 模型调用: {payload['model_calls_attempted']} 次，其中 "
@@ -313,12 +314,20 @@ def _markdown(payload: dict[str, Any]) -> str:
         "**这是基线测量，不是门禁。** 语义链路在这 8 条上此前没有任何数据。",
         "期望值从 `examples/run_calendar_edge_acceptance.py` 原样搬来，不是本轮新写的答案。",
         "",
-        "| ID | Result | Title |",
-        "|---|---|---|",
+        "| ID | Result | 通过率 | Title |",
+        "|---|---|---|---|",
     ]
     for item in cases:
         mark = "PASS" if item["passed"] else "FAIL"
-        lines.append(f"| {item['case_id']} | {mark} | {item['title']} |")
+        rate = f"{item.get('passes', int(item['passed']))}/{item.get('attempts', 1)}"
+        lines.append(f"| {item['case_id']} | {mark} | {rate} | {item['title']} |")
+    unstable = payload.get("unstable_cases") or []
+    if unstable:
+        lines.append("")
+        lines.append(
+            "**时好时坏（同一句话不同次结果不同）：** " + "、".join(unstable) + "。"
+            "这类用例的单次结果是噪声，不能当作退步或修复的证据。"
+        )
     lines.append("")
     failed = [item for item in cases if not item["passed"]]
     if failed:
@@ -359,15 +368,23 @@ def main() -> None:
     parser.add_argument("--model", default=os.getenv("OPENAI_MODEL", "gpt-5.6"))
     parser.add_argument("--confirm-billable-model-calls", action="store_true")
     parser.add_argument(
+        "--repeats",
+        type=int,
+        default=1,
+        help="每条用例跑几次。>1 时按通过率报告，用来区分真实退步和模型抖动。",
+    )
+    parser.add_argument(
         "--gate",
         action="store_true",
         help="当门禁用：有用例没过就退出非零码。默认只测量。",
     )
     args = parser.parse_args()
 
+    if not 1 <= args.repeats <= 10:
+        parser.error("--repeats must be between 1 and 10")
     if not args.confirm_billable_model_calls:
         parser.error(
-            f"这一轮会真实调用 {len(CASES)} 次计费模型。确认后加 "
+            f"这一轮会真实调用 {len(CASES) * args.repeats} 次计费模型。确认后加 "
             "--confirm-billable-model-calls 重跑。"
         )
     if not os.getenv("OPENAI_API_KEY"):
@@ -389,7 +406,29 @@ def main() -> None:
         )
 
     started = datetime.now(UTC).isoformat()
-    cases = [_run_case(case, model_factory) for case in CASES]
+    # 模型对同一句话不是每次都给同样的读数（实测 "8/5" 和 "8.5" 会一个解析一个追问），
+    # 所以单跑一次的分数是噪声。重复跑，用通过率代替"过没过"。
+    cases = []
+    for case in CASES:
+        attempts = [_run_case(case, model_factory) for _ in range(args.repeats)]
+        wins = sum(1 for item in attempts if item["passed"])
+        record = dict(attempts[0])
+        record["attempts"] = args.repeats
+        record["passes"] = wins
+        record["pass_rate"] = wins / args.repeats
+        record["passed"] = wins == args.repeats
+        record["stable"] = wins in {0, args.repeats}
+        record["llm_calls"] = [call for item in attempts for call in item["llm_calls"]]
+        record["all_attempts"] = [
+            {
+                "passed": item["passed"],
+                "state": item["state"],
+                "clarification_question": item["clarification_question"],
+                "intent_fields": item["intent_fields"],
+            }
+            for item in attempts
+        ]
+        cases.append(record)
     passed = sum(1 for item in cases if item["passed"])
     all_usage = [call for item in cases for call in item["llm_calls"]]
     estimated = _cost(all_usage, price_table)
@@ -414,6 +453,10 @@ def main() -> None:
         "currency": price_table.currency,
         "estimated_cost_usd": estimated,
         "measurement_only": not args.gate,
+        "repeats": args.repeats,
+        "unstable_cases": [
+            item["case_id"] for item in cases if not item.get("stable", True)
+        ],
         "passed": passed,
         "total": len(cases),
         "cases": cases,

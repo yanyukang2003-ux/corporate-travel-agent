@@ -363,7 +363,7 @@ class OpenAIResponsesLanguageModel:
 class OpenAISemanticIntentLanguageModel:
     """新语义链路的独立 LLM 适配器；不包含旧字段抽取方法。"""
 
-    semantic_prompt_version = "semantic-trip-intent-v6"
+    semantic_prompt_version = "semantic-trip-intent-v8"
 
     def __init__(
         self,
@@ -478,10 +478,21 @@ class OpenAISemanticIntentLanguageModel:
         response = self.client.responses.parse(**request)
         parsed = getattr(response, "output_parsed", None)
         if parsed is None:
-            raise LanguageModelError("Semantic intent interpretation returned no parsed output")
+            raise LanguageModelError(
+                "Semantic intent interpretation returned no parsed output",
+                error_code="SEMANTIC_NO_PARSED_OUTPUT",
+                layer="openai_adapter",
+                retryable=True,
+                response_received=True,
+            )
+        usage = self._responses_usage(response)
+        usage["envelope_repaired"] = False
         if not isinstance(parsed, IntentDecision):
-            parsed = IntentDecision.model_validate(parsed)
-        return parsed, self._responses_usage(response)
+            # 严格 schema 的接口一般不会放错位置，但同一套修复在这里也适用，
+            # 三条路径（提示词 / 结构修复 / 重试）因此在两个 API 模式上都成立。
+            parsed, repaired = _validate_decision_with_envelope_repair(parsed)
+            usage["envelope_repaired"] = repaired
+        return parsed, usage
 
     def _interpret_via_chat(
         self, system: str, conversation: str, model_name: str
@@ -595,6 +606,18 @@ class OpenAISemanticIntentLanguageModel:
             "origin, destination, departure_after and arrive_by, using those exact field "
             "names and quoting the user turn where each fact was established — including "
             "earlier turns, since a later turn usually settles only part of the trip. "
+            "Relative date expressions that have exactly one correct answer — 下下周三, "
+            "后天, 下个月15号, this Friday — are yours to compute from reference_time and "
+            "commit to. Do not hand the arithmetic back to the traveler and do not ask them "
+            "to confirm a date you already worked out: with reference_time 2026-08-19 "
+            "(a Wednesday), 下下周三 is 2026-09-02, and you state it. Clarify a date only "
+            "when the words themselves leave two or more real readings, such as '这周五还是 "
+            "下周五', a lunar-calendar reference with no fixed Gregorian day, or the "
+            "year rule below. "
+            "Numeric dates in these requests are written month-first: 8/5, 8.5, 8-5 and "
+            "8月5日 all mean August 5, never May 8. Settle the month/day reading this way "
+            "before you apply the year rule below, so a correctly-read future date is never "
+            "mistaken for a past one. "
             "A bare month/day with no year resolves to that day in the current year at "
             "reference_time. Do this silently: it is the normal case and you must not ask "
             "which year the traveler meant. This narrow rule is about the year only; it "
@@ -640,6 +663,11 @@ def _parse_decision_with_envelope_repair(text: str) -> tuple[IntentDecision, boo
             retryable=True,
             response_received=True,
         ) from exc
+    return _validate_decision_with_envelope_repair(payload)
+
+
+def _validate_decision_with_envelope_repair(payload: Any) -> tuple[IntentDecision, bool]:
+    """校验一次；失败就把放错位置的顶层字段搬回去再校验一次。"""
     try:
         return IntentDecision.model_validate(payload), False
     except Exception as first_error:

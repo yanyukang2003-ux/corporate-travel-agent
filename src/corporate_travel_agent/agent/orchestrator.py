@@ -2437,6 +2437,7 @@ class TripWorkflowOrchestrator:
             outbound_offers=self._transports(outbound_snapshot),
             inbound_offers=self._transports(inbound_snapshot),
             hotel_offers=self._hotels(hotel_snapshot),
+            now=self.clock(),
         )
         if not task.options:
             reasons = self._no_feasible_reasons(
@@ -2600,6 +2601,7 @@ class TripWorkflowOrchestrator:
                 inbound_offer,
                 hotel,
                 policy.arrival_buffer_minutes,
+                now=self.clock(),
             )
             if not feasibility.feasible:
                 for reason in feasibility.reasons:

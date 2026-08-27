@@ -6,7 +6,7 @@ import hashlib
 import json
 from collections.abc import Callable
 from dataclasses import dataclass, field
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from itertools import product
 from pathlib import Path
@@ -179,6 +179,19 @@ class D4Observation:
         }
         root.update(self.extras)
         return root
+
+
+def _replay_now(transports) -> datetime:
+    """回放冻结证据时的"现在"。
+
+    "这班已经飞了"是给实时下单用的护栏，对归档数据没有意义：重算政策结论问的是
+    "当时判得对不对"，不是"今天还订不订得到"。因此把锚点定在记录里最早一班出发之前，
+    让存活性检查在回放里始终不触发，而不是给校验器开一个可以被误用的旁路开关。
+    """
+    departures = [item.depart_at for item in transports if item is not None]
+    if not departures:
+        return datetime(1970, 1, 1, tzinfo=UTC)
+    return min(departures) - timedelta(seconds=1)
 
 
 def load_agent_eval_dataset(
@@ -504,6 +517,7 @@ def _recommended_policy(
     hotel_choices: list[HotelOffer | None] = hotels if request.hotel_check_in else [None]
     validator = FeasibilityValidator()
     engine = PolicyEngine()
+    replay_now = _replay_now([*outbound, *inbound])
     planner = ItineraryPlanner()
     best = None
     for out, back, hotel in product(outbound, inbound_choices, hotel_choices):
@@ -517,7 +531,14 @@ def _recommended_policy(
             continue
         if "direct_only" in hard and any(not item.is_direct for item in segments):
             continue
-        feasibility = validator.validate(request, out, back, hotel, policy.arrival_buffer_minutes)
+        feasibility = validator.validate(
+            request,
+            out,
+            back,
+            hotel,
+            policy.arrival_buffer_minutes,
+            now=replay_now,
+        )
         if not feasibility.feasible:
             continue
         decision = engine.evaluate(employee, policy, segments, hotel)

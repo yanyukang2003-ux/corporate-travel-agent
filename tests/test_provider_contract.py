@@ -1,6 +1,6 @@
 import unittest
 
-from corporate_travel_agent.demo import build_demo_system, make_demo_request
+from corporate_travel_agent.demo import DEMO_CLOCK, build_demo_system, make_demo_request
 from corporate_travel_agent.providers.base import (
     HotelSearchQuery,
     ProviderError,
@@ -11,7 +11,7 @@ from corporate_travel_agent.providers.replay import ReplayProvider
 
 class ProviderContractTests(unittest.TestCase):
     def test_replay_returns_the_exact_recorded_snapshot(self) -> None:
-        _, mock = build_demo_system()
+        _, mock = build_demo_system(clock=lambda: DEMO_CLOCK)
         request = make_demo_request(task_id="provider-contract")
         transport_query = TransportSearchQuery(
             request.origin,

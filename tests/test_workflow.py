@@ -4,7 +4,7 @@ from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 
 from corporate_travel_agent.agent.orchestrator import WorkflowError
-from corporate_travel_agent.demo import build_demo_system, make_demo_request
+from corporate_travel_agent.demo import DEMO_CLOCK, build_demo_system, make_demo_request
 from corporate_travel_agent.domain.enums import (
     ApprovalStatus,
     BookingScope,
@@ -16,7 +16,7 @@ from corporate_travel_agent.workflow.state_machine import InvalidTransition, Sta
 
 class WorkflowTests(unittest.TestCase):
     def setUp(self) -> None:
-        self.workflow, self.provider = build_demo_system()
+        self.workflow, self.provider = build_demo_system(clock=lambda: DEMO_CLOCK)
 
     def test_planner_filters_late_train_and_returns_verified_options(self) -> None:
         task = self.workflow.create_task(make_demo_request(task_id="trip-plan"))

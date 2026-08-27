@@ -1,13 +1,13 @@
 import unittest
 
 from corporate_travel_agent.agent.orchestrator import TripWorkflowOrchestrator
-from corporate_travel_agent.demo import build_demo_system, make_demo_request
+from corporate_travel_agent.demo import DEMO_CLOCK, build_demo_system, make_demo_request
 from corporate_travel_agent.domain.enums import PolicyOutcome, TaskState, ToolCallStatus
 
 
 class ToolBudgetTests(unittest.TestCase):
     def test_searches_are_counted_in_one_task_budget(self) -> None:
-        workflow, _ = build_demo_system()
+        workflow, _ = build_demo_system(clock=lambda: DEMO_CLOCK)
 
         task = workflow.create_task(make_demo_request(task_id="budget-search"))
 
@@ -27,7 +27,7 @@ class ToolBudgetTests(unittest.TestCase):
         )
 
     def test_revalidation_and_handoff_are_in_the_same_budget(self) -> None:
-        workflow, _ = build_demo_system()
+        workflow, _ = build_demo_system(clock=lambda: DEMO_CLOCK)
         task = workflow.create_task(make_demo_request(task_id="budget-handoff"))
         option = next(
             item
@@ -45,7 +45,7 @@ class ToolBudgetTests(unittest.TestCase):
         )
 
     def test_next_call_is_blocked_at_the_configured_limit(self) -> None:
-        workflow, _ = build_demo_system(max_tool_calls=3)
+        workflow, _ = build_demo_system(max_tool_calls=3, clock=lambda: DEMO_CLOCK)
         task = workflow.create_task(make_demo_request(task_id="budget-hard-stop"))
         option = next(
             item
@@ -67,7 +67,7 @@ class ToolBudgetTests(unittest.TestCase):
         self.assertIn("TOOL_BUDGET_EXHAUSTED", events)
 
     def test_failed_tool_call_consumes_budget_and_records_failure_type(self) -> None:
-        workflow, provider = build_demo_system()
+        workflow, provider = build_demo_system(clock=lambda: DEMO_CLOCK)
         provider.fail_search = True
 
         task = workflow.create_task(make_demo_request(task_id="budget-failed-call"))
@@ -78,7 +78,7 @@ class ToolBudgetTests(unittest.TestCase):
         self.assertEqual(task.tool_calls[0].error_type, "ProviderError")
 
     def test_multi_call_search_is_not_started_without_enough_capacity(self) -> None:
-        workflow, _ = build_demo_system(max_tool_calls=2)
+        workflow, _ = build_demo_system(max_tool_calls=2, clock=lambda: DEMO_CLOCK)
 
         task = workflow.create_task(make_demo_request(task_id="budget-preflight"))
 
@@ -88,7 +88,7 @@ class ToolBudgetTests(unittest.TestCase):
         self.assertIn("requires 3", task.failure)
 
     def test_budget_must_be_positive(self) -> None:
-        workflow, provider = build_demo_system()
+        workflow, provider = build_demo_system(clock=lambda: DEMO_CLOCK)
 
         with self.assertRaisesRegex(ValueError, "max_tool_calls"):
             TripWorkflowOrchestrator(

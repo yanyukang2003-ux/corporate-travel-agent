@@ -41,6 +41,8 @@ class ItineraryPlanner:
         inbound_offers: list[TransportOffer],
         hotel_offers: list[HotelOffer],
         limit: int = 3,
+        *,
+        now: datetime,
     ) -> list[TravelOptionVersion]:
         """笛卡尔积组合去程/返程/酒店，过滤后返回最多 ``limit`` 条去重排名方案。"""
         inbound_choices: list[TransportOffer | None] = (
@@ -69,7 +71,7 @@ class ItineraryPlanner:
             ):
                 continue
             feasibility = self.validator.validate(
-                request, outbound, inbound, hotel, policy.arrival_buffer_minutes
+                request, outbound, inbound, hotel, policy.arrival_buffer_minutes, now=now
             )
             if not feasibility.feasible:
                 continue

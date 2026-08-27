@@ -25,7 +25,11 @@ from semantic_fixtures import (
     semantic_intent,
 )
 
-from corporate_travel_agent.agent.ports import LanguageModelError
+from corporate_travel_agent.agent.ports import (
+    IntentInterpretationResult,
+    LanguageModelError,
+    LLMCallMetadata,
+)
 from corporate_travel_agent.agent.semantic_intent import EvidenceRef, IntentDecisionStatus
 from corporate_travel_agent.demo import build_demo_system
 from corporate_travel_agent.domain.enums import TaskState
@@ -409,3 +413,119 @@ def test_departing_later_today_is_not_treated_as_a_past_date() -> None:
     assert not any(item.startswith("日期已过") for item in task.intent_conflicts), (
         task.intent_conflicts
     )
+
+
+# --- 信封三层防护的第三层：重试真的发生 ---------------------------------------
+
+
+class _FlakyEnvelopeModel:
+    """第一次返回信封写坏且修不好的 JSON，第二次返回正确的。"""
+
+    prompt_version = "flaky-envelope-v1"
+    semantic_prompt_version = prompt_version
+
+    def __init__(self, decision) -> None:
+        self.calls = 0
+        self._decision = decision
+
+    def interpret_trip_intent(self, conversation, *, task_id, traveler_id, context):
+        del conversation, task_id, traveler_id, context
+        self.calls += 1
+        if self.calls == 1:
+            raise LanguageModelError(
+                "Semantic intent JSON failed validation: unrepairable",
+                error_code="SEMANTIC_JSON_INVALID",
+                layer="openai_adapter",
+                retryable=True,
+                response_received=True,
+            )
+        return IntentInterpretationResult(
+            decision=self._decision,
+            metadata=LLMCallMetadata(
+                prompt_version=self.prompt_version,
+                model="flaky-envelope",
+                duration_ms=1,
+                evidence_contract_version="conversation-turn-v1",
+            ),
+        )
+
+    def propose_search_adjustment(self, *_: object) -> None:
+        return None
+
+    def explain_verified_options(self, *_: object) -> dict[str, str]:
+        return {}
+
+
+def test_a_malformed_envelope_is_retried_and_the_task_still_completes() -> None:
+    """信封防护第三层：修不好的 JSON 触发一次重试，任务照样走完。
+
+    前两层（提示词说清信封、结构修复搬回顶层）在 test_semantic_intent.py 里各有测试；
+    这条守的是"重试确实会发生"，而不只是把错误标成可重试就算数。
+    """
+    model = _FlakyEnvelopeModel(semantic_decision())
+    workflow, _ = build_demo_system(
+        semantic_language_model=model,
+        clock=lambda: datetime(2026, 8, 1, 9, 0, tzinfo=SHANGHAI),
+    )
+
+    task = workflow.create_task_from_semantic_message(READY_MESSAGE, traveler_id="E1001")
+
+    assert model.calls == 2
+    assert task.state is TaskState.WAITING_FOR_USER
+    assert task.request is not None
+    assert "semantic_intent_failure" not in task.metadata
+    # 失败那次也留了痕，不是悄悄吞掉。
+    llm_calls = [item for item in task.tool_calls if item.tool_kind == "LLM"]
+    assert len(llm_calls) == 2
+    assert llm_calls[0].error_code == "SEMANTIC_JSON_INVALID"
+
+
+def test_retrying_is_bounded_and_a_persistent_failure_still_stops() -> None:
+    """重试有上限：一直坏就停在结构化表单，不会无限重来。"""
+
+    class AlwaysBroken(_FlakyEnvelopeModel):
+        def interpret_trip_intent(self, conversation, *, task_id, traveler_id, context):
+            del conversation, task_id, traveler_id, context
+            self.calls += 1
+            raise LanguageModelError(
+                "Semantic intent JSON failed validation: unrepairable",
+                error_code="SEMANTIC_JSON_INVALID",
+                retryable=True,
+                response_received=True,
+            )
+
+    model = AlwaysBroken(semantic_decision())
+    workflow, _ = build_demo_system(
+        semantic_language_model=model,
+        clock=lambda: datetime(2026, 8, 1, 9, 0, tzinfo=SHANGHAI),
+    )
+
+    task = workflow.create_task_from_semantic_message(READY_MESSAGE, traveler_id="E1001")
+
+    assert model.calls == 2
+    assert task.state is TaskState.NEEDS_STRUCTURED_INPUT
+    assert task.metadata["semantic_intent_failure"]["error_code"] == "SEMANTIC_JSON_INVALID"
+    assert _provider_tool_names(task) == []
+
+
+def test_an_arrival_deadline_that_has_already_passed_is_reported() -> None:
+    """到达时限按精确时刻比：截止时间过了，这趟行程已经不可能成立。"""
+    stale = semantic_decision(
+        semantic_intent(
+            summary="今天上午十点前必须到",
+            departure_after=datetime(2026, 8, 5, 6, 0, tzinfo=SHANGHAI),
+            arrive_by=datetime(2026, 8, 5, 10, 0, tzinfo=SHANGHAI),
+        )
+    )
+    workflow, _ = build_demo_system(
+        semantic_language_model=ScriptedSemanticModel([stale]),
+        # 同一天下午来订上午必须到的票。
+        clock=lambda: datetime(2026, 8, 5, 14, 0, tzinfo=SHANGHAI),
+    )
+
+    task = workflow.create_task_from_semantic_message(READY_MESSAGE, traveler_id="E1001")
+
+    assert task.state is TaskState.NEEDS_CLARIFICATION
+    assert task.request is None
+    assert _provider_tool_names(task) == []
+    assert any("到达时限" in item for item in task.intent_conflicts), task.intent_conflicts

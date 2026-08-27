@@ -42,6 +42,13 @@ from corporate_travel_agent.services.repositories import (
 SHANGHAI_TZ = ZoneInfo("Asia/Shanghai")
 
 
+# 演示库存是冻结的：航班/列车都在 2026-08-05。可行性校验现在会拒绝"已经起飞"的
+# 班次，所以任何**使用这份冻结库存**的调用方都必须把时钟设在它之前，否则真实时间
+# 一旦越过 2026-08-05，整份演示数据就全部不可行了。
+# 接真实 Provider 的调用方不受影响：它们不用这份库存，应当继续用真实时钟。
+DEMO_CLOCK = datetime(2026, 8, 1, 9, 0, tzinfo=SHANGHAI_TZ)
+
+
 def build_demo_system(
     *,
     language_model: LanguageModelPort | None = None,
