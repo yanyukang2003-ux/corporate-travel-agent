@@ -363,7 +363,7 @@ class OpenAIResponsesLanguageModel:
 class OpenAISemanticIntentLanguageModel:
     """新语义链路的独立 LLM 适配器；不包含旧字段抽取方法。"""
 
-    semantic_prompt_version = "semantic-trip-intent-v3"
+    semantic_prompt_version = "semantic-trip-intent-v6"
 
     def __init__(
         self,
@@ -454,6 +454,7 @@ class OpenAISemanticIntentLanguageModel:
             total_tokens=usage_meta.get("total_tokens"),
             service_tier=usage_meta.get("service_tier"),
             evidence_contract_version="conversation-turn-v1",
+            envelope_repaired=bool(usage_meta.get("envelope_repaired")),
         )
         self.last_call_metadata = metadata
         return IntentInterpretationResult(decision=parsed, metadata=metadata)
@@ -525,13 +526,10 @@ class OpenAISemanticIntentLanguageModel:
             lines = lines[1:] if lines and lines[0].startswith("```") else lines
             lines = lines[:-1] if lines and lines[-1].strip() == "```" else lines
             text = "\n".join(lines).strip()
-        try:
-            parsed = IntentDecision.model_validate_json(text)
-        except Exception as exc:
-            raise LanguageModelError(
-                f"Semantic intent JSON failed validation: {exc}"
-            ) from exc
-        return parsed, self._chat_usage(response)
+        parsed, repaired = _parse_decision_with_envelope_repair(text)
+        usage = self._chat_usage(response)
+        usage["envelope_repaired"] = repaired
+        return parsed, usage
 
     def _responses_usage(self, response: Any) -> dict[str, Any]:
         usage = getattr(response, "usage", None)
@@ -597,6 +595,17 @@ class OpenAISemanticIntentLanguageModel:
             "origin, destination, departure_after and arrive_by, using those exact field "
             "names and quoting the user turn where each fact was established — including "
             "earlier turns, since a later turn usually settles only part of the trip. "
+            "A bare month/day with no year resolves to that day in the current year at "
+            "reference_time. Do this silently: it is the normal case and you must not ask "
+            "which year the traveler meant. This narrow rule is about the year only; it "
+            "never suppresses a clarification you owe for anything else, such as a missing "
+            "arrival deadline. The year is ambiguous in exactly one situation — the resolved "
+            "day is strictly earlier than the reference_time day — and only then do you set "
+            "NEEDS_CLARIFICATION and ask whether the traveler means next year. With "
+            "reference_time 2026-08-01, '8/5' is 2026-08-05: still ahead, so resolve it and "
+            "ask nothing. With reference_time 2026-08-19, '8/5' is already behind, so ask. "
+            "Never roll a past date forward into another year on your own. A year the "
+            "traveler stated explicitly is never ambiguous, even when it is in the past. "
             "Resolve relative dates against "
             f"reference_time={context.get('reference_time')!s}; fallback timezone="
             f"{context.get('timezone')!s}, while using known city-local timezones. "
@@ -610,6 +619,62 @@ class OpenAISemanticIntentLanguageModel:
             "declined or self-arranged, otherwise UNSPECIFIED. Conditional lodging remains a "
             "condition and cannot be READY until the condition is resolved into an executable plan."
         )
+
+
+def _parse_decision_with_envelope_repair(text: str) -> tuple[IntentDecision, bool]:
+    """解析模型返回的 JSON；只在信封层做一次有界的结构修复。
+
+    没有严格 schema 强制的接口（DeepSeek 的 json_object 模式）偶尔会把本该在顶层的
+    字段嵌进 "intent" 里面。这里只把这些键**原样搬回顶层**，不改任何取值，也不补任何
+    模型没说过的内容——因此不构成"改写旅行者的意思"。修复过就记一笔，便于事后统计。
+
+    修复失败一律当作可重试的模型故障：同一个提示词重试一次通常就能拿到合规 JSON。
+    """
+    try:
+        payload = json.loads(text)
+    except Exception as exc:
+        raise LanguageModelError(
+            f"Semantic intent response is not JSON: {exc}",
+            error_code="SEMANTIC_JSON_UNPARSEABLE",
+            layer="openai_adapter",
+            retryable=True,
+            response_received=True,
+        ) from exc
+    try:
+        return IntentDecision.model_validate(payload), False
+    except Exception as first_error:
+        repaired = _lift_misplaced_decision_keys(payload)
+        if repaired is not None:
+            try:
+                return IntentDecision.model_validate(repaired), True
+            except Exception:  # noqa: S110 - 修复没成功就按原始错误报出去
+                pass
+        raise LanguageModelError(
+            f"Semantic intent JSON failed validation: {first_error}",
+            error_code="SEMANTIC_JSON_INVALID",
+            layer="openai_adapter",
+            retryable=True,
+            response_received=True,
+        ) from first_error
+
+
+def _lift_misplaced_decision_keys(payload: Any) -> dict[str, Any] | None:
+    """把误放进 "intent" 的顶层字段搬回顶层；无可搬的返回 None。"""
+    if not isinstance(payload, dict):
+        return None
+    intent = payload.get("intent")
+    if not isinstance(intent, dict):
+        return None
+    movable = set(IntentDecision.model_fields) - {"intent"}
+    misplaced = [key for key in movable if key in intent and key not in payload]
+    if not misplaced:
+        return None
+    lifted_intent = {key: value for key, value in intent.items() if key not in misplaced}
+    return {
+        **{key: value for key, value in payload.items() if key != "intent"},
+        **{key: intent[key] for key in misplaced},
+        "intent": lifted_intent,
+    }
 
 
 def _classified_openai_error(exc: Exception) -> LanguageModelError:

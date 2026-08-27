@@ -23,6 +23,7 @@ client = TestClient(app)
 SHANGHAI = ZoneInfo("Asia/Shanghai")
 
 
+
 class _ScriptedSemanticModel:
     """假的语义模型：按最后一轮用户消息里的目的地给出一个"能查了"的理解。
 
@@ -333,13 +334,18 @@ def semantic_model_configured():
     model = _ScriptedSemanticModel()
     previous_model = api_main.workflow.semantic_language_model
     previous_interpreter = api_main.workflow.intent_interpreter
+    previous_clock = api_main.workflow.clock
     api_main.workflow.semantic_language_model = model
     api_main.workflow.intent_interpreter = ConversationIntentInterpreter(model)
+    # 演示库存固定在 2026-08-05；真实时钟早已越过那天，而语义链路现在会拒绝已过的
+    # 日期。冻结时钟到库存之前，测的才是 HTTP 链路本身，而不是"今天是几号"。
+    api_main.workflow.clock = lambda: datetime(2026, 8, 1, 9, 0, tzinfo=SHANGHAI)
     try:
         yield model
     finally:
         api_main.workflow.semantic_language_model = previous_model
         api_main.workflow.intent_interpreter = previous_interpreter
+        api_main.workflow.clock = previous_clock
 
 
 def test_semantic_task_runs_end_to_end_over_http(semantic_model_configured) -> None:

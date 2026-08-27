@@ -315,3 +315,97 @@ def test_semantic_decision_history_keeps_the_last_twenty_interpretations() -> No
     assert history[-1] == task.metadata["semantic_intent"]
     assert {item["source"] for item in history} == {"semantic"}
     assert history[-1]["turn_count"] > history[0]["turn_count"]
+
+
+# --- 日期已过 -----------------------------------------------------------------
+
+
+def test_a_departure_date_that_has_passed_is_reported_as_such_not_re_asked() -> None:
+    """用户确认了一个已经过去的日期，就直接告诉他日期已过，不再兜圈子问。"""
+    past = semantic_decision(
+        semantic_intent(
+            summary="8月5日从北京去上海",
+            departure_after=datetime(2026, 8, 5, 5, 0, tzinfo=SHANGHAI),
+            arrive_by=datetime(2026, 8, 6, 10, 0, tzinfo=SHANGHAI),
+        ),
+        # 模型自以为读懂了，还给了一句无关的追问；宿主的结论必须盖过它。
+        clarification_question="要我顺便订酒店吗？",
+    )
+    model = ScriptedSemanticModel([past])
+    workflow, _ = build_demo_system(
+        semantic_language_model=model,
+        # 参照时刻在出发日之后：这一天已经过去了。
+        clock=lambda: datetime(2026, 8, 19, 15, 0, tzinfo=SHANGHAI),
+    )
+
+    task = workflow.create_task_from_semantic_message(READY_MESSAGE, traveler_id="E1001")
+
+    assert task.state is TaskState.NEEDS_CLARIFICATION
+    assert task.request is None
+    assert _provider_tool_names(task) == []
+    assert any(item.startswith("日期已过") for item in task.intent_conflicts), (
+        task.intent_conflicts
+    )
+    question = task.clarification_question or ""
+    assert question.startswith("日期已过")
+    assert "2026-08-05" in question
+    # 模型那句无关的追问不许盖过"日期已过"这个确定性结论。
+    assert "订酒店" not in question
+
+
+def test_a_return_date_that_has_passed_is_caught_too() -> None:
+    past_return = semantic_decision(
+        semantic_intent(
+            summary="返程写成了去年",
+            departure_after=datetime(2026, 9, 1, 8, 0, tzinfo=SHANGHAI),
+            arrive_by=datetime(2026, 9, 1, 20, 0, tzinfo=SHANGHAI),
+            return_after=datetime(2026, 8, 10, 18, 0, tzinfo=SHANGHAI),
+            return_before=datetime(2026, 8, 10, 23, 0, tzinfo=SHANGHAI),
+        )
+    )
+    workflow, _ = build_demo_system(
+        semantic_language_model=ScriptedSemanticModel([past_return]),
+        clock=lambda: datetime(2026, 8, 19, 15, 0, tzinfo=SHANGHAI),
+    )
+
+    task = workflow.create_task_from_semantic_message(READY_MESSAGE, traveler_id="E1001")
+
+    assert task.state is TaskState.NEEDS_CLARIFICATION
+    assert _provider_tool_names(task) == []
+    assert any("返程日期" in item for item in task.intent_conflicts), task.intent_conflicts
+
+
+def test_a_future_date_still_compiles_and_searches() -> None:
+    """新规则只拦已过去的日期，未来的日期照常走完整链路。"""
+    workflow, _ = build_demo_system(
+        semantic_language_model=ScriptedSemanticModel([semantic_decision()]),
+        clock=lambda: datetime(2026, 8, 1, 9, 0, tzinfo=SHANGHAI),
+    )
+
+    task = workflow.create_task_from_semantic_message(READY_MESSAGE, traveler_id="E1001")
+
+    assert task.state is TaskState.WAITING_FOR_USER
+    assert task.request is not None
+    assert not any(item.startswith("日期已过") for item in task.intent_conflicts)
+
+
+def test_departing_later_today_is_not_treated_as_a_past_date() -> None:
+    """比的是日历日，不是精确时刻：今天早上出发的行程，下午问也不该被判过期。"""
+    today = semantic_decision(
+        semantic_intent(
+            summary="今天出发",
+            departure_after=datetime(2026, 8, 5, 6, 0, tzinfo=SHANGHAI),
+            arrive_by=datetime(2026, 8, 6, 10, 0, tzinfo=SHANGHAI),
+        )
+    )
+    workflow, _ = build_demo_system(
+        semantic_language_model=ScriptedSemanticModel([today]),
+        # 已经是当天下午，晚于 departure_after 这个瞬间，但同一天。
+        clock=lambda: datetime(2026, 8, 5, 14, 0, tzinfo=SHANGHAI),
+    )
+
+    task = workflow.create_task_from_semantic_message(READY_MESSAGE, traveler_id="E1001")
+
+    assert not any(item.startswith("日期已过") for item in task.intent_conflicts), (
+        task.intent_conflicts
+    )

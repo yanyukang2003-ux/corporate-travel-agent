@@ -66,6 +66,8 @@ class CalendarCase:
     expect_arrive_unresolved: bool = False
     expect_clarification: bool = False
     expect_cities: bool = False
+    forbid_year_rollforward: bool = False
+    expect_no_search: bool = False
     question_tokens: tuple[str, ...] = ()
 
 
@@ -109,13 +111,21 @@ CASES: tuple[CalendarCase, ...] = (
         clock=CLOCK,
         expect_departure_date="2026-08-05",
     ),
+    # 期望在 2026-08-27 按项目所有者定的规则重写过，不再等同于旧链路的行为。
+    # 旧链路：整条日期留空不解析。
+    # 新规则：没写年份就按今年算；这一天已经过去 → 要么问是不是明年，要么直接告诉
+    # 用户日期已过。两种都算过，因为两者都满足真正的红线：绝不悄悄顺延到明年、
+    # 绝不拿一个过去的日期去搜库存。
     CalendarCase(
         case_id="H-03d",
-        title="没写年份的 8/5 落在刚过去的日子：不许自动跳到明年",
+        title="没写年份的 8/5 已经过去：问哪一年或报日期已过，绝不顺延到明年",
         message="8/5从北京去上海开会",
         clock=CLOCK,
         expect_departure_date=None,
-        expect_departure_unresolved=True,
+        forbid_year_rollforward=True,
+        expect_clarification=True,
+        expect_no_search=True,
+        question_tokens=("明年", "哪一年", "日期已过"),
     ),
     CalendarCase(
         case_id="H-04",
@@ -204,8 +214,12 @@ def _evaluate(case: CalendarCase, task: Any) -> list[dict[str, Any]]:
                 question[:200],
             )
         )
+    if case.forbid_year_rollforward:
+        # 没解析（问了年份）可以；解析了就必须还是参照年，绝不能顺延到下一年。
+        rolled = isinstance(depart, datetime) and depart.year != case.clock.year
+        checks.append(_check("not_rolled_forward", not rolled, _date_of(depart)))
     # 任何用例都不许在读不准时已经搜了库存。
-    if case.expect_departure_unresolved:
+    if case.expect_departure_unresolved or case.expect_no_search:
         searches = sum(
             1 for item in task.tool_calls if item.tool_name.startswith("provider.search")
         )

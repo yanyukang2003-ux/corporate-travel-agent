@@ -215,13 +215,22 @@ def _require_grounded_evidence(
                 error_code="INTENT_EVIDENCE_QUOTE_INVALID",
                 layer="semantic_intent",
             )
-    if decision.status is IntentDecisionStatus.READY:
-        evidence_fields = {item.field for item in decision.evidence}
-        required = {"origin", "destination", "departure_after", "arrive_by"}
-        missing = sorted(required - evidence_fields)
-        if missing:
-            raise LanguageModelError(
-                "Ready semantic intent lacks grounded evidence for: " + ", ".join(missing),
-                error_code="INTENT_EVIDENCE_REQUIRED_MISSING",
-                layer="semantic_intent",
-            )
+
+
+REQUIRED_EVIDENCE_FIELDS = ("origin", "destination", "departure_after", "arrive_by")
+
+
+def ungrounded_required_fields(decision: IntentDecision) -> tuple[str, ...]:
+    """READY 判定里没有原话支撑的必填字段。
+
+    模型说"可以查了"，但拿不出用户在哪句话里说了到达时限，这不是模型违约，
+    而是这件事**还没问清**——最常见的情形就是用户压根没提到达时限。
+    因此这里返回缺口让编译阶段去追问，而不是把整份解释判死。
+
+    引用了不存在的轮次、引用了助手发言、或者引文在原文里找不到，仍然是硬违约，
+    由 `_require_grounded_evidence` 直接抛错。
+    """
+    if decision.status is not IntentDecisionStatus.READY:
+        return ()
+    grounded = {item.field for item in decision.evidence}
+    return tuple(field for field in REQUIRED_EVIDENCE_FIELDS if field not in grounded)

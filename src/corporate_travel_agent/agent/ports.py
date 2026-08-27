@@ -32,6 +32,7 @@ class LLMCallMetadata:
     total_tokens: int | None = None
     service_tier: str | None = None
     evidence_contract_version: str | None = None
+    envelope_repaired: bool = False
 
 
 @dataclass(frozen=True, slots=True)

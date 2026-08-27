@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from collections import deque
 from datetime import date, datetime
 from types import SimpleNamespace
@@ -15,6 +16,7 @@ from corporate_travel_agent.agent.orchestrator import WorkflowError
 from corporate_travel_agent.agent.ports import (
     IntentExtractionResult,
     IntentInterpretationResult,
+    LanguageModelError,
     LLMCallMetadata,
 )
 from corporate_travel_agent.agent.schemas import IntentExtractionSchema, TripIntentFields
@@ -161,7 +163,13 @@ def test_compile_refuses_to_silently_choose_an_alternative_origin() -> None:
 
 def test_compile_ready_semantics_into_validated_command_without_defaults() -> None:
     compiled = compile_search_command(
-        _decision(_ready_intent()),
+        _decision(
+            _ready_intent(),
+            evidence=[
+                EvidenceRef(turn_index=0, field=field, quote="北京")
+                for field in ("origin", "destination", "departure_after", "arrive_by")
+            ],
+        ),
         task_id="ready-trip",
         traveler_id="E1001",
         version=2,
@@ -331,7 +339,7 @@ def test_openai_adapter_uses_semantic_schema_and_complete_ledger() -> None:
     )
 
     assert result.decision == expected
-    assert result.metadata.prompt_version == "semantic-trip-intent-v3"
+    assert result.metadata.prompt_version == "semantic-trip-intent-v6"
     assert result.metadata.evidence_contract_version == "conversation-turn-v1"
 
 
@@ -466,3 +474,156 @@ def test_prompt_tells_the_model_which_evidence_a_ready_decision_must_carry() -> 
     assert "origin, destination, departure_after and arrive_by" in prompt
     # 必须点明可以引用更早的轮次，否则模型只会盯着最新一句。
     assert "including" in prompt and "earlier turns" in prompt
+
+
+def test_chat_mode_lifts_decision_keys_that_the_model_nested_inside_intent() -> None:
+    """模型把顶层字段塞进 intent 时，只把它们搬回顶层，不改任何取值。
+
+    真实跑 DeepSeek 时 8 次里有 1 次这样。提示词已经写清了信封结构，但没有严格
+    schema 强制的接口不保证遵从，所以这里做一次有界的结构修复兜底。
+    """
+    decision = _decision(_ready_intent())
+    payload = decision.model_dump(mode="json")
+    # 造出模型犯的那个错：把 evidence / confidence 等塞进 intent 里面。
+    misplaced = {"evidence", "confidence", "manipulation_detected", "conflicts"}
+    broken = {
+        **{key: value for key, value in payload.items() if key not in misplaced | {"intent"}},
+        "intent": {**payload["intent"], **{key: payload[key] for key in misplaced}},
+    }
+
+    class Completions:
+        def create(self, **request: object) -> object:
+            del request
+            return SimpleNamespace(
+                choices=[
+                    SimpleNamespace(
+                        message=SimpleNamespace(content=json.dumps(broken, ensure_ascii=False))
+                    )
+                ],
+                usage=None,
+                model="deepseek-test",
+                id="chat-response",
+            )
+
+    adapter = OpenAISemanticIntentLanguageModel(
+        client=SimpleNamespace(chat=SimpleNamespace(completions=Completions())),
+        model="deepseek-test",
+        api_mode="chat",
+    )
+
+    result = adapter.interpret_trip_intent(
+        "[turn:0 role:user] 从北京去上海",
+        task_id="repair",
+        traveler_id="E1001",
+        context={"reference_time": "2026-08-01T09:00:00+08:00", "timezone": "Asia/Shanghai"},
+    )
+
+    assert result.decision == decision
+    assert result.metadata.envelope_repaired is True
+
+
+def test_unrepairable_json_is_retryable_rather_than_a_permanent_failure() -> None:
+    """修不好就当作偶发的模型格式故障，让上层重试一次，而不是直接判死。"""
+
+    class Completions:
+        def create(self, **request: object) -> object:
+            del request
+            return SimpleNamespace(
+                choices=[
+                    SimpleNamespace(message=SimpleNamespace(content='{"status": "READY"}'))
+                ],
+                usage=None,
+                model="deepseek-test",
+                id="chat-response",
+            )
+
+    adapter = OpenAISemanticIntentLanguageModel(
+        client=SimpleNamespace(chat=SimpleNamespace(completions=Completions())),
+        model="deepseek-test",
+        api_mode="chat",
+    )
+
+    with pytest.raises(LanguageModelError) as excinfo:
+        adapter.interpret_trip_intent(
+            "[turn:0 role:user] 从北京去上海",
+            task_id="broken",
+            traveler_id="E1001",
+            context={"reference_time": "2026-08-01T09:00:00+08:00", "timezone": "Asia/Shanghai"},
+        )
+
+    assert excinfo.value.error_code == "SEMANTIC_JSON_INVALID"
+    assert excinfo.value.retryable is True
+
+
+def test_prompt_defaults_a_yearless_date_to_this_year_and_asks_when_it_has_passed() -> None:
+    prompt = OpenAISemanticIntentLanguageModel._semantic_system_prompt(
+        {"reference_time": "2026-08-19T15:00:00+08:00", "timezone": "Asia/Shanghai"}
+    )
+
+    assert "bare month/day with no year" in prompt
+    assert "current year" in prompt
+    assert "next year" in prompt
+    # 默认分支必须写得比例外分支更响，否则模型会对每个日期都问一遍年份。
+    assert "Do this silently" in prompt
+    assert "must not ask" in prompt
+    # "别问"只针对年份，不能连该问的到达时限也一起压掉。
+    assert "about the year only" in prompt
+    assert "exactly one situation" in prompt
+    assert "strictly earlier than the reference_time day" in prompt
+    # 两个方向都要给例子：该问的和不该问的。
+    assert "still ahead, so resolve it and ask nothing" in prompt
+    assert "already behind, so ask" in prompt
+    # 写了年份的日期即使在过去也不算歧义，否则 2026.8.5 会被误拦。
+    assert "stated explicitly is never ambiguous" in prompt
+
+
+def test_a_ready_decision_without_grounded_evidence_asks_instead_of_dead_ending() -> None:
+    """模型说"可以查了"却拿不出某字段的原话，是"还没问清"，不是把整份解释判死。
+
+    真实跑里最常见的情形：用户压根没说到达时限。此前宿主把它当模型违约，直接把用户
+    推去填结构化表单；现在改成追问缺的那一项，已经读懂的日期照样保留。
+    """
+    compiled = compile_search_command(
+        _decision(
+            _ready_intent(),
+            evidence=[
+                EvidenceRef(turn_index=0, field="origin", quote="北京"),
+                EvidenceRef(turn_index=0, field="destination", quote="上海"),
+                EvidenceRef(turn_index=0, field="departure_after", quote="8月5日"),
+            ],
+        ),
+        task_id="ungrounded-arrive",
+        traveler_id="E1001",
+        version=1,
+        city_normalizer=CityNormalizer(),
+        created_at=datetime(2026, 8, 1, 9, 0, tzinfo=SHANGHAI),
+    )
+
+    assert not compiled.ready
+    assert compiled.command is None
+    assert compiled.missing == ("arrive_by",)
+    assert compiled.clarification_question
+
+
+def test_a_fabricated_quote_is_still_a_hard_model_failure() -> None:
+    """引文在原文里找不到仍然是硬违约——放松的只是"少给一条证据"。"""
+    from corporate_travel_agent.agent.semantic_intent import ConversationIntentInterpreter
+
+    ledger = ConversationLedger.from_messages(
+        [ConversationMessage(role="user", content="8月5日从北京去上海")]
+    )
+    model = ScriptedSemanticModel(
+        [
+            _decision(
+                _ready_intent(),
+                evidence=[EvidenceRef(turn_index=0, field="origin", quote="用户没说过这句")],
+            )
+        ]
+    )
+
+    with pytest.raises(LanguageModelError) as excinfo:
+        ConversationIntentInterpreter(model).interpret(
+            ledger, task_id="fabricated", traveler_id="E1001", context={}
+        )
+
+    assert excinfo.value.error_code == "INTENT_EVIDENCE_QUOTE_INVALID"

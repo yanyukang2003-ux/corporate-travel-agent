@@ -1,0 +1,361 @@
+{
+  "started_at": "2026-08-27T18:25:19.946071+00:00",
+  "finished_at": "2026-08-27T18:25:56.221712+00:00",
+  "runner_version": "semantic-calendar-model-runner-v1",
+  "gate_id": "H-semantic",
+  "entrypoint": "semantic",
+  "inventory": "mock",
+  "model": "deepseek-v4-pro",
+  "semantic_prompt_version": "semantic-trip-intent-v5",
+  "model_calls_attempted": 8,
+  "model_calls_with_usage": 3,
+  "model_calls_without_usage": 5,
+  "price_table_version": "model-prices-openai-20260802-v1",
+  "price_table_sha256": "dd2a754fb067cbb147677d6d75ac462f4f327480776696fadc8c6547cbdbbf46",
+  "currency": "USD",
+  "estimated_cost_usd": 0.0037014150000000004,
+  "measurement_only": true,
+  "passed": 2,
+  "total": 8,
+  "cases": [
+    {
+      "case_id": "H-01",
+      "title": "下下周三 = 下下个星期的星期三",
+      "message": "下下周三从北京去上海开会",
+      "reference_time": "2026-08-19T15:00:00+08:00",
+      "passed": false,
+      "checks": [
+        {
+          "name": "departure_date",
+          "ok": false,
+          "detail": "expected 2026-09-02, got None"
+        }
+      ],
+      "state": "NEEDS_CLARIFICATION",
+      "intent_fields": {
+        "origin": "Beijing",
+        "destination": "Shanghai",
+        "client_location": "上海",
+        "booking_scope": "OUTBOUND_ONLY",
+        "lodging_requirement": "UNSPECIFIED"
+      },
+      "clarification_question": "请问您说的“下下周三”具体是哪一天？",
+      "conflicts": [
+        "unresolved uncertainty: 下下周三的具体日期未明确"
+      ],
+      "assumptions": [],
+      "failure": null,
+      "llm_calls": [
+        {
+          "prompt_version": "semantic-trip-intent-v5",
+          "model": "deepseek-v4-pro",
+          "duration_ms": 4224,
+          "requested_model": "deepseek-v4-pro",
+          "reasoning_effort": "medium",
+          "response_id": "a440c2ce-f278-4ced-a0f3-2a39dab45392",
+          "input_tokens": 2172,
+          "output_tokens": 345,
+          "cached_input_tokens": 256,
+          "cache_write_input_tokens": null,
+          "reasoning_output_tokens": null,
+          "total_tokens": 2517,
+          "service_tier": null,
+          "evidence_contract_version": "conversation-turn-v1",
+          "envelope_repaired": false
+        }
+      ]
+    },
+    {
+      "case_id": "H-02",
+      "title": "这周五还是下周五：不许自己挑一个",
+      "message": "这周五还是下周五从北京去上海",
+      "reference_time": "2026-08-19T15:00:00+08:00",
+      "passed": true,
+      "checks": [
+        {
+          "name": "departure_unresolved",
+          "ok": true,
+          "detail": "None"
+        },
+        {
+          "name": "arrive_unresolved",
+          "ok": true,
+          "detail": "None"
+        },
+        {
+          "name": "clarifies",
+          "ok": true,
+          "detail": "NEEDS_CLARIFICATION"
+        },
+        {
+          "name": "no_options",
+          "ok": true,
+          "detail": "0"
+        },
+        {
+          "name": "question_names_the_ambiguity",
+          "ok": true,
+          "detail": "请问您想这周五还是下周五出发？"
+        },
+        {
+          "name": "no_search_on_unresolved",
+          "ok": true,
+          "detail": "0"
+        }
+      ],
+      "state": "NEEDS_CLARIFICATION",
+      "intent_fields": {
+        "origin": "Beijing",
+        "destination": "Shanghai",
+        "booking_scope": "OUTBOUND_ONLY",
+        "lodging_requirement": "UNSPECIFIED"
+      },
+      "clarification_question": "请问您想这周五还是下周五出发？",
+      "conflicts": [
+        "unresolved uncertainty: 出发日期不确定：这周五还是下周五"
+      ],
+      "assumptions": [],
+      "failure": null,
+      "llm_calls": [
+        {
+          "prompt_version": "semantic-trip-intent-v5",
+          "model": "deepseek-v4-pro",
+          "duration_ms": 4345,
+          "requested_model": "deepseek-v4-pro",
+          "reasoning_effort": "medium",
+          "response_id": "678f52ff-0ccf-4cdc-9caa-8810ef8c8c0c",
+          "input_tokens": 2173,
+          "output_tokens": 352,
+          "cached_input_tokens": 2048,
+          "cache_write_input_tokens": null,
+          "reasoning_output_tokens": null,
+          "total_tokens": 2525,
+          "service_tier": null,
+          "evidence_contract_version": "conversation-turn-v1",
+          "envelope_repaired": false
+        }
+      ]
+    },
+    {
+      "case_id": "H-03a",
+      "title": "8/5 在该日之前 = 今年 8 月 5 日",
+      "message": "8/5从北京去上海开会",
+      "reference_time": "2026-08-01T09:00:00+08:00",
+      "passed": false,
+      "checks": [
+        {
+          "name": "departure_date",
+          "ok": false,
+          "detail": "expected 2026-08-05, got None"
+        },
+        {
+          "name": "interpretation_succeeded",
+          "ok": false,
+          "detail": "Ready semantic intent lacks grounded evidence for: arrive_by"
+        }
+      ],
+      "state": "NEEDS_STRUCTURED_INPUT",
+      "intent_fields": {
+        "lodging_requirement": "UNSPECIFIED"
+      },
+      "clarification_question": null,
+      "conflicts": [],
+      "assumptions": [],
+      "failure": "Ready semantic intent lacks grounded evidence for: arrive_by",
+      "llm_calls": []
+    },
+    {
+      "case_id": "H-03b",
+      "title": "8.5 在该日之前 = 今年 8 月 5 日",
+      "message": "8.5从北京去上海开会",
+      "reference_time": "2026-08-01T09:00:00+08:00",
+      "passed": false,
+      "checks": [
+        {
+          "name": "departure_date",
+          "ok": false,
+          "detail": "expected 2026-08-05, got None"
+        },
+        {
+          "name": "interpretation_succeeded",
+          "ok": false,
+          "detail": "Ready semantic intent lacks grounded evidence for: arrive_by"
+        }
+      ],
+      "state": "NEEDS_STRUCTURED_INPUT",
+      "intent_fields": {
+        "lodging_requirement": "UNSPECIFIED"
+      },
+      "clarification_question": null,
+      "conflicts": [],
+      "assumptions": [],
+      "failure": "Ready semantic intent lacks grounded evidence for: arrive_by",
+      "llm_calls": []
+    },
+    {
+      "case_id": "H-03c",
+      "title": "2026.8.5 写了年份就按年份，哪怕已经过去",
+      "message": "2026.8.5从北京去上海开会",
+      "reference_time": "2026-08-19T15:00:00+08:00",
+      "passed": false,
+      "checks": [
+        {
+          "name": "departure_date",
+          "ok": false,
+          "detail": "expected 2026-08-05, got None"
+        },
+        {
+          "name": "interpretation_succeeded",
+          "ok": false,
+          "detail": "Ready semantic intent lacks grounded evidence for: arrive_by"
+        }
+      ],
+      "state": "NEEDS_STRUCTURED_INPUT",
+      "intent_fields": {
+        "lodging_requirement": "UNSPECIFIED"
+      },
+      "clarification_question": null,
+      "conflicts": [],
+      "assumptions": [],
+      "failure": "Ready semantic intent lacks grounded evidence for: arrive_by",
+      "llm_calls": []
+    },
+    {
+      "case_id": "H-03d",
+      "title": "没写年份的 8/5 落在刚过去的日子：不许自动跳到明年",
+      "message": "8/5从北京去上海开会",
+      "reference_time": "2026-08-19T15:00:00+08:00",
+      "passed": false,
+      "checks": [
+        {
+          "name": "departure_unresolved",
+          "ok": true,
+          "detail": "None"
+        },
+        {
+          "name": "no_search_on_unresolved",
+          "ok": true,
+          "detail": "0"
+        },
+        {
+          "name": "interpretation_succeeded",
+          "ok": false,
+          "detail": "Ready semantic intent lacks grounded evidence for: arrive_by"
+        }
+      ],
+      "state": "NEEDS_STRUCTURED_INPUT",
+      "intent_fields": {
+        "lodging_requirement": "UNSPECIFIED"
+      },
+      "clarification_question": null,
+      "conflicts": [],
+      "assumptions": [],
+      "failure": "Ready semantic intent lacks grounded evidence for: arrive_by",
+      "llm_calls": []
+    },
+    {
+      "case_id": "H-04",
+      "title": "春节不许编成某个公历日",
+      "message": "春节从北京去上海出差",
+      "reference_time": "2026-08-19T15:00:00+08:00",
+      "passed": true,
+      "checks": [
+        {
+          "name": "departure_unresolved",
+          "ok": true,
+          "detail": "None"
+        },
+        {
+          "name": "clarifies",
+          "ok": true,
+          "detail": "NEEDS_CLARIFICATION"
+        },
+        {
+          "name": "no_options",
+          "ok": true,
+          "detail": "0"
+        },
+        {
+          "name": "origin",
+          "ok": true,
+          "detail": "Beijing"
+        },
+        {
+          "name": "destination",
+          "ok": true,
+          "detail": "Shanghai"
+        },
+        {
+          "name": "no_search_on_unresolved",
+          "ok": true,
+          "detail": "0"
+        }
+      ],
+      "state": "NEEDS_CLARIFICATION",
+      "intent_fields": {
+        "origin": "Beijing",
+        "destination": "Shanghai",
+        "booking_scope": "OUTBOUND_ONLY",
+        "lodging_requirement": "UNSPECIFIED"
+      },
+      "clarification_question": "请问您计划的具体出发日期是哪一天？",
+      "conflicts": [
+        "unresolved uncertainty: 春节具体日期未明确"
+      ],
+      "assumptions": [],
+      "failure": null,
+      "llm_calls": [
+        {
+          "prompt_version": "semantic-trip-intent-v5",
+          "model": "deepseek-v4-pro",
+          "duration_ms": 3839,
+          "requested_model": "deepseek-v4-pro",
+          "reasoning_effort": "medium",
+          "response_id": "503bc331-27ba-4fdc-a14a-c5a57dae4c4f",
+          "input_tokens": 2170,
+          "output_tokens": 300,
+          "cached_input_tokens": 2048,
+          "cache_write_input_tokens": null,
+          "reasoning_output_tokens": null,
+          "total_tokens": 2470,
+          "service_tier": null,
+          "evidence_contract_version": "conversation-turn-v1",
+          "envelope_repaired": false
+        }
+      ]
+    },
+    {
+      "case_id": "H-05",
+      "title": "12月30日去、1月2日回：返程跨到下一年",
+      "message": "12月30日从北京去上海开会，1月2日回",
+      "reference_time": "2026-08-19T15:00:00+08:00",
+      "passed": false,
+      "checks": [
+        {
+          "name": "departure_date",
+          "ok": false,
+          "detail": "expected 2026-12-30, got None"
+        },
+        {
+          "name": "return_date",
+          "ok": false,
+          "detail": "expected 2027-01-02, got None"
+        },
+        {
+          "name": "interpretation_succeeded",
+          "ok": false,
+          "detail": "Ready semantic intent lacks grounded evidence for: arrive_by"
+        }
+      ],
+      "state": "NEEDS_STRUCTURED_INPUT",
+      "intent_fields": {
+        "lodging_requirement": "UNSPECIFIED"
+      },
+      "clarification_question": null,
+      "conflicts": [],
+      "assumptions": [],
+      "failure": "Ready semantic intent lacks grounded evidence for: arrive_by",
+      "llm_calls": []
+    }
+  ]
+}
