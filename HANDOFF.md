@@ -1,12 +1,20 @@
 # Session Handoff — Corporate Travel Agent
 
-**日期：** 2026-08-19  
+**日期：** 2026-08-27（上一轮 2026-08-19 见 §22）  
 **工作区：** `/Users/yukangyan/Downloads/corporate-travel-agent`  
 **目的：** 换 session 续作入口。读完本文件即可接上。
 
 ---
 
 ## 1. 当前阶段一句话
+
+**最新一轮见 §23：新语义链路已进评测（D15 门禁 PASS）、LLM Judge 已接通、前端演示数据
+已清除、此前 33 个文件的未提交工作树已进版本库（分支 `semantic-entrypoint-and-judge`）。**
+
+**待项目所有者拍板的一件事：前端新建任务实际仍走旧链路，切到语义入口是一行改动。**
+详见 §23.1。
+
+以下为 2026-08-19 及更早的状态，仍然有效：
 
 **§18.3 A–I 已打完。不要再堆缺槽闲聊，也不要重复 A–I。**  
 D4 frozen v1.0.3；DeepSeek smoke 24/24、24×3 全过；Duffel 重验 / D14 Test Order 历史基线仍有效。  
@@ -250,12 +258,15 @@ export DOCKER_HOST="unix://${HOME}/.colima/default/docker.sock"
 
 | 优先级 | 事项 |
 |---|---|
-| **P0 建议下一步** | §18.3 J：把直播坏案例脱敏后进 D6（目前 D6 仍为 0）；或 D4 24 题计费复测（需 `--confirm-billable`） |
+| **P0 待拍板** | 前端新建任务切到语义入口（`App.tsx` 一行；D15 并排数据已具备，见 §23.1） |
+| **P0 建议下一步** | §18.3 A–I 九类红队 runner 接语义入口（本轮只接了 D1/D2 主集，见 §23.8） |
+| P0 | §18.3 J：把直播坏案例脱敏后进 D6（目前 D6 仍为 0）；或 D4 24 题计费复测（需 `--confirm-billable`） |
+| P1 | Judge 真实计费跑一次 + 找第二个标注者做人工双评（现为单标注者单轮，见 §23.5） |
 | P1 | `recover_interrupted_tasks()` 仍 `list_tasks()` 全表；10 万行场景启动恢复会反序列化历史行（claim 扫描已走索引） |
 | P2 | 改航/补槽 merge 语义分层 + 槽 provenance 全链路（换目的地、改出发地、改单程/酒店/会议/返程已做） |
-| P2 | 前端「我的差旅 / 政策 / 审计」仍有演示数据；规划页、审批队列、结构化表单已接真 API |
+| ~~P2~~ 已完成 | 前端「我的差旅 / 政策 / 审计」演示数据已清除，改接真 API（见 §23.6） |
 | P3 | CLI `--case-id` 单题调试 |
-| 已完成 | DeepSeek 24/24、24×3、Duffel 重验、D14、参数环、多轮 LLM、intake 红队、§18.3 A–I |
+| 已完成 | DeepSeek 24/24、24×3、Duffel 重验、D14、参数环、多轮 LLM、intake 红队、§18.3 A–I、D15 语义入口评测、LLM Judge 链路、前端去演示数据 |
 | B | 可选人工抽检意图金标 / 输出质量 / 影子幻觉 |
 | D | 系统事件全剧本加深 |
 | E | 02/04–07 盲填大表：**默认不做** |
@@ -265,9 +276,12 @@ export DOCKER_HOST="unix://${HOME}/.colima/default/docker.sock"
 ## 9. 新 session 建议开场白（复制即可）
 
 ```text
-读 HANDOFF.md 续作 corporate-travel-agent，重点 §18.3 J 与 §22。
-§18.3 A–I 已打完（选方案/重验、审批、AUTH、前端、延迟恢复、PG、改口、日历、能力边界）。
-不要再堆缺槽闲聊，不要重复 A–I。下一优先：D6 回流，或经授权的 D4 24 题计费复测。
+读 HANDOFF.md 续作 corporate-travel-agent，先读 §23（最新一轮），再读 §8 未做清单。
+先读 AGENTS.md：说明用简单语言，专业名词先解释再用。
+§18.3 A–I 已打完；D15 语义入口评测已 PASS；LLM Judge 已接通但未真跑；前端演示数据已清。
+当前工作在分支 semantic-entrypoint-and-judge，工作树干净。
+不要再堆缺槽闲聊，不要重复 A–I。下一优先：前端切语义入口（待拍板，一行），
+或把 A–I 红队 runner 接语义入口，或 D6 回流。
 当前 API 若需启动：set -a && . ./.env && set +a && export DATABASE_URL= && .venv/bin/uvicorn corporate_travel_agent.api.main:app --host 127.0.0.1 --port 8000
 （本机 Postgres 未开时必须空掉 DATABASE_URL，否则起不来。AUTH 直播验收用独立 8010 mock，不要复用 8000 上的 Duffel 红队进程。）
 ```
@@ -1050,3 +1064,144 @@ export DOCKER_HOST="unix://${HOME}/.colima/default/docker.sock"
 ---
 
 *交接更新 2026-08-19。A–F 见 §19；G 见 §20；H 见 §21；I 见 §22；未测类型以 §18.3 J 为准。*
+
+## 23. 2026-08-27：语义入口进评测 + LLM Judge + 前端去演示数据
+
+**本轮不是补槽/红队轮。** 没跑计费模型，没碰 Duffel/LiteAPI，没创建 Test Order。
+全部改动在离线确定性路径 + 前端 + 文档。
+
+### 23.0 名词（本节新出现的先解释）
+
+| 词 | 意思 |
+|---|---|
+| 旧链路 / legacy | 原有的「一句话 → 抽字段 → 合并进 `intent_fields`」路径 |
+| 新链路 / semantic | ADR-0002 的「完整对话 → 一次解释 → 编译成查询」路径 |
+| D15 | 本轮新增的评测门禁：同一份 `derived-v2` 分别走两条链路做并排对比 |
+| 确定性替身 | 假装成模型的固定规则实现。不花钱、不联网、每次结果相同 |
+| LLM Judge | 用另一个模型给「用户可见回复」的主观质量打 1–5 分 |
+| rubric | 给 Judge 的评分细则表（`evals/rubrics/output-quality-v1.json`） |
+| 校准 | 拿人工标注对齐 Judge 分数，验证 Judge 靠不靠谱 |
+
+### 23.1 本轮发现的两个事实（重要）
+
+1. **前端新建任务实际走的是旧链路。** `App.tsx` 调 `createLegacyNaturalLanguage`；
+   `createSemanticNaturalLanguage()` 定义了但**无人调用**。追问路由是对的（按
+   `task.intent_entrypoint` 分流）。后端语义适配器已装配，配了 Key 即可用。
+   **与 `docs/intent-entrypoint-migration-summary.md` 的描述不符**——文档写的是
+   「前端默认走语义入口」。**本轮刻意没翻转**：切默认入口是行为变更，ADR-0002 明确
+   写了 legacy 保留是回滚保险。D15 数据已具备，等项目所有者拍板，改动量为一行。
+
+2. **整个评测 harness 之前 0 覆盖新链路。** 所有 runner 都调
+   `create_task_from_message()`。ADR-0002 removal gate 第 1、4 条**此前无法验证**。
+
+### 23.2 产物
+
+| 项 | 路径 |
+|---|---|
+| 分支 | `semantic-entrypoint-and-judge`（6 commits，工作树已清空） |
+| 确定性语义替身 | `src/corporate_travel_agent/agent/deterministic_semantic_interpreter.py` |
+| D15 runner | `examples/run_semantic_entrypoint_evaluation.py` |
+| D15 首轮报告 | `reports/evaluation-runs/semantic-entrypoint-20260827/` **门禁 PASS** |
+| Judge 核心 | `src/corporate_travel_agent/services/evaluation_judge.py` |
+| Judge 适配器 | `src/corporate_travel_agent/services/evaluation_judge_openai.py` |
+| Judge runner | `examples/run_output_quality_judge.py` |
+| 新后端接口 | `GET /policy`、`GET /audit-events`（后者仅管理员） |
+| 单测 | `tests/test_semantic_entrypoint_evaluation.py`（12）、`tests/test_evaluation_judge.py`（14）、`tests/test_api.py`（+3） |
+| 协议 | `docs/evaluation-protocol.md` §3.1 D15 + §6.1 Judge 实现约束 |
+| 清单 | `evals/manifest.json`：新增 D15、judge 段；`code_revision` 由 `null` 改为实际 revision |
+| 沟通标准 | `AGENTS.md`（新建） |
+
+复跑（输出目录必须不存在）：
+
+```bash
+.venv/bin/python examples/run_semantic_entrypoint_evaluation.py \
+  --output reports/evaluation-runs/semantic-entrypoint-NEWDIR
+```
+
+### 23.3 D15 断言摘要
+
+| 项 | 结果 |
+|---|---:|
+| D1 60 条工作流走语义入口，命中冻结期望 | **60/60** |
+| 静默错搜（期望澄清却已产出方案） | **0** |
+| D2 480 条 `premature_provider_call_rate` | **0** |
+| D2 480 条 `inventory_hallucination_rate` | **0** |
+| `clarification_accuracy` | 0.71875（与旧链路 delta = 0） |
+| `out_of_scope_accuracy` | 0.10（与旧链路 delta = 0） |
+| `missing_field_recall` | 0.3629（delta = 0） |
+| `transport_preference_accuracy` | 0.9259（delta = 0） |
+
+### 23.4 行为事实
+
+- **替身能力刻意对齐。** 语义替身复用 `DeterministicChineseIntentParser._cities` /
+  `._departure_date`，额外只认识 D1 的冻结英文模板语法。这样两条链路的差异只能归因
+  于架构，不是「新替身更强」。改任一替身都会破坏这个前提。
+- **`classification_accuracy` 在语义侧记 `not_applicable`，不是记低分。** 语义链路
+  按设计没有场景分类器；反推该标签等于把 ADR-0002 删掉的东西装回来。唯一可比的分类
+  结论是 `OUT_OF_SCOPE`，走 `out_of_scope_accuracy` 单独报告。
+- **不同入口的观测不许合并。** `summarize_intent_observations()` 混入两种
+  `entrypoint` 会直接抛 `EvaluationDatasetError`。
+- **一条用例不许同时走两个入口。** `run_workflow_evaluation_case()` 同时收到
+  `language_model` 和 `semantic_language_model` 直接报错。
+- 顺手修了真 bug：模板路由正则 `[^.]+?` 在 `St. Louis` 的点号处截断，导致
+  `prefer-compliant-0707` 误判缺 origin/destination。已锚定到下一句。
+
+### 23.5 Judge 的硬规矩（都有测试守着）
+
+| 规矩 | 说明 |
+|---|---|
+| 硬规则优先 | 硬失败用例照打分，但判定永久带 `hard_rule_failed` 并单独统计。高分不能洗白硬失败 |
+| 弃权 ≠ 0 分 | 排除在均值外；全弃权返回 `None` |
+| 维度必须完整 | 少给/多编维度 = 契约违规抛错，不是低分 |
+| 盲评 | 每条输入调用前校验盲字段 |
+| rubric 按 SHA-256 固定 | 每条判定记指纹；改 rubric 则历史结果显式不可比 |
+| 校准三档 | `passed` / `failed` / `insufficient_samples` |
+
+**校准现状必须记住：** `03-output-quality.jsonl` 的 20 条标注是
+`annotator_id=human-01`、`round=1`，即**单标注者单轮**。rubric 要求的是
+`required_human_double_rated_cases: 20`（人工双评）。因此**即使一致率 ≥0.9，
+`calibration_status` 也必须是 `insufficient_samples`**，不得宣称已校准。
+`tests/test_evaluation_judge.py::test_calibration_reports_agreement_against_human_labels`
+把这条写死了。
+
+**Judge 尚未真跑。** 只跑过 `--dry-run`：60 份输入、全部盲评合规、20 条标注全部可按
+`run_id` 对齐。真跑需 `--confirm-billable-judge-calls`。
+
+### 23.6 前端演示数据已清除
+
+| 页面 | 之前写死的假数据 | 现在 |
+|---|---|---|
+| 我的差旅 | 4 个不存在的员工与行程、`¥28,640` 年度支出、`71%` 低碳出行 | `GET /trip-tasks` |
+| 差旅政策 | 假版本 `CN-TRAVEL v3.2`、假指纹 `9f3ae711…7c12`、4 条编造规则 | `GET /policy` |
+| 审计与系统 | 5 条假事件与假哈希、`工具预算 5/12` | `GET /audit-events` + `GET /health` |
+
+三页均有显式 loading / error / empty 态。`GET /audit-events` 走任务投影 + `limit`
+约束，不做全表 `list_tasks()` 扫描。
+
+### 23.7 验收
+
+```
+pytest        590 passed（新增 29）
+ruff          All checks passed
+npm run build ✓
+npm test      10 passed
+```
+
+**未逐个验证中间 commit 是否独立绿灯，只验证了 HEAD。** 原因：`api/main.py` 与
+3 个前端文件同时含「语义路由」和「本轮新接口」两部分改动，本环境无交互式
+`git add -i`，无法按行拆分。
+
+### 23.8 未做
+
+- **前端切语义入口**（等拍板，一行）
+- §18.3 A–I 九类红队 runner 仍走 legacy，本轮只接了 D1/D2 主集
+- Judge 真实计费跑一次；找第二个标注者做真正的人工双评
+- D6 回流仍 0；D3 真实快照仍 0/20
+- CI 仍无评测门禁，只跑单测 + lint + PG 冒烟
+- `recover_interrupted_tasks()` 仍全表 `list_tasks()`
+
+---
+
+*交接更新 2026-08-27。本轮见 §23（语义入口进评测 D15 / LLM Judge / 前端去演示数据 / 工作树已提交）。*
+*沟通标准见新建的 `AGENTS.md`：先解释名词再用，先给结论再给细节，诚实优先于漂亮。*
+*A–F 见 §19；G 见 §20；H 见 §21；I 见 §22。*
