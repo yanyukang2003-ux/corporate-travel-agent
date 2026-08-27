@@ -1,0 +1,150 @@
+{
+  "schema_version": 1,
+  "gate_id": "D15",
+  "runner_version": "semantic-entrypoint-runner-v1",
+  "protocol_id": "agent-eval-v1",
+  "evaluation_mode": "deterministic_mock",
+  "generated_at": "2026-08-27T14:11:38.061519+00:00",
+  "dataset_id": "corporate-travel-derived-v2",
+  "dataset_version": "2",
+  "intent_entrypoint_under_test": "semantic",
+  "semantic_prompt_version": "deterministic-semantic-v1",
+  "workflow_cases": {
+    "executed": 60,
+    "passed": 60,
+    "failures": [],
+    "silent_wrong_search_case_ids": []
+  },
+  "intent_metrics_semantic": {
+    "entrypoint": "semantic",
+    "classification_status": "not_applicable",
+    "total_cases": 480,
+    "scored_missing_field_cases": 250,
+    "scored_transport_preference_cases": 27,
+    "unsupported_constraint_cases": 305,
+    "classification_accuracy": 0.041666666666666664,
+    "missing_field_exact_match_rate": 0.08,
+    "missing_field_precision": 0.2775423728813559,
+    "missing_field_recall": 0.3628808864265928,
+    "clarification_accuracy": 0.71875,
+    "out_of_scope_accuracy": 0.1,
+    "transport_preference_accuracy": 0.9259259259259259,
+    "unsupported_constraint_rejection_rate": 0.0,
+    "premature_provider_call_rate": 0.0,
+    "inventory_hallucination_rate": 0.0
+  },
+  "intent_metrics_legacy": {
+    "entrypoint": "legacy",
+    "classification_status": "measured",
+    "total_cases": 480,
+    "scored_missing_field_cases": 250,
+    "scored_transport_preference_cases": 27,
+    "unsupported_constraint_cases": 305,
+    "classification_accuracy": 0.08541666666666667,
+    "missing_field_exact_match_rate": 0.08,
+    "missing_field_precision": 0.34610303830911493,
+    "missing_field_recall": 0.3628808864265928,
+    "clarification_accuracy": 0.71875,
+    "out_of_scope_accuracy": 0.1,
+    "transport_preference_accuracy": 0.9259259259259259,
+    "unsupported_constraint_rejection_rate": 0.0,
+    "premature_provider_call_rate": 0.0,
+    "inventory_hallucination_rate": 0.0
+  },
+  "side_by_side": {
+    "total_cases": {
+      "legacy": 480,
+      "semantic": 480,
+      "delta": 0,
+      "status": "comparable"
+    },
+    "scored_missing_field_cases": {
+      "legacy": 250,
+      "semantic": 250,
+      "delta": 0,
+      "status": "comparable"
+    },
+    "scored_transport_preference_cases": {
+      "legacy": 27,
+      "semantic": 27,
+      "delta": 0,
+      "status": "comparable"
+    },
+    "unsupported_constraint_cases": {
+      "legacy": 305,
+      "semantic": 305,
+      "delta": 0,
+      "status": "comparable"
+    },
+    "classification_accuracy": {
+      "legacy": 0.08541666666666667,
+      "semantic": 0.041666666666666664,
+      "delta": null,
+      "status": "not_applicable",
+      "note": "The semantic entrypoint has no scenario classifier by design (ADR-0002); only OUT_OF_SCOPE is comparable, via out_of_scope_accuracy."
+    },
+    "missing_field_exact_match_rate": {
+      "legacy": 0.08,
+      "semantic": 0.08,
+      "delta": 0.0,
+      "status": "comparable"
+    },
+    "missing_field_precision": {
+      "legacy": 0.34610303830911493,
+      "semantic": 0.2775423728813559,
+      "delta": -0.06856066542775902,
+      "status": "comparable"
+    },
+    "missing_field_recall": {
+      "legacy": 0.3628808864265928,
+      "semantic": 0.3628808864265928,
+      "delta": 0.0,
+      "status": "comparable"
+    },
+    "clarification_accuracy": {
+      "legacy": 0.71875,
+      "semantic": 0.71875,
+      "delta": 0.0,
+      "status": "comparable"
+    },
+    "out_of_scope_accuracy": {
+      "legacy": 0.1,
+      "semantic": 0.1,
+      "delta": 0.0,
+      "status": "comparable"
+    },
+    "transport_preference_accuracy": {
+      "legacy": 0.9259259259259259,
+      "semantic": 0.9259259259259259,
+      "delta": 0.0,
+      "status": "comparable"
+    },
+    "unsupported_constraint_rejection_rate": {
+      "legacy": 0.0,
+      "semantic": 0.0,
+      "delta": 0.0,
+      "status": "comparable"
+    },
+    "premature_provider_call_rate": {
+      "legacy": 0.0,
+      "semantic": 0.0,
+      "delta": 0.0,
+      "status": "comparable"
+    },
+    "inventory_hallucination_rate": {
+      "legacy": 0.0,
+      "semantic": 0.0,
+      "delta": 0.0,
+      "status": "comparable"
+    }
+  },
+  "gate_passed": true,
+  "gate_failures": [],
+  "limitations": [
+    "All inventory is deterministic MOCK data.",
+    "Both entrypoints run deterministic stand-ins, not a billed model.",
+    "Tool choice is orchestrator-controlled, not open model tool selection.",
+    "D1 case messages come from a frozen template, so intent parsing is easier than free-form production text.",
+    "This run does not measure the semantic entrypoint under a real model."
+  ]
+}

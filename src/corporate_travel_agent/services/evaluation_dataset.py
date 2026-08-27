@@ -492,6 +492,7 @@ class WorkflowEvaluationObservation:
 class IntentEvaluationObservation:
     """意图用例运行观察。"""
     case_id: str
+    entrypoint: str
     expected_classification: str
     actual_classification: str
     expected_missing_fields: tuple[str, ...] | None
@@ -510,6 +511,8 @@ class IntentEvaluationObservation:
 @dataclass(frozen=True, slots=True)
 class IntentEvaluationMetrics:
     """意图评测聚合指标。"""
+    entrypoint: str
+    classification_status: str
     total_cases: int
     scored_missing_field_cases: int
     scored_transport_preference_cases: int
@@ -661,8 +664,17 @@ def run_workflow_evaluation_case(
     *,
     trace_observer: WorkflowTraceObserverPort | None = None,
     language_model: object | None = None,
+    semantic_language_model: object | None = None,
 ) -> WorkflowEvaluationObservation:
-    """确定性执行单条工作流评测用例。"""
+    """确定性执行单条工作流评测用例。
+
+    三种入口互斥：都不传则用结构化请求；``language_model`` 走旧字段抽取入口；
+    ``semantic_language_model`` 走新的完整对话语义入口。
+    """
+    if language_model is not None and semantic_language_model is not None:
+        raise EvaluationDatasetError(
+            "A workflow case runs through exactly one intent entrypoint"
+        )
     def clock() -> datetime:
         return case.inventory.captured_at
 
@@ -752,9 +764,18 @@ def run_workflow_evaluation_case(
         clock=clock,
         trace_observer=trace_observer,
         language_model=language_model,
+        semantic_language_model=semantic_language_model,
     )
-    if language_model is None:
+    if language_model is None and semantic_language_model is None:
         task = workflow.create_task(request)
+    elif semantic_language_model is not None:
+        # The semantic entrypoint interprets the whole conversation; the frozen
+        # structured request never enters the loop.
+        task = workflow.create_task_from_semantic_message(
+            render_workflow_case_message(case),
+            traveler_id=case.employee.employee_id,
+            task_id=case.case_id,
+        )
     else:
         # The model owns intent extraction; the frozen structured request stays
         # out of the loop and is only used later to score what it produced.
@@ -813,27 +834,49 @@ def run_intent_evaluation(
     *,
     language_model=None,
     reference_time: datetime | None = None,
+    entrypoint: str = "legacy",
 ) -> IntentEvaluationMetrics:
-    """对意图用例执行模型/抽取并产出观察。"""
+    """对意图用例执行模型/抽取并产出观察。
+
+    ``entrypoint`` 决定用哪条意图链路：``legacy`` 走旧字段抽取，``semantic`` 走
+    完整对话解释。两者不共享实现，也不互相回退；同一份用例可分别运行做并排对比。
+    """
     from corporate_travel_agent.agent.deterministic_parser import (
         DeterministicChineseIntentParser,
     )
+    from corporate_travel_agent.agent.deterministic_semantic_interpreter import (
+        DeterministicSemanticInterpreter,
+    )
     from corporate_travel_agent.demo import build_demo_system
 
-    parser = language_model or DeterministicChineseIntentParser()
+    if entrypoint not in {"legacy", "semantic"}:
+        raise EvaluationDatasetError(f"Unsupported intent entrypoint: {entrypoint}")
+    semantic = entrypoint == "semantic"
+    if semantic:
+        parser = language_model or DeterministicSemanticInterpreter()
+    else:
+        parser = language_model or DeterministicChineseIntentParser()
     observed_at = reference_time or datetime(2026, 7, 20, 9, 0, tzinfo=UTC)
     observations: list[IntentEvaluationObservation] = []
 
     for case in cases:
         workflow, _ = build_demo_system(
-            language_model=parser,
+            language_model=None if semantic else parser,
+            semantic_language_model=parser if semantic else None,
             clock=lambda observed_at=observed_at: observed_at,
         )
-        task = workflow.create_task_from_message(
-            case.message,
-            traveler_id="E1001",
-            task_id=f"intent-eval-{case.case_id}",
-        )
+        if semantic:
+            task = workflow.create_task_from_semantic_message(
+                case.message,
+                traveler_id="E1001",
+                task_id=f"intent-eval-{case.case_id}",
+            )
+        else:
+            task = workflow.create_task_from_message(
+                case.message,
+                traveler_id="E1001",
+                task_id=f"intent-eval-{case.case_id}",
+            )
         actual_missing = tuple(task.missing_required_fields)
         provider_calls = sum(
             record.tool_kind == "PROVIDER" for record in task.tool_calls
@@ -842,9 +885,11 @@ def run_intent_evaluation(
         observations.append(
             IntentEvaluationObservation(
                 case_id=case.case_id,
+                entrypoint=entrypoint,
                 expected_classification=case.expected.classification,
-                actual_classification=str(
-                    task.metadata.get("intent_classification", "UNCLASSIFIED")
+                actual_classification=(
+                    _semantic_classification(task) if semantic
+                    else str(task.metadata.get("intent_classification", "UNCLASSIFIED"))
                 ),
                 expected_missing_fields=case.expected.missing_fields,
                 actual_missing_fields=actual_missing,
@@ -869,6 +914,22 @@ def run_intent_evaluation(
         )
 
     return summarize_intent_observations(tuple(observations))
+
+
+def _semantic_classification(task) -> str:
+    """把语义决策状态投影成可比较的标签。
+
+    语义链路没有旧的场景分类器，只有 ``IntentDecisionStatus``。这里只做状态到标签的
+    直译，不去反推 ``TRANSPORT_COMPARE`` 之类的旧标签——那会把 ADR-0002 删掉的分类器
+    重新引进来。唯一真正可比的是 ``OUT_OF_SCOPE``。
+    """
+    record = task.metadata.get("semantic_intent")
+    if not isinstance(record, dict):
+        return "UNCLASSIFIED"
+    decision = record.get("decision")
+    if not isinstance(decision, dict):
+        return "UNCLASSIFIED"
+    return str(decision.get("status", "UNCLASSIFIED"))
 
 
 def summarize_intent_observations(
@@ -904,7 +965,19 @@ def summarize_intent_observations(
     expected_missing = sum(
         len(set(item.expected_missing_fields or ())) for item in scored_missing
     )
+    entrypoints = {item.entrypoint for item in observations}
+    if len(entrypoints) != 1:
+        raise EvaluationDatasetError(
+            "Intent observations from different entrypoints must not be merged"
+        )
+    entrypoint = entrypoints.pop()
     return IntentEvaluationMetrics(
+        entrypoint=entrypoint,
+        # 旧链路的 classification 取自旧抽取器的分类标签；语义链路刻意没有这个
+        # 分类器（ADR-0002），因此该指标按协议 §1.5 记为 not_applicable，而不是记 0。
+        classification_status=(
+            "measured" if entrypoint == "legacy" else "not_applicable"
+        ),
         total_cases=total,
         scored_missing_field_cases=len(scored_missing),
         scored_transport_preference_cases=len(scored_transport_preferences),

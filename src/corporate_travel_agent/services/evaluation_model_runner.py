@@ -411,6 +411,7 @@ def _intent_observation(case: IntentEvaluationCase, task) -> IntentEvaluationObs
     preferences = tuple(task.intent_fields.get("soft_preferences") or ())
     return IntentEvaluationObservation(
         case_id=case.case_id,
+        entrypoint="legacy",
         expected_classification=case.expected.classification,
         actual_classification=str(task.metadata.get("intent_classification", "UNCLASSIFIED")),
         expected_missing_fields=case.expected.missing_fields,
