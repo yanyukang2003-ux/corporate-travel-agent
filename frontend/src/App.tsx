@@ -1183,7 +1183,7 @@ function PlanView({ onToast, composerEpoch }: { onToast: (text: string) => void;
         ? task.intent_entrypoint === 'legacy'
           ? await api.submitLegacyMessage(task.task_id, message)
           : await api.submitSemanticMessage(task.task_id, message)
-        : await api.createLegacyNaturalLanguage(message, user.employee_id ?? user.user_id)
+        : await api.createSemanticNaturalLanguage(message, user.employee_id ?? user.user_id)
       setInstruction(message)
       composingNewRef.current = false
       setComposingNew(false)
