@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
 
 from corporate_travel_agent.agent.deterministic_semantic_interpreter import (
@@ -159,3 +161,26 @@ def test_semantic_task_state_is_a_safe_pause_when_meaning_is_incomplete() -> Non
         if observation.inventory_hallucinated:
             raise AssertionError(f"{observation.case_id} fabricated inventory")
     assert safe  # the enum names above must remain valid states
+
+
+def test_semantic_redteam_acceptance_cases_all_pass() -> None:
+    """红队 runner 进 CI：新链路的宿主职责回归由单测守着，不靠人工记得去跑。"""
+    import importlib.util
+
+    path = (
+        Path(__file__).resolve().parents[1]
+        / "examples"
+        / "run_semantic_redteam_acceptance.py"
+    )
+    spec = importlib.util.spec_from_file_location("semantic_redteam_runner", path)
+    assert spec and spec.loader
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+
+    cases = module._run()
+
+    assert len(cases) == 17
+    failed = [item["case_id"] for item in cases if not item["passed"]]
+    assert not failed, failed
+    # 明确写下哪些红队检查没有移植，避免"覆盖率看起来很高"的错觉。
+    assert len(module.NOT_PORTABLE) == 3
