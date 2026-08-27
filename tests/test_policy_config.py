@@ -144,3 +144,54 @@ def test_task_rejects_reused_snapshot_id_with_changed_content() -> None:
 
     with pytest.raises(WorkflowError, match="content has changed"):
         workflow._policy_for(task)
+
+
+def test_policy_content_hash_is_stable_across_processes() -> None:
+    """同一份政策在不同进程里必须算出同一个哈希。
+
+    `exception_allowed_rule_ids` 是集合，集合没有顺序，而 Python 每个进程的字符串
+    哈希种子不同，所以 `model_dump` 出来的列表顺序会变。`sort_keys=True` 只排字典的
+    键、不排列表的值，于是同一份政策会算出不同哈希——真实 Postgres 上重启一次，所有
+    在途任务就都被 "Historical policy snapshot content has changed" 拦死了，而政策
+    其实一个字没改。内存存储永远暴露不出这个问题：任务随进程一起消失。
+    """
+    import subprocess
+    import sys
+
+    script = (
+        "from corporate_travel_agent.services.policy_config import "
+        "load_policy_configuration, _policy_content_hash;"
+        "print(_policy_content_hash(load_policy_configuration().config.policies[0]))"
+    )
+    hashes = {
+        subprocess.run(
+            [sys.executable, "-c", script],
+            capture_output=True,
+            text=True,
+            check=True,
+            cwd=Path(__file__).resolve().parents[1],
+        ).stdout.strip()
+        # 每个子进程都有各自的哈希种子；四次足以撞出顺序差异。
+        for _ in range(4)
+    }
+
+    assert len(hashes) == 1, hashes
+
+
+def test_set_fields_are_sorted_before_hashing() -> None:
+    """哈希前把集合字段排序：顺序不同但内容相同的政策必须得到同一个哈希。"""
+    from corporate_travel_agent.services.policy_config import (
+        _canonicalize_sets,
+        _policy_content_hash,
+    )
+
+    policy = load_policy_configuration().config.policies[0]
+    payload = policy.model_dump(mode="json")
+    canonical = _canonicalize_sets(policy, payload)
+
+    rule_ids = canonical["exception_allowed_rule_ids"]
+    assert rule_ids == sorted(rule_ids)
+    # 打乱输入顺序不改变结果。
+    shuffled = {**payload, "exception_allowed_rule_ids": list(reversed(rule_ids))}
+    assert _canonicalize_sets(policy, shuffled)["exception_allowed_rule_ids"] == rule_ids
+    assert _policy_content_hash(policy) == _policy_content_hash(policy)

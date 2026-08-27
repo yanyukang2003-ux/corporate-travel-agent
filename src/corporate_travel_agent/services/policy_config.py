@@ -434,9 +434,28 @@ def _policy_content_hash(policy: PolicySnapshotConfig) -> str:
     if "currency" not in policy.model_fields_set:
         payload.pop("currency", None)
     canonical = json.dumps(
-        payload,
+        _canonicalize_sets(policy, payload),
         ensure_ascii=False,
         sort_keys=True,
         separators=(",", ":"),
     ).encode()
     return hashlib.sha256(canonical).hexdigest()
+
+
+def _canonicalize_sets(policy: PolicySnapshotConfig, payload: dict[str, Any]) -> dict[str, Any]:
+    """把集合字段序列化出的列表排序，让哈希在进程之间稳定。
+
+    集合没有顺序，Python 每个进程的字符串哈希种子又不同，所以 `model_dump` 出来的
+    列表顺序每次启动都可能不一样。`sort_keys=True` 只排字典的**键**，不排列表的**值**，
+    于是同一份政策会算出不同的哈希——重启之后所有在途任务都会被
+    "Historical policy snapshot content has changed" 拦下来，而政策其实一个字没改。
+    """
+    canonical = dict(payload)
+    for name in type(policy).model_fields:
+        if name not in canonical:
+            continue
+        if isinstance(getattr(policy, name, None), (set, frozenset)):
+            value = canonical[name]
+            if isinstance(value, list):
+                canonical[name] = sorted(value)
+    return canonical

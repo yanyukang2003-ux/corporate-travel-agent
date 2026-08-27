@@ -1,0 +1,79 @@
+{
+  "schema_version": 1,
+  "rubric_id": "output-quality-v1",
+  "rubric_sha256": "9ed4721a38738ad4a6ad1141b47baf113b142297802410e462cf02547b310096",
+  "judge_id": "output-quality-judge-v1:deepseek-v4-pro",
+  "annotation_file": "03-output-quality.jsonl",
+  "annotation_sha256": "a379687d68ecbc29ae7f69beb4bc9a57e05c9db68078db4dcfee410e8d069fd1",
+  "annotator_ids": [
+    "human-01"
+  ],
+  "human_double_rated": false,
+  "required_double_rated_cases": 20,
+  "compared_cases": 17,
+  "judge_abstentions": 3,
+  "human_abstentions": 0,
+  "exact_agreement_rate": 0.5764705882352941,
+  "adjacent_agreement_rate": 0.9764705882352941,
+  "target_agreement": 0.9,
+  "target_met": false,
+  "calibration_status": "insufficient_samples",
+  "per_dimension": [
+    {
+      "dimension_id": "completeness",
+      "compared": 17,
+      "exact": 6,
+      "adjacent": 16,
+      "exact_rate": 0.35294117647058826,
+      "adjacent_rate": 0.9411764705882353
+    },
+    {
+      "dimension_id": "actionability",
+      "compared": 17,
+      "exact": 10,
+      "adjacent": 16,
+      "exact_rate": 0.5882352941176471,
+      "adjacent_rate": 0.9411764705882353
+    },
+    {
+      "dimension_id": "policy_transparency",
+      "compared": 17,
+      "exact": 14,
+      "adjacent": 17,
+      "exact_rate": 0.8235294117647058,
+      "adjacent_rate": 1.0
+    },
+    {
+      "dimension_id": "evidence_grounding",
+      "compared": 17,
+      "exact": 14,
+      "adjacent": 17,
+      "exact_rate": 0.8235294117647058,
+      "adjacent_rate": 1.0
+    },
+    {
+      "dimension_id": "uncertainty_and_failure_honesty",
+      "compared": 17,
+      "exact": 5,
+      "adjacent": 17,
+      "exact_rate": 0.29411764705882354,
+      "adjacent_rate": 1.0
+    }
+  ],
+  "major_disagreements": [
+    {
+      "run_id": "run-96b34167-b598-485b-8569-0de01d22c1a9",
+      "dimension_id": "completeness",
+      "judge_score": 2,
+      "human_score": 4,
+      "delta": -2
+    },
+    {
+      "run_id": "run-96b34167-b598-485b-8569-0de01d22c1a9",
+      "dimension_id": "actionability",
+      "judge_score": 3,
+      "human_score": 5,
+      "delta": -2
+    }
+  ]
+}
