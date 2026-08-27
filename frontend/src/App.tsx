@@ -9,9 +9,13 @@ import './App.css'
 import { useAuth } from './auth/AuthContext'
 import { api, ApiError } from './api/client'
 import type {
+  ActivePolicy,
+  AuditEvent,
   ClarificationQuestion,
+  HealthResponse,
   LodgingRequirement,
   StructuredTripCreate,
+  TaskState,
   TaskSummary,
   TravelOption,
   TripTask,
@@ -131,16 +135,15 @@ interface DisplayOption {
   live: true
 }
 
-const tripRows = [
-  { owner: '严雨 · E1001', route: '北京 → 上海', date: '8月18日—19日', status: '待选择', tone: 'blue', amount: '¥1,248 起', id: 'CT-260818-042' },
-  { owner: '陈霖 · E1037', route: '上海 → 深圳', date: '9月03日—05日', status: '待审批', tone: 'orange', amount: '¥3,860', id: 'CT-260903-017' },
-  { owner: '周雅 · E1052', route: '北京 → 杭州', date: '7月22日—24日', status: '已交接', tone: 'green', amount: '¥2,410', id: 'CT-260722-108' },
-  { owner: '李哲 · E1021', route: '北京 → 成都', date: '6月11日—13日', status: '已完成', tone: 'gray', amount: '¥3,265', id: 'CT-260611-063' },
-]
-
 /** 货币代码到展示符号。 */
 function currencySymbol(currency: string): string {
   return { CNY: '¥', USD: '$', EUR: '€', GBP: '£' }[currency.toUpperCase()] ?? `${currency} `
+}
+
+function isoDatePart(value: unknown): string {
+  if (typeof value !== 'string' || value.length < 10) return ''
+  const day = value.slice(0, 10)
+  return /^\d{4}-\d{2}-\d{2}$/.test(day) ? day : ''
 }
 
 /** 带货币符号的金额文案。 */
@@ -277,9 +280,9 @@ function intentText(task: TripTask | null, key: string, fallback = '待补充'):
 }
 
 /** 任务状态对应的徽章色调 class 后缀。 */
-function stateBadgeTone(task: TripTask | null): string {
-  if (!task) return 'gray'
-  const tone = getStateMeta(task.state).tone
+function stateBadgeTone(state: TaskState | null): string {
+  if (!state) return 'gray'
+  const tone = getStateMeta(state).tone
   if (tone === 'success') return 'green'
   if (tone === 'warning' || tone === 'waiting') return 'orange'
   if (tone === 'danger') return 'warn'
@@ -329,7 +332,7 @@ function Sidebar({ activeView, onChange, user, onLogout }: {
 }) {
   const [accountOpen, setAccountOpen] = useState(false)
   const [approvalCount, setApprovalCount] = useState<number | undefined>()
-  const { health } = useAuth()
+  const { health, authEnabled, switchDevelopmentRole } = useAuth()
   useEffect(() => {
     if (!user.roles.includes('approver')) {
       setApprovalCount(undefined)
@@ -369,14 +372,35 @@ function Sidebar({ activeView, onChange, user, onLogout }: {
       </nav>
       <div className="sidebar-foot">
         <div className={`service-status ${modelReady ? '' : 'degraded'}`.trim()}><i />{modelLabel} <span>V1.0</span></div>
-        <button className="profile-mini" aria-expanded={onLogout ? accountOpen : undefined} onClick={() => onLogout && setAccountOpen((open) => !open)}>
+        <button className="profile-mini" aria-expanded={accountOpen} onClick={() => setAccountOpen((open) => !open)}>
           <span className="avatar">{initials}</span>
           <span><b>{user.user_id}</b><small>{roleLabel}</small></span>
           <span className="more">•••</span>
         </button>
-        {accountOpen && onLogout && <div className="profile-menu">
+        {accountOpen && <div className="profile-menu">
           <span>当前身份<small>{user.employee_id ?? user.user_id}</small></span>
-          <button onClick={onLogout}>退出登录</button>
+          {!authEnabled && <>
+            <span className="development-role-label">本地开发身份</span>
+            {([
+              ['employee', '员工 E1001'],
+              ['approver', '审批人 M2001'],
+              ['admin', '管理员 A9001'],
+            ] as const).map(([role, label]) => (
+              <button
+                key={role}
+                type="button"
+                className={user.roles.includes(role) ? 'active' : ''}
+                onClick={() => {
+                  switchDevelopmentRole(role)
+                  setAccountOpen(false)
+                  onChange(role === 'employee' ? 'plan' : role === 'approver' ? 'approvals' : 'trips')
+                }}
+              >
+                {label}
+              </button>
+            ))}
+          </>}
+          {onLogout && <button onClick={onLogout}>退出登录</button>}
         </div>}
       </div>
     </aside>
@@ -619,21 +643,38 @@ function validClarificationQuestions(task: TripTask): ClarificationQuestion[] {
 }
 
 /** 澄清面板：展示缺失槽位、快捷选项与自定义答案提交。 */
+const TIME_OPTIONS: string[] = Array.from({ length: 24 * 4 }, (_, index) => {
+  const hour = Math.floor(index / 4)
+  const minute = (index % 4) * 15
+  return `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`
+})
+
+function nextTimeAfter(value: string): string {
+  const index = TIME_OPTIONS.indexOf(value)
+  if (index < 0) return TIME_OPTIONS[1]
+  return TIME_OPTIONS[Math.min(index + 1, TIME_OPTIONS.length - 1)]
+}
+
 function TimeRangePicker({
   kind,
   busy,
+  defaultDate,
   onSubmit,
 }: {
   kind: 'window' | 'return_window' | 'date'
   busy: boolean
+  defaultDate?: string
   onSubmit: (value: string) => void
 }) {
   const today = new Date()
-  const isoDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
+  const isoDate = defaultDate && /^\d{4}-\d{2}-\d{2}$/.test(defaultDate)
+    ? defaultDate
+    : `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
   const [date, setDate] = useState(isoDate)
   const [start, setStart] = useState('08:00')
   const [end, setEnd] = useState('18:00')
-  const canSubmit = Boolean(date) && (kind === 'date' || (Boolean(start) && Boolean(end) && start < end))
+  const arrivalOptions = TIME_OPTIONS.filter((item) => item > start)
+  const canSubmit = Boolean(date) && (kind === 'date' || (Boolean(start) && Boolean(end) && end > start))
   return (
     <div className="clarification-time-range" aria-label="选择时间区间">
       <label>
@@ -642,12 +683,28 @@ function TimeRangePicker({
       </label>
       {kind !== 'date' && <>
         <label>
-          开始
-          <input type="time" value={start} disabled={busy} onChange={(event) => setStart(event.target.value)} />
+          开始时间
+          <select
+            value={start}
+            disabled={busy}
+            onChange={(event) => {
+              const nextStart = event.target.value
+              setStart(nextStart)
+              if (end <= nextStart) setEnd(nextTimeAfter(nextStart))
+            }}
+          >
+            {TIME_OPTIONS.filter((item) => item < '23:45').map((item) => (
+              <option key={item} value={item}>{item}</option>
+            ))}
+          </select>
         </label>
         <label>
-          结束
-          <input type="time" value={end} disabled={busy} onChange={(event) => setEnd(event.target.value)} />
+          到达时间
+          <select value={end} disabled={busy || arrivalOptions.length === 0} onChange={(event) => setEnd(event.target.value)}>
+            {arrivalOptions.map((item) => (
+              <option key={item} value={item}>{item}</option>
+            ))}
+          </select>
         </label>
       </>}
       <button
@@ -827,6 +884,11 @@ function ClarificationPanel({ task, busy, error, onSubmit }: {
                   <TimeRangePicker
                     kind={question.input_kind === 'date' ? 'date' : (question.id === 'return_times' ? 'return_window' : 'window')}
                     busy={busy}
+                    defaultDate={
+                      isoDatePart(task.intent_fields.return_after)
+                      || isoDatePart(task.intent_fields.departure_after)
+                      || isoDatePart(task.intent_fields.arrive_by)
+                    }
                     onSubmit={(value) => void submitAnswer(value)}
                   />
                 )}
@@ -1118,8 +1180,10 @@ function PlanView({ onToast, composerEpoch }: { onToast: (text: string) => void;
         && task
         && (task.state === 'NEEDS_CLARIFICATION' || task.state === 'NEEDS_STRUCTURED_INPUT')
       const nextTask = isClarification
-        ? await api.submitMessage(task.task_id, message)
-        : await api.createNaturalLanguage(message, user.employee_id ?? user.user_id)
+        ? task.intent_entrypoint === 'legacy'
+          ? await api.submitLegacyMessage(task.task_id, message)
+          : await api.submitSemanticMessage(task.task_id, message)
+        : await api.createLegacyNaturalLanguage(message, user.employee_id ?? user.user_id)
       setInstruction(message)
       composingNewRef.current = false
       setComposingNew(false)
@@ -1213,7 +1277,7 @@ function PlanView({ onToast, composerEpoch }: { onToast: (text: string) => void;
     <div className="page plan-page">
       <div className="page-heading compact">
         <div><div className="breadcrumb">智能规划 {task && <><span>/</span> {task.task_id}</>}</div><h1>{origin && destination ? `${origin}到${destination}差旅` : '创建新的差旅行程'}</h1><p>{task ? `${taskState?.description} · 行程申请 v${task.request_version ?? 1}` : '输入自然语言指令，结果将直接来自本地 FastAPI 服务。'}</p></div>
-        <div className="heading-status"><Badge tone={stateBadgeTone(task)}>{task && <span className="pulse" />}{taskState?.label ?? '等待指令'}</Badge><button className="more-button" aria-label="更多任务操作">•••</button></div>
+        <div className="heading-status"><Badge tone={stateBadgeTone(task?.state ?? null)}>{task && <span className="pulse" />}{taskState?.label ?? '等待指令'}</Badge><button className="more-button" aria-label="更多任务操作">•••</button></div>
       </div>
 
       {/* 状态机分支：结构化表单 → 澄清面板 → 自然语言作曲器 */}
@@ -1323,33 +1387,67 @@ function TimelinePanel({ task }: { task: TripTask }) {
   return <section className="detail-panel"><div className="timeline-head"><div><div className="section-kicker">真实工具调用记录</div><h2>本次任务使用 {task.tool_budget.used} / {task.tool_budget.limit} 次工具调用</h2></div><Badge tone={task.tool_budget.blocked ? 'warn' : 'green'}>{task.tool_budget.blocked ? '预算耗尽' : `剩余 ${task.tool_budget.remaining}`}</Badge></div>{calls.length > 0 ? <div className="timeline">{calls.map((call, index) => <div key={`${call.sequence}-${call.tool_name}`}><time>{timeText(call.started_at)}</time><i className={index === calls.length - 1 ? 'current' : ''} /><section><b>{call.tool_name}</b><p>{call.status}{call.reason_code ? ` · ${call.reason_code}` : ''}{call.error_code ? ` · ${call.error_code}` : ''}</p></section></div>)}</div> : <div className="timeline-empty">该任务暂时没有工具调用记录。</div>}</section>
 }
 
-/** 差旅列表视图（员工/审批人/管理员文案不同；当前含演示表格数据）。 */
+/** 差旅列表视图：全部行来自 `GET /trip-tasks`，不含演示数据。 */
 function TripsView({ mode, onOpen }: { mode: WorkspaceRole; onOpen: (() => void) | null }) {
+  const [rows, setRows] = useState<TaskSummary[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+
+  useEffect(() => {
+    let cancelled = false
+    setLoading(true)
+    api.listTasks({ summary: true, limit: 100 })
+      .then((items) => {
+        if (cancelled) return
+        setRows(items as TaskSummary[])
+        setError('')
+      })
+      .catch((err) => {
+        if (!cancelled) setError(err instanceof Error ? err.message : '读取任务列表失败')
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
   const copy = {
-    employee: {
-      eyebrow: 'MY TRAVEL', title: '我的差旅', description: '集中查看本人规划、审批与交接状态。',
-      metrics: [['进行中', '2', '1 项等待你操作'], ['本年度出行', '12 次', '较去年同期 +3'], ['年度差旅支出', '¥28,640', '预算使用 62%'], ['低碳出行', '71%', '高铁优先占比']],
-    },
-    approver: {
-      eyebrow: 'TEAM TRAVEL', title: '团队差旅', description: '查看直属团队的差旅状态，不在此处修改员工申请。',
-      metrics: [['待我审批', '2', '最早将在 3 小时后过期'], ['团队本月出行', '8 次', '涉及 6 名员工'], ['待审批金额', '¥7,980', '其中例外 ¥700'], ['团队合规率', '92%', '较上月 +4%']],
-    },
-    admin: {
-      eyebrow: 'TASK OPERATIONS', title: '全局任务总览', description: '监控全部差旅任务和异常状态；审批决定仍由直属审批人执行。',
-      metrics: [['活跃任务', '18', '3 项等待用户操作'], ['等待供应商', '1', '已进入延迟重试'], ['本月差旅支出', '¥186,420', '预算使用 58%'], ['整体合规率', '94%', '2 项有效例外']],
-    },
+    employee: { eyebrow: 'MY TRAVEL', title: '我的差旅', description: '集中查看本人规划、审批与交接状态。' },
+    approver: { eyebrow: 'TEAM TRAVEL', title: '团队差旅', description: '查看直属团队的差旅状态，不在此处修改员工申请。' },
+    admin: { eyebrow: 'TASK OPERATIONS', title: '全局任务总览', description: '监控全部差旅任务和异常状态；审批决定仍由直属审批人执行。' },
   }[mode]
+
+  // 计数直接由返回行统计，不做无数据来源的估算指标。
+  const waitingUser = rows.filter((item) => item.state === 'WAITING_FOR_USER').length
+  const waitingApproval = rows.filter((item) => item.state === 'WAITING_FOR_APPROVAL').length
+  const handedOff = rows.filter((item) => item.state === 'HANDED_OFF').length
+
   return <div className="page">
     <div className="page-heading"><div><div className="eyebrow">{copy.eyebrow}</div><h1>{copy.title}</h1><p>{copy.description}</p></div>{onOpen && <button className="primary" onClick={onOpen}><Icon name="plus" />新建差旅</button>}</div>
-    <div className="metric-row">{copy.metrics.map(([label, value, detail]) => <div key={label}><span>{label}</span><b>{value}</b><small>{detail}</small></div>)}</div>
+    <div className="metric-row">
+      <div><span>可见任务</span><b>{rows.length}</b><small>来自 <code>GET /trip-tasks</code></small></div>
+      <div><span>等待你选择</span><b>{waitingUser}</b><small>状态 WAITING_FOR_USER</small></div>
+      <div><span>等待审批</span><b>{waitingApproval}</b><small>状态 WAITING_FOR_APPROVAL</small></div>
+      <div><span>已交接</span><b>{handedOff}</b><small>状态 HANDED_OFF</small></div>
+    </div>
     <section className="table-section">
-      <div className="table-toolbar"><div className="segmented"><button className="active">全部</button><button>进行中</button><button>待审批</button><button>已完成</button></div><div><label className="search-box"><Icon name="search" size={17} /><input aria-label="搜索目的地或编号" placeholder="搜索目的地或编号" /></label><button className="icon-button" aria-label="筛选差旅行程"><Icon name="filter" /></button></div></div>
-      <div className="data-table trip-table"><div className="table-head"><span>行程 / 申请人</span><span>日期</span><span>状态</span><span>预估/实际费用</span><span>任务编号</span><span /></div>{tripRows.map((trip) => {
-        const content = <><span><i className="route-symbol"><Icon name={trip.route.includes('深圳') ? 'plane' : 'train'} size={17} /></i><span className="route-owner"><b>{trip.route}</b>{mode !== 'employee' && <small>{trip.owner}</small>}</span></span><span>{trip.date}</span><span><Badge tone={trip.tone}>{trip.status}</Badge></span><span><b>{trip.amount}</b></span><span className="mono">{trip.id}</span><span><Icon name="chevron" size={16} /></span></>
-        return onOpen && trip.id === 'CT-260818-042'
-          ? <button className="table-row" key={trip.id} onClick={onOpen}>{content}</button>
-          : <div className="table-row readonly" key={trip.id}>{content}</div>
-      })}</div>
+      <div className="table-toolbar"><div><h3>任务列表</h3><p>共 {rows.length} 条</p></div></div>
+      {error && <div className="task-empty-state"><span><Icon name="info" size={22} /></span><div><b>读取任务列表失败</b><p>{error}</p></div></div>}
+      {!error && loading && <div className="task-empty-state"><span><Icon name="spark" size={22} /></span><div><b>正在读取任务列表…</b></div></div>}
+      {!error && !loading && rows.length === 0 && <div className="task-empty-state"><span><Icon name="info" size={22} /></span><div><b>还没有可见的差旅任务</b><p>列表只显示 <code>GET /trip-tasks</code> 返回的真实任务，不展示演示数据。</p></div></div>}
+      {!error && !loading && rows.length > 0 && <div className="data-table trip-table">
+        <div className="table-head"><span>任务编号</span><span>申请人</span><span>状态</span><span>方案数</span><span>更新时间</span><span /></div>
+        {rows.map((row) => <div className="table-row readonly" key={row.task_id}>
+          <span className="mono">{row.task_id.slice(0, 8)}</span>
+          <span>{row.employee_id}</span>
+          <span><Badge tone={stateBadgeTone(row.state)}>{getStateMeta(row.state).label}</Badge></span>
+          <span>{row.option_count}</span>
+          <span>{row.updated_at ? new Date(row.updated_at).toLocaleString() : '—'}</span>
+          <span>{row.failure ? <small className="orange-text">{row.failure}</small> : null}</span>
+        </div>)}
+      </div>}
     </section>
   </div>
 }
@@ -1434,45 +1532,152 @@ function ApprovalsView({ onToast }: { onToast: (text: string) => void }) {
   </div>
 }
 
-/** 差旅政策浏览页（演示规则列表）。 */
+/** 差旅政策浏览页：内容来自 `GET /policy` 的当前生效快照。 */
 function PolicyView({ mode }: { mode: WorkspaceRole }) {
-  const rules = [
-    ['TR-CLASS-01', '交通舱等', 'P6 国内航班仅经济舱；高铁二等座', '强制', '全部行程'],
-    ['HOTEL-CAP-04', '酒店城市上限', '上海 ¥700 / 深圳 ¥840 / 北京 ¥750', '可例外', '按城市'],
-    ['ARRIVAL-BUFFER-02', '抵达缓冲', '会议开始前至少 60 分钟抵达', '强制', '商务拜访'],
-    ['LOWEST-LOGICAL-03', '合理低价', '同等条件优先选择合理低价方案', '可例外', '交通'],
-  ]
+  const [policy, setPolicy] = useState<ActivePolicy | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+
+  useEffect(() => {
+    let cancelled = false
+    setLoading(true)
+    api.activePolicy()
+      .then((item) => {
+        if (cancelled) return
+        setPolicy(item)
+        setError('')
+      })
+      .catch((err) => {
+        if (!cancelled) setError(err instanceof Error ? err.message : '读取政策失败')
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
   return <div className="page">
-    <div className="page-heading"><div><div className="eyebrow">POLICY LIBRARY</div><h1>{mode === 'admin' ? '政策管理' : '差旅政策'}</h1><p>{mode === 'admin' ? '查看当前生效版本、规则范围和固定内容指纹。' : '查看与你或团队差旅相关的确定性规则。'}</p></div><button className="outline-button"><Icon name="download" size={16} />下载政策摘要</button></div>
-    <section className="policy-hero"><div><Badge tone="green">生效中</Badge><h2>中国区员工差旅政策</h2><p>版本 CN-TRAVEL v3.2 · 适用于 2026年7月1日后创建的行程</p></div><div className="policy-hash"><span>内容指纹</span><b>9f3ae711…7c12</b><small>固定后不可修改</small></div><div><span>{mode === 'admin' ? '覆盖范围' : mode === 'approver' ? '审批适用范围' : '你的适用等级'}</span><b>{mode === 'admin' ? '8 个等级' : mode === 'approver' ? '直属团队' : 'P6'}</b><small>{mode === 'admin' ? '中国区全部员工' : mode === 'approver' ? '仅 manager_id 匹配' : '产品中心 · 中国区'}</small></div></section>
-    <section className="table-section"><div className="table-toolbar"><div><h3>适用规则</h3><p>共 4 条核心规则</p></div><label className="search-box"><Icon name="search" size={17} /><input aria-label="搜索政策规则" placeholder="搜索规则" /></label></div><div className="data-table policy-table"><div className="table-head"><span>规则编号</span><span>规则名称</span><span>当前标准</span><span>例外机制</span><span>适用范围</span><span /></div>{rules.map((rule) => <button className="table-row" key={rule[0]}><span className="mono">{rule[0]}</span><span><b>{rule[1]}</b></span><span>{rule[2]}</span><span><Badge tone={rule[3] === '强制' ? 'dark' : 'orange'}>{rule[3]}</Badge></span><span>{rule[4]}</span><span><Icon name="chevron" size={16} /></span></button>)}</div></section>
+    <div className="page-heading"><div><div className="eyebrow">POLICY LIBRARY</div><h1>{mode === 'admin' ? '政策管理' : '差旅政策'}</h1><p>{mode === 'admin' ? '查看当前生效版本、规则范围和固定内容指纹。' : '查看与你或团队差旅相关的确定性规则。'}</p></div></div>
+    {error && <div className="task-empty-state"><span><Icon name="info" size={22} /></span><div><b>读取政策失败</b><p>{error}</p></div></div>}
+    {!error && loading && <div className="task-empty-state"><span><Icon name="spark" size={22} /></span><div><b>正在读取当前生效政策…</b></div></div>}
+    {policy && <>
+      <section className="policy-hero">
+        <div><Badge tone="green">生效中</Badge><h2>{policy.policy_version}</h2><p>快照 {policy.snapshot_id} · 自 {policy.effective_from} 起{policy.effective_to ? ` 至 ${policy.effective_to}` : ''}</p></div>
+        <div className="policy-hash"><span>内容指纹</span><b>{policy.content_hash ? `${policy.content_hash.slice(0, 8)}…${policy.content_hash.slice(-4)}` : '未记录'}</b><small>固定后不可修改</small></div>
+        <div><span>{mode === 'employee' ? '你的适用等级' : '覆盖等级'}</span><b>{mode === 'employee' ? (policy.viewer_level ?? '未知') : `${policy.level_rules.length} 个等级`}</b><small>抵达缓冲 {policy.arrival_buffer_minutes} 分钟 · 结算币种 {policy.currency}</small></div>
+      </section>
+      <section className="table-section">
+        <div className="table-toolbar"><div><h3>职级舱等规则</h3><p>共 {policy.level_rules.length} 条</p></div></div>
+        <div className="data-table policy-table"><div className="table-head"><span>职级</span><span>允许航班舱等</span><span>允许火车席别</span><span /></div>
+          {policy.level_rules.map((rule) => <div className="table-row readonly" key={rule.level}>
+            <span className="mono">{rule.level}{rule.level === policy.viewer_level ? ' ·' : ''}</span>
+            <span>{rule.allowed_flight_classes.join('、') || '—'}</span>
+            <span>{rule.allowed_train_classes.join('、') || '—'}</span>
+            <span />
+          </div>)}
+        </div>
+      </section>
+      <section className="table-section">
+        <div className="table-toolbar"><div><h3>酒店城市上限</h3><p>共 {policy.hotel_city_caps.length} 条 · 单位 {policy.currency}/晚</p></div></div>
+        <div className="data-table policy-table"><div className="table-head"><span>城市</span><span>每晚上限</span><span /><span /></div>
+          {policy.hotel_city_caps.map((cap) => <div className="table-row readonly" key={cap.city}>
+            <span>{cap.city}</span>
+            <span><b>{currencySymbol(policy.currency)}{cap.nightly_cap}</b></span>
+            <span /><span />
+          </div>)}
+        </div>
+      </section>
+      <section className="table-section">
+        <div className="table-toolbar"><div><h3>可发起例外审批的规则</h3><p>共 {policy.exception_allowed_rule_ids.length} 条</p></div></div>
+        <div className="data-table policy-table"><div className="table-head"><span>规则 ID</span><span>例外机制</span><span /><span /></div>
+          {policy.exception_allowed_rule_ids.map((ruleId) => <div className="table-row readonly" key={ruleId}>
+            <span className="mono">{ruleId}</span>
+            <span><Badge tone="orange">可例外</Badge></span>
+            <span /><span />
+          </div>)}
+          {policy.exception_allowed_rule_ids.length === 0 && <div className="table-row readonly"><span>当前快照没有允许例外的规则</span><span /><span /><span /></div>}
+        </div>
+      </section>
+    </>}
     <div className="policy-note"><Icon name="info" /><div><b>政策结论由确定性规则引擎生成</b><p>AI 只负责解释字段与自然语言，不会批准例外或修改政策判断。每次行程都会固定政策版本和证据。</p></div></div>
   </div>
 }
 
-/** 审计与系统页：任务事件与运行边界摘要。 */
+/** 审计与系统页：事件来自 `GET /audit-events`，服务状态来自 `GET /health`。 */
 function AuditView() {
   const [auditTab, setAuditTab] = useState<'events' | 'system'>('events')
+  const [events, setEvents] = useState<AuditEvent[]>([])
+  const [health, setHealth] = useState<HealthResponse | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+
+  useEffect(() => {
+    let cancelled = false
+    setLoading(true)
+    Promise.all([api.recentAuditEvents(50), api.health()])
+      .then(([items, healthResponse]) => {
+        if (cancelled) return
+        setEvents(items)
+        setHealth(healthResponse)
+        setError('')
+      })
+      .catch((err) => {
+        if (!cancelled) setError(err instanceof Error ? err.message : '读取审计数据失败')
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
   return <div className="page">
-    <div className="page-heading"><div><div className="eyebrow">EVIDENCE & OPERATIONS</div><h1>审计与系统</h1><p>查看任务证据、库存快照与服务运行边界。</p></div><button className="outline-button"><Icon name="download" size={16} />导出审计包</button></div>
-    <div className="audit-summary"><div><span className="health-dot" /><p>系统状态<b>全部服务正常</b></p></div><div><span>库存提供方</span><b>Duffel Test + LiteAPI Sandbox</b></div><div><span>预订能力</span><b className="orange-text">已禁用</b></div><div><span>工具调用预算</span><b>5 / 12</b></div></div>
+    <div className="page-heading"><div><div className="eyebrow">EVIDENCE & OPERATIONS</div><h1>审计与系统</h1><p>查看任务证据、库存快照与服务运行边界。</p></div></div>
+    <div className="audit-summary">
+      <div><span className="health-dot" /><p>系统状态<b>{health ? health.status : '读取中'}</b></p></div>
+      <div><span>库存提供方</span><b>{health ? `${health.travel_provider} · ${health.travel_provider_mode}` : '—'}</b></div>
+      <div><span>预订能力</span><b className="orange-text">{health ? health.booking_capability : '—'}</b></div>
+      <div><span>近期审计事件</span><b>{events.length}</b></div>
+    </div>
     <div className="content-tabs slim"><button className={auditTab === 'events' ? 'active' : ''} onClick={() => setAuditTab('events')}>任务审计事件</button><button className={auditTab === 'system' ? 'active' : ''} onClick={() => setAuditTab('system')}>系统与提供方</button></div>
-    {auditTab === 'events' ? <section className="audit-log"><div className="audit-filters"><label className="search-box"><Icon name="search" size={17} /><input aria-label="搜索审计事件或任务编号" placeholder="搜索事件或任务编号" /></label><button className="outline-button"><Icon name="filter" size={16} />全部事件</button><span>今天 · 12 条事件</span></div>{[
-      ['15:21:13.482', 'PLAN_COMPLETED', '规划完成', 'CT-260818-042', '输出 3 个合规候选方案', '7bc9…0d31'],
-      ['15:21:12.906', 'INVENTORY_SNAPSHOT_SAVED', '库存快照已保存', 'CT-260818-042', '60 条报价 · 有效期 15 分钟', 'b21f…aa70'],
-      ['15:21:09.114', 'POLICY_SNAPSHOT_PINNED', '政策快照已固定', 'CT-260818-042', 'CN-TRAVEL v3.2', '9f3a…7c12'],
-      ['15:21:08.662', 'INTENT_EXTRACTED', '意图字段已提取', 'CT-260818-042', '11 个字段 · 0 个冲突', '11c8…19ef'],
-      ['14:48:32.101', 'APPROVAL_REQUESTED', '例外审批已发起', 'CT-260903-017', '规则 HOTEL-CAP-04', '44de…710a'],
-    ].map((event, index) => <div className="audit-row" key={event[0]}><time>{event[0]}</time><span className={`event-icon event-${index}`}><Icon name={index === 0 ? 'check' : index === 1 ? 'link' : index === 2 ? 'shield' : 'spark'} size={16} /></span><div><b>{event[2]}</b><small className="mono">{event[1]}</small></div><span className="mono">{event[3]}</span><span>{event[4]}</span><button className="hash-button">{event[5]} <Icon name="chevron" size={14} /></button></div>)}</section> : <SystemPanel />}
+    {error && <div className="task-empty-state"><span><Icon name="info" size={22} /></span><div><b>读取审计数据失败</b><p>{error}</p><p>跨任务审计事件仅对管理员开放。</p></div></div>}
+    {!error && auditTab === 'events' && <section className="audit-log">
+      {loading && <div className="task-empty-state"><span><Icon name="spark" size={22} /></span><div><b>正在读取审计事件…</b></div></div>}
+      {!loading && events.length === 0 && <div className="task-empty-state"><span><Icon name="info" size={22} /></span><div><b>暂无审计事件</b><p>事件来自 <code>GET /audit-events</code>，不会显示演示数据。</p></div></div>}
+      {!loading && events.map((event) => <div className="audit-row" key={event.event_id}>
+        <time>{new Date(event.created_at).toLocaleString()}</time>
+        <span className="event-icon event-0"><Icon name="shield" size={16} /></span>
+        <div><b>{event.event_type}</b><small className="mono">{event.actor_type}</small></div>
+        <span className="mono">{event.task_id.slice(0, 8)}</span>
+        <span>{event.evidence_refs.length} 条证据引用</span>
+        <span className="hash-button">{event.output_hash.slice(0, 8)}…</span>
+      </div>)}
+    </section>}
+    {!error && auditTab === 'system' && <SystemPanel health={health} />}
   </div>
 }
 
-/** 系统与提供方能力边界面板。 */
-function SystemPanel() {
-  const services = [
-    ['API 服务', '正常', 'FastAPI · 42 ms'], ['语言模型', '已配置', '受控结构化输出'], ['航班库存', 'Test Mode', 'Duffel · 只读'], ['酒店库存', 'Sandbox', 'LiteAPI · 只读'], ['数据持久化', '正常', 'PostgreSQL'], ['原始响应存档', '正常', 'WORM · 90 天'],
-  ]
-  return <section className="system-panel"><div className="system-boundary"><Icon name="shield" size={24} /><div><b>安全运行边界</b><p>本系统只负责规划、合规校验、审批与官方平台交接。预订、支付、退改签均不可用。</p></div><Badge tone="dark">BOOKING DISABLED</Badge></div><div className="service-grid">{services.map(([name, status, detail]) => <div key={name}><span><i />{name}</span><b>{status}</b><small>{detail}</small></div>)}</div></section>
+/** 系统与提供方能力边界面板；状态取自 `GET /health`。 */
+function SystemPanel({ health }: { health: HealthResponse | null }) {
+  const services: [string, string, string][] = health
+    ? [
+      ['API 服务', health.status, 'FastAPI'],
+      ['语言模型', health.language_model, health.language_model_status ?? '—'],
+      ['库存提供方', health.travel_provider, health.travel_provider_mode],
+      ['数据持久化', health.persistence, '任务与审计仓储'],
+      ['认证', health.authentication, '资源级授权'],
+      ['生效政策', health.active_policy_snapshot, health.policy_config_version],
+    ]
+    : []
+  return <section className="system-panel">
+    <div className="system-boundary"><Icon name="shield" size={24} /><div><b>安全运行边界</b><p>本系统只负责规划、合规校验、审批与官方平台交接。预订、支付、退改签均不可用。</p></div><Badge tone="dark">BOOKING DISABLED</Badge></div>
+    {services.length === 0
+      ? <div className="task-empty-state"><span><Icon name="info" size={22} /></span><div><b>正在读取服务状态…</b></div></div>
+      : <div className="service-grid">{services.map(([name, status, detail]) => <div key={name}><span><i />{name}</span><b>{status}</b><small>{detail}</small></div>)}</div>}
+  </section>
 }
 
 /**

@@ -18,7 +18,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-from corporate_travel_agent.agent.openai_adapter import OpenAIResponsesLanguageModel
+from corporate_travel_agent.agent.openai_adapter import (
+    OpenAIResponsesLanguageModel,
+    OpenAISemanticIntentLanguageModel,
+)
 from corporate_travel_agent.agent.orchestrator import (
     PARTIAL_COVERAGE_METADATA_KEY,
     LanguageModelUnavailable,
@@ -27,6 +30,7 @@ from corporate_travel_agent.agent.orchestrator import (
 from corporate_travel_agent.agent.ports import LanguageModelError
 from corporate_travel_agent.demo import build_demo_system
 from corporate_travel_agent.domain.constraints import HardConstraint, SoftPreference
+from corporate_travel_agent.domain.enums import BookingScope
 from corporate_travel_agent.domain.models import InventorySnapshot, TripRequestVersion, TripTask
 from corporate_travel_agent.domain.validation import validate_trip_request_values
 from corporate_travel_agent.providers.factory import travel_provider_from_environment
@@ -112,6 +116,20 @@ def _configured_language_model() -> OpenAIResponsesLanguageModel | None:
         return None
     try:
         return OpenAIResponsesLanguageModel(
+            model=os.getenv("OPENAI_MODEL", "gpt-5.6"),
+            fallback_model=os.getenv("OPENAI_FALLBACK_MODEL") or None,
+            request_timeout_seconds=float(os.getenv("OPENAI_TIMEOUT_SECONDS", "60")),
+        )
+    except LanguageModelError:
+        return None
+
+
+def _configured_semantic_language_model() -> OpenAISemanticIntentLanguageModel | None:
+    """独立装配新语义模型端口；不向调用方暴露旧抽取接口。"""
+    if not os.getenv("OPENAI_API_KEY"):
+        return None
+    try:
+        return OpenAISemanticIntentLanguageModel(
             model=os.getenv("OPENAI_MODEL", "gpt-5.6"),
             fallback_model=os.getenv("OPENAI_FALLBACK_MODEL") or None,
             request_timeout_seconds=float(os.getenv("OPENAI_TIMEOUT_SECONDS", "60")),
@@ -247,6 +265,7 @@ configured_travel_provider = travel_provider_from_environment(
 ) = _configured_provider_resilience()
 workflow, _provider = build_demo_system(
     language_model=_configured_language_model(),
+    semantic_language_model=_configured_semantic_language_model(),
     task_repository=task_repository,
     raw_response_store=raw_response_store,
     raw_response_retention_days=_configured_retention_days(),
@@ -283,6 +302,7 @@ class TripCreate(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     traveler_id: str = "E1001"
+    booking_scope: BookingScope | None = None
     origin: str
     destination: str
     departure_after: datetime
@@ -379,6 +399,14 @@ def health() -> dict[str, Any]:
         "status": status,
         "booking_capability": "disabled",
         "language_model": "configured" if workflow.language_model else "not_configured",
+        "semantic_language_model": (
+            "configured" if workflow.semantic_language_model else "not_configured"
+        ),
+        "intent_entrypoints": {
+            "structured": "/trip-tasks",
+            "legacy": "/legacy/trip-tasks",
+            "semantic": "/semantic/trip-tasks",
+        },
         "language_model_status": (
             getattr(workflow, "llm_runtime_status", "unknown")
             if workflow.language_model
@@ -454,20 +482,42 @@ def current_user(identity: CurrentIdentity) -> dict[str, Any]:
 
 @app.post("/trip-tasks")
 def create_trip(
-    payload: TripCreate | NaturalLanguageTripCreate,
+    payload: TripCreate,
     identity: CurrentIdentity,
 ) -> dict[str, Any]:
-    """创建差旅任务（结构化或自然语言）。"""
+    """仅用结构化请求创建差旅任务。"""
     _require_can_create(identity, payload.traveler_id)
-    if isinstance(payload, NaturalLanguageTripCreate):
-        return _run(
-            lambda: workflow.create_task_from_message(
-                payload.message, traveler_id=payload.traveler_id
-            )
-        )
     task_id = str(uuid4())
     request = _to_request(payload, task_id=task_id, version=1)
     return _run(lambda: workflow.create_task(request))
+
+
+@app.post("/legacy/trip-tasks")
+def create_legacy_trip(
+    payload: NaturalLanguageTripCreate,
+    identity: CurrentIdentity,
+) -> dict[str, Any]:
+    """用保留的旧字段抽取链路创建自然语言任务。"""
+    _require_can_create(identity, payload.traveler_id)
+    return _run(
+        lambda: workflow.create_task_from_message(
+            payload.message, traveler_id=payload.traveler_id
+        )
+    )
+
+
+@app.post("/semantic/trip-tasks")
+def create_semantic_trip(
+    payload: NaturalLanguageTripCreate,
+    identity: CurrentIdentity,
+) -> dict[str, Any]:
+    """用完整对话语义链路创建自然语言任务。"""
+    _require_can_create(identity, payload.traveler_id)
+    return _run(
+        lambda: workflow.create_task_from_semantic_message(
+            payload.message, traveler_id=payload.traveler_id
+        )
+    )
 
 
 @app.get("/trip-tasks")
@@ -524,15 +574,26 @@ def approval_inbox(
     ]
 
 
-@app.post("/trip-tasks/{task_id}/messages")
-def submit_message(
+@app.post("/legacy/trip-tasks/{task_id}/messages")
+def submit_legacy_message(
     task_id: str,
     payload: MessageCreate,
     identity: CurrentIdentity,
 ) -> dict[str, Any]:
-    """向任务提交自然语言跟进消息。"""
+    """仅向旧链路任务提交跟进消息。"""
     _require_can_operate(identity, _visible_task(task_id, identity))
     return _run(lambda: workflow.submit_message(task_id, payload.message))
+
+
+@app.post("/semantic/trip-tasks/{task_id}/messages")
+def submit_semantic_message(
+    task_id: str,
+    payload: MessageCreate,
+    identity: CurrentIdentity,
+) -> dict[str, Any]:
+    """仅向新语义任务提交跟进消息。"""
+    _require_can_operate(identity, _visible_task(task_id, identity))
+    return _run(lambda: workflow.submit_semantic_message(task_id, payload.message))
 
 
 @app.post("/trip-tasks/{task_id}/structured-request")
@@ -631,6 +692,74 @@ def decide_approval(
             reason=payload.reason,
         )
     )
+
+
+@app.get("/policy")
+def active_policy(identity: CurrentIdentity) -> dict[str, Any]:
+    """返回当前生效政策快照的只读视图。
+
+    政策是公司规则而不是个人数据，因此对所有已认证身份可读；返回内容直接来自
+    ``PolicySnapshot``，不复制一份可能过时的展示副本。
+    """
+    snapshot = workflow.policies.current()
+    employee_level: str | None = None
+    if identity.employee_id:
+        try:
+            employee_level = workflow.employees.snapshot(identity.employee_id).level
+        except NotFoundError:
+            employee_level = None
+    return {
+        "snapshot_id": snapshot.snapshot_id,
+        "policy_version": snapshot.policy_version,
+        "content_hash": snapshot.content_hash,
+        "currency": snapshot.currency,
+        "effective_from": snapshot.effective_from.isoformat(),
+        "effective_to": (
+            snapshot.effective_to.isoformat() if snapshot.effective_to else None
+        ),
+        "arrival_buffer_minutes": snapshot.arrival_buffer_minutes,
+        "viewer_level": employee_level,
+        "level_rules": [
+            {
+                "level": level,
+                "allowed_flight_classes": sorted(rule.allowed_flight_classes),
+                "allowed_train_classes": sorted(rule.allowed_train_classes),
+            }
+            for level, rule in sorted(snapshot.level_rules.items())
+        ],
+        "hotel_city_caps": [
+            {"city": city, "nightly_cap": str(cap)}
+            for city, cap in sorted(snapshot.hotel_city_caps.items())
+        ],
+        "exception_allowed_rule_ids": sorted(snapshot.exception_allowed_rule_ids),
+    }
+
+
+@app.get("/audit-events")
+def recent_audit_events(
+    identity: CurrentIdentity,
+    limit: int = 50,
+) -> list[dict[str, Any]]:
+    """管理员可见的近期审计事件（跨任务）。
+
+    审计事件包含跨员工的任务标识，因此只对管理员开放；其他身份仍只能读自己任务的
+    ``/trip-tasks/{task_id}/audit-events``。
+
+    这里走的是任务投影而不是全表 ``list_tasks()``，因此扫描量由 ``limit`` 约束。它是
+    近期事件视图，不是完整审计导出；正式取证仍应从审计存储直接导出。
+    """
+    if not 1 <= limit <= 500:
+        raise HTTPException(status_code=400, detail="limit must be between 1 and 500")
+    if not identity.has_role(Role.ADMIN):
+        raise HTTPException(status_code=403, detail="Admin role required")
+    events: list[dict[str, Any]] = []
+    for summary in workflow.tasks.list_task_summaries(limit=limit):
+        try:
+            events.extend(asdict(item) for item in workflow.tasks.events(summary.task_id))
+        except NotFoundError:
+            continue
+    events.sort(key=lambda item: item["created_at"], reverse=True)
+    return events[:limit]
 
 
 @app.get("/trip-tasks/{task_id}/audit-events")
@@ -797,8 +926,19 @@ def _public_task(task: TripTask) -> dict[str, Any]:
     """任务详情的公开视图（含方案、澄清题等）。"""
     return {
         "task_id": task.task_id,
+        "intent_entrypoint": task.metadata.get("intent_entrypoint", "legacy"),
         "state": task.state,
         "request_version": task.request.version if task.request else None,
+        "booking_scope": (
+            task.request.resolved_booking_scope
+            if task.request is not None
+            else task.intent_fields.get("booking_scope")
+        ),
+        "transport_legs": (
+            [asdict(leg) for leg in task.request.transport_legs()]
+            if task.request is not None
+            else []
+        ),
         "failure": task.failure,
         "failure_details": task.metadata.get("no_feasible_reasons", ()),
         "provider_retry": workflow.provider_retry_status(task),
@@ -919,4 +1059,5 @@ def _to_request(payload: TripCreate, *, task_id: str, version: int) -> TripReque
         hotel_check_out=payload.hotel_check_out,
         hard_constraints=tuple(payload.hard_constraints),
         soft_preferences=tuple(payload.soft_preferences),
+        booking_scope=payload.booking_scope,
     )

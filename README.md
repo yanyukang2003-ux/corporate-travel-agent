@@ -82,7 +82,7 @@ uvicorn corporate_travel_agent.api.main:app --reload
 自然语言创建任务：
 
 ```bash
-curl -X POST http://127.0.0.1:8000/trip-tasks \
+curl -X POST http://127.0.0.1:8000/semantic/trip-tasks \
   -H 'Content-Type: application/json' \
   -d '{
     "traveler_id": "E1001",
@@ -93,12 +93,18 @@ curl -X POST http://127.0.0.1:8000/trip-tasks \
 如果状态为 `NEEDS_CLARIFICATION`，继续调用：
 
 ```bash
-curl -X POST http://127.0.0.1:8000/trip-tasks/TASK_ID/messages \
+curl -X POST http://127.0.0.1:8000/semantic/trip-tasks/TASK_ID/messages \
   -H 'Content-Type: application/json' \
   -d '{"message": "最晚需要周四上午九点到客户公司"}'
 ```
 
 未配置 `OPENAI_API_KEY` 时，自然语言入口返回 `503`，结构化创建和确定性核心仍可使用。服务端不会把 API Key 写入 Prompt、响应或审计事件。
+
+自然语言新旧链路使用完全不同的入口。新任务使用
+`POST /semantic/trip-tasks`，后续消息使用
+`POST /semantic/trip-tasks/{task_id}/messages`；旧链路保留在 `/legacy/trip-tasks` 下。
+结构化创建仍使用 `POST /trip-tasks`。每个任务固定返回 `intent_entrypoint`，不同入口之间不能
+交叉继续。新语义链路不会通过默认值或澄清次数耗尽来猜测用户意图，也不会回退到旧抽取器。
 
 ## Duffel Test Mode 航班与 LiteAPI 酒店接入
 

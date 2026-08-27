@@ -33,6 +33,9 @@ export type PolicyOutcome =
 /** 前端工作台可用的用户角色。 */
 export type Role = 'employee' | 'approver' | 'admin'
 
+/** 本次请求包含一个去程航段、一个返程航段，或完整往返。 */
+export type BookingScope = 'OUTBOUND_ONLY' | 'RETURN_ONLY' | 'ROUND_TRIP'
+
 /** 当前登录用户的身份与角色信息。 */
 export interface UserIdentity {
   user_id: string
@@ -103,6 +106,15 @@ export interface TransportOffer {
   available: boolean
   is_direct: boolean
   currency: string
+}
+
+/** 后端按真实方向生成的可执行交通航段。 */
+export interface TripLeg {
+  role: 'OUTBOUND' | 'RETURN'
+  origin: string
+  destination: string
+  depart_after: string
+  arrive_before: string
 }
 
 /** 酒店报价及通勤相关字段。 */
@@ -263,8 +275,11 @@ export interface ClarificationQuestion {
 /** 完整差旅任务详情（summary=false）。 */
 export interface TripTask {
   task_id: string
+  intent_entrypoint: 'structured' | 'legacy' | 'semantic'
   state: TaskState
   request_version: number | null
+  booking_scope: BookingScope | null
+  transport_legs: TripLeg[]
   failure: string | null
   failure_details: string[] | unknown
   provider_retry: ProviderRetry
@@ -302,6 +317,34 @@ export interface AuditEvent {
   created_at: string
 }
 
+/** 某职级允许的舱等/席别。 */
+export interface PolicyLevelRule {
+  level: string
+  allowed_flight_classes: string[]
+  allowed_train_classes: string[]
+}
+
+/** 某城市的酒店每晚上限。 */
+export interface PolicyHotelCap {
+  city: string
+  nightly_cap: string
+}
+
+/** `GET /policy` 返回的当前生效政策快照。 */
+export interface ActivePolicy {
+  snapshot_id: string
+  policy_version: string
+  content_hash: string
+  currency: string
+  effective_from: string
+  effective_to: string | null
+  arrival_buffer_minutes: number
+  viewer_level: string | null
+  level_rules: PolicyLevelRule[]
+  hotel_city_caps: PolicyHotelCap[]
+  exception_allowed_rule_ids: string[]
+}
+
 /** 结构化创建时可用的硬约束枚举。 */
 export type HardConstraint =
   | 'arrive_before_meeting'
@@ -326,6 +369,7 @@ export type LodgingRequirement = 'REQUIRED' | 'NOT_REQUIRED' | 'UNSPECIFIED'
 /** 创建/修订差旅任务时提交的结构化字段载荷。 */
 export interface StructuredTripCreate {
   traveler_id: string
+  booking_scope?: BookingScope | null
   origin: string
   destination: string
   departure_after: string

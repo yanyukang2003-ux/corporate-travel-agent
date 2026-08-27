@@ -33,6 +33,11 @@ def test_health_reports_disabled_booking_and_llm_configuration() -> None:
     assert response.json()["provider_resilience"]["process_role"] == "api"
     assert response.json()["provider_resilience"]["retry_worker_enabled"] is False
     assert response.json()["provider_resilience"]["retry_lease_seconds"] == 900
+    assert response.json()["intent_entrypoints"] == {
+        "structured": "/trip-tasks",
+        "legacy": "/legacy/trip-tasks",
+        "semantic": "/semantic/trip-tasks",
+    }
 
 
 def test_structured_task_creation_remains_available_without_llm() -> None:
@@ -55,6 +60,7 @@ def test_structured_task_creation_remains_available_without_llm() -> None:
 
     assert response.status_code == 200
     assert response.json()["state"] == "WAITING_FOR_USER"
+    assert response.json()["intent_entrypoint"] == "structured"
     assert len(response.json()["options"]) >= 2
     assert response.json()["messages"] == []
     assert response.json()["original_instruction"] is None
@@ -88,13 +94,14 @@ def test_structured_task_creation_remains_available_without_llm() -> None:
 
 
 def test_natural_language_entry_returns_503_when_model_is_not_configured() -> None:
-    response = client.post(
-        "/trip-tasks",
-        json={"traveler_id": "E1001", "message": "下周三从北京去上海"},
-    )
+    payload = {"traveler_id": "E1001", "message": "下周三从北京去上海"}
+    legacy = client.post("/legacy/trip-tasks", json=payload)
+    semantic = client.post("/semantic/trip-tasks", json=payload)
 
-    assert response.status_code == 503
-    assert "language model" in response.json()["detail"].lower()
+    assert legacy.status_code == 503
+    assert semantic.status_code == 503
+    assert "language model" in legacy.json()["detail"].lower()
+    assert "semantic language model" in semantic.json()["detail"].lower()
 
 
 def test_api_rejects_naive_datetimes() -> None:
@@ -137,7 +144,11 @@ def test_structured_api_rejects_unsupported_or_incomplete_constraints() -> None:
 def test_openapi_exposes_clarification_and_structured_fallback_routes() -> None:
     paths = client.get("/openapi.json").json()["paths"]
 
-    assert "/trip-tasks/{task_id}/messages" in paths
+    assert "/legacy/trip-tasks" in paths
+    assert "/semantic/trip-tasks" in paths
+    assert "/legacy/trip-tasks/{task_id}/messages" in paths
+    assert "/semantic/trip-tasks/{task_id}/messages" in paths
+    assert "/trip-tasks/{task_id}/messages" not in paths
     assert "/trip-tasks/{task_id}/structured-request" in paths
     assert "/trip-tasks/{task_id}/inventory-snapshots" in paths
     assert "/auth/login" in paths
@@ -165,3 +176,49 @@ def test_snapshot_api_exposes_archive_metadata_but_not_internal_object_key() -> 
     assert raw_response["archived"] is True
     assert raw_response["access_policy"] == "SYSTEM_REPLAY_OR_AUDIT_ADMIN"
     assert "object_key" not in raw_response
+
+
+def test_policy_endpoint_returns_the_active_snapshot_not_display_copies() -> None:
+    response = client.get("/policy")
+
+    assert response.status_code == 200
+    payload = response.json()
+    health = client.get("/health").json()
+    assert payload["snapshot_id"] == health["active_policy_snapshot"]
+    assert payload["level_rules"]
+    assert payload["arrival_buffer_minutes"] > 0
+    assert len(payload["content_hash"]) == 64
+    for rule in payload["level_rules"]:
+        assert rule["level"]
+        assert isinstance(rule["allowed_flight_classes"], list)
+
+
+def test_recent_audit_events_are_admin_scoped_and_bounded() -> None:
+    created = client.post(
+        "/trip-tasks",
+        json={
+            "traveler_id": "E1001",
+            "origin": "Beijing",
+            "destination": "Shanghai",
+            "departure_after": "2026-08-05T05:00:00+08:00",
+            "arrive_by": "2026-08-06T10:00:00+08:00",
+        },
+    )
+    assert created.status_code == 200
+
+    response = client.get("/audit-events?limit=5")
+
+    assert response.status_code == 200
+    events = response.json()
+    assert len(events) <= 5
+    assert all("event_type" in item and "task_id" in item for item in events)
+    assert client.get("/audit-events?limit=0").status_code == 400
+    assert client.get("/audit-events?limit=501").status_code == 400
+
+
+def test_openapi_exposes_policy_and_global_audit_routes() -> None:
+    paths = client.get("/openapi.json").json()["paths"]
+
+    assert "/policy" in paths
+    assert "/audit-events" in paths
+    assert "/trip-tasks/{task_id}/audit-events" in paths

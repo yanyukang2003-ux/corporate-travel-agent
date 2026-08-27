@@ -12,7 +12,7 @@ import {
   type ReactNode,
 } from 'react'
 import { api, ApiError, setToken } from '../api/client'
-import type { HealthResponse, UserIdentity } from '../api/types'
+import type { HealthResponse, Role, UserIdentity } from '../api/types'
 
 /** AuthProvider 向子组件暴露的认证与会话状态。 */
 interface AuthContextValue {
@@ -23,6 +23,7 @@ interface AuthContextValue {
   error: string | null
   login: (userId: string, password: string) => Promise<void>
   logout: () => void
+  switchDevelopmentRole: (role: Role) => void
   refreshHealth: () => Promise<void>
   isEmployee: boolean
   isApprover: boolean
@@ -31,11 +32,23 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | null>(null)
 
-/** 后端关闭认证时使用的本地演示员工身份。 */
-const developmentIdentity: UserIdentity = {
-  user_id: 'E1001',
-  roles: ['employee'],
-  employee_id: 'E1001',
+/** 后端关闭认证时可选的本地演示身份；只用于前端展示和本地审批演练。 */
+const developmentIdentities: Record<Role, UserIdentity> = {
+  employee: {
+    user_id: 'E1001',
+    roles: ['employee'],
+    employee_id: 'E1001',
+  },
+  approver: {
+    user_id: 'M2001',
+    roles: ['approver'],
+    employee_id: null,
+  },
+  admin: {
+    user_id: 'A9001',
+    roles: ['admin'],
+    employee_id: null,
+  },
 }
 
 /**
@@ -57,7 +70,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setHealth(h)
       const enabled = h.authentication === 'enabled'
       setAuthEnabled(enabled)
-      if (!enabled) setUser(developmentIdentity)
+      if (!enabled) setUser((current) => current ?? developmentIdentities.employee)
     } catch (err) {
       setError(err instanceof Error ? err.message : '无法连接后端 API')
     }
@@ -75,7 +88,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         if (!enabled) {
           // 开发模式关闭认证：使用合成员工身份做演示。
-          setUser(developmentIdentity)
+          setUser((current) => current ?? developmentIdentities.employee)
         } else if (localStorage.getItem('cta_access_token')) {
           try {
             const me = await api.me()
@@ -132,6 +145,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setError(null)
   }, [])
 
+  /** 认证关闭时切换前端演示身份；生产认证模式下不允许模拟切换。 */
+  const switchDevelopmentRole = useCallback((role: Role) => {
+    if (authEnabled) return
+    setUser(developmentIdentities[role])
+    setError(null)
+  }, [authEnabled])
+
   const value = useMemo<AuthContextValue>(() => {
     const roles = new Set(user?.roles ?? [])
     return {
@@ -142,12 +162,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       error,
       login,
       logout,
+      switchDevelopmentRole,
       refreshHealth,
       isEmployee: roles.has('employee') || roles.has('admin'),
       isApprover: roles.has('approver') || roles.has('admin'),
       isAdmin: roles.has('admin'),
     }
-  }, [ready, authEnabled, user, health, error, login, logout, refreshHealth])
+  }, [ready, authEnabled, user, health, error, login, logout, switchDevelopmentRole, refreshHealth])
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }

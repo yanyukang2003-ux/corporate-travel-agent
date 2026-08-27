@@ -35,6 +35,8 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px
 .profile-menu > span { display: block; padding: 5px 6px 8px; color: #8fa5a2; font-size: 8px; }
 .profile-menu small { display: block; margin-top: 3px; color: #fff; font: 10px ui-monospace, monospace; }
 .profile-menu button { width: 100%; padding: 8px 6px; border-top: 1px solid #48615e; color: #f2b59f; text-align: left; font-size: 10px; }
+.profile-menu button.active { color: #fff; background: rgba(237,124,85,.16); }
+.development-role-label { margin-top: 2px; border-top: 1px solid #48615e; }
 
 .workspace { width: calc(100% - 224px); min-height: 100vh; margin-left: 224px; }
 .workspace-view[hidden] { display: none !important; }
@@ -151,7 +153,8 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px
 .clarification-options.city-options > button { min-height: 58px; padding: 10px 11px; }
 .clarification-time-range { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)) auto; gap: 8px; align-items: end; margin: 4px 0 12px; }
 .clarification-time-range label { display: flex; flex-direction: column; gap: 6px; color: var(--green); font-size: 8px; font-weight: 800; letter-spacing: .08em; }
-.clarification-time-range input { height: 38px; padding: 0 10px; border: 1px solid #bdc9c4; color: var(--ink); background: #fff; font-size: 12px; }
+.clarification-time-range input,
+.clarification-time-range select { height: 38px; padding: 0 10px; border: 1px solid #bdc9c4; color: var(--ink); background: #fff; font-size: 12px; }
 .clarification-time-range button { height: 38px; padding: 0 14px; white-space: nowrap; }
 .clarification-options > button { min-width: 0; min-height: 74px; display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 12px 13px; border: 1px solid var(--line); color: var(--ink); background: #fbfcf9; text-align: left; transition: border-color .16s ease, background .16s ease, transform .16s ease; }
 .clarification-options > button:hover:not(:disabled) { border-color: #76948b; background: #f0f6f1; transform: translateY(-1px); }

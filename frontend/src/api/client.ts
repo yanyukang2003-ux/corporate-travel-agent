@@ -3,6 +3,7 @@
  * 对外导出 `api` 对象，供页面调用差旅任务、审批与健康检查等接口。
  */
 import type {
+  ActivePolicy,
   ApiErrorBody,
   AuditEvent,
   HealthResponse,
@@ -133,9 +134,16 @@ export const api = {
   /** 按任务 ID 获取完整差旅任务详情。 */
   getTask: (taskId: string) => request<TripTask>(`/trip-tasks/${taskId}`),
 
-  /** 用自然语言创建新的差旅任务。 */
-  createNaturalLanguage: (message: string, traveler_id: string) =>
-    request<TripTask>('/trip-tasks', {
+  /** 用保留的旧字段链路创建自然语言任务。 */
+  createLegacyNaturalLanguage: (message: string, traveler_id: string) =>
+    request<TripTask>('/legacy/trip-tasks', {
+      method: 'POST',
+      body: JSON.stringify({ message, traveler_id }),
+    }),
+
+  /** 用完整对话语义链路创建自然语言任务。 */
+  createSemanticNaturalLanguage: (message: string, traveler_id: string) =>
+    request<TripTask>('/semantic/trip-tasks', {
       method: 'POST',
       body: JSON.stringify({ message, traveler_id }),
     }),
@@ -147,9 +155,16 @@ export const api = {
       body: JSON.stringify(payload),
     }),
 
-  /** 向已有任务追加一条用户消息（澄清/补充）。 */
-  submitMessage: (taskId: string, message: string) =>
-    request<TripTask>(`/trip-tasks/${taskId}/messages`, {
+  /** 仅向旧链路任务追加消息。 */
+  submitLegacyMessage: (taskId: string, message: string) =>
+    request<TripTask>(`/legacy/trip-tasks/${taskId}/messages`, {
+      method: 'POST',
+      body: JSON.stringify({ message }),
+    }),
+
+  /** 仅向新语义任务追加消息。 */
+  submitSemanticMessage: (taskId: string, message: string) =>
+    request<TripTask>(`/semantic/trip-tasks/${taskId}/messages`, {
       method: 'POST',
       body: JSON.stringify({ message }),
     }),
@@ -211,4 +226,11 @@ export const api = {
   /** 读取指定任务的审计事件列表。 */
   auditEvents: (taskId: string) =>
     request<AuditEvent[]>(`/trip-tasks/${taskId}/audit-events`),
+
+  /** 读取当前生效的差旅政策快照。 */
+  activePolicy: () => request<ActivePolicy>('/policy'),
+
+  /** 读取近期跨任务审计事件（仅管理员）。 */
+  recentAuditEvents: (limit = 50) =>
+    request<AuditEvent[]>(`/audit-events?limit=${limit}`),
 }
