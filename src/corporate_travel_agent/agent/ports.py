@@ -28,6 +28,7 @@ class LLMCallMetadata:
     reasoning_output_tokens: int | None = None
     total_tokens: int | None = None
     service_tier: str | None = None
+    evidence_contract_version: str | None = None
 
 
 @dataclass(frozen=True, slots=True)

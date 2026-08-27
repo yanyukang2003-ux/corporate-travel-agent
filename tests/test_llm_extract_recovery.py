@@ -107,6 +107,58 @@ def test_billing_failure_uses_local_parser_instead_of_clarify() -> None:
         assert "client_location" in (task.metadata.get("uncertain_slots") or [])
 
 
+def test_llm_primary_path_does_not_get_polluted_by_return_only_local_date() -> None:
+    day = datetime(2026, 8, 25, 18, 0, tzinfo=SH)
+    payload = IntentExtractionSchema(
+        classification="MULTI_DAY_TRIP",
+        fields=TripIntentFields(
+            origin="Beijing",
+            destination="Shanghai",
+            departure_after=day,
+            arrive_by=day,
+            return_after=day,
+            return_before=datetime(2026, 8, 25, 23, 0, tzinfo=SH),
+            hotel_check_in=None,
+            hotel_check_out=None,
+            client_location=None,
+            hard_constraints=[],
+            soft_preferences=[],
+        ),
+        provided_fields=[
+            "origin",
+            "destination",
+            "departure_after",
+            "arrive_by",
+            "return_after",
+            "return_before",
+        ],
+        missing_required_fields=[],
+        conflicts=[],
+        assumptions=[],
+        confidence=0.9,
+        manipulation_detected=False,
+    )
+    model = ScriptedModel([payload, payload, payload])
+    workflow, _ = build_demo_system(language_model=model, clock=lambda: REF)
+
+    task = workflow.create_task_from_message(
+        "返程8月25日晚上从上海回北京",
+        traveler_id="E1001",
+        task_id="return-only-llm-primary",
+    )
+
+    first_prior = model.calls[0]["context"]["prior_fields"]
+    assert first_prior["departure_after"] is None
+    assert first_prior["return_after"] is None
+    assert task.intent_fields["departure_after"] is None
+    assert task.intent_fields["arrive_by"] is None
+    assert task.intent_fields["return_after"] is not None
+    rejected = task.metadata["intent_calibration"]["repair_rejected_fields"]
+    assert "departure_after:source_scope_mismatch" in rejected
+    assert "arrive_by:source_scope_mismatch" in rejected
+    assert task.state is TaskState.NEEDS_CLARIFICATION
+
+
 def test_billing_failure_without_cities_does_not_spend_clarify_round() -> None:
     model = ScriptedModel(
         [

@@ -216,10 +216,9 @@ SCENARIOS = [
         "name": "partial_return_missing_before",
         "message": "周四下午返程",
         "payload": intent_payload(overrides={"return_before": None}),
-        # P0 completes return pair; search may be WAITING_FOR_USER or NO_FEASIBLE on demo inventory.
-        "state": TaskState.WAITING_FOR_USER,
-        "accept_states": (TaskState.WAITING_FOR_USER, TaskState.NO_FEASIBLE_OPTION),
-        "missing": (),
+        # A sole return-scoped day cannot be reused as the outbound/arrival day.
+        "state": TaskState.NEEDS_CLARIFICATION,
+        "missing": ("departure_after", "arrive_by"),
     },
     {
         "name": "partial_return_missing_after",

@@ -125,6 +125,7 @@ class OpenAIResponsesLanguageModel:
             reasoning_output_tokens=usage_meta.get("reasoning_output_tokens"),
             total_tokens=usage_meta.get("total_tokens"),
             service_tier=usage_meta.get("service_tier"),
+            evidence_contract_version="source-span-v1",
         )
         self.last_call_metadata = metadata
         return IntentExtractionResult(
@@ -285,6 +286,16 @@ class OpenAIResponsesLanguageModel:
             "arrive_by / return windows unless the user explicitly names another timezone. "
             "Mark only fields explicitly supplied or unambiguously derived in "
             "provided_fields. Preserve prior fields unless the user explicitly corrects them. "
+            "intent_evidence contains host-extracted source spans (raw/start/end) only; use "
+            "their clause scope to bind semantics, not their appearance order. In particular, "
+            "a sole date scoped to return/返程 must fill only return fields and must leave "
+            "departure fields null. "
+            "'从X回来/返回/返程' without an outbound 从A去B means X is the destination "
+            "(place visited) and return origin; do NOT set origin=X. Leave origin null "
+            "unless a home/departure city is named. Impossible calendar dates such as "
+            "2.31 or 2月31日 must stay null and be listed in conflicts as invalid dates. "
+            "Every newly provided city or date field must be traceable "
+            "to one of these spans; prior_fields may be preserved without a current-message span. "
             "Classify non-negotiable needs as hard constraints and wishes as soft preferences. "
             "When the user gives a meeting arrival (arrive_by) but no earliest departure, still "
             "set departure_after to a conservative same-calendar-day morning time in the origin "

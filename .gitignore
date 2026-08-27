@@ -10,3 +10,4 @@ dist/
 .env
 data/runtime/
 
+.DS_Store

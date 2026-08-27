@@ -40,6 +40,14 @@ _ROUTE_EN = re.compile(
 )
 _WEEKDAY_CN = re.compile(r"(?P<scope>下下|下|本|这)?周(?P<day>[一二三四五六日天])")
 
+_CLAUSE_DELIMITER_RE = re.compile(r"[，,。\.；;！？!?\n]")
+_RETURN_CUE_RE = re.compile(r"返程|返回|回来|回程|\breturn\b|get back", re.I)
+_OUTBOUND_CUE_RE = re.compile(r"去程|出发|启程|\boutbound\b|\bdepart", re.I)
+_SAME_DAY_ROUND_TRIP_RE = re.compile(
+    r"同日往返|当天往返|当日往返|当天回来|当天返回|same[- ]day round trip",
+    re.I,
+)
+
 
 class GroundedLocalIntentParser:
     """确定性双语抽取器：作 L0，亦作 LLM 故障回退。
@@ -181,6 +189,31 @@ class GroundedLocalIntentParser:
             ),
         )
 
+    def extract_evidence(self, message: str, *, reference_time: datetime) -> Any:
+        """Extract source spans only; do not assign or mutate semantic slots."""
+        from corporate_travel_agent.agent.intent_evidence import build_intent_evidence
+
+        city_mentions: list[tuple[int, int, str, str]] = []
+        folded = message.casefold()
+        for start, canonical in self._city_mentions(message):
+            matching_alias = next(
+                (
+                    alias
+                    for alias, candidate in self._catalog
+                    if candidate == canonical and folded.startswith(alias, start)
+                ),
+                None,
+            )
+            if matching_alias is None:
+                continue
+            end = start + len(matching_alias)
+            city_mentions.append((start, end, message[start:end], canonical))
+        return build_intent_evidence(
+            message,
+            reference_time=reference_time,
+            city_mentions=city_mentions,
+        )
+
     def _build_catalog(self) -> list[tuple[str, str]]:
         aliases: dict[str, str] = {}
         for alias, canonical in self.city_normalizer.alias_map().items():
@@ -220,6 +253,34 @@ class GroundedLocalIntentParser:
         mentions = self._city_mentions(message)
         if self._mentions_are_alternatives(message):
             return None, None
+
+        scoped_routes: dict[str, list[tuple[str, str]]] = {
+            "outbound": [],
+            "return": [],
+            "round_trip": [],
+        }
+        for start, end in _iter_clause_spans(message):
+            clause = message[start:end]
+            scope = _clause_scope(clause)
+            if scope == "ambiguous":
+                continue
+            clause_mentions: list[str] = []
+            for _, canonical in self._city_mentions(clause):
+                if canonical not in clause_mentions:
+                    clause_mentions.append(canonical)
+            if len(clause_mentions) < 2:
+                continue
+            pair = (clause_mentions[0], clause_mentions[1])
+            if scope == "return":
+                pair = (pair[1], pair[0])
+            scoped_routes[scope].append(pair)
+
+        # Semantic route labels outrank source order. A return leg is reversed to
+        # the canonical outbound origin→destination representation.
+        for scope in ("outbound", "round_trip", "return"):
+            if scoped_routes[scope]:
+                return scoped_routes[scope][0]
+
         route = _ROUTE_CN.search(message) or _ROUTE_EN.search(message)
         if route is not None:
             origin = self._lookup_span(route.group("origin"))
@@ -235,7 +296,11 @@ class GroundedLocalIntentParser:
         if len(unique) == 1:
             city = unique[0]
             index = mentions[0][0]
-            window = message[max(0, index - 2) : index + 8]
+            window = message[max(0, index - 2) : index + 12]
+            from corporate_travel_agent.agent.intent_calibration import message_is_return_leg_only
+
+            if message_is_return_leg_only(message):
+                return None, city
             if "从" in window or "出发" in window:
                 return city, None
             return None, city
@@ -293,8 +358,12 @@ class GroundedLocalIntentParser:
         )
 
         mentions = iter_calendar_date_mentions(message)
-        if mentions:
-            return resolve_calendar_mention(mentions[0], reference_time=reference)
+        for mention in mentions:
+            if _mention_scope(message, mention.start, mention.end) == "return":
+                continue
+            resolved = resolve_calendar_mention(mention, reference_time=reference)
+            if resolved is not None:
+                return resolved
         if message_is_lunar_or_holiday_without_gregorian(message):
             return None
         if message_has_ambiguous_weekday_choice(message):
@@ -304,9 +373,20 @@ class GroundedLocalIntentParser:
                 return reference.date() + timedelta(days=1)
             if "后天" in message:
                 return reference.date() + timedelta(days=2)
-        weekday = self._first_weekday(message)
-        if weekday is None:
+        weekday_match = next(
+            (
+                item
+                for item in _WEEKDAY_CN.finditer(message)
+                if _mention_scope(message, item.start(), item.end()) != "return"
+            ),
+            None,
+        )
+        if weekday_match is None:
             return None
+        weekday = (
+            weekday_match.group("scope"),
+            _WEEKDAY_INDEX[weekday_match.group("day")],
+        )
         if weekday[0] == "下下":
             return _weekday_in_week_after_next(reference.date(), weekday[1])
         if weekday[0] in {"下"}:
@@ -321,7 +401,7 @@ class GroundedLocalIntentParser:
     ) -> date | None:
         """解析返程日；未提返程则 None。"""
         if not re.search(
-            r"回来|返回|返程|回程|下午回|晚上回|当天回|\d{1,2}[日号]回|\breturn\b",
+            r"回来|返回|返程|回程|往返|下午回|晚上回|当天回|\d{1,2}[日号]回|\breturn\b",
             message,
         ):
             return None
@@ -331,13 +411,39 @@ class GroundedLocalIntentParser:
         )
 
         mentions = iter_calendar_date_mentions(message)
+        for mention in mentions:
+            if _mention_scope(message, mention.start, mention.end) in {
+                "return",
+                "round_trip",
+            }:
+                return resolve_calendar_mention(
+                    mention,
+                    reference_time=reference,
+                    min_day=outbound,
+                )
+        if len(mentions) == 1 and _SAME_DAY_ROUND_TRIP_RE.search(message):
+            return resolve_calendar_mention(
+                mentions[0], reference_time=reference, min_day=outbound
+            )
         if len(mentions) >= 2:
             return resolve_calendar_mention(
-                mentions[1],
-                reference_time=reference,
-                min_day=outbound,
+                mentions[1], reference_time=reference, min_day=outbound
             )
         weekdays = list(_WEEKDAY_CN.finditer(message))
+        for weekday_match in weekdays:
+            if _mention_scope(
+                message, weekday_match.start(), weekday_match.end()
+            ) not in {"return", "round_trip"}:
+                continue
+            weekday = _WEEKDAY_INDEX[weekday_match.group("day")]
+            prefix = weekday_match.group("scope")
+            if prefix == "下下":
+                return _weekday_in_week_after_next(reference.date(), weekday)
+            if prefix == "下":
+                return _weekday_in_next_week(reference.date(), weekday)
+            if outbound is not None:
+                return _on_or_after_weekday(outbound, weekday)
+            return _next_or_same_weekday(reference.date(), weekday)
         if outbound is not None and len(weekdays) >= 2:
             return _on_or_after_weekday(
                 outbound, _WEEKDAY_INDEX[weekdays[1].group("day")]
@@ -383,6 +489,36 @@ def _weekday_in_next_week(today: date, weekday: int) -> date:
     if days_to_monday == 0:
         days_to_monday = 7
     return today + timedelta(days=days_to_monday + weekday)
+
+
+def _iter_clause_spans(message: str) -> list[tuple[int, int]]:
+    """Return non-overlapping sentence/clause spans in source coordinates."""
+    spans: list[tuple[int, int]] = []
+    start = 0
+    for match in _CLAUSE_DELIMITER_RE.finditer(message or ""):
+        if start < match.start():
+            spans.append((start, match.start()))
+        start = match.end()
+    if start < len(message):
+        spans.append((start, len(message)))
+    return spans or [(0, len(message))]
+
+
+def _clause_scope(clause: str) -> str:
+    if _SAME_DAY_ROUND_TRIP_RE.search(clause):
+        return "round_trip"
+    if _RETURN_CUE_RE.search(clause):
+        return "return"
+    if _OUTBOUND_CUE_RE.search(clause):
+        return "outbound"
+    return "ambiguous"
+
+
+def _mention_scope(message: str, start: int, end: int) -> str:
+    for clause_start, clause_end in _iter_clause_spans(message):
+        if clause_start <= start and end <= clause_end:
+            return _clause_scope(message[clause_start:clause_end])
+    return "ambiguous"
 
 
 def _weekday_in_week_after_next(today: date, weekday: int) -> date:

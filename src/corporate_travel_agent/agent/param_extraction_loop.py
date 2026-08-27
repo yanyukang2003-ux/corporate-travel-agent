@@ -418,6 +418,7 @@ def validate_business_l2(
     *,
     classification: str,
     model_conflicts: tuple[str, ...] = (),
+    user_message: str = "",
 ) -> ValidationResult:
     """语义完备性与行程领域规则；从不填槽。
 
@@ -430,15 +431,23 @@ def validate_business_l2(
         return ValidationResult(ok=True, layer="business")
 
     issues: list[ValidationIssue] = []
+    from corporate_travel_agent.agent.intent_calibration import iter_invalid_date_tokens
+
     trip = validate_trip_request_values(fields)
-    ready = search_ready_missing(fields, classification=classification)
+    ready = search_ready_missing(
+        fields, classification=classification, user_message=user_message
+    )
 
     missing = list(dict.fromkeys((*trip.missing, *ready.missing)))
     missing = list(dict.fromkeys(missing))
 
     # 领域行程冲突一律结构性 → 阻断（永不降为软）。
     model_blocking, model_soft = partition_conflicts(model_conflicts)
-    blocking = tuple(dict.fromkeys((*trip.conflicts, *model_blocking)))
+    invalid_dates = tuple(
+        f"{token} 不是有效公历日期"
+        for token in iter_invalid_date_tokens(user_message)
+    )
+    blocking = tuple(dict.fromkeys((*trip.conflicts, *model_blocking, *invalid_dates)))
     soft = model_soft
 
     for name in missing:
@@ -562,6 +571,7 @@ def decide_param_loop(
     model_conflicts: tuple[str, ...] = (),
     extract_index: int = 0,
     max_repair_attempts: int = MAX_INTENT_REPAIR_ATTEMPTS,
+    user_message: str = "",
 ) -> ParamLoopDecision:
     """跑 L1 → L2，并选择 ACCEPT / REPAIR / CLARIFY / OUT_OF_SCOPE。
 
@@ -586,6 +596,7 @@ def decide_param_loop(
         fields,
         classification=classification,
         model_conflicts=model_conflicts,
+        user_message=user_message,
     )
 
     missing = tuple(dict.fromkeys((*schema.missing, *business.missing)))

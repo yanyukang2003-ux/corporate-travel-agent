@@ -1,6 +1,7 @@
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
+from corporate_travel_agent.agent.intent_calibration import iter_calendar_date_mentions
 from corporate_travel_agent.agent.local_intent import GroundedLocalIntentParser
 from corporate_travel_agent.services.locations import CityNormalizer
 
@@ -96,6 +97,99 @@ def test_return_revision_does_not_steal_outbound_day() -> None:
     assert fields.return_after.hour == 18
     assert fields.return_before is not None
     assert fields.return_before.hour == 23
+
+
+def test_calendar_mentions_keep_exact_source_span() -> None:
+    message = "返程改到8月25日晚上"
+    mentions = iter_calendar_date_mentions(message)
+    assert len(mentions) == 1
+    mention = mentions[0]
+    assert mention.raw == "8月25日"
+    assert message[mention.start : mention.end] == mention.raw
+    assert mention.as_dict() == {
+        "year": None,
+        "month": 8,
+        "day": 25,
+        "start": 4,
+        "end": 9,
+        "raw": "8月25日",
+    }
+
+
+def test_single_return_scoped_calendar_date_never_fills_outbound() -> None:
+    parser = _parser()
+    result = parser.extract_trip_intent(
+        "返程8月25日晚上从上海回北京",
+        task_id="local-return-only-date",
+        traveler_id="E1001",
+        context={"reference_time": REF.isoformat(), "timezone": "Asia/Shanghai"},
+    )
+    fields = result.payload.fields
+    assert fields.origin == "Beijing"
+    assert fields.destination == "Shanghai"
+    assert fields.departure_after is None
+    assert fields.arrive_by is None
+    assert fields.return_after is not None
+    assert fields.return_after.date().isoformat() == "2026-08-25"
+
+
+def test_single_return_scoped_weekday_never_fills_outbound() -> None:
+    parser = _parser()
+    result = parser.extract_trip_intent(
+        "下周四下午返程",
+        task_id="local-return-only-weekday",
+        traveler_id="E1001",
+        context={"reference_time": REF.isoformat(), "timezone": "Asia/Shanghai"},
+    )
+    fields = result.payload.fields
+    assert fields.departure_after is None
+    assert fields.arrive_by is None
+    assert fields.return_after is not None
+    assert fields.return_after.date().isoformat() == "2026-08-27"
+
+
+def test_return_first_dates_bind_by_clause_semantics_not_mention_order() -> None:
+    parser = _parser()
+    result = parser.extract_trip_intent(
+        "返程8月26日从上海回北京；去程8月25日从北京去上海",
+        task_id="local-return-first-dates",
+        traveler_id="E1001",
+        context={"reference_time": REF.isoformat(), "timezone": "Asia/Shanghai"},
+    )
+    fields = result.payload.fields
+    assert fields.origin == "Beijing"
+    assert fields.destination == "Shanghai"
+    assert fields.departure_after is not None
+    assert fields.departure_after.date().isoformat() == "2026-08-25"
+    assert fields.return_after is not None
+    assert fields.return_after.date().isoformat() == "2026-08-26"
+
+
+def test_return_route_first_does_not_invert_canonical_route() -> None:
+    parser = _parser()
+    result = parser.extract_trip_intent(
+        "返程从上海回北京；去程从北京去上海，8月25日出发",
+        task_id="local-return-first-route",
+        traveler_id="E1001",
+        context={"reference_time": REF.isoformat(), "timezone": "Asia/Shanghai"},
+    )
+    assert result.payload.fields.origin == "Beijing"
+    assert result.payload.fields.destination == "Shanghai"
+
+
+def test_single_date_same_day_round_trip_binds_both_legs() -> None:
+    parser = _parser()
+    result = parser.extract_trip_intent(
+        "8月25日从北京去上海，当天往返",
+        task_id="local-same-day-round-trip",
+        traveler_id="E1001",
+        context={"reference_time": REF.isoformat(), "timezone": "Asia/Shanghai"},
+    )
+    fields = result.payload.fields
+    assert fields.departure_after is not None
+    assert fields.departure_after.date().isoformat() == "2026-08-25"
+    assert fields.return_after is not None
+    assert fields.return_after.date().isoformat() == "2026-08-25"
 
 
 def test_origin_only_from_shanghai_does_not_invent_destination() -> None:

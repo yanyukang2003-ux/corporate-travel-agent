@@ -350,9 +350,10 @@ def test_arrive_only_bundle_uses_clock_options_not_trip_templates() -> None:
     bundle = build_clarification_bundle(missing=("arrive_by",))
     assert bundle is not None
     times = next(item for item in bundle.questions if item.id == "times")
+    assert times.input_kind == "time_range"
     values = [option.value for option in times.options]
-    assert values == ["arrive:18:00", "arrive:21:00"]
     assert "template:overnight" not in values
+    assert "template:day_trip" not in values
 
 
 def test_submit_evening_clock_applies_without_llm() -> None:
@@ -509,3 +510,200 @@ def test_submit_overnight_option_applies_without_llm() -> None:
     assert next_task.state is not TaskState.NEEDS_CLARIFICATION or (
         "arrive_by" not in next_task.missing_required_fields
     )
+
+
+def test_city_clarification_uses_selectable_options() -> None:
+    bundle = build_clarification_bundle(
+        missing=("origin",),
+        fields={"origin": None, "destination": "Beijing"},
+    )
+    assert bundle is not None
+    cities = next(item for item in bundle.questions if item.id == "cities")
+    values = [option.value for option in cities.options]
+    assert "origin:Shanghai" in values
+    assert "origin:Beijing" not in values
+    assert all(option.value.startswith("origin:") for option in cities.options)
+
+    updated, notes, _ = apply_clarification_answer(
+        {"origin": None, "destination": "Beijing"},
+        "origin:Shanghai",
+        reference_time=FIXED,
+    )
+    assert updated["origin"] == "Shanghai"
+    assert any("origin=Shanghai" in item for item in notes)
+
+
+def test_time_clarification_uses_windows_not_free_text() -> None:
+    bundle = build_clarification_bundle(missing=("departure_after", "arrive_by"))
+    assert bundle is not None
+    times = next(item for item in bundle.questions if item.id == "times")
+    assert times.input_kind == "time_range"
+    assert "template:day_trip" not in [option.value for option in times.options]
+
+
+def test_submit_shanghai_fills_origin_without_llm() -> None:
+    """自由文本「上海」在出发城市待补时应直接落地，不再让城市题刷新回来。"""
+    from datetime import datetime as dt
+
+    clock_time = dt(2026, 8, 21, 16, 0, tzinfo=SH)
+    workflow, _ = build_demo_system(clock=lambda: clock_time)
+    employee = workflow.employees.snapshot("E1001")
+    policy = workflow.policies.current()
+    bundle = build_clarification_bundle(
+        missing=("origin", "departure_after", "arrive_by"),
+        fields={"origin": None, "destination": "Beijing"},
+    )
+    assert bundle is not None
+    task = TripTask(
+        task_id="clarify-origin-shanghai",
+        state=TaskState.NEEDS_CLARIFICATION,
+        request=None,
+        employee=employee,
+        policy_snapshot_id=policy.snapshot_id,
+        intent_fields={
+            "origin": None,
+            "destination": "Beijing",
+            "departure_after": None,
+            "arrive_by": None,
+            "return_after": None,
+            "return_before": None,
+            "hotel_check_in": None,
+            "hotel_check_out": None,
+            "hard_constraints": [],
+            "soft_preferences": [],
+        },
+        missing_required_fields=("origin", "departure_after", "arrive_by"),
+        clarification_rounds=3,
+        clarification_question=bundle.prompt_text,
+        messages=[
+            ConversationMessage(role="user", content="2.31回公司，下周三去北京"),
+            ConversationMessage(role="assistant", content=bundle.prompt_text),
+        ],
+        metadata={
+            "intent_classification": "TRIP",
+            "clarification_questions": [item.as_dict() for item in bundle.questions],
+            "clarification_pending_slots": ["origin", "departure_after", "arrive_by"],
+        },
+    )
+    workflow.tasks.add(task)
+    next_task = workflow.submit_message(task.task_id, "上海")
+    assert next_task.intent_fields["origin"] == "Shanghai"
+    assert "origin" not in next_task.missing_required_fields
+    question_ids = [
+        item.get("id")
+        for item in (next_task.metadata.get("clarification_questions") or [])
+        if isinstance(item, dict)
+    ]
+    assert "cities" not in question_ids
+    assert next_task.state is not TaskState.NEEDS_STRUCTURED_INPUT
+
+
+def test_time_window_keeps_next_wednesday_from_original_message() -> None:
+    fields = {
+        "origin": "Shanghai",
+        "destination": "Beijing",
+        "departure_after": None,
+        "arrive_by": None,
+        "return_after": None,
+        "return_before": None,
+        "hotel_check_in": None,
+        "hotel_check_out": None,
+        "hard_constraints": [],
+        "soft_preferences": [],
+    }
+    from datetime import datetime as dt
+
+    now = dt(2026, 8, 21, 16, 0, tzinfo=SH)
+    updated, notes, _ = apply_clarification_answer(
+        fields,
+        "window:08:00-18:00",
+        reference_time=now,
+        timezone_name="Asia/Shanghai",
+        context_message="2.31回公司，下周三去北京",
+    )
+    assert updated["departure_after"].date().isoformat() == "2026-08-26"
+    assert updated["departure_after"].hour == 8
+    assert updated["arrive_by"].hour == 18
+    assert updated["arrive_by"].date().isoformat() == "2026-08-26"
+    assert notes
+
+
+def test_invalid_date_and_return_from_beijing() -> None:
+    from corporate_travel_agent.agent.intent_calibration import (
+        apply_return_from_city_semantics,
+        iter_invalid_date_tokens,
+        message_is_return_leg_only,
+        search_ready_missing,
+    )
+    from corporate_travel_agent.agent.clarification_questions import detect_uncertain_slots
+    from corporate_travel_agent.agent.local_intent import GroundedLocalIntentParser
+
+    message = "2.31从北京回来"
+    assert "2.31" in iter_invalid_date_tokens(message)
+    assert message_is_return_leg_only(message)
+    from corporate_travel_agent.agent.clarification_questions import lookup_clarification_city as lookup_city
+
+    origin, destination = GroundedLocalIntentParser()._cities(message)
+    assert origin is None
+    assert lookup_city(destination or "") == "Beijing"
+
+    updated, notes, _ = apply_return_from_city_semantics(
+        {"origin": "Beijing", "destination": "Beijing"},
+        user_message=message,
+        provenance={"origin": "model", "destination": "model"},
+    )
+    assert updated["origin"] is None
+    assert updated["destination"] == "Beijing"
+    assert notes
+
+    uncertain = detect_uncertain_slots(
+        updated,
+        user_message=message,
+        assumptions=(),
+    )
+    assert "return_trip" not in uncertain
+    assert "travel_date" in uncertain
+
+    ready = search_ready_missing(updated, classification="TRIP", user_message=message)
+    assert "origin" in ready.missing
+    assert "return_after" in ready.missing
+    bundle = build_clarification_bundle(
+        missing=ready.missing,
+        uncertain=uncertain,
+        conflicts=("2.31 不是有效公历日期",),
+        fields=updated,
+        user_message=message,
+    )
+    assert bundle is not None
+    ids = [item.id for item in bundle.questions]
+    assert "return_trip" not in ids
+    assert "cities" in ids
+    times = next(item for item in bundle.questions if item.input_kind == "time_range")
+    assert times.id == "return_times"
+    assert "只要去程" not in times.question
+    assert "2.31" in times.question
+
+
+def test_iso_return_window_applies() -> None:
+    fields = {
+        "origin": "Shanghai",
+        "destination": "Beijing",
+        "departure_after": None,
+        "arrive_by": None,
+        "return_after": None,
+        "return_before": None,
+        "hard_constraints": [],
+        "soft_preferences": [],
+    }
+    updated, notes, hints = apply_clarification_answer(
+        fields,
+        "return_window:2026-09-01T13:00/2026-09-01T18:00",
+        reference_time=FIXED,
+        timezone_name="Asia/Shanghai",
+    )
+    assert not hints
+    assert updated["return_after"].hour == 13
+    assert updated["return_before"].hour == 18
+    assert updated["return_after"].date().isoformat() == "2026-09-01"
+    assert notes
+

@@ -537,6 +537,7 @@ def _run_attempt(
         ),
         "price_mapping_available": price_key is not None and estimated_cost is not None,
     }
+    recorded_failure = task.failure or task.metadata.get("recovered_extract_failure")
     return trace, {
         "run_id": run_id,
         "case_id": case.case_id,
@@ -607,8 +608,8 @@ def _run_attempt(
         ),
         "checks": checks,
         "passed": all(checks.values()),
-        "failure": task.failure,
-        "failure_category": _failure_category(task.failure),
+        "failure": recorded_failure,
+        "failure_category": _failure_category(recorded_failure),
         "parameter_hallucination_evaluable": actual_model is not None,
         "shadow_evidence_evaluable": bool(task.options),
     }

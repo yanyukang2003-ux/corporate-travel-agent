@@ -147,6 +147,12 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px
 .clarification-question-header { color: var(--accent); font-size: 8px; font-weight: 800; letter-spacing: .13em; text-transform: uppercase; }
 .clarification-question h3 { margin: 6px 0 13px; color: var(--ink); font: 17px/1.45 Georgia, "Songti SC", serif; }
 .clarification-options { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.clarification-options.city-options { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.clarification-options.city-options > button { min-height: 58px; padding: 10px 11px; }
+.clarification-time-range { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)) auto; gap: 8px; align-items: end; margin: 4px 0 12px; }
+.clarification-time-range label { display: flex; flex-direction: column; gap: 6px; color: var(--green); font-size: 8px; font-weight: 800; letter-spacing: .08em; }
+.clarification-time-range input { height: 38px; padding: 0 10px; border: 1px solid #bdc9c4; color: var(--ink); background: #fff; font-size: 12px; }
+.clarification-time-range button { height: 38px; padding: 0 14px; white-space: nowrap; }
 .clarification-options > button { min-width: 0; min-height: 74px; display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 12px 13px; border: 1px solid var(--line); color: var(--ink); background: #fbfcf9; text-align: left; transition: border-color .16s ease, background .16s ease, transform .16s ease; }
 .clarification-options > button:hover:not(:disabled) { border-color: #76948b; background: #f0f6f1; transform: translateY(-1px); }
 .clarification-options > button.pending { border-color: var(--green); background: #eaf3ed; }
@@ -503,6 +509,8 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px
   .topbar { padding: 0 18px; }
   .agent-command-center { grid-template-columns: 1fr; }
   .clarification-options { grid-template-columns: 1fr; }
+  .clarification-time-range { grid-template-columns: 1fr 1fr; }
+  .clarification-time-range button { grid-column: 1 / -1; }
   .agent-command-rail { min-height: auto; padding: 17px 18px; }
   .agent-command-rail h2 { margin: 9px 0 4px; font-size: 20px; }
   .agent-command-rail h2 br { display: none; }

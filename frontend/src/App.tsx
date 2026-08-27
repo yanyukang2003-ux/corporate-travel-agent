@@ -567,7 +567,7 @@ function isEmptyIntentValue(value: unknown): boolean {
   return value === null || value === undefined || value === '' || (Array.isArray(value) && value.length === 0)
 }
 
-/** 综合 API 缺失字段与意图空槽，得到待补充字段列表。 */
+/** 综合 API 缺失字段与意图空槽，得到待补充字段列表。已填槽不再显示为缺失。 */
 function derivedMissingFields(task: TripTask): string[] {
   const fromApi = [
     ...task.missing_required_fields,
@@ -585,7 +585,7 @@ function derivedMissingFields(task: TripTask): string[] {
     if (isEmptyIntentValue(task.intent_fields.return_after)) fromIntent.push('return_after')
     if (isEmptyIntentValue(task.intent_fields.return_before)) fromIntent.push('return_before')
   }
-  return Array.from(new Set([...fromApi, ...fromIntent]))
+  return Array.from(new Set([...fromApi, ...fromIntent])).filter((key) => isEmptyIntentValue(task.intent_fields[key]))
 }
 
 /** 已识别意图字段的中文标签与值对。 */
@@ -619,13 +619,65 @@ function validClarificationQuestions(task: TripTask): ClarificationQuestion[] {
 }
 
 /** 澄清面板：展示缺失槽位、快捷选项与自定义答案提交。 */
+function TimeRangePicker({
+  kind,
+  busy,
+  onSubmit,
+}: {
+  kind: 'window' | 'return_window' | 'date'
+  busy: boolean
+  onSubmit: (value: string) => void
+}) {
+  const today = new Date()
+  const isoDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
+  const [date, setDate] = useState(isoDate)
+  const [start, setStart] = useState('08:00')
+  const [end, setEnd] = useState('18:00')
+  const canSubmit = Boolean(date) && (kind === 'date' || (Boolean(start) && Boolean(end) && start < end))
+  return (
+    <div className="clarification-time-range" aria-label="选择时间区间">
+      <label>
+        日期
+        <input type="date" value={date} disabled={busy} onChange={(event) => setDate(event.target.value)} />
+      </label>
+      {kind !== 'date' && <>
+        <label>
+          开始
+          <input type="time" value={start} disabled={busy} onChange={(event) => setStart(event.target.value)} />
+        </label>
+        <label>
+          结束
+          <input type="time" value={end} disabled={busy} onChange={(event) => setEnd(event.target.value)} />
+        </label>
+      </>}
+      <button
+        type="button"
+        className="primary"
+        disabled={busy || !canSubmit}
+        onClick={() => {
+          if (kind === 'date') {
+            onSubmit(`date:${date}`)
+            return
+          }
+          onSubmit(`${kind}:${date}T${start}/${date}T${end}`)
+        }}
+      >
+        确认区间
+      </button>
+    </div>
+  )
+}
+
 function ClarificationPanel({ task, busy, error, onSubmit }: {
   task: TripTask
   busy: boolean
   error: string
   onSubmit: (message: string) => Promise<boolean>
 }) {
-  const questions = useMemo(() => validClarificationQuestions(task), [task])
+  const questions = useMemo(() => validClarificationQuestions(task).filter((question) => {
+    if (!question.slots.length) return true
+    return question.slots.some((slot) => isEmptyIntentValue(task.intent_fields[slot]))
+  }), [task])
   const [customAnswers, setCustomAnswers] = useState<Record<string, string>>(
     () => readClarificationDraft(task.task_id)?.customAnswers ?? {},
   )
@@ -771,7 +823,14 @@ function ClarificationPanel({ task, busy, error, onSubmit }: {
               <div className="clarification-question-body">
                 <span className="clarification-question-header">{question.header}</span>
                 <h3>{question.question}</h3>
-                {quickOptions.length > 0 && <div className="clarification-options" aria-label={`${question.header}选项`}>
+                {(question.input_kind === 'time_range' || question.input_kind === 'date') && (
+                  <TimeRangePicker
+                    kind={question.input_kind === 'date' ? 'date' : (question.id === 'return_times' ? 'return_window' : 'window')}
+                    busy={busy}
+                    onSubmit={(value) => void submitAnswer(value)}
+                  />
+                )}
+                {quickOptions.length > 0 && <div className={`clarification-options${question.id === 'cities' ? ' city-options' : ''}`} aria-label={`${question.header}选项`}>
                   {quickOptions.map((option) => {
                     const isPending = pendingAnswer === option.value
                     return <button
@@ -787,8 +846,8 @@ function ClarificationPanel({ task, busy, error, onSubmit }: {
                     </button>
                   })}
                 </div>}
-                <div className="clarification-custom-answer">
-                  <label htmlFor={`clarification-${question.id}`}>自定义答案</label>
+                {quickOptions.length < 2 && !question.input_kind && <div className="clarification-custom-answer">
+                  <label htmlFor={`clarification-${question.id}`}>{question.id === 'cities' ? '其他城市' : '自定义答案'}</label>
                   <div>
                     <input
                       id={`clarification-${question.id}`}
@@ -811,7 +870,7 @@ function ClarificationPanel({ task, busy, error, onSubmit }: {
                       {pendingAnswer === customAnswer.trim() && busy ? '提交中…' : '提交'}
                     </button>
                   </div>
-                </div>
+                </div>}
               </div>
             </article>
           )

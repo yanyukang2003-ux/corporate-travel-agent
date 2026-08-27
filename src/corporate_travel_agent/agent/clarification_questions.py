@@ -90,14 +90,80 @@ KNOWN_OPTION_VALUES = frozenset(
         "mode:any",
         "template:day_trip",
         "template:overnight",
+        "arrive:12:00",
         "arrive:18:00",
         "arrive:21:00",
+        "depart:08:00",
+        "depart:12:00",
+        "depart:14:00",
+        "window:08:00-18:00",
+        "window:08:00-21:00",
+        "window:12:00-18:00",
+        "window:12:00-21:00",
         "client:skip",
         "route:Beijing:Shanghai",
         "route:Shanghai:Beijing",
         "free_text",
     }
 )
+
+# (canonical, 中文标签, 别名) — 澄清选项与自由文本城市落地共用。
+CLARIFICATION_CITY_CHOICES: tuple[tuple[str, str, tuple[str, ...]], ...] = (
+    ("Beijing", "北京", ("beijing", "北京", "北京市", "pek", "bjs", "cn-bjs")),
+    ("Shanghai", "上海", ("shanghai", "上海", "上海市", "sha", "pvg", "cn-sha")),
+    ("Hong Kong", "香港", ("hong kong", "hongkong", "香港", "hkg")),
+    ("Tokyo", "东京", ("tokyo", "东京", "東京", "tyo", "nrt", "hnd")),
+    ("Singapore", "新加坡", ("singapore", "新加坡", "sin")),
+    ("New York", "纽约", ("new york", "newyork", "nyc", "纽约", "紐約", "jfk")),
+    ("Los Angeles", "洛杉矶", ("los angeles", "losangeles", "la", "洛杉矶", "洛杉磯", "lax")),
+    ("Chicago", "芝加哥", ("chicago", "芝加哥", "chi", "ord")),
+    ("London", "伦敦", ("london", "伦敦", "倫敦", "lon", "lhr")),
+    ("San Francisco", "旧金山", ("san francisco", "sanfrancisco", "sf", "旧金山", "三藩市", "sfo")),
+    ("Boston", "波士顿", ("boston", "波士顿", "波士頓", "bos")),
+    ("Washington", "华盛顿", ("washington", "washington dc", "华盛顿", "華盛頓", "was")),
+)
+
+_CITY_OPTION_RE = re.compile(r"^(origin|destination|city):(.+)$", re.I)
+_CLOCK_OPTION_RE = re.compile(r"^(depart|arrive):(\d{1,2}):(\d{2})$", re.I)
+_WINDOW_OPTION_RE = re.compile(r"^window:(\d{1,2}):(\d{2})-(\d{1,2}):(\d{2})$", re.I)
+_ISO_RANGE_RE = re.compile(
+    r"^(?P<kind>window|return_window):"
+    r"(?P<start>\d{4}-\d{2}-\d{2}T\d{2}:\d{2})"
+    r"/"
+    r"(?P<end>\d{4}-\d{2}-\d{2}T\d{2}:\d{2})$"
+)
+_DATE_OPTION_RE = re.compile(r"^date:(\d{4}-\d{2}-\d{2})$")
+
+
+def lookup_clarification_city(raw: str) -> str | None:
+    """把用户输入或选项值解析为规范城市名；无法识别则 None。"""
+    text = (raw or "").strip()
+    if not text:
+        return None
+    folded = text.casefold()
+    for canonical, label, aliases in CLARIFICATION_CITY_CHOICES:
+        names = {canonical.casefold(), label.casefold(), *(item.casefold() for item in aliases)}
+        if folded in names:
+            return canonical
+    return None
+
+
+def is_exact_option_value(message: str) -> bool:
+    """消息是否为 UI 选项机值（非整句自然语言）。"""
+    compact = (message or "").strip()
+    if compact in KNOWN_OPTION_VALUES:
+        return True
+    if _CITY_OPTION_RE.fullmatch(compact):
+        return True
+    if _CLOCK_OPTION_RE.fullmatch(compact):
+        return True
+    if _WINDOW_OPTION_RE.fullmatch(compact):
+        return True
+    if _ISO_RANGE_RE.fullmatch(compact):
+        return True
+    if _DATE_OPTION_RE.fullmatch(compact):
+        return True
+    return False
 
 
 @dataclass(frozen=True, slots=True)
@@ -121,6 +187,8 @@ class ClarificationQuestion:
     multi_select: bool = False
     # 本题意图解决的意图槽位。
     slots: tuple[str, ...] = ()
+    # date = 日期选择；time_range = 可点开的日期+起止时间区间。
+    input_kind: str = ""
 
     def as_dict(self) -> dict[str, Any]:
         """序列化为 API/元数据可用的字典。"""
@@ -131,6 +199,7 @@ class ClarificationQuestion:
             "multi_select": self.multi_select,
             "slots": list(self.slots),
             "options": [asdict(option) for option in self.options],
+            "input_kind": self.input_kind,
         }
 
 
@@ -212,14 +281,25 @@ def detect_uncertain_slots(
     soft = set(fields.get("soft_preferences") or ())
 
     has_return = fields.get("return_after") is not None or fields.get("return_before") is not None
-    # 仅用户原文（非模型 assumptions）可打开返程追问——
-    # 模型常把返程窗口写进 assumptions 却未落地字段。
+    from corporate_travel_agent.agent.intent_calibration import (
+        iter_invalid_date_tokens,
+        message_has_ambiguous_weekday_choice,
+        message_is_lunar_or_holiday_without_gregorian,
+        message_is_return_leg_only,
+    )
+
+    if iter_invalid_date_tokens(user_message):
+        uncertain.append("travel_date")
+
+    # 只说「从北京回来」已经是在安排返程，不要再问「需不需要返程 / 只要去程」。
+    return_leg_only = message_is_return_leg_only(user_message)
     return_talk = message_mentions_return(user_message) and not message_mentions_one_way(
         user_message
     )
-    if return_talk and not has_return:
+    if return_leg_only:
+        pass
+    elif return_talk and not has_return:
         uncertain.append("return_trip")
-    # Assumptions may still hint; keep as soft signal only when message is empty of OD talk.
     elif (
         not has_return
         and assumptions_mention_return(assumptions)
@@ -258,11 +338,6 @@ def detect_uncertain_slots(
     elif not mode_locked and flight_talk and "prefer_train" in soft:
         uncertain.append("transport_mode")
 
-    from corporate_travel_agent.agent.intent_calibration import (
-        message_has_ambiguous_weekday_choice,
-        message_is_lunar_or_holiday_without_gregorian,
-    )
-
     has_outbound = fields.get("departure_after") is not None or fields.get("arrive_by") is not None
     if not has_outbound and (
         message_has_ambiguous_weekday_choice(user_message)
@@ -273,13 +348,109 @@ def detect_uncertain_slots(
     return tuple(dict.fromkeys(uncertain))
 
 
+def _city_question(missing: tuple[str, ...], fields: dict[str, Any]) -> ClarificationQuestion:
+    """出发/目的城市澄清：目录城市可点选，不再只给空白输入框。"""
+    origin_missing = "origin" in missing
+    dest_missing = "destination" in missing
+    known_origin = fields.get("origin") if isinstance(fields.get("origin"), str) else None
+    known_dest = fields.get("destination") if isinstance(fields.get("destination"), str) else None
+    options: list[QuestionOption] = []
+    for canonical, label, _aliases in CLARIFICATION_CITY_CHOICES:
+        folded = canonical.casefold()
+        if origin_missing and not dest_missing:
+            if known_dest and str(known_dest).casefold() == folded:
+                continue
+            options.append(
+                QuestionOption(label, f"出发城市 {label}", f"origin:{canonical}")
+            )
+        elif dest_missing and not origin_missing:
+            if known_origin and str(known_origin).casefold() == folded:
+                continue
+            options.append(
+                QuestionOption(label, f"目的城市 {label}", f"destination:{canonical}")
+            )
+        else:
+            options.append(
+                QuestionOption(label, f"先填出发城市 {label}", f"city:{canonical}")
+            )
+    if origin_missing and dest_missing:
+        question = "请选择出发城市；目的城市选完出发后会再问一次。"
+    elif origin_missing:
+        dest_label = known_dest or "已识别目的地"
+        question = f"请选择出发城市。当前目的地是 {dest_label}。"
+    else:
+        origin_label = known_origin or "已识别出发地"
+        question = f"请选择目的城市。当前出发地是 {origin_label}。"
+    return ClarificationQuestion(
+        id="cities",
+        header="城市",
+        question=question,
+        options=tuple(options),
+        slots=tuple(name for name in ("origin", "destination") if name in missing),
+    )
+
+
+def _time_questions(
+    time_missing: tuple[str, ...],
+    *,
+    return_leg_only: bool = False,
+    invalid_tokens: tuple[str, ...] = (),
+) -> list[ClarificationQuestion]:
+    """时间澄清：可点开的日期+起止区间，常用窗口只作快捷项。"""
+    questions: list[ClarificationQuestion] = []
+    need_depart = "departure_after" in time_missing
+    need_arrive = "arrive_by" in time_missing
+    need_return = "return_after" in time_missing or "return_before" in time_missing
+    invalid_note = ""
+    if invalid_tokens:
+        shown = "、".join(invalid_tokens)
+        invalid_note = f"{shown} 不是有效公历日期。请改选真实日期，再选定时间区间。"
+
+    if return_leg_only or (need_return and not need_depart and not need_arrive):
+        questions.append(
+            ClarificationQuestion(
+                id="return_times",
+                header="返程时间",
+                question=invalid_note or "请选择返程日期，以及出发和到达时间区间。",
+                options=(),
+                slots=("return_after", "return_before"),
+                input_kind="time_range",
+            )
+        )
+        if return_leg_only:
+            return questions
+
+    if need_depart or need_arrive:
+        questions.append(
+            ClarificationQuestion(
+                id="times",
+                header="时间",
+                question=invalid_note or "请选择出发日期，以及最早出发到最晚到达的时间区间。",
+                options=(),
+                slots=tuple(
+                    name for name in ("departure_after", "arrive_by") if name in time_missing
+                )
+                or ("departure_after", "arrive_by"),
+                input_kind="time_range",
+            )
+        )
+    return questions
+
+
 def build_clarification_bundle(
     *,
     missing: tuple[str, ...] | list[str] = (),
     conflicts: tuple[str, ...] | list[str] = (),
     uncertain: tuple[str, ...] | list[str] = (),
+    fields: dict[str, Any] | None = None,
+    user_message: str = "",
 ) -> ClarificationBundle | None:
     """为缺失 + 不确定槽构建 AskUserQuestion 风格提示。"""
+    from corporate_travel_agent.agent.intent_calibration import (
+        iter_invalid_date_tokens,
+        message_is_return_leg_only,
+    )
+
     missing = tuple(dict.fromkeys(missing))
     conflicts = tuple(dict.fromkeys(conflicts))
     uncertain = tuple(dict.fromkeys(uncertain))
@@ -287,93 +458,54 @@ def build_clarification_bundle(
         return None
 
     questions: list[ClarificationQuestion] = []
+    current = fields or {}
+    return_leg_only = message_is_return_leg_only(user_message)
+    invalid_tokens = iter_invalid_date_tokens(user_message)
+    if return_leg_only:
+        uncertain = tuple(item for item in uncertain if item != "return_trip")
+        extra_missing = [
+            name
+            for name in ("return_after", "return_before")
+            if current.get(name) is None
+        ]
+        missing = tuple(dict.fromkeys([*missing, *extra_missing]))
 
     if "origin" in missing or "destination" in missing:
-        city_bits = []
-        if "origin" in missing:
-            city_bits.append("出发城市")
-        if "destination" in missing:
-            city_bits.append("目的城市")
-        questions.append(
-            ClarificationQuestion(
-                id="cities",
-                header="城市",
-                question=f"请填写{' 和 '.join(city_bits)}。",
-                options=(),
-                slots=tuple(name for name in ("origin", "destination") if name in missing),
-            )
-        )
-
-    if "travel_date" in uncertain:
-        questions.append(
-            ClarificationQuestion(
-                id="travel_date",
-                header="出行日期",
-                question=(
-                    "请给一个具体公历日期（例如 2026-08-21 或 8月21日）。"
-                    "「这周五还是下周五」或农历/节假日无法直接换算出行日，系统不会猜。"
-                ),
-                options=(
-                    QuestionOption(
-                        label="我来填写公历日期",
-                        description="直接输入年-月-日或月日",
-                        value="free_text",
-                    ),
-                ),
-                slots=("departure_after", "arrive_by"),
-            )
-        )
+        questions.append(_city_question(missing, current))
 
     time_missing = tuple(
         name
         for name in ("departure_after", "arrive_by", "return_after", "return_before")
         if name in missing
     )
-    if time_missing and "travel_date" not in uncertain:
-        arrive_only = time_missing == ("arrive_by",)
-        questions.append(
-            ClarificationQuestion(
-                id="times",
-                header="时间",
-                question=(
-                    "还缺最晚到达时间。直接填写几点，或选一个当天截止时间；不会改已识别的出发/返回日。"
-                    if arrive_only
-                    else (
-                        "请补充行程时间："
-                        + "、".join(_FIELD_LABELS.get(name, name) for name in time_missing)
-                        + "。也可选下方常用模板。"
-                    )
-                ),
-                options=(
-                    (
-                        QuestionOption(
-                            label="当天 18:00 前到",
-                            description="按已识别出发日，最晚傍晚抵达",
-                            value="arrive:18:00",
-                        ),
-                        QuestionOption(
-                            label="当天 21:00 前到",
-                            description="按已识别出发日，最晚晚上抵达",
-                            value="arrive:21:00",
-                        ),
-                    )
-                    if arrive_only
-                    else (
-                        QuestionOption(
-                            label="明天出差当天回",
-                            description="单程：次日上午出发，当晚前到达；不安排返程",
-                            value="template:day_trip",
-                        ),
-                        QuestionOption(
-                            label="明天去后天回",
-                            description="往返：次日出发，第三天返回",
-                            value="template:overnight",
-                        ),
-                    )
-                ),
-                slots=time_missing,
+    if invalid_tokens or "travel_date" in uncertain or time_missing:
+        if invalid_tokens or time_missing:
+            questions.extend(
+                _time_questions(
+                    time_missing
+                    or (
+                        ("return_after", "return_before")
+                        if return_leg_only
+                        else ("departure_after", "arrive_by")
+                    ),
+                    return_leg_only=return_leg_only,
+                    invalid_tokens=invalid_tokens,
+                )
             )
-        )
+        elif "travel_date" in uncertain:
+            questions.append(
+                ClarificationQuestion(
+                    id="travel_date",
+                    header="出行日期",
+                    question=(
+                        "请选择一个具体公历日期。"
+                        "「这周五还是下周五」或农历/节假日无法直接换算出行日，系统不会猜。"
+                    ),
+                    options=(),
+                    slots=("departure_after", "arrive_by"),
+                    input_kind="date",
+                )
+            )
 
     hotel_missing = tuple(
         name for name in ("hotel_check_in", "hotel_check_out") if name in missing
@@ -575,11 +707,13 @@ def apply_clarification_answer(
     *,
     reference_time: Any = None,
     timezone_name: str = "Asia/Shanghai",
+    context_message: str | None = None,
 ) -> tuple[dict[str, Any], list[str], list[str]]:
     """把用户选项标签/value 或短指令映射为意图字段更新。
 
     返回 (updated_fields, applied_notes, remaining_free_text_hints)。
     非已知选项的自由文本留给 LLM 抽取路径。
+    ``context_message`` 用于从原始指令推断出行日（如下周三），避免时间模板改成明天。
     """
     from datetime import datetime, time, timedelta
     from zoneinfo import ZoneInfo
@@ -639,6 +773,106 @@ def apply_clarification_answer(
         updated["destination"] = "Beijing"
         notes.append("clarification:route Shanghai→Beijing")
         return updated, notes, free_hints
+
+    iso_range = _ISO_RANGE_RE.fullmatch(value)
+    if iso_range is not None:
+        from datetime import datetime as dt
+
+        kind = iso_range.group("kind")
+        start = dt.fromisoformat(iso_range.group("start"))
+        end = dt.fromisoformat(iso_range.group("end"))
+        start_tz = dest_tz if kind == "return_window" else origin_tz
+        if start.tzinfo is None:
+            start = start.replace(tzinfo=start_tz)
+        if end.tzinfo is None:
+            end = end.replace(tzinfo=dest_tz)
+        if end <= start:
+            free_hints.append("结束时间必须晚于开始时间")
+            return updated, notes, free_hints
+        if kind == "return_window":
+            updated["return_after"] = start
+            updated["return_before"] = end
+            notes.append(
+                f"clarification:return_window={start.isoformat()}/{end.isoformat()}"
+            )
+        else:
+            updated["departure_after"] = start
+            updated["arrive_by"] = end
+            notes.append(
+                f"clarification:window={start.isoformat()}/{end.isoformat()}"
+            )
+        notes.extend(_sync_hotel_dates_to_trip(updated, dest_tz))
+        return updated, notes, free_hints
+
+    date_match = _DATE_OPTION_RE.fullmatch(value)
+    if date_match is not None:
+        from datetime import date as date_cls
+
+        day = date_cls.fromisoformat(date_match.group(1))
+        notes.append(f"clarification:travel_date={day.isoformat()}")
+        return updated, notes, free_hints
+
+    city_match = _CITY_OPTION_RE.fullmatch(value)
+    if city_match is not None:
+        slot = city_match.group(1).casefold()
+        canonical = lookup_clarification_city(city_match.group(2))
+        if canonical:
+            if slot == "city":
+                slot = "origin" if not updated.get("origin") else "destination"
+            if slot in {"origin", "destination"}:
+                other = "destination" if slot == "origin" else "origin"
+                if str(updated.get(other) or "").casefold() != canonical.casefold():
+                    updated[slot] = canonical
+                    notes.append(f"clarification:{slot}={canonical}")
+                    return updated, notes, free_hints
+
+    window_match = _WINDOW_OPTION_RE.fullmatch(value)
+    if window_match is not None:
+        notes.extend(
+            _apply_time_window(
+                updated,
+                depart_hour=int(window_match.group(1)),
+                depart_minute=int(window_match.group(2)),
+                arrive_hour=int(window_match.group(3)),
+                arrive_minute=int(window_match.group(4)),
+                origin_tz=origin_tz,
+                dest_tz=dest_tz,
+                now=now,
+                context_message=context_message,
+            )
+        )
+        if notes:
+            return updated, notes, free_hints
+
+    clock_match = _CLOCK_OPTION_RE.fullmatch(value)
+    if clock_match is not None:
+        kind = clock_match.group(1).casefold()
+        hour = int(clock_match.group(2))
+        minute = int(clock_match.group(3))
+        if kind == "arrive":
+            notes.extend(
+                _apply_clock_arrive_by(
+                    updated,
+                    f"{hour}:{minute:02d}",
+                    dest_tz,
+                    origin_tz=origin_tz,
+                    now=now,
+                    context_message=context_message,
+                )
+            )
+        else:
+            notes.extend(
+                _apply_clock_depart_after(
+                    updated,
+                    hour,
+                    minute,
+                    origin_tz,
+                    now=now,
+                    context_message=context_message,
+                )
+            )
+        if notes:
+            return updated, notes, free_hints
 
     if value == "return:no" or any(
         token in lowered for token in ("只要去程", "单程", "one-way", "one way", "不要返程")
@@ -759,17 +993,18 @@ def apply_clarification_answer(
         notes.append("clarification:client_location_skipped")
         return updated, notes, free_hints
 
-    if value in {"arrive:18:00", "arrive:21:00"}:
-        clock = "18点" if value.endswith("18:00") else "21点"
-        clock_notes = _apply_clock_arrive_by(updated, clock, dest_tz)
-        notes.extend(clock_notes or [f"clarification:{value}"])
-        return updated, notes, free_hints
-
     if value == "free_text" or lowered in {"自己说明", "自己写时间", "自己写日期"}:
         free_hints.append("请用自然语言补充具体信息")
         return updated, notes, free_hints
 
-    clock_notes = _apply_clock_arrive_by(updated, raw, dest_tz)
+    clock_notes = _apply_clock_arrive_by(
+        updated,
+        raw,
+        dest_tz,
+        origin_tz=origin_tz,
+        now=now,
+        context_message=context_message,
+    )
     if clock_notes:
         notes.extend(clock_notes)
         return updated, notes, free_hints
@@ -777,11 +1012,6 @@ def apply_clarification_answer(
     # 无题目上下文时不单独应用 A/B/C/D。
     free_hints.append(raw)
     return updated, notes, free_hints
-
-
-def is_exact_option_value(message: str) -> bool:
-    """消息是否为 UI 选项机值（非整句自然语言）。"""
-    return (message or "").strip() in KNOWN_OPTION_VALUES
 
 
 def should_defer_structured_option_to_llm(message: str, notes: list[str]) -> bool:
@@ -798,37 +1028,129 @@ def should_defer_structured_option_to_llm(message: str, notes: list[str]) -> boo
     return any(mark in compact for mark in "，。；、,;.") or len(compact) > 16
 
 
+def _inferred_trip_date(
+    fields: dict[str, Any],
+    tz: Any,
+    now: Any,
+    context_message: str | None,
+):
+    """出行日：已有时间槽 > 原始指令里的星期/日期 > 明天。"""
+    from datetime import datetime, timedelta
+
+    from corporate_travel_agent.agent.local_intent import GroundedLocalIntentParser
+
+    for key in ("departure_after", "arrive_by", "return_after"):
+        value = fields.get(key)
+        if isinstance(value, datetime):
+            return value.astimezone(tz).date() if value.tzinfo else value.date()
+    if context_message:
+        day = GroundedLocalIntentParser()._outbound_date(context_message, now)
+        if day is not None:
+            return day
+    return (now.astimezone(tz) + timedelta(days=1)).date()
+
+
+def _apply_clock_depart_after(
+    fields: dict[str, Any],
+    hour: int,
+    minute: int,
+    origin_tz: Any,
+    *,
+    now: Any,
+    context_message: str | None,
+) -> list[str]:
+    """把出发钟点落到已识别出行日。"""
+    from datetime import datetime, time
+
+    if hour > 23 or hour < 0 or minute > 59:
+        return []
+    day = _inferred_trip_date(fields, origin_tz, now, context_message)
+    fields["departure_after"] = datetime.combine(day, time(hour, minute), tzinfo=origin_tz)
+    return [f"clarification:departure_after={fields['departure_after'].isoformat()}"]
+
+
+def _apply_time_window(
+    fields: dict[str, Any],
+    *,
+    depart_hour: int,
+    depart_minute: int,
+    arrive_hour: int,
+    arrive_minute: int,
+    origin_tz: Any,
+    dest_tz: Any,
+    now: Any,
+    context_message: str | None,
+) -> list[str]:
+    """一次点选同时写下出发和到达窗口。"""
+    from datetime import datetime, time
+
+    day = _inferred_trip_date(fields, origin_tz, now, context_message)
+    fields["departure_after"] = datetime.combine(
+        day, time(depart_hour, depart_minute), tzinfo=origin_tz
+    )
+    fields["arrive_by"] = datetime.combine(
+        day, time(arrive_hour, arrive_minute), tzinfo=dest_tz
+    )
+    notes = [
+        f"clarification:departure_after={fields['departure_after'].isoformat()}",
+        f"clarification:arrive_by={fields['arrive_by'].isoformat()}",
+    ]
+    notes.extend(_sync_hotel_dates_to_trip(fields, dest_tz))
+    return notes
+
+
 def _apply_clock_arrive_by(
     fields: dict[str, Any],
     raw: str,
     dest_tz: Any,
+    *,
+    origin_tz: Any = None,
+    now: Any = None,
+    context_message: str | None = None,
 ) -> list[str]:
-    """把「晚上九点」等纯钟点补到已知出行日的 arrive_by。"""
+    """把「晚上九点」或 ``18:00`` 补到已知出行日的 arrive_by。"""
     from datetime import datetime, time
 
-    match = _CLOCK_ANSWER_RE.match((raw or "").strip())
-    if match is None:
-        return []
-    if match.group("hour"):
-        hour = int(match.group("hour"))
-    else:
-        hour = _CN_HOUR.get(match.group("cn") or "", -1)
-    minute = int(match.group("minute") or 0)
-    period = (match.group("period") or "").strip()
-    if period in {"下午", "傍晚", "晚上", "今晚"} and 1 <= hour <= 11:
-        hour += 12
-    elif period == "中午" and hour in {0, 12}:
-        hour = 12
+    text = (raw or "").strip()
+    hour = -1
+    minute = 0
+    match = _CLOCK_ANSWER_RE.match(text)
+    clock_option = _CLOCK_OPTION_RE.fullmatch(text) or re.fullmatch(
+        r"(\d{1,2}):(\d{2})", text
+    )
+    if match is not None:
+        if match.group("hour"):
+            hour = int(match.group("hour"))
+        else:
+            hour = _CN_HOUR.get(match.group("cn") or "", -1)
+        minute = int(match.group("minute") or 0)
+        period = (match.group("period") or "").strip()
+        if period in {"下午", "傍晚", "晚上", "今晚"} and 1 <= hour <= 11:
+            hour += 12
+        elif period == "中午" and hour in {0, 12}:
+            hour = 12
+    elif clock_option is not None:
+        if clock_option.lastindex and clock_option.lastindex >= 2:
+            if clock_option.group(0).startswith("arrive:") or clock_option.group(0).startswith("depart:"):
+                hour = int(clock_option.group(2))
+                minute = int(clock_option.group(3))
+            else:
+                hour = int(clock_option.group(1))
+                minute = int(clock_option.group(2))
     if hour > 23 or hour < 0 or minute > 59:
         return []
     if fields.get("arrive_by") is not None:
         return []
-    anchor = fields.get("departure_after") or fields.get("return_after")
-    if not isinstance(anchor, datetime):
-        return []
-    day = anchor.astimezone(dest_tz).date() if anchor.tzinfo else anchor.date()
-    fields["arrive_by"] = datetime.combine(day, time(hour, minute), tzinfo=dest_tz)
-    return [f"clarification:arrive_by={fields['arrive_by'].isoformat()}"]
+    anchor_tz = dest_tz
+    day = _inferred_trip_date(fields, dest_tz, now or datetime.now(dest_tz), context_message)
+    fields["arrive_by"] = datetime.combine(day, time(hour, minute), tzinfo=anchor_tz)
+    notes = [f"clarification:arrive_by={fields['arrive_by'].isoformat()}"]
+    if fields.get("departure_after") is None and origin_tz is not None:
+        fields["departure_after"] = datetime.combine(day, time(8, 0), tzinfo=origin_tz)
+        notes.append(
+            f"clarification:departure_after={fields['departure_after'].isoformat()}"
+        )
+    return notes
 
 
 def _sync_hotel_dates_to_trip(fields: dict[str, Any], dest_tz: Any) -> list[str]:
@@ -873,6 +1195,7 @@ def apply_option_letter(
     *,
     reference_time: Any = None,
     timezone_name: str = "Asia/Shanghai",
+    context_message: str | None = None,
 ) -> tuple[dict[str, Any], list[str], list[str]] | None:
     """若用户答 A/B/C，映射为第一题对应选项的 value。"""
     letter = (letter or "").strip().upper()
@@ -890,6 +1213,7 @@ def apply_option_letter(
         str(value),
         reference_time=reference_time,
         timezone_name=timezone_name,
+        context_message=context_message,
     )
 
 

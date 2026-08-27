@@ -455,29 +455,22 @@ class TripWorkflowOrchestrator:
         assumptions: list[str] = list(task.assumptions or ())
         tried_fallback_model = False
         skip_llm = False
+        local_fallback_applied = False
 
         self._maybe_reset_superseded_destination(task, message)
         self._maybe_reset_superseded_origin(task, message)
-        assumptions.extend(
-            self._apply_local_intent(
-                task,
-                message,
-                calibration=calibration,
-            )
+        from corporate_travel_agent.agent.local_intent import GroundedLocalIntentParser
+
+        evidence_parser = GroundedLocalIntentParser(self.city_normalizer)
+        intent_evidence = evidence_parser.extract_evidence(
+            message, reference_time=self.clock()
         )
-        if task.metadata.get("destination_revision"):
-            # Bare weekdays like 周五 would otherwise resolve to *this* week under
-            # the local parser and stick a 6-day gap onto the new destination.
-            for name in (
-                "departure_after",
-                "arrive_by",
-                "return_after",
-                "return_before",
-            ):
-                if calibration.field_provenance.get(name) == "local_parser":
-                    task.intent_fields[name] = None
-                    calibration.field_provenance.pop(name, None)
+        task.metadata["intent_evidence"] = intent_evidence.as_dict()
         if self.llm_runtime_status == "billing_blocked":
+            assumptions.extend(
+                self._apply_local_intent(task, message, calibration=calibration)
+            )
+            local_fallback_applied = True
             if self._local_intent_is_search_ready(task, message):
                 task.metadata["llm_recovery"] = {
                     "fallback": "local_parser",
@@ -517,6 +510,7 @@ class TripWorkflowOrchestrator:
                 "task_id": task.task_id,
                 "traveler_id": task.employee.employee_id,
                 "prior_fields": self._json_safe_fields(task.intent_fields),
+                "intent_evidence": intent_evidence.as_dict(),
                 "clarification_round": task.clarification_rounds,
                 "max_clarification_rounds": self.max_clarification_rounds,
             }
@@ -557,6 +551,7 @@ class TripWorkflowOrchestrator:
             except LanguageModelError as exc:
                 result = None
                 from corporate_travel_agent.agent.llm_failure import (
+                    LLMFailureClass,
                     classify_llm_failure,
                     should_try_fallback_model,
                 )
@@ -630,8 +625,21 @@ class TripWorkflowOrchestrator:
                         "error_code": exc.error_code,
                         "http_status": exc.http_status,
                     }
+                    transient_exhausted = failure_class in {
+                        LLMFailureClass.RATE_LIMIT,
+                        LLMFailureClass.CAPACITY,
+                        LLMFailureClass.TRANSPORT,
+                    }
+                    if not local_fallback_applied and not transient_exhausted:
+                        assumptions.extend(
+                            self._apply_local_intent(
+                                task, message, calibration=calibration
+                            )
+                        )
+                        local_fallback_applied = True
                     if self._local_intent_is_search_ready(task, message):
                         task.metadata["llm_recovery"]["fallback"] = "local_parser"
+                        task.metadata["recovered_extract_failure"] = str(exc)
                         task.failure = None
                         assumptions.append("local_parser: used after LLM failure")
                         task.assumptions = tuple(dict.fromkeys(assumptions))
@@ -650,14 +658,33 @@ class TripWorkflowOrchestrator:
                 llm_judged=True,
             )
             classification = payload.classification
-            merged, rejected, provenance = merge_model_fields_anti_fabrication(
+            from corporate_travel_agent.agent.intent_evidence import (
+                validate_model_field_evidence,
+            )
+
+            extracted_fields = payload.fields.model_dump()
+            evidence_validation = validate_model_field_evidence(
+                extracted_fields=extracted_fields,
+                provided_fields=set(payload.provided_fields),
+                prior_fields=task.intent_fields,
+                evidence=intent_evidence,
+                reject_untraceable=(
+                    result.metadata.evidence_contract_version == "source-span-v1"
+                ),
+            )
+            task.metadata["intent_evidence_contract"] = (
+                result.metadata.evidence_contract_version or "compatibility-audit"
+            )
+            calibration.field_evidence.update(evidence_validation.field_evidence)
+            merged, merge_rejected, provenance = merge_model_fields_anti_fabrication(
                 task.intent_fields,
-                payload.fields.model_dump(),
-                set(payload.provided_fields),
+                extracted_fields,
+                set(evidence_validation.accepted_fields),
                 user_message=message,
                 repair_only_missing=repair_missing,
                 provenance=calibration.field_provenance,
             )
+            rejected = [*evidence_validation.rejected_fields, *merge_rejected]
             if rejected:
                 calibration.repair_rejected_fields.extend(rejected)
             task.intent_fields = self._canonicalize_intent_cities(merged)
@@ -697,6 +724,7 @@ class TripWorkflowOrchestrator:
                 model_conflicts=tuple(model_conflicts) + capability_conflicts,
                 extract_index=extract_index,
                 max_repair_attempts=MAX_INTENT_REPAIR_ATTEMPTS,
+                user_message=message,
             )
             loop_trace.record_round(
                 extract_index=extract_index,
@@ -766,6 +794,7 @@ class TripWorkflowOrchestrator:
                         classification=str(
                             task.metadata.get("intent_classification") or "TRIP"
                         ),
+                        user_message=message,
                     )
                     task.intent_conflicts = ()
                     task.failure = None
@@ -854,6 +883,29 @@ class TripWorkflowOrchestrator:
                 continue
 
             # CLARIFY: cities missing, conflicts, or repair budget exhausted.
+            # An empty/semantically unusable model response is an extraction
+            # failure too. Only here—after the model repair budget—is the local
+            # parser allowed to write canonical slots.
+            if not conflicts and not local_fallback_applied:
+                assumptions.extend(
+                    self._apply_local_intent(task, message, calibration=calibration)
+                )
+                local_fallback_applied = True
+                if self._local_intent_is_search_ready(
+                    task, message, allow_infra_time_defaults=False
+                ):
+                    task.metadata["llm_recovery"] = {
+                        "fallback": "local_parser",
+                        "reason": "semantic_extraction_incomplete",
+                    }
+                    task.failure = None
+                    task.missing_required_fields = ()
+                    task.intent_conflicts = ()
+                    calibration.ready = True
+                    calibration.final_missing = ()
+                    task.assumptions = tuple(dict.fromkeys(assumptions))
+                    task.metadata["intent_calibration"] = calibration.as_dict()
+                    break
             calibration.final_missing = missing
             calibration.ready = False
             calibration.param_loop = loop_trace.as_dict()
@@ -998,21 +1050,27 @@ class TripWorkflowOrchestrator:
         task.assumptions = tuple(dict.fromkeys([*task.assumptions, *notes]))
         return notes
 
-    def _local_intent_is_search_ready(self, task: TripTask, message: str) -> bool:
+    def _local_intent_is_search_ready(
+        self,
+        task: TripTask,
+        message: str,
+        *,
+        allow_infra_time_defaults: bool = True,
+    ) -> bool:
         from corporate_travel_agent.agent.intent_calibration import search_ready_missing
 
         classification = str(task.metadata.get("intent_classification") or "TRIP")
         fields = dict(task.intent_fields or {})
-        notes = self._infra_fallback_time_defaults(fields)
+        notes = self._infra_fallback_time_defaults(fields) if allow_infra_time_defaults else []
         if notes:
             task.intent_fields = fields
             task.assumptions = tuple(dict.fromkeys([*task.assumptions, *notes]))
         ready = search_ready_missing(
             task.intent_fields or {},
             classification=classification,
+            user_message=message,
         )
         task.missing_required_fields = ready.missing
-        _ = message
         return ready.ready
 
     @staticmethod
@@ -1090,6 +1148,7 @@ class TripWorkflowOrchestrator:
         ready = search_ready_missing(
             task.intent_fields or {},
             classification=classification,
+            user_message=message,
         )
         uncertain = detect_uncertain_slots(
             task.intent_fields or {},
@@ -1166,6 +1225,7 @@ class TripWorkflowOrchestrator:
             missing=tuple(missing),
             conflicts=(),
             uncertain=tuple(uncertain),
+            fields=task.intent_fields,
         )
         prompt = preamble
         if bundle is not None:
@@ -1414,6 +1474,15 @@ class TripWorkflowOrchestrator:
             build_clarification_bundle,
         )
 
+        previous_pending = tuple(
+            dict.fromkeys(
+                list(task.metadata.get(CLARIFICATION_PENDING_KEY) or ())
+                + list(task.missing_required_fields or ())
+                + list(task.metadata.get("uncertain_slots") or ())
+            )
+        )
+        new_pending = tuple(dict.fromkeys([*missing, *uncertain]))
+        progressed = bool(set(previous_pending) - set(new_pending))
         if task.clarification_rounds >= self.max_clarification_rounds:
             if self._core_slots_ready(task):
                 task.metadata["clarification_budget_search"] = {
@@ -1429,22 +1498,30 @@ class TripWorkflowOrchestrator:
                     task.metadata["clarification_budget_search"],
                 )
                 return self._begin_search_from_intent(task)
-            task.failure = "Clarification budget exhausted; use the structured form"
-            task.clarification_question = None
-            task.metadata.pop(CLARIFICATION_QUESTIONS_KEY, None)
-            self._transition(task, TaskState.NEEDS_STRUCTURED_INPUT)
-            self._audit(
-                task,
-                "CLARIFICATION_EXHAUSTED",
-                task.clarification_rounds,
-                task.failure,
-            )
-            return task
+            hard_cap = self.max_clarification_rounds + 2
+            if not progressed or task.clarification_rounds >= hard_cap:
+                task.failure = "Clarification budget exhausted; use the structured form"
+                task.clarification_question = None
+                task.metadata.pop(CLARIFICATION_QUESTIONS_KEY, None)
+                self._transition(task, TaskState.NEEDS_STRUCTURED_INPUT)
+                self._audit(
+                    task,
+                    "CLARIFICATION_EXHAUSTED",
+                    task.clarification_rounds,
+                    task.failure,
+                )
+                return task
 
+        original_instruction = next(
+            (item.content for item in task.messages if item.role == "user"),
+            "",
+        )
         bundle = build_clarification_bundle(
             missing=tuple(missing),
             conflicts=tuple(conflicts),
             uncertain=tuple(uncertain),
+            fields=task.intent_fields,
+            user_message=original_instruction,
         )
         if bundle is None:
             # Fallback plain text (should be rare).
@@ -1494,6 +1571,7 @@ class TripWorkflowOrchestrator:
             apply_clarification_answer,
             apply_option_letter,
             detect_uncertain_slots,
+            lookup_clarification_city,
             should_defer_structured_option_to_llm,
         )
         from corporate_travel_agent.agent.intent_calibration import search_ready_missing
@@ -1502,6 +1580,10 @@ class TripWorkflowOrchestrator:
         questions = task.metadata.get(CLARIFICATION_QUESTIONS_KEY) or []
         if not isinstance(questions, list):
             questions = []
+        original_instruction = next(
+            (item.content for item in task.messages if item.role == "user"),
+            message,
+        )
 
         letter_result = (
             apply_option_letter(
@@ -1510,6 +1592,7 @@ class TripWorkflowOrchestrator:
                 questions,
                 reference_time=self.clock(),
                 timezone_name=self.timezone_name,
+                context_message=original_instruction,
             )
             if questions
             else None
@@ -1522,6 +1605,7 @@ class TripWorkflowOrchestrator:
                 message,
                 reference_time=self.clock(),
                 timezone_name=self.timezone_name,
+                context_message=original_instruction,
             )
             # If nothing structured applied, let LLM extract handle free text.
             filled_client_location = False
@@ -1532,7 +1616,26 @@ class TripWorkflowOrchestrator:
                     if isinstance(question, dict)
                     for slot in (question.get("slots") or [])
                 ]
-                if "client_location" in pending_slots:
+                city = lookup_clarification_city(message.strip())
+                if (
+                    city
+                    and "origin" in pending_slots
+                    and not updated.get("origin")
+                    and str(updated.get("destination") or "").casefold() != city.casefold()
+                ):
+                    updated["origin"] = city
+                    notes = [f"clarification:origin={city}"]
+                    free_hints = []
+                elif (
+                    city
+                    and "destination" in pending_slots
+                    and not updated.get("destination")
+                    and str(updated.get("origin") or "").casefold() != city.casefold()
+                ):
+                    updated["destination"] = city
+                    notes = [f"clarification:destination={city}"]
+                    free_hints = []
+                elif "client_location" in pending_slots:
                     updated["client_location"] = message.strip()[:200]
                     notes = ["clarification:client_location"]
                     free_hints = []
@@ -1591,6 +1694,7 @@ class TripWorkflowOrchestrator:
             model_conflicts=(),
             extract_index=0,
             max_repair_attempts=0,
+            user_message=message,
         )
         if decision.action.value != "accept":
             return self._request_clarification(
@@ -1601,7 +1705,11 @@ class TripWorkflowOrchestrator:
                 tool_use_error=decision.tool_use_error,
             )
 
-        ready = search_ready_missing(task.intent_fields, classification=classification)
+        ready = search_ready_missing(
+            task.intent_fields,
+            classification=classification,
+            user_message=original_instruction,
+        )
         if not ready.ready:
             return self._request_clarification(
                 task,

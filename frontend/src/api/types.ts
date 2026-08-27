@@ -257,6 +257,7 @@ export interface ClarificationQuestion {
   options: ClarificationOption[]
   multi_select: boolean
   slots: string[]
+  input_kind?: 'date' | 'time_range' | ''
 }
 
 /** 完整差旅任务详情（summary=false）。 */

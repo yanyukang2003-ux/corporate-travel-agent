@@ -125,6 +125,13 @@ _RETURN_REVISION_RE = re.compile(
 _RETURN_SCOPED_RELATIVE_DAY_RE = re.compile(
     r"(?:返程|回程|返回).{0,8}(?:后天|明天)|(?:后天|明天).{0,8}(?:返程|回程|返回)"
 )
+_RETURN_FROM_CITY_ONLY_RE = re.compile(
+    r"从(?P<city>.{1,20}?)(?:回来|返回|返程)"
+)
+_HAS_OUTBOUND_ROUTE_RE = re.compile(
+    r"从.{1,20}?(?:去|到|至|出发)|from\s+.+\s+to\s+",
+    re.I,
+)
 _TWO_NIGHTS_RE = re.compile(
     r"住两晚|订两晚|两晚酒店|two[- ]nights?|\b2\s+nights?\b",
     re.I,
@@ -184,6 +191,28 @@ class SearchReadyResult:
     notes: tuple[str, ...] = ()
 
 
+@dataclass(frozen=True, slots=True)
+class CalendarDateMention:
+    """A Gregorian date mention with an exact source-text anchor."""
+
+    year: int | None
+    month: int
+    day: int
+    start: int
+    end: int
+    raw: str
+
+    def as_dict(self) -> dict[str, int | str | None]:
+        return {
+            "year": self.year,
+            "month": self.month,
+            "day": self.day,
+            "start": self.start,
+            "end": self.end,
+            "raw": self.raw,
+        }
+
+
 @dataclass
 class CalibrationTrace:
     """一次抽取→校准周期的审计轨迹（可含修复）。"""
@@ -194,6 +223,7 @@ class CalibrationTrace:
     repair_missing_before: list[tuple[str, ...]] = field(default_factory=list)
     repair_rejected_fields: list[str] = field(default_factory=list)
     field_provenance: dict[str, str] = field(default_factory=dict)
+    field_evidence: dict[str, dict[str, Any]] = field(default_factory=dict)
     final_missing: tuple[str, ...] = ()
     ready: bool = False
     # Claude Code 风格参数环审计（L1 Schema → L2 业务 → tool_use_error）。
@@ -207,6 +237,7 @@ class CalibrationTrace:
             "repair_missing_before": [list(item) for item in self.repair_missing_before],
             "repair_rejected_fields": list(self.repair_rejected_fields),
             "field_provenance": dict(self.field_provenance),
+            "field_evidence": dict(self.field_evidence),
             "final_missing": list(self.final_missing),
             "ready": self.ready,
             "param_loop": dict(self.param_loop) if self.param_loop else {},
@@ -217,6 +248,7 @@ def search_ready_missing(
     fields: dict[str, Any],
     *,
     classification: str,
+    user_message: str = "",
 ) -> SearchReadyResult:
     """库存搜索的业务完备性（严于裸 Schema 形状）。"""
     if classification == "OUT_OF_SCOPE":
@@ -228,6 +260,11 @@ def search_ready_missing(
     for name in ("origin", "destination", "departure_after", "arrive_by"):
         if fields.get(name) in (None, ""):
             missing.append(name)
+    if message_is_return_leg_only(user_message):
+        if fields.get("return_after") is None:
+            missing.append("return_after")
+        if fields.get("return_before") is None:
+            missing.append("return_before")
 
     hard = list(fields.get("hard_constraints") or ())
     soft = list(fields.get("soft_preferences") or ())
@@ -289,6 +326,10 @@ def apply_safe_defaults(
     updated = dict(fields)
     assumptions: list[str] = []
     prov = dict(provenance or {})
+    updated, return_from_notes, prov = apply_return_from_city_semantics(
+        updated, user_message=user_message, provenance=prov
+    )
+    assumptions.extend(return_from_notes)
     updated, alt_notes = scrub_alternative_city_pair(updated, user_message=user_message)
     assumptions.extend(alt_notes)
     if alt_notes:
@@ -525,13 +566,23 @@ def scrub_alternative_city_pair(
     return updated, ["rejected_alternative_cities:origin_destination"]
 
 
-def iter_calendar_date_mentions(message: str) -> list[tuple[int | None, int, int]]:
-    """按消息顺序解析公历日期：(年或 None, 月, 日)。"""
-    found: list[tuple[int | None, int, int]] = []
+def iter_calendar_date_mentions(message: str) -> list[CalendarDateMention]:
+    """按消息顺序解析公历日期，并保留精确原文 span。"""
+    found: list[CalendarDateMention] = []
     for match in _CALENDAR_DATE_RE.finditer(message or ""):
         parsed = _parse_calendar_match(match)
         if parsed is not None:
-            found.append(parsed)
+            year, month, day = parsed
+            found.append(
+                CalendarDateMention(
+                    year=year,
+                    month=month,
+                    day=day,
+                    start=match.start(),
+                    end=match.end(),
+                    raw=match.group(0),
+                )
+            )
     return found
 
 
@@ -557,13 +608,16 @@ def message_is_lunar_or_holiday_without_gregorian(message: str) -> bool:
 
 
 def resolve_calendar_mention(
-    mention: tuple[int | None, int, int],
+    mention: CalendarDateMention | tuple[int | None, int, int],
     *,
     reference_time: datetime,
     min_day: date | None = None,
 ) -> date | None:
     """相对时钟或去程下限，解析 (年,月,日)。"""
-    year, month, day = mention
+    if isinstance(mention, CalendarDateMention):
+        year, month, day = mention.year, mention.month, mention.day
+    else:
+        year, month, day = mention
     try:
         if year is not None:
             return date(year, month, day)
@@ -620,6 +674,78 @@ def _validated_ymd(
     except ValueError:
         return None
     return year, month, day
+
+
+def iter_invalid_date_tokens(message: str) -> tuple[str, ...]:
+    """形如 2.31 / 2月31日 的日期写法，但不是真实公历日。"""
+    found: list[str] = []
+    for match in _CALENDAR_DATE_RE.finditer(message or ""):
+        if _parse_calendar_match(match) is not None:
+            continue
+        raw = match.group(0)
+        numbers = [int(item) for item in re.findall(r"\d+", raw)]
+        if len(numbers) < 2:
+            continue
+        month, day = numbers[-2], numbers[-1]
+        if 1 <= month <= 12 and day >= 1:
+            found.append(raw)
+    return tuple(dict.fromkeys(found))
+
+
+def message_is_return_leg_only(message: str) -> bool:
+    """用户只在说返程（从某地回来），没有给出程路线。"""
+    text = message or ""
+    if _HAS_OUTBOUND_ROUTE_RE.search(text):
+        return False
+    return bool(
+        _RETURN_FROM_CITY_ONLY_RE.search(text)
+        or re.search(r"^(?:只要|只订|仅)?(?:返程|回程)(?:\s|$|，|,|。)", text)
+    )
+
+
+def return_from_city_span(message: str) -> str | None:
+    """「从北京回来」中的城市原文；若同时有「从X去Y」则不算。"""
+    if _HAS_OUTBOUND_ROUTE_RE.search(message or ""):
+        return None
+    match = _RETURN_FROM_CITY_ONLY_RE.search(message or "")
+    if match is None:
+        return None
+    return (match.group("city") or "").strip() or None
+
+
+def apply_return_from_city_semantics(
+    fields: dict[str, Any],
+    *,
+    user_message: str,
+    provenance: dict[str, str],
+) -> tuple[dict[str, Any], list[str], dict[str, str]]:
+    """「从北京回来」把北京当作目的地/返程出发地，而不是去程出发城市。"""
+    span = return_from_city_span(user_message)
+    if not span:
+        return dict(fields), [], dict(provenance)
+    from corporate_travel_agent.agent.clarification_questions import lookup_clarification_city
+    from corporate_travel_agent.agent.local_intent import GroundedLocalIntentParser
+
+    city = lookup_clarification_city(span) or GroundedLocalIntentParser()._lookup_span(span)
+    if not city:
+        return dict(fields), [], dict(provenance)
+    updated = dict(fields)
+    prov = dict(provenance)
+    notes: list[str] = []
+    origin = updated.get("origin") if isinstance(updated.get("origin"), str) else None
+    dest = updated.get("destination") if isinstance(updated.get("destination"), str) else None
+    origin_match = bool(origin and origin.casefold() == city.casefold())
+    dest_match = bool(dest and dest.casefold() == city.casefold())
+    if origin_match and (dest is None or dest_match):
+        updated["origin"] = None
+        prov.pop("origin", None)
+        notes.append(f"return_from_city: origin is home, not {city}")
+    if dest is None or dest_match or origin_match:
+        if dest != city:
+            updated["destination"] = city
+            prov["destination"] = "return_from_city"
+            notes.append(f"return_from_city: destination={city}")
+    return updated, notes, prov
 
 
 def _clear_date_slots(
