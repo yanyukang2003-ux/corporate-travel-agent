@@ -331,7 +331,7 @@ def test_openai_adapter_uses_semantic_schema_and_complete_ledger() -> None:
     )
 
     assert result.decision == expected
-    assert result.metadata.prompt_version == "semantic-trip-intent-v1"
+    assert result.metadata.prompt_version == "semantic-trip-intent-v3"
     assert result.metadata.evidence_contract_version == "conversation-turn-v1"
 
 
@@ -400,3 +400,69 @@ def test_legacy_entrypoint_stays_separate_from_semantic_flow() -> None:
 
     with pytest.raises(WorkflowError, match="legacy intent entrypoint"):
         workflow.submit_semantic_message(task.task_id, "改去伦敦")
+
+
+def test_chat_mode_prompt_spells_out_the_envelope_not_just_a_json_schema() -> None:
+    """没有严格 schema 强制的接口容易把顶层字段塞进 intent 里；提示词必须明确禁止。
+
+    这是真实跑 DeepSeek 时遇到的问题：模型把 evidence / confidence /
+    manipulation_detected 等放进了 intent 对象内部，整份解释因此作废。
+    """
+    captured: dict[str, object] = {}
+
+    class Completions:
+        def create(self, **request: object) -> object:
+            captured.update(request)
+            return SimpleNamespace(
+                choices=[
+                    SimpleNamespace(
+                        message=SimpleNamespace(
+                            content=_decision(_ready_intent()).model_dump_json()
+                        )
+                    )
+                ],
+                usage=None,
+                model="deepseek-test",
+                id="chat-response",
+            )
+
+    adapter = OpenAISemanticIntentLanguageModel(
+        client=SimpleNamespace(chat=SimpleNamespace(completions=Completions())),
+        model="deepseek-test",
+        api_mode="chat",
+    )
+
+    adapter.interpret_trip_intent(
+        "[turn:0 role:user] 从北京去上海",
+        task_id="chat-adapter",
+        traveler_id="E1001",
+        context={
+            "reference_time": "2026-08-01T09:00:00+08:00",
+            "timezone": "Asia/Shanghai",
+        },
+    )
+
+    prompt = captured["messages"][0]["content"]  # type: ignore[index]
+    assert "top-level keys are exactly" in prompt
+    assert "must never appear inside it" in prompt
+    for key in ("status", "evidence", "confidence", "manipulation_detected"):
+        assert key in prompt
+    # intent 自己的字段也要列全，模型才知道边界在哪。
+    for key in ("origin_candidates", "uncertainties", "conditions"):
+        assert key in prompt
+
+
+def test_prompt_tells_the_model_which_evidence_a_ready_decision_must_carry() -> None:
+    """宿主对 READY 强制要求四项证据；提示词必须把这条规则说给模型听。
+
+    这是真实多轮对话里遇到的问题：用户只在最后一句补了返程时间，模型就只给
+    返程的证据，出发地/目的地的引用丢了，整份"可以查了"的解释因此作废。
+    """
+    prompt = OpenAISemanticIntentLanguageModel._semantic_system_prompt(
+        {"reference_time": "2026-08-01T09:00:00+08:00", "timezone": "Asia/Shanghai"}
+    )
+
+    assert "When status is READY" in prompt
+    assert "origin, destination, departure_after and arrive_by" in prompt
+    # 必须点明可以引用更早的轮次，否则模型只会盯着最新一句。
+    assert "including" in prompt and "earlier turns" in prompt
