@@ -323,3 +323,65 @@ def test_apply_judge_scores_keeps_abstentions_unavailable() -> None:
     scored = apply_judge_scores((evaluation,), {"run-1": 4.25})
     assert scored[0].judge_status == "measured"
     assert scored[0].judge_quality_score == pytest.approx(4.25)
+
+
+def test_single_annotator_mode_is_opt_in_and_never_reports_plain_passed(
+    rubric, inputs
+) -> None:
+    """放行单标注者后要给出结论，但结论名里必须带着依据。
+
+    默认仍然是 insufficient_samples：一个人打的分证明不了分数客观，只能证明评委
+    和这个人想的差不多。项目所有者可以显式放行这道门，但报告里不能伪装成已校准。
+    """
+    annotations, sha = load_human_output_quality_annotations(ANNOTATIONS)
+    human_scores = {
+        record["input"]["run_id"]: record["annotation"]["ratings"]["completeness"]
+        for record in annotations
+    }
+    verdicts, _ = score_judge_inputs(
+        inputs, judge=ScriptedJudge(per_run=human_scores), rubric=rubric
+    )
+    common = {
+        "rubric": rubric,
+        "annotations": annotations,
+        "annotation_file": "03-output-quality.jsonl",
+        "annotation_sha256": sha,
+        "judge_id": "scripted-judge-v1",
+    }
+
+    strict = calibrate_against_human(verdicts, **common)
+    relaxed = calibrate_against_human(verdicts, allow_single_annotator=True, **common)
+
+    assert strict.calibration_status == "insufficient_samples"
+    assert strict.single_annotator_accepted is False
+    # 放行之后必须给出结论，而且状态名带着"单标注者"，绝不是普通的 passed。
+    assert relaxed.calibration_status == "passed_single_annotator"
+    assert relaxed.calibration_status != "passed"
+    assert relaxed.single_annotator_accepted is True
+    assert relaxed.target_met is True
+    # 放行只改结论，不改任何事实记录。
+    assert relaxed.human_double_rated is False
+    assert relaxed.annotator_ids == strict.annotator_ids
+    assert relaxed.compared_cases == strict.compared_cases
+    assert relaxed.adjacent_agreement_rate == strict.adjacent_agreement_rate
+
+
+def test_single_annotator_mode_still_fails_when_agreement_is_bad(rubric, inputs) -> None:
+    """放行不等于放水：一致率不达标照样是 failed。"""
+    annotations, sha = load_human_output_quality_annotations(ANNOTATIONS)
+    verdicts, _ = score_judge_inputs(
+        inputs, judge=ScriptedJudge(score=1), rubric=rubric
+    )
+
+    report = calibrate_against_human(
+        verdicts,
+        rubric=rubric,
+        annotations=annotations,
+        annotation_file="03-output-quality.jsonl",
+        annotation_sha256=sha,
+        judge_id="scripted-judge-v1",
+        allow_single_annotator=True,
+    )
+
+    assert report.calibration_status == "failed_single_annotator"
+    assert report.target_met is False

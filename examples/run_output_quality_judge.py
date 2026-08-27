@@ -70,6 +70,15 @@ def main() -> None:
         default="medium",
         choices=("none", "low", "medium", "high", "xhigh", "max"),
     )
+    parser.add_argument(
+        "--accept-single-annotator",
+        action="store_true",
+        help=(
+            "显式放行「只有一个标注者」这道门。放行后状态会命名为 "
+            "passed_single_annotator / failed_single_annotator，绝不会显示成普通的 "
+            "passed —— 一致率再高，单人打的分也只能说明评委和这个人想的差不多。"
+        ),
+    )
     parser.add_argument("--judge-id", default=None)
     parser.add_argument("--limit", type=int, default=None)
     parser.add_argument(
@@ -160,6 +169,7 @@ def main() -> None:
         annotation_file=str(Path(args.annotations).name),
         annotation_sha256=annotation_sha256,
         judge_id=judge.judge_id,
+        allow_single_annotator=args.accept_single_annotator,
     )
     judge_summary = summarize_judge_verdicts(
         verdicts, rubric=rubric, calibration=calibration

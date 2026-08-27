@@ -150,7 +150,16 @@ class CalibrationReport(JudgeModel):
     adjacent_agreement_rate: float | None = Field(default=None, ge=0, le=1)
     target_agreement: float
     target_met: bool
-    calibration_status: Literal["passed", "failed", "insufficient_samples"]
+    # 单标注者模式的状态名单独取，绝不复用 "passed"：一致率再高，单人打的分也只能
+    # 说明"评委和这个人想的差不多"，不能说明这个分数客观。名字里必须带着依据。
+    single_annotator_accepted: bool = False
+    calibration_status: Literal[
+        "passed",
+        "failed",
+        "insufficient_samples",
+        "passed_single_annotator",
+        "failed_single_annotator",
+    ]
     per_dimension: tuple[DimensionAgreement, ...]
     major_disagreements: tuple[CalibrationDisagreement, ...]
 
@@ -354,8 +363,13 @@ def calibrate_against_human(
     annotation_file: str,
     annotation_sha256: str,
     judge_id: str,
+    allow_single_annotator: bool = False,
 ) -> CalibrationReport:
-    """按 run_id 对齐人机评分，报告严格一致与相邻一致率。"""
+    """按 run_id 对齐人机评分，报告严格一致与相邻一致率。
+
+    ``allow_single_annotator`` 显式放行"只有一个标注者"这一道门，由调用方承担。
+    放行后状态会用 ``*_single_annotator`` 命名，永远不会显示成普通的 ``passed``。
+    """
     by_run = {item.run_id: item for item in verdicts}
     target = float(rubric.calibration.get("target_exact_or_adjacent_agreement", 0.9))
     required = int(rubric.calibration.get("required_human_double_rated_cases", 20))
@@ -434,10 +448,22 @@ def calibrate_against_human(
     adjacent_rate = total_adjacent / total_compared if total_compared else None
     # 人工双评的判定只看标注元数据，不靠推断：同一份用例必须有两个标注者或两轮。
     human_double_rated = len(annotator_ids) > 1 or len(rounds) > 1
-    if compared_cases < required or not human_double_rated:
-        status: Literal["passed", "failed", "insufficient_samples"] = (
-            "insufficient_samples"
-        )
+    status: str
+    if allow_single_annotator and not human_double_rated:
+        # 样本量按**人工标注条数**算，而不是按"评委没弃权的条数"算：弃权是评分表
+        # 明确允许的行为（弃权≠0分），不该反过来把数据集判成太小。
+        labelled = compared_cases + judge_abstentions + human_abstentions
+        if labelled < required:
+            status = "insufficient_samples"
+            target_met = False
+        elif adjacent_rate is not None and adjacent_rate >= target:
+            status = "passed_single_annotator"
+            target_met = True
+        else:
+            status = "failed_single_annotator"
+            target_met = False
+    elif compared_cases < required or not human_double_rated:
+        status = "insufficient_samples"
         target_met = False
     elif adjacent_rate is not None and adjacent_rate >= target:
         status = "passed"
@@ -462,6 +488,7 @@ def calibrate_against_human(
         adjacent_agreement_rate=adjacent_rate,
         target_agreement=target,
         target_met=target_met,
+        single_annotator_accepted=bool(allow_single_annotator and not human_double_rated),
         calibration_status=status,
         per_dimension=tuple(
             DimensionAgreement(

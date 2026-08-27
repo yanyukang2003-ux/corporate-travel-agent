@@ -1,0 +1,92 @@
+{
+  "started_at": "2026-08-27T23:39:23.729842+00:00",
+  "finished_at": "2026-08-27T23:39:28.761619+00:00",
+  "runner_version": "postgres-semantic-dual-worker-v1",
+  "database": "travel_agent_semantic_dual",
+  "entrypoint": "semantic",
+  "billed_model_calls": 0,
+  "provider": "mock",
+  "setup_notes": [
+    "compose up postgres",
+    "truncated travel_agent_semantic_dual",
+    "alembic upgrade head"
+  ],
+  "passed": 2,
+  "total": 2,
+  "cases": [
+    {
+      "case_id": "SD-01",
+      "title": "两个进程同时追加消息：账本不丢轮次、失败方拿到并发冲突",
+      "passed": true,
+      "checks": [
+        {
+          "name": "at_least_one_succeeded",
+          "ok": true,
+          "detail": "[{'message': '上午十点前要到', 'ok': False, 'error': 'ConcurrentUpdateError', 'detail': 'Task semantic-concurrent-followup was updated concurrently'}, {'message': '改成下午三点前到', 'ok': True, 'state': 'NEEDS_CLARIFICATION'}]"
+        },
+        {
+          "name": "no_lost_or_duplicated_turn",
+          "ok": true,
+          "detail": "expected 2 user turns, stored 2: ['8月5日从北京去上海，想请你帮我安排', '改成下午三点前到']"
+        },
+        {
+          "name": "no_duplicate_turn",
+          "ok": true,
+          "detail": "['8月5日从北京去上海，想请你帮我安排', '改成下午三点前到']"
+        },
+        {
+          "name": "seed_turn_survived",
+          "ok": true,
+          "detail": "['8月5日从北京去上海，想请你帮我安排']"
+        },
+        {
+          "name": "loser_saw_a_concurrency_error",
+          "ok": true,
+          "detail": "[{'message': '上午十点前要到', 'ok': False, 'error': 'ConcurrentUpdateError', 'detail': 'Task semantic-concurrent-followup was updated concurrently'}]"
+        },
+        {
+          "name": "entrypoint_still_semantic",
+          "ok": true,
+          "detail": "semantic"
+        },
+        {
+          "name": "decision_history_matches_turns",
+          "ok": true,
+          "detail": "2"
+        }
+      ]
+    },
+    {
+      "case_id": "SD-02",
+      "title": "到期的语义任务重试只被一个 worker 领走",
+      "passed": true,
+      "checks": [
+        {
+          "name": "seeded_waiting_for_provider",
+          "ok": true,
+          "detail": "WAITING_FOR_PROVIDER"
+        },
+        {
+          "name": "both_workers_reported",
+          "ok": true,
+          "detail": "[{'worker_id': 'worker-b', 'processed': []}, {'worker_id': 'worker-a', 'processed': ['semantic-concurrent-retry']}]"
+        },
+        {
+          "name": "exactly_one_claimed",
+          "ok": true,
+          "detail": "['worker-a']"
+        },
+        {
+          "name": "entrypoint_still_semantic",
+          "ok": true,
+          "detail": "semantic"
+        },
+        {
+          "name": "no_second_interpretation",
+          "ok": true,
+          "detail": "1"
+        }
+      ]
+    }
+  ]
+}
