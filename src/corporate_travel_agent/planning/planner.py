@@ -1,7 +1,20 @@
-"""行程规划器：枚举交通/酒店组合，经可行性与政策过滤后按分数排序输出。"""
+"""行程规划器：先枚举**走法**，再为每种走法挑报价，最后按类别与政策分档摆出来。
+
+**走法**：这趟差旅**怎么走**——每一段坐飞机还是高铁、要不要住一晚。
+14 点那班和 16 点那班不是两种走法，是同一种走法的两个价格。
+
+此前这里是「拿到全部报价 → 笛卡尔积 → 过滤 → 按分数取前三」，于是推荐列表经常
+是同一个走法的三个价格：看着有三个选择，其实只有一个。差旅本来就没有唯一的最好
+——便宜的起得早，舒服的贵——把它们揉成一个分数再取前三，等于替旅行者做了他自己
+该做的取舍。规划器该产出的是**几个真正不同的走法，每个都是它那一类里最好的**。
+
+规模在开工前量过（`examples/measure_plan_shape_enumeration.py`）：6 段行程最坏 128
+种走法，库存查询次数一次不多——一段查一次就把这段所有交通方式都拿回来了。
+"""
 
 from __future__ import annotations
 
+from dataclasses import dataclass, replace
 from datetime import datetime
 from decimal import Decimal
 from itertools import product
@@ -26,27 +39,39 @@ from .preferences import (
 )
 
 
-def _legs_satisfy_constraints(
-    request: TripRequestVersion, transports: list[TransportOffer]
-) -> bool:
-    """逐段核对硬要求：这一段受哪几条管，就只用那几条判它。
+@dataclass(frozen=True, slots=True)
+class PlanShape:
+    """一种走法：每段坐什么，住不住。"""
 
-    此前 `direct_only` 是一个全局字符串，"去程直飞就行、返程无所谓"只能被放大成全程直飞，
-    于是旅行者明明接受的返程方案被无声筛掉了。
+    modes: tuple[TransportMode, ...]
+    with_lodging: bool
+
+    def label(self) -> str:
+        """给解释用的一句话标签，例如 ``FLIGHT+TRAIN+hotel``。"""
+        parts = [mode.value for mode in self.modes]
+        if self.with_lodging:
+            parts.append("hotel")
+        return "+".join(parts)
+
+
+def _leg_satisfies_constraints(
+    request: TripRequestVersion, leg_index: int, offer: TransportOffer
+) -> bool:
+    """这一段受哪几条硬要求管，就只用那几条判它。
+
+    此前 `direct_only` 是一个全局字符串，"去程直飞就行、返程无所谓"只能被放大成
+    全程直飞，于是旅行者明明接受的返程方案被无声筛掉了。
     """
-    for index, offer in enumerate(transports):
-        names = request.constraints_for_leg(index)
-        if "train_only" in names and offer.mode is not TransportMode.TRAIN:
-            return False
-        if "flight_only" in names and offer.mode is not TransportMode.FLIGHT:
-            return False
-        if "direct_only" in names and not offer.is_direct:
-            return False
-    return True
+    names = request.constraints_for_leg(leg_index)
+    if "train_only" in names and offer.mode is not TransportMode.TRAIN:
+        return False
+    if "flight_only" in names and offer.mode is not TransportMode.FLIGHT:
+        return False
+    return not ("direct_only" in names and not offer.is_direct)
 
 
 class ItineraryPlanner:
-    """枚举完整行程组合，硬过滤后对幸存方案打分并排序。"""
+    """先枚举走法，再为每种走法挑报价，最后按类别与政策分档选出要摆的方案。"""
 
     def __init__(
         self,
@@ -68,215 +93,341 @@ class ItineraryPlanner:
         *,
         now: datetime,
     ) -> list[TravelOptionVersion]:
-        """笛卡尔积组合去程/返程/酒店，过滤后返回最多 ``limit`` 条去重排名方案。"""
-        inbound_choices: list[TransportOffer | None] = (
-            list(inbound_offers) if request.return_after is not None else [None]
-        )
+        """产出最多 ``limit`` 条**互不相同的**方案，外加需要说明的被挡方案。"""
+        pools = [
+            [
+                offer
+                for offer in outbound_offers
+                if _leg_satisfies_constraints(request, 0, offer)
+            ]
+        ]
+        if request.return_after is not None:
+            pools.append(
+                [
+                    offer
+                    for offer in inbound_offers
+                    if _leg_satisfies_constraints(request, 1, offer)
+                ]
+            )
         hotel_choices: list[HotelOffer | None] = (
             list(hotel_offers) if request.hotel_check_in is not None else [None]
         )
 
         minutes_per_unit = duration_minutes_per_unit(request)
-        options: list[TravelOptionVersion] = []
-        for outbound, inbound, hotel in product(
-            outbound_offers, inbound_choices, hotel_choices
-        ):
-            transports = [outbound, *([inbound] if inbound else [])]
-            if not _legs_satisfy_constraints(request, transports):
-                continue
-            feasibility = self.validator.validate(
-                request, outbound, inbound, hotel, policy.arrival_buffer_minutes, now=now
-            )
-            if not feasibility.feasible:
-                continue
-
-            # 政策只做标注，不在这里过滤。被禁的方案也要带着理由留在结果里——
-            # 否则旅行者只会看到一份莫名偏贵的列表，永远不知道最便宜那个是被政策禁的。
-            # 要不要展示给用户，是展示层的决定，不是规划层的决定。
-            decision = self.policy_engine.evaluate(employee, policy, transports, hotel)
-
-            total_cost = sum((item.price for item in transports), Decimal("0"))
-            if hotel:
-                total_cost += hotel.total_price
-            duration = sum(self._minutes(item.depart_at, item.arrive_at) for item in transports)
-            penalty = preference_penalty(request, transports, hotel)
-            # 政策**不进分数**。它是三档分类结论，不是可以被价格投票推翻的权重：
-            # 折算成罚分的话，一个需审批但足够便宜的方案会排到完全合规的前面。
-            # 排序改为「先按政策分档，档内再按分数」，见 _select_ranked_options。
-            score = total_cost + Decimal(duration) / minutes_per_unit + penalty
-            snapshot_ids = tuple(
-                dict.fromkeys(
-                    [outbound.snapshot_id]
-                    + ([inbound.snapshot_id] if inbound else [])
-                    + ([hotel.snapshot_id] if hotel else [])
-                )
-            )
-            facts = [
-                f"total_cost={total_cost}",
-                f"currency={policy.currency}",
-                f"outbound={outbound.ref_id}",
-                f"policy={decision.outcome.value}",
-                f"inventory_snapshots={','.join(snapshot_ids)}",
+        candidates: list[tuple[PlanShape, TravelOptionVersion]] = []
+        for shape in _enumerate_shapes(pools, hotel_choices):
+            shaped_pools = [
+                [offer for offer in pool if offer.mode is shape.modes[index]]
+                for index, pool in enumerate(pools)
             ]
-            if inbound:
-                facts.append(f"inbound={inbound.ref_id}")
-            if hotel:
-                commute_fact = (
-                    "commute_minutes=unknown"
-                    if hotel.commute_minutes == COMMUTE_UNKNOWN_MINUTES
-                    else f"commute_minutes={hotel.commute_minutes}"
-                )
-                facts.extend([f"hotel={hotel.ref_id}", commute_fact])
-            option_key = "-".join(item.ref_id for item in transports)
-            if hotel:
-                option_key += f"-{hotel.ref_id}"
-            options.append(
-                TravelOptionVersion(
-                    option_id=f"opt-{option_key}",
-                    version=1,
-                    trip_request_version=request.version,
-                    inventory_snapshot_ids=snapshot_ids,
-                    outbound=outbound,
-                    inbound=inbound,
-                    hotel=hotel,
-                    total_cost=total_cost,
-                    total_duration_minutes=duration,
-                    feasibility=feasibility,
-                    policy_decision=decision,
-                    preference_penalty=penalty,
-                    score=score,
-                explanation_facts=tuple(facts),
-                currency=policy.currency,
-                )
+            shaped_hotels: list[HotelOffer | None] = (
+                [item for item in hotel_choices if item is not None]
+                if shape.with_lodging
+                else [None]
             )
+            for combination in product(*shaped_pools, shaped_hotels):
+                *transports, hotel = combination
+                option = self._evaluate(
+                    request,
+                    employee,
+                    policy,
+                    list(transports),
+                    hotel,
+                    shape,
+                    minutes_per_unit,
+                    now=now,
+                )
+                if option is not None:
+                    candidates.append((shape, option))
 
-        return self._select_ranked_options(
-            options, limit, compare_modes=wants_mode_comparison(request)
+        return _select_options(
+            candidates, limit, compare_modes=wants_mode_comparison(request)
         )
 
-    #: 政策分档：合规优先，需审批其次，不可选的排最后。政策不参与分数计算。
-    _POLICY_BANDS: dict[PolicyOutcome, int] = {
-        PolicyOutcome.COMPLIANT: 0,
-        PolicyOutcome.REQUIRES_APPROVAL: 1,
-    }
-    _BLOCKED_BAND = 2
-
-    @classmethod
-    def _policy_band(cls, option: TravelOptionVersion) -> int:
-        return cls._POLICY_BANDS.get(option.policy_decision.outcome, cls._BLOCKED_BAND)
-
-    @staticmethod
-    def _select_ranked_options(
-        options: list[TravelOptionVersion],
-        limit: int,
+    def _evaluate(
+        self,
+        request: TripRequestVersion,
+        employee: EmployeeProfileSnapshot,
+        policy: PolicySnapshot,
+        transports: list[TransportOffer],
+        hotel: HotelOffer | None,
+        shape: PlanShape,
+        minutes_per_unit: Decimal,
         *,
-        compare_modes: bool = False,
-    ) -> list[TravelOptionVersion]:
-        """先按政策分档、档内按分数排序；被政策挡住的方案只在本可胜出时才保留。
+        now: datetime,
+    ) -> TravelOptionVersion | None:
+        """把一种走法的一组具体报价评成一条方案；不可行则返回 None。"""
+        outbound = transports[0]
+        inbound = transports[1] if len(transports) > 1 else None
+        feasibility = self.validator.validate(
+            request, outbound, inbound, hotel, policy.arrival_buffer_minutes, now=now
+        )
+        if not feasibility.feasible:
+            return None
 
-        保留的目的是**透明**，不是凑数：只有当一个被挡住的方案分数优于所有可选方案时，
-        它才值得摆出来——那正是"最便宜的那个被政策禁了"这句话需要说出口的情形。
-        比可选方案还差的被挡方案只是噪音，不保留。
+        # 政策只做标注，不在这里过滤。被禁的方案也要带着理由留在结果里——
+        # 否则旅行者只会看到一份莫名偏贵的列表，永远不知道最便宜那个是被政策禁的。
+        # 要不要展示给用户，是展示层的决定，不是规划层的决定。
+        decision = self.policy_engine.evaluate(employee, policy, transports, hotel)
 
-        ``compare_modes`` 对应偏好 `compare_train_and_flight`："我想比比高铁和飞机"。
-        这句话要的不是罚分而是**摆出来的这几个方案里两种都得有**，所以它在这里生效，
-        不在打分里生效。
-        """
-        ranked = sorted(
-            options,
-            key=lambda item: (
-                ItineraryPlanner._policy_band(item),
-                item.score,
-                item.option_id,
+        total_cost = sum((item.price for item in transports), Decimal("0"))
+        if hotel:
+            total_cost += hotel.total_price
+        duration = sum(_minutes(item.depart_at, item.arrive_at) for item in transports)
+        penalty = preference_penalty(request, transports, hotel)
+        # 政策**不进分数**。它是三档分类结论，不是可以被价格投票推翻的权重：
+        # 折算成罚分的话，一个需审批但足够便宜的方案会排到完全合规的前面。
+        # 排序改为「先按政策分档，档内再按分数」，见 _select_options。
+        score = total_cost + Decimal(duration) / minutes_per_unit + penalty
+        snapshot_ids = tuple(
+            dict.fromkeys(
+                [item.snapshot_id for item in transports]
+                + ([hotel.snapshot_id] if hotel else [])
+            )
+        )
+        facts = [
+            f"total_cost={total_cost}",
+            f"currency={policy.currency}",
+            f"outbound={outbound.ref_id}",
+            f"policy={decision.outcome.value}",
+            f"plan_shape={shape.label()}",
+            f"inventory_snapshots={','.join(snapshot_ids)}",
+        ]
+        if inbound:
+            facts.append(f"inbound={inbound.ref_id}")
+        if hotel:
+            commute_fact = (
+                "commute_minutes=unknown"
+                if hotel.commute_minutes == COMMUTE_UNKNOWN_MINUTES
+                else f"commute_minutes={hotel.commute_minutes}"
+            )
+            facts.extend([f"hotel={hotel.ref_id}", commute_fact])
+        option_key = "-".join(item.ref_id for item in transports)
+        if hotel:
+            option_key += f"-{hotel.ref_id}"
+        return TravelOptionVersion(
+            option_id=f"opt-{option_key}",
+            version=1,
+            trip_request_version=request.version,
+            inventory_snapshot_ids=snapshot_ids,
+            outbound=outbound,
+            inbound=inbound,
+            hotel=hotel,
+            total_cost=total_cost,
+            total_duration_minutes=duration,
+            feasibility=feasibility,
+            policy_decision=decision,
+            preference_penalty=penalty,
+            score=score,
+            explanation_facts=tuple(facts),
+            currency=policy.currency,
+        )
+
+
+def _enumerate_shapes(
+    pools: list[list[TransportOffer]], hotel_choices: list[HotelOffer | None]
+) -> list[PlanShape]:
+    """先把走法数出来：每段有哪几种交通方式的货，住宿是不是一个真选择。
+
+    只枚举**库存里真有的**交通方式——涵盖不了的走法不该靠编造来凑。
+    """
+    mode_sets = [
+        sorted({offer.mode for offer in pool}, key=lambda item: item.value)
+        for pool in pools
+    ]
+    if not mode_sets or any(not modes for modes in mode_sets):
+        return []
+    lodging_choices = [True] if any(item is not None for item in hotel_choices) else [False]
+    return [
+        PlanShape(modes=tuple(modes), with_lodging=lodging)
+        for modes in product(*mode_sets)
+        for lodging in lodging_choices
+    ]
+
+
+#: 政策分档：合规优先，需审批其次，不可选的排最后。政策不参与分数计算。
+_POLICY_BANDS: dict[PolicyOutcome, int] = {
+    PolicyOutcome.COMPLIANT: 0,
+    PolicyOutcome.REQUIRES_APPROVAL: 1,
+}
+_BLOCKED_BAND = 2
+
+
+def _policy_band(option: TravelOptionVersion) -> int:
+    return _POLICY_BANDS.get(option.policy_decision.outcome, _BLOCKED_BAND)
+
+
+def _rank_key(entry: tuple[PlanShape, TravelOptionVersion]) -> tuple[object, ...]:
+    option = entry[1]
+    return (_policy_band(option), option.score, option.option_id)
+
+
+def _select_options(
+    candidates: list[tuple[PlanShape, TravelOptionVersion]],
+    limit: int,
+    *,
+    compare_modes: bool = False,
+) -> list[TravelOptionVersion]:
+    """选出要摆给旅行者的几条：先分档，档内按类别取，再按走法补齐。
+
+    **类别**指的是"它是哪一类里最好的"——最便宜的、最快的、综合最合适的。
+    差旅没有唯一的最好，把这些揉成一个分数再取前三，等于替旅行者做了他该做的取舍。
+
+    ``compare_modes`` 对应偏好 `compare_train_and_flight`："我想比比高铁和飞机"。
+    这句话要的不是罚分，而是**摆出来的这几个里两种都得有**。
+    """
+    ranked = sorted(candidates, key=_rank_key)
+    eligible: list[tuple[PlanShape, TravelOptionVersion]] = []
+    blocked: list[TravelOptionVersion] = []
+    seen: set[tuple[object, ...]] = set()
+    for shape, option in ranked:
+        fingerprint = _display_fingerprint(option)
+        if fingerprint in seen:
+            continue
+        seen.add(fingerprint)
+        if _policy_band(option) < _BLOCKED_BAND:
+            eligible.append((shape, option))
+        else:
+            blocked.append(option)
+
+    if not eligible:
+        return []
+
+    chosen = _choose_by_category(eligible, limit)
+    if compare_modes:
+        chosen = _cover_every_available_mode(chosen, eligible, limit)
+
+    categories = _category_labels(eligible, chosen)
+    selectable = [
+        replace(
+            option,
+            explanation_facts=(
+                *option.explanation_facts,
+                f"category={categories[option.option_id]}",
             ),
         )
-        selectable: list[TravelOptionVersion] = []
-        blocked: list[TravelOptionVersion] = []
-        eligible: list[TravelOptionVersion] = []
-        seen: set[tuple[object, ...]] = set()
-        for option in ranked:
-            fingerprint = ItineraryPlanner._display_fingerprint(option)
-            if fingerprint in seen:
+        for _, option in sorted(chosen, key=_rank_key)
+    ]
+    best_selectable = min(item.score for item in selectable)
+    would_have_won = [item for item in blocked if item.score < best_selectable]
+    # 被政策挡住的方案只在**本可胜出**时才保留：那正是"最便宜的那个被政策禁了"
+    # 这句话需要说出口的情形。比可选方案还差的被挡方案只是噪音，不保留。
+    return selectable + would_have_won[:1]
+
+
+def _choose_by_category(
+    eligible: list[tuple[PlanShape, TravelOptionVersion]], limit: int
+) -> list[tuple[PlanShape, TravelOptionVersion]]:
+    """每一类各取一个代表，再按"还没出现过的走法"优先补齐到 ``limit``。"""
+    chosen: list[tuple[PlanShape, TravelOptionVersion]] = []
+
+    def take(entry: tuple[PlanShape, TravelOptionVersion] | None) -> None:
+        if entry is None or len(chosen) >= limit:
+            return
+        if any(item[1].option_id == entry[1].option_id for item in chosen):
+            return
+        chosen.append(entry)
+
+    take(eligible[0])  # 综合最合适的：排名本身就是这一类。
+    take(min(eligible, key=lambda item: (item[1].total_cost, _rank_key(item))))
+    take(min(eligible, key=lambda item: (item[1].total_duration_minutes, _rank_key(item))))
+
+    # 补齐时优先换一个还没出现过的走法，别让同一个走法的价格变体占满名单。
+    for prefer_new_shape in (True, False):
+        for entry in eligible:
+            if len(chosen) >= limit:
+                break
+            if prefer_new_shape and any(item[0] == entry[0] for item in chosen):
                 continue
-            seen.add(fingerprint)
-            if ItineraryPlanner._policy_band(option) < ItineraryPlanner._BLOCKED_BAND:
-                eligible.append(option)
-                if len(selectable) < limit:
-                    selectable.append(option)
-            else:
-                blocked.append(option)
-
-        if compare_modes:
-            selectable = ItineraryPlanner._cover_both_modes(selectable, eligible, limit)
-
-        if not selectable:
-            return []
-        best_selectable = min(item.score for item in selectable)
-        would_have_won = [item for item in blocked if item.score < best_selectable]
-        return selectable + would_have_won[:1]
+            take(entry)
+    return sorted(chosen, key=_rank_key)
 
 
-    @staticmethod
-    def _modes_used(option: TravelOptionVersion) -> frozenset[TransportMode]:
-        modes = {option.outbound.mode}
-        if option.inbound is not None:
-            modes.add(option.inbound.mode)
-        return frozenset(modes)
+def _category_labels(
+    eligible: list[tuple[PlanShape, TravelOptionVersion]],
+    chosen: list[tuple[PlanShape, TravelOptionVersion]],
+) -> dict[str, str]:
+    """给每条入选方案贴一句"它凭什么在这儿"，好让解释说得出彼此差在哪。"""
+    cheapest = min(eligible, key=lambda item: (item[1].total_cost, _rank_key(item)))[1]
+    fastest = min(
+        eligible, key=lambda item: (item[1].total_duration_minutes, _rank_key(item))
+    )[1]
+    best_overall = eligible[0][1]
+    labels: dict[str, str] = {}
+    for _, option in chosen:
+        tags = []
+        if option.option_id == best_overall.option_id:
+            tags.append("best_overall")
+        if option.option_id == cheapest.option_id:
+            tags.append("cheapest")
+        if option.option_id == fastest.option_id:
+            tags.append("fastest")
+        labels[option.option_id] = "|".join(tags) if tags else "alternative"
+    return labels
 
-    @staticmethod
-    def _cover_both_modes(
-        selectable: list[TravelOptionVersion],
-        eligible: list[TravelOptionVersion],
-        limit: int,
-    ) -> list[TravelOptionVersion]:
-        """让入选名单涵盖库存里真实存在的每种交通方式，名额不变。
 
-        库存里只有飞机时什么都不做——涵盖不了的东西不该靠编造来凑。
-        """
-        available = {
-            mode
-            for option in eligible
-            for mode in ItineraryPlanner._modes_used(option)
-            if mode in {TransportMode.TRAIN, TransportMode.FLIGHT}
-        }
-        chosen = list(selectable)
-        for mode in sorted(available, key=lambda item: item.value):
-            if any(mode in ItineraryPlanner._modes_used(item) for item in chosen):
-                continue
-            replacement = next(
-                (
-                    item
-                    for item in eligible
-                    if mode in ItineraryPlanner._modes_used(item) and item not in chosen
-                ),
-                None,
-            )
-            if replacement is None:
-                continue
-            if len(chosen) < limit:
-                chosen.append(replacement)
-            else:
-                chosen[-1] = replacement
-        return chosen
+def _modes_used(option: TravelOptionVersion) -> frozenset[TransportMode]:
+    modes = {option.outbound.mode}
+    if option.inbound is not None:
+        modes.add(option.inbound.mode)
+    return frozenset(modes)
 
-    @staticmethod
-    def _display_fingerprint(option: TravelOptionVersion) -> tuple[object, ...]:
-        hotel = option.hotel
-        hotel_key: tuple[object, ...]
-        if hotel is None:
-            hotel_key = ()
+
+def _cover_every_available_mode(
+    chosen: list[tuple[PlanShape, TravelOptionVersion]],
+    eligible: list[tuple[PlanShape, TravelOptionVersion]],
+    limit: int,
+) -> list[tuple[PlanShape, TravelOptionVersion]]:
+    """让入选名单涵盖库存里真实存在的每种交通方式，名额不变。
+
+    库存里只有飞机时什么都不做——涵盖不了的东西不该靠编造来凑。
+    """
+    available = {
+        mode
+        for _, option in eligible
+        for mode in _modes_used(option)
+        if mode in {TransportMode.TRAIN, TransportMode.FLIGHT}
+    }
+    result = sorted(chosen, key=_rank_key)
+    for mode in sorted(available, key=lambda item: item.value):
+        if any(mode in _modes_used(option) for _, option in result):
+            continue
+        replacement = next(
+            (
+                entry
+                for entry in eligible
+                if mode in _modes_used(entry[1])
+                and all(entry[1].option_id != item[1].option_id for item in result)
+            ),
+            None,
+        )
+        if replacement is None:
+            continue
+        if len(result) < limit:
+            result.append(replacement)
         else:
-            hotel_key = (
-                hotel.name.casefold(),
-                hotel.city.casefold(),
-                hotel.nightly_price,
-                hotel.nights,
-                hotel.check_in,
-                hotel.check_out,
-            )
-        inbound_id = option.inbound.ref_id if option.inbound else None
-        return (option.outbound.ref_id, inbound_id, hotel_key)
+            result[-1] = replacement
+        result = sorted(result, key=_rank_key)
+    return result
 
-    @staticmethod
-    def _minutes(start: datetime, end: datetime) -> int:
-        return int((end - start).total_seconds() // 60)
+
+def _display_fingerprint(option: TravelOptionVersion) -> tuple[object, ...]:
+    hotel = option.hotel
+    hotel_key: tuple[object, ...]
+    if hotel is None:
+        hotel_key = ()
+    else:
+        hotel_key = (
+            hotel.name.casefold(),
+            hotel.city.casefold(),
+            hotel.nightly_price,
+            hotel.nights,
+            hotel.check_in,
+            hotel.check_out,
+        )
+    inbound_id = option.inbound.ref_id if option.inbound else None
+    return (option.outbound.ref_id, inbound_id, hotel_key)
+
+
+def _minutes(start: datetime, end: datetime) -> int:
+    return int((end - start).total_seconds() // 60)

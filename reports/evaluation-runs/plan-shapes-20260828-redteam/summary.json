@@ -1,0 +1,606 @@
+{
+  "started_at": "2026-08-28T23:33:50.822778+00:00",
+  "runner_version": "semantic-redteam-runner-v1",
+  "entrypoint": "semantic",
+  "billed_model_calls": 0,
+  "passed": 17,
+  "total": 17,
+  "cases": [
+    {
+      "case_id": "SI-01",
+      "title": "儿童票披露且不搜索",
+      "passed": true,
+      "checks": [
+        {
+          "name": "not_oos",
+          "ok": true,
+          "detail": "NEEDS_CLARIFICATION"
+        },
+        {
+          "name": "clarify",
+          "ok": true,
+          "detail": "NEEDS_CLARIFICATION"
+        },
+        {
+          "name": "no_search",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "no_options",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "no_request",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "reason_surfaced",
+          "ok": true,
+          "detail": "('无法为儿童或婴儿出票',)"
+        },
+        {
+          "name": "disclosed",
+          "ok": true,
+          "detail": "这项我暂时做不了：无法为儿童或婴儿出票。要不要先把其余行程订好？"
+        }
+      ]
+    },
+    {
+      "case_id": "SI-02",
+      "title": "签证披露且不搜索",
+      "passed": true,
+      "checks": [
+        {
+          "name": "not_oos",
+          "ok": true,
+          "detail": "NEEDS_CLARIFICATION"
+        },
+        {
+          "name": "clarify",
+          "ok": true,
+          "detail": "NEEDS_CLARIFICATION"
+        },
+        {
+          "name": "no_search",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "no_options",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "no_request",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "reason_surfaced",
+          "ok": true,
+          "detail": "('无法办理签证或护照',)"
+        },
+        {
+          "name": "disclosed",
+          "ok": true,
+          "detail": "这项我暂时做不了：无法办理签证或护照。要不要先把其余行程订好？"
+        }
+      ]
+    },
+    {
+      "case_id": "SI-03",
+      "title": "选座与里程卡披露且不搜索",
+      "passed": true,
+      "checks": [
+        {
+          "name": "not_oos",
+          "ok": true,
+          "detail": "NEEDS_CLARIFICATION"
+        },
+        {
+          "name": "clarify",
+          "ok": true,
+          "detail": "NEEDS_CLARIFICATION"
+        },
+        {
+          "name": "no_search",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "no_options",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "no_request",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "reason_surfaced",
+          "ok": true,
+          "detail": "('无法选座或使用里程卡',)"
+        },
+        {
+          "name": "disclosed",
+          "ok": true,
+          "detail": "这项我暂时做不了：无法选座或使用里程卡。要不要先把其余行程订好？"
+        }
+      ]
+    },
+    {
+      "case_id": "SI-04",
+      "title": "三段以上的多城行程披露且不搜索",
+      "passed": true,
+      "checks": [
+        {
+          "name": "not_oos",
+          "ok": true,
+          "detail": "NEEDS_CLARIFICATION"
+        },
+        {
+          "name": "clarify",
+          "ok": true,
+          "detail": "NEEDS_CLARIFICATION"
+        },
+        {
+          "name": "no_search",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "no_options",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "no_request",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "reason_surfaced",
+          "ok": true,
+          "detail": "('一次申请最多安排两段，多城行程请拆成多个申请',)"
+        },
+        {
+          "name": "disclosed",
+          "ok": true,
+          "detail": "这项我暂时做不了：一次申请最多安排两段，多城行程请拆成多个申请。要不要先把其余行程订好？"
+        }
+      ]
+    },
+    {
+      "case_id": "SI-05",
+      "title": "已出票改签不去搜新库存",
+      "passed": true,
+      "checks": [
+        {
+          "name": "not_oos",
+          "ok": true,
+          "detail": "NEEDS_CLARIFICATION"
+        },
+        {
+          "name": "clarify",
+          "ok": true,
+          "detail": "NEEDS_CLARIFICATION"
+        },
+        {
+          "name": "no_search",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "no_options",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "no_request",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "reason_surfaced",
+          "ok": true,
+          "detail": "('无法为已出票的行程改签或退票',)"
+        },
+        {
+          "name": "disclosed",
+          "ok": true,
+          "detail": "这项我暂时做不了：无法为已出票的行程改签或退票。要不要先把其余行程订好？"
+        }
+      ]
+    },
+    {
+      "case_id": "SI-06",
+      "title": "宠物与无障碍披露且不搜索",
+      "passed": true,
+      "checks": [
+        {
+          "name": "not_oos",
+          "ok": true,
+          "detail": "NEEDS_CLARIFICATION"
+        },
+        {
+          "name": "clarify",
+          "ok": true,
+          "detail": "NEEDS_CLARIFICATION"
+        },
+        {
+          "name": "no_search",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "no_options",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "no_request",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "reason_surfaced",
+          "ok": true,
+          "detail": "('无法安排宠物随行或无障碍座位',)"
+        },
+        {
+          "name": "disclosed",
+          "ok": true,
+          "detail": "这项我暂时做不了：无法安排宠物随行或无障碍座位。要不要先把其余行程订好？"
+        }
+      ]
+    },
+    {
+      "case_id": "SI-00",
+      "title": "普通行程照常搜索",
+      "passed": true,
+      "checks": [
+        {
+          "name": "no_conflicts",
+          "ok": true,
+          "detail": "()"
+        },
+        {
+          "name": "searched",
+          "ok": true,
+          "detail": "3"
+        },
+        {
+          "name": "planned",
+          "ok": true,
+          "detail": "WAITING_FOR_USER"
+        }
+      ]
+    },
+    {
+      "case_id": "SI-07",
+      "title": "签证中心当会面地点时不被拦",
+      "passed": true,
+      "checks": [
+        {
+          "name": "no_conflicts",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "not_blocked",
+          "ok": true,
+          "detail": "WAITING_FOR_USER"
+        },
+        {
+          "name": "client_location",
+          "ok": true,
+          "detail": "签证中心"
+        }
+      ]
+    },
+    {
+      "case_id": "SG-01",
+      "title": "出方案后改单程：日期保留，返程整份丢掉，不再搜返程",
+      "passed": true,
+      "checks": [
+        {
+          "name": "origin",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "destination",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "departure_kept",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "arrive_kept",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "return_after_null",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "return_before_null",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "no_new_inbound",
+          "ok": true,
+          "detail": "1->1"
+        }
+      ]
+    },
+    {
+      "case_id": "SG-02a",
+      "title": "出方案后取消酒店：住宿清空，路线不动，不再搜酒店",
+      "passed": true,
+      "checks": [
+        {
+          "name": "lodging",
+          "ok": true,
+          "detail": "NOT_REQUIRED"
+        },
+        {
+          "name": "hotel_in_null",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "hotel_out_null",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "no_hotel_required",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "return_kept",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "no_new_hotel_search",
+          "ok": true,
+          "detail": "1->1"
+        }
+      ]
+    },
+    {
+      "case_id": "SG-02b",
+      "title": "出方案后补订两晚：住宿从无到有并锚在抵达日",
+      "passed": true,
+      "checks": [
+        {
+          "name": "lodging",
+          "ok": true,
+          "detail": "REQUIRED"
+        },
+        {
+          "name": "check_in",
+          "ok": true,
+          "detail": "2026-08-06"
+        },
+        {
+          "name": "check_out",
+          "ok": true,
+          "detail": "2026-08-08"
+        },
+        {
+          "name": "hotel_required",
+          "ok": true,
+          "detail": ""
+        }
+      ]
+    },
+    {
+      "case_id": "SG-03a",
+      "title": "出方案后会议改点：抵达时刻改，日期与出发保留",
+      "passed": true,
+      "checks": [
+        {
+          "name": "date",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "hour",
+          "ok": true,
+          "detail": "15"
+        },
+        {
+          "name": "departure_kept",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "origin",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "destination",
+          "ok": true,
+          "detail": ""
+        }
+      ]
+    },
+    {
+      "case_id": "SG-03b",
+      "title": "出方案后返程改后天晚上：只动返程窗口",
+      "passed": true,
+      "checks": [
+        {
+          "name": "departure_kept",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "arrive_kept",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "return_day",
+          "ok": true,
+          "detail": "2026-08-08"
+        },
+        {
+          "name": "return_after_hour",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "return_before_hour",
+          "ok": true,
+          "detail": ""
+        }
+      ]
+    },
+    {
+      "case_id": "SG-04",
+      "title": "没有『改为』也能换出发地，目的地保持不变",
+      "passed": true,
+      "checks": [
+        {
+          "name": "origin",
+          "ok": true,
+          "detail": "Shanghai"
+        },
+        {
+          "name": "destination_london",
+          "ok": true,
+          "detail": "London"
+        },
+        {
+          "name": "stale_options_dropped",
+          "ok": true,
+          "detail": "0->0"
+        }
+      ]
+    },
+    {
+      "case_id": "SH-01",
+      "title": "两个候选日期不编一个出来",
+      "passed": true,
+      "checks": [
+        {
+          "name": "depart_null",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "arrive_null",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "clarify",
+          "ok": true,
+          "detail": "NEEDS_CLARIFICATION"
+        },
+        {
+          "name": "no_search",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "no_options",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "no_request",
+          "ok": true,
+          "detail": ""
+        }
+      ]
+    },
+    {
+      "case_id": "SH-02",
+      "title": "二选一城市不偷偷挑一个",
+      "passed": true,
+      "checks": [
+        {
+          "name": "origin_null",
+          "ok": true,
+          "detail": "None"
+        },
+        {
+          "name": "clarify",
+          "ok": true,
+          "detail": "NEEDS_CLARIFICATION"
+        },
+        {
+          "name": "no_search",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "no_request",
+          "ok": true,
+          "detail": ""
+        }
+      ]
+    },
+    {
+      "case_id": "SH-03",
+      "title": "条件住宿在条件解决前不编译",
+      "passed": true,
+      "checks": [
+        {
+          "name": "clarify",
+          "ok": true,
+          "detail": "NEEDS_CLARIFICATION"
+        },
+        {
+          "name": "no_search",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "no_request",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "condition_surfaced",
+          "ok": true,
+          "detail": "('unresolved condition: 会议若延到晚上才需要住宿',)"
+        }
+      ]
+    }
+  ],
+  "not_portable": [
+    {
+      "origin": "§18.3 H-01 / H-03 / H-04 / H-05",
+      "what": "下下周三、8/5 与 8.5、春节不编公历、12/30→1/2 跨年的解析正确性",
+      "why": "ADR-0002 把日期解析交给了模型；用脚本化替身断言它等于自己写答案自己批改。要验必须真跑计费模型，属于模型行为评测，不在本 runner 范围。"
+    },
+    {
+      "origin": "§18.3 I 的措辞兜底",
+      "what": "无模型时用正则从用户原文兜底识别能力边界",
+      "why": "语义链路没有正则兜底层；模型不可用时它直接停在结构化表单，见 tests/test_semantic_entrypoint_reliability.py。"
+    },
+    {
+      "origin": "§18.3 A–E / F",
+      "what": "Provider 故障、工具预算、快照过期、Postgres 双 worker",
+      "why": "这些用例走结构化入口或根本不经过意图链路，与入口无关，无需重跑。"
+    }
+  ]
+}

@@ -1,0 +1,273 @@
+{
+  "fixture_worlds": {
+    "worlds": 60,
+    "today_combinations": {
+      "min": 1,
+      "max": 8,
+      "mean": 3.67
+    },
+    "plan_shapes": {
+      "min": 1,
+      "max": 8,
+      "mean": 6.52
+    },
+    "modes_available_per_leg": {
+      "1": 16,
+      "2": 104
+    }
+  },
+  "synthetic_sweep": [
+    {
+      "legs": 1,
+      "modes_per_leg": 1,
+      "lodging": "no_lodging",
+      "shapes": 1,
+      "inventory_queries": 1
+    },
+    {
+      "legs": 1,
+      "modes_per_leg": 1,
+      "lodging": "lodging_required",
+      "shapes": 1,
+      "inventory_queries": 2
+    },
+    {
+      "legs": 1,
+      "modes_per_leg": 1,
+      "lodging": "lodging_optional",
+      "shapes": 2,
+      "inventory_queries": 2
+    },
+    {
+      "legs": 1,
+      "modes_per_leg": 2,
+      "lodging": "no_lodging",
+      "shapes": 2,
+      "inventory_queries": 1
+    },
+    {
+      "legs": 1,
+      "modes_per_leg": 2,
+      "lodging": "lodging_required",
+      "shapes": 2,
+      "inventory_queries": 2
+    },
+    {
+      "legs": 1,
+      "modes_per_leg": 2,
+      "lodging": "lodging_optional",
+      "shapes": 4,
+      "inventory_queries": 2
+    },
+    {
+      "legs": 2,
+      "modes_per_leg": 1,
+      "lodging": "no_lodging",
+      "shapes": 1,
+      "inventory_queries": 2
+    },
+    {
+      "legs": 2,
+      "modes_per_leg": 1,
+      "lodging": "lodging_required",
+      "shapes": 1,
+      "inventory_queries": 3
+    },
+    {
+      "legs": 2,
+      "modes_per_leg": 1,
+      "lodging": "lodging_optional",
+      "shapes": 2,
+      "inventory_queries": 3
+    },
+    {
+      "legs": 2,
+      "modes_per_leg": 2,
+      "lodging": "no_lodging",
+      "shapes": 4,
+      "inventory_queries": 2
+    },
+    {
+      "legs": 2,
+      "modes_per_leg": 2,
+      "lodging": "lodging_required",
+      "shapes": 4,
+      "inventory_queries": 3
+    },
+    {
+      "legs": 2,
+      "modes_per_leg": 2,
+      "lodging": "lodging_optional",
+      "shapes": 8,
+      "inventory_queries": 3
+    },
+    {
+      "legs": 3,
+      "modes_per_leg": 1,
+      "lodging": "no_lodging",
+      "shapes": 1,
+      "inventory_queries": 3
+    },
+    {
+      "legs": 3,
+      "modes_per_leg": 1,
+      "lodging": "lodging_required",
+      "shapes": 1,
+      "inventory_queries": 4
+    },
+    {
+      "legs": 3,
+      "modes_per_leg": 1,
+      "lodging": "lodging_optional",
+      "shapes": 2,
+      "inventory_queries": 4
+    },
+    {
+      "legs": 3,
+      "modes_per_leg": 2,
+      "lodging": "no_lodging",
+      "shapes": 8,
+      "inventory_queries": 3
+    },
+    {
+      "legs": 3,
+      "modes_per_leg": 2,
+      "lodging": "lodging_required",
+      "shapes": 8,
+      "inventory_queries": 4
+    },
+    {
+      "legs": 3,
+      "modes_per_leg": 2,
+      "lodging": "lodging_optional",
+      "shapes": 16,
+      "inventory_queries": 4
+    },
+    {
+      "legs": 4,
+      "modes_per_leg": 1,
+      "lodging": "no_lodging",
+      "shapes": 1,
+      "inventory_queries": 4
+    },
+    {
+      "legs": 4,
+      "modes_per_leg": 1,
+      "lodging": "lodging_required",
+      "shapes": 1,
+      "inventory_queries": 5
+    },
+    {
+      "legs": 4,
+      "modes_per_leg": 1,
+      "lodging": "lodging_optional",
+      "shapes": 2,
+      "inventory_queries": 5
+    },
+    {
+      "legs": 4,
+      "modes_per_leg": 2,
+      "lodging": "no_lodging",
+      "shapes": 16,
+      "inventory_queries": 4
+    },
+    {
+      "legs": 4,
+      "modes_per_leg": 2,
+      "lodging": "lodging_required",
+      "shapes": 16,
+      "inventory_queries": 5
+    },
+    {
+      "legs": 4,
+      "modes_per_leg": 2,
+      "lodging": "lodging_optional",
+      "shapes": 32,
+      "inventory_queries": 5
+    },
+    {
+      "legs": 5,
+      "modes_per_leg": 1,
+      "lodging": "no_lodging",
+      "shapes": 1,
+      "inventory_queries": 5
+    },
+    {
+      "legs": 5,
+      "modes_per_leg": 1,
+      "lodging": "lodging_required",
+      "shapes": 1,
+      "inventory_queries": 6
+    },
+    {
+      "legs": 5,
+      "modes_per_leg": 1,
+      "lodging": "lodging_optional",
+      "shapes": 2,
+      "inventory_queries": 6
+    },
+    {
+      "legs": 5,
+      "modes_per_leg": 2,
+      "lodging": "no_lodging",
+      "shapes": 32,
+      "inventory_queries": 5
+    },
+    {
+      "legs": 5,
+      "modes_per_leg": 2,
+      "lodging": "lodging_required",
+      "shapes": 32,
+      "inventory_queries": 6
+    },
+    {
+      "legs": 5,
+      "modes_per_leg": 2,
+      "lodging": "lodging_optional",
+      "shapes": 64,
+      "inventory_queries": 6
+    },
+    {
+      "legs": 6,
+      "modes_per_leg": 1,
+      "lodging": "no_lodging",
+      "shapes": 1,
+      "inventory_queries": 6
+    },
+    {
+      "legs": 6,
+      "modes_per_leg": 1,
+      "lodging": "lodging_required",
+      "shapes": 1,
+      "inventory_queries": 7
+    },
+    {
+      "legs": 6,
+      "modes_per_leg": 1,
+      "lodging": "lodging_optional",
+      "shapes": 2,
+      "inventory_queries": 7
+    },
+    {
+      "legs": 6,
+      "modes_per_leg": 2,
+      "lodging": "no_lodging",
+      "shapes": 64,
+      "inventory_queries": 6
+    },
+    {
+      "legs": 6,
+      "modes_per_leg": 2,
+      "lodging": "lodging_required",
+      "shapes": 64,
+      "inventory_queries": 7
+    },
+    {
+      "legs": 6,
+      "modes_per_leg": 2,
+      "lodging": "lodging_optional",
+      "shapes": 128,
+      "inventory_queries": 7
+    }
+  ]
+}
