@@ -339,7 +339,7 @@ def test_openai_adapter_uses_semantic_schema_and_complete_ledger() -> None:
     )
 
     assert result.decision == expected
-    assert result.metadata.prompt_version == "semantic-trip-intent-v8"
+    assert result.metadata.prompt_version == "semantic-trip-intent-v10"
     assert result.metadata.evidence_contract_version == "conversation-turn-v1"
 
 
@@ -471,7 +471,7 @@ def test_prompt_tells_the_model_which_evidence_a_ready_decision_must_carry() -> 
     )
 
     assert "When status is READY" in prompt
-    assert "origin, destination, departure_after and arrive_by" in prompt
+    assert "origin_candidates, destination_candidates, departure_after and arrive_by" in prompt
     # 必须点明可以引用更早的轮次，否则模型只会盯着最新一句。
     assert "including" in prompt and "earlier turns" in prompt
 
@@ -663,3 +663,108 @@ def test_prompt_pins_the_month_first_reading_of_numeric_dates() -> None:
     assert "never May 8" in prompt
     # 顺序必须先定月日、再判年份，否则读错的日期会被年份规则"正确地"拦下来。
     assert prompt.index("month-first") < prompt.index("bare month/day with no year")
+
+
+def test_an_open_jaw_return_is_refused_instead_of_being_collapsed() -> None:
+    """"去上海、从杭州回"绝不能被压成"上海→北京"。
+
+    实测真模型确实会这样：它把"从杭州飞回"整句丢掉，宿主照着 `transport_legs()` 的
+    推导规则拼出一条**用户没要过的** 上海→北京 返程，然后真的去搜了库存。这就是
+    ADR-0002 列为历史危险的"把开口程压缩成单一路线"。
+    """
+    compiled = compile_search_command(
+        _decision(
+            _ready_intent(
+                return_origin_candidates=["Hangzhou"],
+                return_after=datetime(2026, 8, 20, 18, 0, tzinfo=SHANGHAI),
+                return_before=datetime(2026, 8, 20, 23, 0, tzinfo=SHANGHAI),
+                booking_scope=BookingScope.ROUND_TRIP,
+            ),
+            evidence=[
+                EvidenceRef(turn_index=0, field=field, quote="北京")
+                for field in ("origin", "destination", "departure_after", "arrive_by")
+            ],
+        ),
+        task_id="open-jaw",
+        traveler_id="E1001",
+        version=1,
+        city_normalizer=CityNormalizer(),
+        created_at=datetime(2026, 8, 1, 9, 0, tzinfo=SHANGHAI),
+    )
+
+    assert not compiled.ready
+    assert compiled.command is None
+    assert any(item.startswith("行程形态做不了") for item in compiled.conflicts), (
+        compiled.conflicts
+    )
+    assert "Hangzhou" in (compiled.clarification_question or "")
+    # 这个结论要盖过模型自己的追问，和"日期已过"一样。
+    assert (compiled.clarification_question or "").startswith("行程形态做不了")
+
+
+def test_an_ordinary_round_trip_is_not_mistaken_for_an_open_jaw() -> None:
+    """返程从目的地原路回来，是最普通的往返，不能被新规则误伤。"""
+    compiled = compile_search_command(
+        _decision(
+            _ready_intent(
+                # 模型如实记了"从上海回"，而上海正是目的地。
+                return_origin_candidates=["Shanghai"],
+                return_after=datetime(2026, 8, 20, 18, 0, tzinfo=SHANGHAI),
+                return_before=datetime(2026, 8, 20, 23, 0, tzinfo=SHANGHAI),
+                booking_scope=BookingScope.ROUND_TRIP,
+            ),
+            evidence=[
+                EvidenceRef(turn_index=0, field=field, quote="北京")
+                for field in ("origin", "destination", "departure_after", "arrive_by")
+            ],
+        ),
+        task_id="plain-round-trip",
+        traveler_id="E1001",
+        version=1,
+        city_normalizer=CityNormalizer(),
+        created_at=datetime(2026, 8, 1, 9, 0, tzinfo=SHANGHAI),
+    )
+
+    assert compiled.ready
+    assert compiled.command is not None
+
+
+def test_prompt_tells_the_model_to_keep_a_city_it_cannot_book() -> None:
+    prompt = OpenAISemanticIntentLanguageModel._semantic_system_prompt(
+        {"reference_time": "2026-08-19T15:00:00+08:00", "timezone": "Asia/Shanghai"}
+    )
+
+    assert "return_origin_candidates" in prompt
+    # 关键是告诉模型：记下来是你的活，能不能订是宿主的活。
+    assert "dropping a city the traveler named" in prompt
+    assert "the host's job, not yours" in prompt
+    assert "three or more cities" in prompt
+
+
+def test_evidence_may_name_the_schema_fields_rather_than_the_short_names() -> None:
+    """证据字段名要认 schema 的真名。
+
+    宿主原本只认 "origin"/"destination"，可这两个名字在 SemanticIntent 里**根本不存在**
+    ——真名是 origin_candidates / destination_candidates。实测真模型每一轮都老老实实
+    用真名给了证据，却被判成"没给证据"，宿主于是回头去问用户在第 0 轮就说清的事。
+    要求一个不存在的名字是宿主的坑。
+    """
+    compiled = compile_search_command(
+        _decision(
+            _ready_intent(),
+            evidence=[
+                EvidenceRef(turn_index=0, field="origin_candidates", quote="北京"),
+                EvidenceRef(turn_index=0, field="destination_candidates", quote="北京"),
+                EvidenceRef(turn_index=0, field="departure_after", quote="北京"),
+                EvidenceRef(turn_index=0, field="arrive_by", quote="北京"),
+            ],
+        ),
+        task_id="schema-named-evidence",
+        traveler_id="E1001",
+        version=1,
+        city_normalizer=CityNormalizer(),
+        created_at=datetime(2026, 8, 1, 9, 0, tzinfo=SHANGHAI),
+    )
+
+    assert compiled.ready, (compiled.missing, compiled.conflicts)
+    assert compiled.command is not None

@@ -1064,6 +1064,7 @@ class TripWorkflowOrchestrator:
         from corporate_travel_agent.agent.semantic_intent import (
             ConversationLedger,
             IntentDecisionStatus,
+            carried_grounding,
             semantic_fields,
         )
 
@@ -1132,6 +1133,8 @@ class TripWorkflowOrchestrator:
             return task
 
         version = task.request.version + 1 if task.request is not None else 1
+        # 证据随对话累积：先前轮次落实过、取值至今没变的字段，不必每轮重新引用一遍。
+        prior_history = list(task.metadata.get("semantic_intent_history") or ())[:-1]
         compiled = compile_search_command(
             decision,
             task_id=task.task_id,
@@ -1139,6 +1142,7 @@ class TripWorkflowOrchestrator:
             version=version,
             city_normalizer=self.city_normalizer,
             created_at=self.clock(),
+            already_grounded=carried_grounding(prior_history, decision.intent),
         )
         if not compiled.ready:
             return self._pause_for_semantic_clarification(

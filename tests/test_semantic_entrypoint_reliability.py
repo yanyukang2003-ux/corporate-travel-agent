@@ -529,3 +529,65 @@ def test_an_arrival_deadline_that_has_already_passed_is_reported() -> None:
     assert task.request is None
     assert _provider_tool_names(task) == []
     assert any("到达时限" in item for item in task.intent_conflicts), task.intent_conflicts
+
+
+# --- 证据随对话累积 -----------------------------------------------------------
+
+
+def test_grounding_carries_forward_so_a_long_conversation_is_not_re_interrogated() -> None:
+    """出发地在第 0 轮说清了，第 3 轮就不该再回头问一遍。
+
+    实测：五轮对话里模型把出发地、目的地、日期全读对了，但因为它只引用最新一轮的
+    原话，宿主回头去问"请确认 origin、destination"——问的是用户早就说清、系统也
+    早就读对的事。账本是累积的，证据也应当累积。
+    """
+    first = semantic_decision(
+        semantic_intent(arrive_by=None),
+        status=IntentDecisionStatus.NEEDS_CLARIFICATION,
+        clarification_question="请问几点前要到？",
+        evidence=[
+            EvidenceRef(turn_index=0, field="origin", quote="北京"),
+            EvidenceRef(turn_index=0, field="destination", quote="上海"),
+            EvidenceRef(turn_index=0, field="departure_after", quote="8月5日"),
+        ],
+    )
+    # 第二轮只补了到达时限，模型也只为这一项给证据——真实模型就是这么干的。
+    # 轮 1 是宿主追问那句（assistant），用户的回答落在轮 2。
+    second = semantic_decision(
+        evidence=[EvidenceRef(turn_index=2, field="arrive_by", quote="上午10点")],
+    )
+    workflow = _workflow(ScriptedSemanticModel([first, second]))
+
+    task = workflow.create_task_from_semantic_message(READY_MESSAGE, traveler_id="E1001")
+    assert task.state is TaskState.NEEDS_CLARIFICATION
+
+    task = workflow.submit_semantic_message(task.task_id, "上午10点前要到")
+
+    assert task.state is TaskState.WAITING_FOR_USER, task.clarification_question
+    assert task.request is not None
+    assert task.missing_required_fields == ()
+
+
+def test_changing_a_value_requires_fresh_evidence_again() -> None:
+    """取值变了就必须重新拿出原话——累积的是"这条还成立"，不是"问过就不用再问"。"""
+    first = semantic_decision(
+        evidence=[
+            EvidenceRef(turn_index=0, field=field, quote="北京")
+            for field in ("origin", "destination", "departure_after", "arrive_by")
+        ]
+    )
+    # 改了目的地却拿不出任何原话支撑：不能靠第一轮的证据蒙混过关。
+    changed = semantic_decision(
+        semantic_intent(summary="改去伦敦", destination_candidates=["London"]),
+        # 出发地仍引用第 0 轮的原话；目的地变了却一条原话都拿不出来。
+        evidence=[EvidenceRef(turn_index=0, field="origin", quote="北京")],
+    )
+    workflow = _workflow(ScriptedSemanticModel([first, changed]))
+
+    task = workflow.create_task_from_semantic_message(READY_MESSAGE, traveler_id="E1001")
+    assert task.state is TaskState.WAITING_FOR_USER
+
+    task = workflow.submit_semantic_message(task.task_id, "改去伦敦，其他不变")
+
+    assert task.state is TaskState.NEEDS_CLARIFICATION
+    assert "destination" in task.missing_required_fields, task.missing_required_fields

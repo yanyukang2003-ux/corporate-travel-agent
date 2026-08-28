@@ -47,6 +47,7 @@ def compile_search_command(
     version: int,
     city_normalizer: CityNormalizer,
     created_at: datetime,
+    already_grounded: frozenset[str] = frozenset(),
 ) -> SearchCommandCompilation:
     """Compile without guessing; unresolved semantics always produce clarification."""
     intent = decision.intent
@@ -62,7 +63,12 @@ def compile_search_command(
     if intent.arrive_by is None:
         missing.append("arrive_by")
     # 模型说可以查了，却拿不出某个必填字段的原话支撑 —— 当作还没问清，不是违约。
-    missing.extend(ungrounded_required_fields(decision))
+    missing.extend(
+        field
+        for field in ungrounded_required_fields(decision)
+        if field not in already_grounded
+    )
+    conflicts.extend(_open_jaw_conflicts(intent))
     past = _dates_already_passed(intent, created_at)
     conflicts.extend(past)
     if intent.uncertainties:
@@ -136,14 +142,39 @@ def compile_search_command(
     return SearchCommandCompilation(command=SearchCommand(request=request))
 
 
+OPEN_JAW_PREFIX = "行程形态做不了"
 PAST_DATE_PREFIX = "日期已过"
+
+
+def _open_jaw_conflicts(intent: Any) -> list[str]:
+    """返程从别的城市出发就是开口程，本系统只能做单程和往返。
+
+    `transport_legs()` 把返程**推导**成"目的地→出发地"。如果旅行者说的是"去上海、
+    从杭州回"，而这里不拦，杭州就会被无声丢掉，系统会拿一条**用户没要过的**
+    上海→北京 航线去搜库存——这正是 ADR-0002 列为历史危险的"把开口程压缩成单一路线"。
+    """
+    return_origins = [item.strip() for item in intent.return_origin_candidates if item.strip()]
+    if not return_origins:
+        return []
+    destinations = {item.strip().casefold() for item in intent.destination_candidates}
+    unmatched = sorted(
+        {item for item in return_origins if item.casefold() not in destinations}
+    )
+    if not unmatched:
+        return []
+    return [
+        f"{OPEN_JAW_PREFIX}：返程从 {'、'.join(unmatched)} 出发，和去程的目的地不是同一座"
+        "城市。本系统只能安排单程或原路往返，开口程与多城行程请分成多个申请。"
+    ]
 
 
 def _question_for(
     model_question: str | None, missing: tuple[str, ...], conflicts: tuple[str, ...]
 ) -> str:
     """日期已过时用宿主的确定性结论，其余情况优先用模型自己的追问。"""
-    if any(item.startswith(PAST_DATE_PREFIX) for item in conflicts):
+    if any(
+        item.startswith((PAST_DATE_PREFIX, OPEN_JAW_PREFIX)) for item in conflicts
+    ):
         return _clarification_for(missing, conflicts)
     return model_question or _clarification_for(missing, conflicts)
 
@@ -179,10 +210,12 @@ def _dates_already_passed(intent: Any, now: datetime) -> list[str]:
 
 
 def _clarification_for(missing: tuple[str, ...], conflicts: tuple[str, ...]) -> str:
-    passed = [item for item in conflicts if item.startswith(PAST_DATE_PREFIX)]
-    if passed:
-        # 日期已过不是"再问一遍"能解决的歧义，直接把结论摆出来。
-        return "；".join(passed)
+    blocking = [
+        item for item in conflicts if item.startswith((PAST_DATE_PREFIX, OPEN_JAW_PREFIX))
+    ]
+    if blocking:
+        # 这类结论不是"再问一遍"能解决的歧义，直接把结论摆出来。
+        return "；".join(blocking)
     if missing:
         return "请确认这些出行信息后我再搜索：" + "、".join(missing) + "。"
     if conflicts:

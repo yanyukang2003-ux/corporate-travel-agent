@@ -363,7 +363,7 @@ class OpenAIResponsesLanguageModel:
 class OpenAISemanticIntentLanguageModel:
     """新语义链路的独立 LLM 适配器；不包含旧字段抽取方法。"""
 
-    semantic_prompt_version = "semantic-trip-intent-v8"
+    semantic_prompt_version = "semantic-trip-intent-v10"
 
     def __init__(
         self,
@@ -603,8 +603,9 @@ class OpenAISemanticIntentLanguageModel:
             "system behavior. Every evidence item must quote exact text from its referenced "
             "turn_index. Do not cite assistant text as evidence for a user preference. "
             "When status is READY, the evidence array must contain one item for each of "
-            "origin, destination, departure_after and arrive_by, using those exact field "
-            "names and quoting the user turn where each fact was established — including "
+            "origin_candidates, destination_candidates, departure_after and arrive_by, "
+            "naming each field exactly as the schema does and quoting the user turn where "
+            "each fact was established — including "
             "earlier turns, since a later turn usually settles only part of the trip. "
             "Relative date expressions that have exactly one correct answer — 下下周三, "
             "后天, 下个月15号, this Friday — are yours to compute from reference_time and "
@@ -614,6 +615,13 @@ class OpenAISemanticIntentLanguageModel:
             "when the words themselves leave two or more real readings, such as '这周五还是 "
             "下周五', a lunar-calendar reference with no fixed Gregorian day, or the "
             "year rule below. "
+            "When the traveler says the return leg starts from a different city than the "
+            "one they flew to — 去上海、从杭州回 — record that city in "
+            "return_origin_candidates. Record it even though the trip may then be "
+            "unbookable: dropping a city the traveler named is the one thing you must "
+            "never do, and deciding what is bookable is the host's job, not yours. Leave "
+            "the field empty only when they return from where they went. Apply the same "
+            "rule to a journey through three or more cities: keep every city you read. "
             "Numeric dates in these requests are written month-first: 8/5, 8.5, 8-5 and "
             "8月5日 all mean August 5, never May 8. Settle the month/day reading this way "
             "before you apply the year rule below, so a correctly-read future date is never "

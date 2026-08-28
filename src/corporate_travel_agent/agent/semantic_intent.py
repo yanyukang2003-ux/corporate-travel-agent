@@ -7,6 +7,7 @@ Callers must not patch individual semantic fields after an interpretation.
 
 from __future__ import annotations
 
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from datetime import date, datetime
 from enum import StrEnum
@@ -51,6 +52,10 @@ class SemanticIntent(BaseModel):
     summary: str = Field(min_length=1, max_length=1000)
     origin_candidates: list[str]
     destination_candidates: list[str]
+    # 旅行者说返程从哪座城市起飞。为空表示他没提，按"从目的地原路返回"理解。
+    # 一旦他说了一个别的城市（去 上海、从 杭州 回），这就是开口程——系统只能表达
+    # 单程和往返两种形态，所以必须由宿主拒绝，而不是把这座城市悄悄丢掉。
+    return_origin_candidates: list[str] = Field(default_factory=list)
     departure_after: datetime | None
     arrive_by: datetime | None
     return_after: datetime | None
@@ -219,6 +224,22 @@ def _require_grounded_evidence(
 
 REQUIRED_EVIDENCE_FIELDS = ("origin", "destination", "departure_after", "arrive_by")
 
+# 证据里的字段名同时接受 schema 的真名。宿主原本只认 "origin"/"destination"，可这两个
+# 名字在 SemanticIntent 里**根本不存在**——真名是 origin_candidates/destination_candidates。
+# 模型照 schema 写是完全合理的，却会被判成"没给证据"，于是宿主回头去问用户早就说清的事。
+# 要求一个不存在的名字是宿主的坑，不是模型的错，所以两种写法都认。
+_EVIDENCE_FIELD_ALIASES = {
+    "origin_candidates": "origin",
+    "destination_candidates": "destination",
+    "return_origin_candidates": "return_origin",
+}
+
+
+def _grounded_fields(decision: IntentDecision) -> set[str]:
+    return {
+        _EVIDENCE_FIELD_ALIASES.get(item.field, item.field) for item in decision.evidence
+    }
+
 
 def ungrounded_required_fields(decision: IntentDecision) -> tuple[str, ...]:
     """READY 判定里没有原话支撑的必填字段。
@@ -232,5 +253,44 @@ def ungrounded_required_fields(decision: IntentDecision) -> tuple[str, ...]:
     """
     if decision.status is not IntentDecisionStatus.READY:
         return ()
-    grounded = {item.field for item in decision.evidence}
+    grounded = _grounded_fields(decision)
     return tuple(field for field in REQUIRED_EVIDENCE_FIELDS if field not in grounded)
+
+
+def _grounding_value(intent: SemanticIntent, field: str) -> Any:
+    """取某个必填字段在这份理解里的取值，用来判断它有没有变过。"""
+    if field == "origin":
+        return tuple(intent.origin_candidates)
+    if field == "destination":
+        return tuple(intent.destination_candidates)
+    return getattr(intent, field, None)
+
+
+def carried_grounding(
+    history: Iterable[Mapping[str, Any]], intent: SemanticIntent
+) -> frozenset[str]:
+    """先前轮次已经落实、且取值至今没变的必填字段。
+
+    证据规则防的是"模型编了一个用户没说过的城市或日期"。但对话一长，出发地和目的地
+    往往是第 0、1 轮说的，模型到第 5 轮只会引用最新那句——于是宿主会回头去问一件用户
+    早就说清、系统也早就读对的事。
+
+    账本是累积的，证据也应当累积：某个字段只要**在本任务的某一轮被原话落实过**，
+    **并且取值至今没变**，就仍然算落实。取值一旦变了，就必须重新拿出原话。
+    """
+    carried: set[str] = set()
+    for record in history:
+        payload = record.get("decision") if isinstance(record, Mapping) else None
+        if not isinstance(payload, Mapping):
+            continue
+        try:
+            past = IntentDecision.model_validate(payload)
+        except Exception:  # noqa: BLE001 - 历史留痕坏了不该阻断当前这轮
+            continue
+        grounded = _grounded_fields(past)
+        for field in REQUIRED_EVIDENCE_FIELDS:
+            if field not in grounded:
+                continue
+            if _grounding_value(past.intent, field) == _grounding_value(intent, field):
+                carried.add(field)
+    return frozenset(carried)
