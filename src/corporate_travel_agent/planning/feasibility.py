@@ -61,7 +61,20 @@ class FeasibilityValidator:
                     reasons.append("return has already departed")
                 if not inbound.available:
                     reasons.append("return inventory is unavailable")
-                if inbound.origin != request.destination or inbound.destination != request.origin:
+                # 返程航线按**行程里声明的那一段**校验，而不是硬套"目的地→出发地"：
+                # “去上海、从杭州回”是一条合法行程，杭州不该被当成路线错误。
+                legs = request.transport_legs()
+                return_leg = legs[1] if len(legs) > 1 else None
+                expected_origin = (
+                    return_leg.origin if return_leg is not None else request.destination
+                )
+                expected_destination = (
+                    return_leg.destination if return_leg is not None else request.origin
+                )
+                if (
+                    inbound.origin != expected_origin
+                    or inbound.destination != expected_destination
+                ):
                     reasons.append("return route does not match the request")
                 if inbound.depart_at < request.return_after:
                     reasons.append("return departs before the allowed window")

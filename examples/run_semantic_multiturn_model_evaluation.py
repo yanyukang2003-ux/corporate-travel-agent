@@ -125,14 +125,20 @@ CASES: tuple[MultiTurnCase, ...] = (
     ),
     MultiTurnCase(
         case_id="MT-04",
-        title="开口程：去上海、从杭州回，绝不许悄悄变成上海→北京",
+        title="开口程：去上海、从杭州回，按用户说的两段走",
         turns=(
             "去程9月15号北京飞上海，返程9月20号从杭州飞回北京",
             "9月16号中午12点前到上海就行，返程9月20号晚上8点前到北京",
         ),
-        expect_legs=(),
-        forbid_search=True,
-        question_tokens=("行程形态做不了", "杭州", "Hangzhou"),
+        # 期望在 2026-08-28 随能力变更重写：领域模型改成有序航段列表之后，
+        # 开口程不再是特例，返程起点就是第二段自己的 origin。
+        # 此前它是"必须拒绝"，因为当时杭州没地方放，宿主会拼出一条用户没要过的航线。
+        # 城市别名表里没有杭州，所以宿主原样保留中文——这条用例测的是
+        # "返程起点是杭州而不是上海"，不是译名，两种写法都接受。
+        expect_legs=(
+            ("Beijing", "Shanghai"),
+            (("Hangzhou", "杭州"), "Beijing"),
+        ),
     ),
     MultiTurnCase(
         case_id="MT-05",
@@ -171,6 +177,20 @@ def _legs(task: Any) -> list[tuple[str, str]]:
     return [(leg.origin, leg.destination) for leg in task.request.transport_legs()]
 
 
+def _legs_match(actual: list[tuple[str, str]], expected: tuple[Any, ...]) -> bool:
+    """比对航段；期望里的元素可以是一个字符串，也可以是一组可接受的写法。"""
+    if len(actual) != len(expected):
+        return False
+    for (got_origin, got_destination), (want_origin, want_destination) in zip(
+        actual, expected, strict=True
+    ):
+        for got, want in ((got_origin, want_origin), (got_destination, want_destination)):
+            allowed = want if isinstance(want, tuple) else (want,)
+            if got not in allowed:
+                return False
+    return True
+
+
 def _search_count(task: Any) -> int:
     return sum(1 for item in task.tool_calls if item.tool_name.startswith("provider.search"))
 
@@ -204,9 +224,7 @@ def _evaluate(case: MultiTurnCase, task: Any) -> list[dict[str, Any]]:
         )
 
     if case.expect_legs is not None:
-        checks.append(
-            _check("legs", tuple(legs) == case.expect_legs, f"{legs}")
-        )
+        checks.append(_check("legs", _legs_match(legs, case.expect_legs), f"{legs}"))
     if case.forbid_search:
         checks.append(_check("no_search", _search_count(task) == 0, _search_count(task)))
         checks.append(_check("no_request", task.request is None, legs))

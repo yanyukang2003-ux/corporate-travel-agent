@@ -52,6 +52,7 @@ def validate_trip_request(request: TripRequestVersion) -> TripRequestValidation:
         {
             "origin": request.origin,
             "destination": request.destination,
+            "journey": request.journey,
             "departure_after": request.departure_after,
             "arrive_by": request.arrive_by,
             "return_after": request.return_after,
@@ -193,10 +194,69 @@ def validate_trip_request_values(fields: Mapping[str, Any]) -> TripRequestValida
         if hotel_check_out is None:
             missing.append("hotel_check_out")
 
+    conflicts.extend(_journey_conflicts(fields.get("journey")))
+
     return TripRequestValidation(
         tuple(dict.fromkeys(missing)),
         tuple(dict.fromkeys(conflicts)),
     )
+
+
+#: 一次申请最多能安排的航段数。抄 Amadeus 的上限，把“做不了”从模糊的能力边界
+#: 变成一个可以确定性判定的数字，也才能给用户一句可执行的答复。
+MAX_JOURNEY_LEGS = 6
+
+
+def _journey_conflicts(journey: Any) -> list[str]:
+    """校验显式给出的航段序列：段数、串接、时序。
+
+    这是多段行程唯一的确定性守门人。串接检查（上一段落地必须早于下一段起飞）
+    在只有两段时不需要——返程窗口由用户自己给——但段数一多就成了正确性的关键。
+    """
+    if not journey:
+        return []
+    if not isinstance(journey, (list, tuple)):
+        return ["journey must be a sequence of legs"]
+    legs = list(journey)
+    problems: list[str] = []
+    if len(legs) > MAX_JOURNEY_LEGS:
+        problems.append(
+            f"journey has {len(legs)} legs; at most {MAX_JOURNEY_LEGS} can be arranged "
+            "in one request"
+        )
+    for index, leg in enumerate(legs):
+        origin = getattr(leg, "origin", None)
+        destination = getattr(leg, "destination", None)
+        depart_after = getattr(leg, "depart_after", None)
+        arrive_before = getattr(leg, "arrive_before", None)
+        if not isinstance(origin, str) or not origin.strip():
+            problems.append(f"journey leg {index} is missing an origin")
+        if not isinstance(destination, str) or not destination.strip():
+            problems.append(f"journey leg {index} is missing a destination")
+        if (
+            isinstance(origin, str)
+            and isinstance(destination, str)
+            and origin.strip().casefold() == destination.strip().casefold()
+        ):
+            problems.append(f"journey leg {index} starts and ends in the same city")
+        if not isinstance(depart_after, datetime) or not isinstance(arrive_before, datetime):
+            problems.append(f"journey leg {index} needs a departure and arrival window")
+            continue
+        if not _timezone_aware(depart_after) or not _timezone_aware(arrive_before):
+            problems.append(f"journey leg {index} windows must be timezone-aware")
+            continue
+        if arrive_before <= depart_after:
+            problems.append(f"journey leg {index} must arrive after it departs")
+        if index == 0:
+            continue
+        previous = legs[index - 1]
+        previous_arrival = getattr(previous, "arrive_before", None)
+        if isinstance(previous_arrival, datetime) and _timezone_aware(previous_arrival):
+            if depart_after < previous_arrival:
+                problems.append(
+                    f"journey leg {index} departs before leg {index - 1} is due to arrive"
+                )
+    return problems
 
 
 def _require_aware(value: object, field_name: str, conflicts: list[str]) -> None:

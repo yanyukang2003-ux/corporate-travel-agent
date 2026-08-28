@@ -76,30 +76,20 @@ class ItineraryPlanner:
             if not feasibility.feasible:
                 continue
 
+            # 政策只做标注，不在这里过滤。被禁的方案也要带着理由留在结果里——
+            # 否则旅行者只会看到一份莫名偏贵的列表，永远不知道最便宜那个是被政策禁的。
+            # 要不要展示给用户，是展示层的决定，不是规划层的决定。
             decision = self.policy_engine.evaluate(employee, policy, transports, hotel)
-            if decision.outcome in {
-                PolicyOutcome.FORBIDDEN,
-                PolicyOutcome.INSUFFICIENT_EVIDENCE,
-            }:
-                continue
 
             total_cost = sum((item.price for item in transports), Decimal("0"))
             if hotel:
                 total_cost += hotel.total_price
             duration = sum(self._minutes(item.depart_at, item.arrive_at) for item in transports)
             preference_penalty = self._preference_penalty(request, outbound, hotel)
-            # 需审批方案加重罚分，排序时靠后
-            policy_penalty = (
-                Decimal("1000")
-                if decision.outcome is PolicyOutcome.REQUIRES_APPROVAL
-                else Decimal("0")
-            )
-            score = (
-                total_cost
-                + Decimal(duration) / Decimal("10")
-                + preference_penalty
-                + policy_penalty
-            )
+            # 政策**不进分数**。它是三档分类结论，不是可以被价格投票推翻的权重：
+            # 折算成罚分的话，一个需审批但足够便宜的方案会排到完全合规的前面。
+            # 排序改为「先按政策分档，档内再按分数」，见 _select_ranked_options。
+            score = total_cost + Decimal(duration) / Decimal("10") + preference_penalty
             snapshot_ids = tuple(
                 dict.fromkeys(
                     [outbound.snapshot_id]
@@ -148,22 +138,55 @@ class ItineraryPlanner:
 
         return self._select_ranked_options(options, limit)
 
+    #: 政策分档：合规优先，需审批其次，不可选的排最后。政策不参与分数计算。
+    _POLICY_BANDS: dict[PolicyOutcome, int] = {
+        PolicyOutcome.COMPLIANT: 0,
+        PolicyOutcome.REQUIRES_APPROVAL: 1,
+    }
+    _BLOCKED_BAND = 2
+
+    @classmethod
+    def _policy_band(cls, option: TravelOptionVersion) -> int:
+        return cls._POLICY_BANDS.get(option.policy_decision.outcome, cls._BLOCKED_BAND)
+
     @staticmethod
     def _select_ranked_options(
         options: list[TravelOptionVersion],
         limit: int,
     ) -> list[TravelOptionVersion]:
-        """按分数排序后保留展示指纹唯一的方案，避免同酒店多价位重复。"""
-        ranked = sorted(options, key=lambda item: (item.score, item.option_id))
-        unique: list[TravelOptionVersion] = []
+        """先按政策分档、档内按分数排序；被政策挡住的方案只在本可胜出时才保留。
+
+        保留的目的是**透明**，不是凑数：只有当一个被挡住的方案分数优于所有可选方案时，
+        它才值得摆出来——那正是"最便宜的那个被政策禁了"这句话需要说出口的情形。
+        比可选方案还差的被挡方案只是噪音，不保留。
+        """
+        ranked = sorted(
+            options,
+            key=lambda item: (
+                ItineraryPlanner._policy_band(item),
+                item.score,
+                item.option_id,
+            ),
+        )
+        selectable: list[TravelOptionVersion] = []
+        blocked: list[TravelOptionVersion] = []
         seen: set[tuple[object, ...]] = set()
         for option in ranked:
             fingerprint = ItineraryPlanner._display_fingerprint(option)
             if fingerprint in seen:
                 continue
             seen.add(fingerprint)
-            unique.append(option)
-        return unique[:limit]
+            if ItineraryPlanner._policy_band(option) < ItineraryPlanner._BLOCKED_BAND:
+                if len(selectable) < limit:
+                    selectable.append(option)
+            else:
+                blocked.append(option)
+
+        if not selectable:
+            return []
+        best_selectable = min(item.score for item in selectable)
+        would_have_won = [item for item in blocked if item.score < best_selectable]
+        return selectable + would_have_won[:1]
 
     @staticmethod
     def _display_fingerprint(option: TravelOptionVersion) -> tuple[object, ...]:

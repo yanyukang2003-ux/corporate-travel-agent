@@ -1,10 +1,11 @@
 from __future__ import annotations
 
+from dataclasses import replace
 from datetime import UTC, date, datetime
 from decimal import Decimal
 from zoneinfo import ZoneInfo
 
-from corporate_travel_agent.domain.enums import TransportMode
+from corporate_travel_agent.domain.enums import PolicyOutcome, TransportMode
 from corporate_travel_agent.domain.models import (
     COMMUTE_UNKNOWN_MINUTES,
     EmployeeProfileSnapshot,
@@ -237,3 +238,92 @@ def test_a_departure_exactly_now_is_treated_as_gone() -> None:
     )
 
     assert options == []
+
+
+def _approval_policy() -> PolicySnapshot:
+    """舱位违规可以走例外审批。"""
+    return replace(
+        _policy(),
+        exception_allowed_rule_ids=frozenset({"transport.flight.seat_class"}),
+    )
+
+
+def test_a_cheap_option_needing_approval_never_outranks_a_compliant_one() -> None:
+    """政策是三档分类，不是可以被价格投票推翻的权重。
+
+    此前政策被折算成 1000 元罚分加进分数，于是一个需审批但便宜得多的方案
+    会排在完全合规的方案前面。现在改成先按政策分档、档内再排分数。
+    """
+    planner = ItineraryPlanner()
+    compliant = _flight("COMPLIANT-PRICEY", hour=14, price="5000")
+    needs_approval = replace(
+        _flight("CHEAP-BUSINESS", hour=15, price="30"), seat_class="BUSINESS"
+    )
+
+    options = planner.plan(
+        _request(),
+        _employee(),
+        _approval_policy(),
+        outbound_offers=[compliant, needs_approval],
+        inbound_offers=[_return_flight()],
+        hotel_offers=[_hotel("litehotel_a")],
+        limit=5,
+        now=NOW,
+    )
+
+    refs = [item.outbound.ref_id for item in options]
+    assert refs[:2] == ["COMPLIANT-PRICEY", "CHEAP-BUSINESS"], refs
+    assert options[0].policy_decision.outcome is PolicyOutcome.COMPLIANT
+    assert options[1].policy_decision.outcome is PolicyOutcome.REQUIRES_APPROVAL
+    # 便宜得多（分数更低），但仍然排在合规方案之后——政策不参与打分。
+    assert options[1].score < options[0].score
+
+
+def test_a_blocked_option_is_kept_with_its_reason_when_it_would_have_won() -> None:
+    """被政策挡住的方案不能静默消失——否则用户只看到一份莫名偏贵的列表。"""
+    planner = ItineraryPlanner()
+    allowed = _flight("ALLOWED", hour=14, price="900")
+    blocked = replace(_flight("BLOCKED-CHEAPEST", hour=15, price="20"), seat_class="BUSINESS")
+
+    options = planner.plan(
+        _request(),
+        _employee(),
+        _policy(),  # 不允许例外 → 舱位违规是禁止而非需审批
+        outbound_offers=[allowed, blocked],
+        inbound_offers=[_return_flight()],
+        hotel_offers=[_hotel("litehotel_a")],
+        limit=3,
+        now=NOW,
+    )
+
+    refs = [item.outbound.ref_id for item in options]
+    assert "ALLOWED" in refs
+    assert "BLOCKED-CHEAPEST" in refs, "最便宜的那个被挡住了，必须让用户看得见"
+    blocked_option = next(
+        item for item in options if item.outbound.ref_id == "BLOCKED-CHEAPEST"
+    )
+    assert blocked_option.policy_decision.outcome is not PolicyOutcome.COMPLIANT
+    assert blocked_option.policy_decision.violation_ids, "必须带着被挡的理由"
+    assert refs.index("BLOCKED-CHEAPEST") == len(refs) - 1, "排在所有可选方案之后"
+
+
+def test_a_blocked_option_that_is_worse_anyway_is_not_shown() -> None:
+    """保留是为了透明，不是为了凑数：比可选方案还差的被挡方案只是噪音。"""
+    planner = ItineraryPlanner()
+    allowed = _flight("ALLOWED-CHEAP", hour=14, price="20")
+    blocked = replace(_flight("BLOCKED-PRICEY", hour=15, price="9000"), seat_class="BUSINESS")
+
+    options = planner.plan(
+        _request(),
+        _employee(),
+        _policy(),
+        outbound_offers=[allowed, blocked],
+        inbound_offers=[_return_flight()],
+        hotel_offers=[_hotel("litehotel_a")],
+        limit=3,
+        now=NOW,
+    )
+
+    refs = [item.outbound.ref_id for item in options]
+    assert "ALLOWED-CHEAP" in refs
+    assert "BLOCKED-PRICEY" not in refs

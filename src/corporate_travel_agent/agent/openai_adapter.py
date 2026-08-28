@@ -363,7 +363,7 @@ class OpenAIResponsesLanguageModel:
 class OpenAISemanticIntentLanguageModel:
     """新语义链路的独立 LLM 适配器；不包含旧字段抽取方法。"""
 
-    semantic_prompt_version = "semantic-trip-intent-v10"
+    semantic_prompt_version = "semantic-trip-intent-v11"
 
     def __init__(
         self,
@@ -617,11 +617,12 @@ class OpenAISemanticIntentLanguageModel:
             "year rule below. "
             "When the traveler says the return leg starts from a different city than the "
             "one they flew to — 去上海、从杭州回 — record that city in "
-            "return_origin_candidates. Record it even though the trip may then be "
-            "unbookable: dropping a city the traveler named is the one thing you must "
-            "never do, and deciding what is bookable is the host's job, not yours. Leave "
-            "the field empty only when they return from where they went. Apply the same "
-            "rule to a journey through three or more cities: keep every city you read. "
+            "return_origin_candidates — that shape is supported and becomes the return "
+            "leg's own origin. Leave the field empty only when they return from where "
+            "they went. Dropping a city the traveler named is the one thing you must "
+            "never do, and deciding what can be booked is the host's job, not yours: "
+            "keep every city you read, including on a journey through three or more "
+            "cities that this system may not be able to arrange in one request. "
             "Numeric dates in these requests are written month-first: 8/5, 8.5, 8-5 and "
             "8月5日 all mean August 5, never May 8. Settle the month/day reading this way "
             "before you apply the year rule below, so a correctly-read future date is never "

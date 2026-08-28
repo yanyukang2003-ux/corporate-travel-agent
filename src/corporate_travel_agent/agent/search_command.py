@@ -6,8 +6,16 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Any
 
-from corporate_travel_agent.domain.enums import LodgingRequirement
-from corporate_travel_agent.domain.models import TripRequestVersion
+from corporate_travel_agent.domain.enums import (
+    BookingScope,
+    LodgingRequirement,
+    TripLegRole,
+)
+from corporate_travel_agent.domain.models import (
+    Commitment,
+    TripLeg,
+    TripRequestVersion,
+)
 from corporate_travel_agent.domain.validation import validate_trip_request
 from corporate_travel_agent.services.locations import CityNormalizer
 
@@ -68,7 +76,9 @@ def compile_search_command(
         for field in ungrounded_required_fields(decision)
         if field not in already_grounded
     )
-    conflicts.extend(_open_jaw_conflicts(intent))
+    if len(intent.return_origin_candidates) > 1:
+        # 返程从哪出发本身还没定下来，先问清再说。
+        missing.append("return_origin")
     past = _dates_already_passed(intent, created_at)
     conflicts.extend(past)
     if intent.uncertainties:
@@ -127,6 +137,9 @@ def compile_search_command(
         hard_constraints=tuple(hard_constraints),
         soft_preferences=tuple(intent.soft_preferences),
         booking_scope=intent.booking_scope,
+        journey=_journey_from(intent, city_normalizer),
+        commitments=_commitments_from(intent, hard_constraints),
+        client_location=intent.client_location,
         created_at=created_at,
     )
     validation = validate_trip_request(request)
@@ -142,39 +155,85 @@ def compile_search_command(
     return SearchCommandCompilation(command=SearchCommand(request=request))
 
 
-OPEN_JAW_PREFIX = "行程形态做不了"
-PAST_DATE_PREFIX = "日期已过"
+def _commitments_from(intent: Any, hard_constraints: list[str]) -> tuple[Commitment, ...]:
+    """把「要在哪、什么时候之前到场、为了什么」从散落的字段里收拢成承诺。
 
-
-def _open_jaw_conflicts(intent: Any) -> list[str]:
-    """返程从别的城市出发就是开口程，本系统只能做单程和往返。
-
-    `transport_legs()` 把返程**推导**成"目的地→出发地"。如果旅行者说的是"去上海、
-    从杭州回"，而这里不拦，杭州就会被无声丢掉，系统会拿一条**用户没要过的**
-    上海→北京 航线去搜库存——这正是 ADR-0002 列为历史危险的"把开口程压缩成单一路线"。
+    今天这三样分别躺在 `arrive_by`（时限）、`client_location`（地点，随后被丢掉）和
+    `hard_constraints` 里的字符串 `arrive_before_meeting`（要不要留缓冲）。
+    收拢之后它们才是一件事，政策也才谈得上判断这趟差旅本身合不合理。
     """
-    return_origins = [item.strip() for item in intent.return_origin_candidates if item.strip()]
-    if not return_origins:
-        return []
-    destinations = {item.strip().casefold() for item in intent.destination_candidates}
-    unmatched = sorted(
-        {item for item in return_origins if item.casefold() not in destinations}
+    if intent.arrive_by is None:
+        return ()
+    place = (intent.client_location or "").strip() or (
+        intent.destination_candidates[0] if len(intent.destination_candidates) == 1 else ""
     )
-    if not unmatched:
-        return []
-    return [
-        f"{OPEN_JAW_PREFIX}：返程从 {'、'.join(unmatched)} 出发，和去程的目的地不是同一座"
-        "城市。本系统只能安排单程或原路往返，开口程与多城行程请分成多个申请。"
+    if not place:
+        return ()
+    return (
+        Commitment(
+            place=place,
+            not_later_than=intent.arrive_by,
+            purpose=intent.summary or None,
+            safety_buffer_required="arrive_before_meeting" in hard_constraints,
+        ),
+    )
+
+
+
+
+def _journey_from(intent: Any, city_normalizer: CityNormalizer) -> tuple[TripLeg, ...]:
+    """把语义理解编译成有序航段。
+
+    返程的**起点**用旅行者说过的那座城市；没说就是原路返回。此前领域模型没有地方
+    放"从别的城市回"，于是这句话被无声丢掉，宿主按"目的地→出发地"拼出一条用户
+    没要过的航线并真的去搜了库存。现在它只是第二段自己的 origin，不再是特例。
+    """
+    origin = city_normalizer.canonicalize(intent.origin_candidates[0])
+    destination = city_normalizer.canonicalize(intent.destination_candidates[0])
+    outbound_role = (
+        TripLegRole.RETURN
+        if intent.booking_scope is BookingScope.RETURN_ONLY
+        else TripLegRole.OUTBOUND
+    )
+    legs = [
+        TripLeg(
+            role=outbound_role,
+            origin=origin,
+            destination=destination,
+            depart_after=intent.departure_after,
+            arrive_before=intent.arrive_by,
+        )
     ]
+    if (
+        intent.booking_scope is BookingScope.ROUND_TRIP
+        and intent.return_after is not None
+        and intent.return_before is not None
+    ):
+        return_origin = (
+            city_normalizer.canonicalize(intent.return_origin_candidates[0])
+            if len(intent.return_origin_candidates) == 1
+            else destination
+        )
+        legs.append(
+            TripLeg(
+                role=TripLegRole.RETURN,
+                origin=return_origin,
+                destination=origin,
+                depart_after=intent.return_after,
+                arrive_before=intent.return_before,
+            )
+        )
+    return tuple(legs)
+
+
+PAST_DATE_PREFIX = "日期已过"
 
 
 def _question_for(
     model_question: str | None, missing: tuple[str, ...], conflicts: tuple[str, ...]
 ) -> str:
     """日期已过时用宿主的确定性结论，其余情况优先用模型自己的追问。"""
-    if any(
-        item.startswith((PAST_DATE_PREFIX, OPEN_JAW_PREFIX)) for item in conflicts
-    ):
+    if any(item.startswith(PAST_DATE_PREFIX) for item in conflicts):
         return _clarification_for(missing, conflicts)
     return model_question or _clarification_for(missing, conflicts)
 
@@ -210,9 +269,7 @@ def _dates_already_passed(intent: Any, now: datetime) -> list[str]:
 
 
 def _clarification_for(missing: tuple[str, ...], conflicts: tuple[str, ...]) -> str:
-    blocking = [
-        item for item in conflicts if item.startswith((PAST_DATE_PREFIX, OPEN_JAW_PREFIX))
-    ]
+    blocking = [item for item in conflicts if item.startswith(PAST_DATE_PREFIX)]
     if blocking:
         # 这类结论不是"再问一遍"能解决的歧义，直接把结论摆出来。
         return "；".join(blocking)

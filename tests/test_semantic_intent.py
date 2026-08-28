@@ -339,7 +339,7 @@ def test_openai_adapter_uses_semantic_schema_and_complete_ledger() -> None:
     )
 
     assert result.decision == expected
-    assert result.metadata.prompt_version == "semantic-trip-intent-v10"
+    assert result.metadata.prompt_version == "semantic-trip-intent-v11"
     assert result.metadata.evidence_contract_version == "conversation-turn-v1"
 
 
@@ -665,12 +665,14 @@ def test_prompt_pins_the_month_first_reading_of_numeric_dates() -> None:
     assert prompt.index("month-first") < prompt.index("bare month/day with no year")
 
 
-def test_an_open_jaw_return_is_refused_instead_of_being_collapsed() -> None:
-    """"去上海、从杭州回"绝不能被压成"上海→北京"。
+def test_an_open_jaw_return_becomes_its_own_leg_instead_of_being_collapsed() -> None:
+    """"去上海、从杭州回"现在编译成两段真实航线，而不是被拒绝、更不是被压扁。
 
-    实测真模型确实会这样：它把"从杭州飞回"整句丢掉，宿主照着 `transport_legs()` 的
-    推导规则拼出一条**用户没要过的** 上海→北京 返程，然后真的去搜了库存。这就是
-    ADR-0002 列为历史危险的"把开口程压缩成单一路线"。
+    这条用例的期望**变过一次**，因为能力变了不是因为要让测试过：
+    - 领域模型只能表达"原路往返"时，杭州没地方放，宿主拼出一条用户没要过的
+      上海→北京 并真的去搜了库存（静默错搜）。当时的止血办法是**拒绝**这类行程。
+    - 现在行程是有序航段列表，返程的起点就是第二段自己的 origin，
+      开口程不再是特例，直接支持。
     """
     compiled = compile_search_command(
         _decision(
@@ -692,18 +694,42 @@ def test_an_open_jaw_return_is_refused_instead_of_being_collapsed() -> None:
         created_at=datetime(2026, 8, 1, 9, 0, tzinfo=SHANGHAI),
     )
 
-    assert not compiled.ready
-    assert compiled.command is None
-    assert any(item.startswith("行程形态做不了") for item in compiled.conflicts), (
-        compiled.conflicts
+    assert compiled.ready, (compiled.missing, compiled.conflicts)
+    legs = compiled.command.request.transport_legs()
+    assert [(leg.origin, leg.destination) for leg in legs] == [
+        ("Beijing", "Shanghai"),
+        ("Hangzhou", "Beijing"),
+    ]
+
+
+def test_an_unsettled_return_origin_is_asked_about_rather_than_guessed() -> None:
+    """返程从哪出发还有两个候选时，问清楚再说，不许随手挑一个。"""
+    compiled = compile_search_command(
+        _decision(
+            _ready_intent(
+                return_origin_candidates=["Hangzhou", "Suzhou"],
+                return_after=datetime(2026, 8, 20, 18, 0, tzinfo=SHANGHAI),
+                return_before=datetime(2026, 8, 20, 23, 0, tzinfo=SHANGHAI),
+                booking_scope=BookingScope.ROUND_TRIP,
+            ),
+            evidence=[
+                EvidenceRef(turn_index=0, field=field, quote="北京")
+                for field in ("origin", "destination", "departure_after", "arrive_by")
+            ],
+        ),
+        task_id="open-jaw-unsettled",
+        traveler_id="E1001",
+        version=1,
+        city_normalizer=CityNormalizer(),
+        created_at=datetime(2026, 8, 1, 9, 0, tzinfo=SHANGHAI),
     )
-    assert "Hangzhou" in (compiled.clarification_question or "")
-    # 这个结论要盖过模型自己的追问，和"日期已过"一样。
-    assert (compiled.clarification_question or "").startswith("行程形态做不了")
+
+    assert not compiled.ready
+    assert "return_origin" in compiled.missing
 
 
-def test_an_ordinary_round_trip_is_not_mistaken_for_an_open_jaw() -> None:
-    """返程从目的地原路回来，是最普通的往返，不能被新规则误伤。"""
+def test_an_ordinary_round_trip_still_comes_back_the_way_it_went() -> None:
+    """返程从目的地原路回来，仍然是最普通的往返。"""
     compiled = compile_search_command(
         _decision(
             _ready_intent(
@@ -726,7 +752,11 @@ def test_an_ordinary_round_trip_is_not_mistaken_for_an_open_jaw() -> None:
     )
 
     assert compiled.ready
-    assert compiled.command is not None
+    legs = compiled.command.request.transport_legs()
+    assert [(leg.origin, leg.destination) for leg in legs] == [
+        ("Beijing", "Shanghai"),
+        ("Shanghai", "Beijing"),
+    ]
 
 
 def test_prompt_tells_the_model_to_keep_a_city_it_cannot_book() -> None:
@@ -736,7 +766,7 @@ def test_prompt_tells_the_model_to_keep_a_city_it_cannot_book() -> None:
 
     assert "return_origin_candidates" in prompt
     # 关键是告诉模型：记下来是你的活，能不能订是宿主的活。
-    assert "dropping a city the traveler named" in prompt
+    assert "Dropping a city the traveler named" in prompt
     assert "the host's job, not yours" in prompt
     assert "three or more cities" in prompt
 
@@ -768,3 +798,59 @@ def test_evidence_may_name_the_schema_fields_rather_than_the_short_names() -> No
 
     assert compiled.ready, (compiled.missing, compiled.conflicts)
     assert compiled.command is not None
+
+
+def test_the_meeting_commitment_survives_into_the_request() -> None:
+    """会面地点此前被抽出来又丢掉；现在它和到达时限、缓冲要求收拢成一条承诺。
+
+    拆散的时候，政策引擎只能查单价——它根本不知道这趟差旅是为什么去的。
+    """
+    compiled = compile_search_command(
+        _decision(
+            _ready_intent(
+                summary="去客户现场做季度评审",
+                client_location="上海张江客户现场",
+            ),
+            evidence=[
+                EvidenceRef(turn_index=0, field=field, quote="北京")
+                for field in ("origin", "destination", "departure_after", "arrive_by")
+            ],
+        ),
+        task_id="commitment",
+        traveler_id="E1001",
+        version=1,
+        city_normalizer=CityNormalizer(),
+        created_at=datetime(2026, 8, 1, 9, 0, tzinfo=SHANGHAI),
+    )
+
+    assert compiled.ready
+    request = compiled.command.request
+    assert request.client_location == "上海张江客户现场"
+    assert len(request.commitments) == 1
+    commitment = request.commitments[0]
+    assert commitment.place == "上海张江客户现场"
+    assert commitment.not_later_than == datetime(2026, 8, 6, 10, 0, tzinfo=SHANGHAI)
+    assert commitment.purpose == "去客户现场做季度评审"
+    # arrive_before_meeting 从"硬约束元组里的一个字符串"变成了承诺自己的属性。
+    assert commitment.safety_buffer_required is True
+
+
+def test_without_a_named_place_the_destination_carries_the_commitment() -> None:
+    """没说会面地点时，到场地点就是目的地——仍然是一条承诺，不是空的。"""
+    compiled = compile_search_command(
+        _decision(
+            _ready_intent(client_location=None),
+            evidence=[
+                EvidenceRef(turn_index=0, field=field, quote="北京")
+                for field in ("origin", "destination", "departure_after", "arrive_by")
+            ],
+        ),
+        task_id="commitment-fallback",
+        traveler_id="E1001",
+        version=1,
+        city_normalizer=CityNormalizer(),
+        created_at=datetime(2026, 8, 1, 9, 0, tzinfo=SHANGHAI),
+    )
+
+    assert compiled.command.request.commitments[0].place == "Shanghai"
+    assert compiled.command.request.client_location is None

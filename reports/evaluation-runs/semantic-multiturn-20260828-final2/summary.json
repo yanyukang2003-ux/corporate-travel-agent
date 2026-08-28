@@ -1,0 +1,860 @@
+{
+  "started_at": "2026-08-28T21:14:56.150059+00:00",
+  "finished_at": "2026-08-28T21:18:09.997377+00:00",
+  "runner_version": "semantic-multiturn-model-runner-v1",
+  "gate_id": "MT-semantic",
+  "entrypoint": "semantic",
+  "inventory": "mock",
+  "model": "deepseek-v4-pro",
+  "semantic_prompt_version": "semantic-trip-intent-v11",
+  "repeats": 2,
+  "model_calls": 27,
+  "price_table_version": "model-prices-openai-20260802-v1",
+  "price_table_sha256": "dd2a754fb067cbb147677d6d75ac462f4f327480776696fadc8c6547cbdbbf46",
+  "currency": "USD",
+  "estimated_cost_usd": 0.041877885,
+  "measurement_only": true,
+  "passed": 5,
+  "total": 5,
+  "unstable_cases": [],
+  "cases": [
+    {
+      "case_id": "MT-01",
+      "title": "五轮逐步搭出一趟往返：每一轮的信息都不许丢",
+      "passed": true,
+      "checks": [
+        {
+          "name": "origin",
+          "ok": true,
+          "detail": "expected Beijing, got Beijing"
+        },
+        {
+          "name": "destination",
+          "ok": true,
+          "detail": "expected Shanghai, got Shanghai"
+        },
+        {
+          "name": "departure_date",
+          "ok": true,
+          "detail": "expected 2026-09-15, got 2026-09-15"
+        },
+        {
+          "name": "arrive_date",
+          "ok": true,
+          "detail": "expected 2026-09-16, got 2026-09-16"
+        },
+        {
+          "name": "return_date",
+          "ok": true,
+          "detail": "expected 2026-09-18, got 2026-09-18"
+        },
+        {
+          "name": "legs",
+          "ok": true,
+          "detail": "[('Beijing', 'Shanghai'), ('Shanghai', 'Beijing')]"
+        }
+      ],
+      "state": "NO_FEASIBLE_OPTION",
+      "legs": [
+        [
+          "Beijing",
+          "Shanghai"
+        ],
+        [
+          "Shanghai",
+          "Beijing"
+        ]
+      ],
+      "searches": 3,
+      "clarification_question": null,
+      "conflicts": [],
+      "intent_fields": {
+        "origin": "Beijing",
+        "destination": "Shanghai",
+        "departure_after": "2026-09-15 00:00:00+08:00",
+        "arrive_by": "2026-09-16 12:00:00+08:00",
+        "return_after": "2026-09-18 18:00:00+08:00",
+        "return_before": "2026-09-18 23:00:00+08:00",
+        "booking_scope": "ROUND_TRIP",
+        "lodging_requirement": "UNSPECIFIED"
+      },
+      "user_turns": [
+        "下个月要去上海出差",
+        "从北京出发",
+        "9月15号走",
+        "9月16号中午12点前必须到",
+        "9月18号晚上6点以后到11点前起飞回北京"
+      ],
+      "transcript": [
+        {
+          "turn": 0,
+          "said": "下个月要去上海出差",
+          "state": "NEEDS_CLARIFICATION"
+        },
+        {
+          "turn": 1,
+          "said": "从北京出发",
+          "state": "NEEDS_CLARIFICATION",
+          "question": "请问您计划哪一天从北京出发去上海？"
+        },
+        {
+          "turn": 2,
+          "said": "9月15号走",
+          "state": "NEEDS_CLARIFICATION",
+          "question": "请确认这些出行信息后我再搜索：arrive_by。"
+        },
+        {
+          "turn": 3,
+          "said": "9月16号中午12点前必须到",
+          "state": "NO_FEASIBLE_OPTION",
+          "question": null
+        },
+        {
+          "turn": 4,
+          "said": "9月18号晚上6点以后到11点前起飞回北京",
+          "state": "NO_FEASIBLE_OPTION",
+          "question": null
+        }
+      ],
+      "llm_calls": [
+        {
+          "prompt_version": "semantic-trip-intent-v11",
+          "model": "deepseek-v4-pro",
+          "duration_ms": 4701,
+          "requested_model": "deepseek-v4-pro",
+          "reasoning_effort": "medium",
+          "response_id": "9188ec80-7dda-41af-8f89-5a163af5331d",
+          "input_tokens": 2572,
+          "output_tokens": 314,
+          "cached_input_tokens": 2560,
+          "cache_write_input_tokens": null,
+          "reasoning_output_tokens": null,
+          "total_tokens": 2886,
+          "service_tier": null,
+          "evidence_contract_version": "conversation-turn-v1",
+          "envelope_repaired": false
+        },
+        {
+          "prompt_version": "semantic-trip-intent-v11",
+          "model": "deepseek-v4-pro",
+          "duration_ms": 4102,
+          "requested_model": "deepseek-v4-pro",
+          "reasoning_effort": "medium",
+          "response_id": "381a4c8d-b33a-4f1f-8a4b-e26acd4dae80",
+          "input_tokens": 2609,
+          "output_tokens": 324,
+          "cached_input_tokens": 2560,
+          "cache_write_input_tokens": null,
+          "reasoning_output_tokens": null,
+          "total_tokens": 2933,
+          "service_tier": null,
+          "evidence_contract_version": "conversation-turn-v1",
+          "envelope_repaired": false
+        },
+        {
+          "prompt_version": "semantic-trip-intent-v11",
+          "model": "deepseek-v4-pro",
+          "duration_ms": 4981,
+          "requested_model": "deepseek-v4-pro",
+          "reasoning_effort": "medium",
+          "response_id": "fd8f8c6a-d278-469e-affc-96966fe38e56",
+          "input_tokens": 2645,
+          "output_tokens": 412,
+          "cached_input_tokens": 2560,
+          "cache_write_input_tokens": null,
+          "reasoning_output_tokens": null,
+          "total_tokens": 3057,
+          "service_tier": null,
+          "evidence_contract_version": "conversation-turn-v1",
+          "envelope_repaired": false
+        },
+        {
+          "prompt_version": "semantic-trip-intent-v11",
+          "model": "deepseek-v4-pro",
+          "duration_ms": 5599,
+          "requested_model": "deepseek-v4-pro",
+          "reasoning_effort": "medium",
+          "response_id": "94806fa3-9d0f-4c78-8e0b-11f2dd302ca9",
+          "input_tokens": 2688,
+          "output_tokens": 477,
+          "cached_input_tokens": 2560,
+          "cache_write_input_tokens": null,
+          "reasoning_output_tokens": null,
+          "total_tokens": 3165,
+          "service_tier": null,
+          "evidence_contract_version": "conversation-turn-v1",
+          "envelope_repaired": false
+        },
+        {
+          "prompt_version": "semantic-trip-intent-v11",
+          "model": "deepseek-v4-pro",
+          "duration_ms": 6495,
+          "requested_model": "deepseek-v4-pro",
+          "reasoning_effort": "medium",
+          "response_id": "1aa37ce4-31e3-49b3-a144-3cec03f43a3e",
+          "input_tokens": 2713,
+          "output_tokens": 583,
+          "cached_input_tokens": 2688,
+          "cache_write_input_tokens": null,
+          "reasoning_output_tokens": null,
+          "total_tokens": 3296,
+          "service_tier": null,
+          "evidence_contract_version": "conversation-turn-v1",
+          "envelope_repaired": false
+        },
+        {
+          "prompt_version": "semantic-trip-intent-v11",
+          "model": "deepseek-v4-pro",
+          "duration_ms": 4406,
+          "requested_model": "deepseek-v4-pro",
+          "reasoning_effort": "medium",
+          "response_id": "69672c74-fc82-4f97-ada6-f97be877c9cc",
+          "input_tokens": 2572,
+          "output_tokens": 307,
+          "cached_input_tokens": 2560,
+          "cache_write_input_tokens": null,
+          "reasoning_output_tokens": null,
+          "total_tokens": 2879,
+          "service_tier": null,
+          "evidence_contract_version": "conversation-turn-v1",
+          "envelope_repaired": false
+        },
+        {
+          "prompt_version": "semantic-trip-intent-v11",
+          "model": "deepseek-v4-pro",
+          "duration_ms": 5618,
+          "requested_model": "deepseek-v4-pro",
+          "reasoning_effort": "medium",
+          "response_id": "4cce01f3-7bb6-43df-835d-737988fd191a",
+          "input_tokens": 2602,
+          "output_tokens": 318,
+          "cached_input_tokens": 2560,
+          "cache_write_input_tokens": null,
+          "reasoning_output_tokens": null,
+          "total_tokens": 2920,
+          "service_tier": null,
+          "evidence_contract_version": "conversation-turn-v1",
+          "envelope_repaired": false
+        },
+        {
+          "prompt_version": "semantic-trip-intent-v11",
+          "model": "deepseek-v4-pro",
+          "duration_ms": 5055,
+          "requested_model": "deepseek-v4-pro",
+          "reasoning_effort": "medium",
+          "response_id": "e78d0f65-528b-4a7f-8c57-65d3c5f45857",
+          "input_tokens": 2634,
+          "output_tokens": 404,
+          "cached_input_tokens": 2560,
+          "cache_write_input_tokens": null,
+          "reasoning_output_tokens": null,
+          "total_tokens": 3038,
+          "service_tier": null,
+          "evidence_contract_version": "conversation-turn-v1",
+          "envelope_repaired": false
+        },
+        {
+          "prompt_version": "semantic-trip-intent-v11",
+          "model": "deepseek-v4-pro",
+          "duration_ms": 5505,
+          "requested_model": "deepseek-v4-pro",
+          "reasoning_effort": "medium",
+          "response_id": "3b698c9b-a50d-4870-a5e0-3dac03590be5",
+          "input_tokens": 2673,
+          "output_tokens": 463,
+          "cached_input_tokens": 2560,
+          "cache_write_input_tokens": null,
+          "reasoning_output_tokens": null,
+          "total_tokens": 3136,
+          "service_tier": null,
+          "evidence_contract_version": "conversation-turn-v1",
+          "envelope_repaired": false
+        },
+        {
+          "prompt_version": "semantic-trip-intent-v11",
+          "model": "deepseek-v4-pro",
+          "duration_ms": 6912,
+          "requested_model": "deepseek-v4-pro",
+          "reasoning_effort": "medium",
+          "response_id": "24cf2325-b5b1-4816-8890-7052dccc9ba9",
+          "input_tokens": 2717,
+          "output_tokens": 609,
+          "cached_input_tokens": 2560,
+          "cache_write_input_tokens": null,
+          "reasoning_output_tokens": null,
+          "total_tokens": 3326,
+          "service_tier": null,
+          "evidence_contract_version": "conversation-turn-v1",
+          "envelope_repaired": false
+        }
+      ],
+      "attempts": 2,
+      "passes": 2,
+      "stable": true
+    },
+    {
+      "case_id": "MT-02",
+      "title": "搭完之后改目的地：旧目的地不许残留",
+      "passed": true,
+      "checks": [
+        {
+          "name": "origin",
+          "ok": true,
+          "detail": "expected Beijing, got Beijing"
+        },
+        {
+          "name": "destination",
+          "ok": true,
+          "detail": "expected ('Guangzhou', '广州'), got 广州"
+        },
+        {
+          "name": "departure_date",
+          "ok": true,
+          "detail": "expected 2026-09-15, got 2026-09-15"
+        },
+        {
+          "name": "no_stale_destination",
+          "ok": true,
+          "detail": "got 广州"
+        }
+      ],
+      "state": "NO_FEASIBLE_OPTION",
+      "legs": [
+        [
+          "Beijing",
+          "广州"
+        ]
+      ],
+      "searches": 2,
+      "clarification_question": null,
+      "conflicts": [],
+      "intent_fields": {
+        "origin": "Beijing",
+        "destination": "广州",
+        "departure_after": "2026-09-15 00:00:00+08:00",
+        "arrive_by": "2026-09-16 12:00:00+08:00",
+        "booking_scope": "OUTBOUND_ONLY",
+        "lodging_requirement": "UNSPECIFIED"
+      },
+      "user_turns": [
+        "9月15号从北京去上海，9月16号中午12点前到",
+        "改成去广州，其他不变"
+      ],
+      "transcript": [
+        {
+          "turn": 0,
+          "said": "9月15号从北京去上海，9月16号中午12点前到",
+          "state": "NO_FEASIBLE_OPTION"
+        },
+        {
+          "turn": 1,
+          "said": "改成去广州，其他不变",
+          "state": "NO_FEASIBLE_OPTION",
+          "question": null
+        }
+      ],
+      "llm_calls": [
+        {
+          "prompt_version": "semantic-trip-intent-v11",
+          "model": "deepseek-v4-pro",
+          "duration_ms": 5140,
+          "requested_model": "deepseek-v4-pro",
+          "reasoning_effort": "medium",
+          "response_id": "8ae983f3-ea34-41e6-9fda-ab85c68f2ce1",
+          "input_tokens": 2585,
+          "output_tokens": 447,
+          "cached_input_tokens": 2560,
+          "cache_write_input_tokens": null,
+          "reasoning_output_tokens": null,
+          "total_tokens": 3032,
+          "service_tier": null,
+          "evidence_contract_version": "conversation-turn-v1",
+          "envelope_repaired": false
+        },
+        {
+          "prompt_version": "semantic-trip-intent-v11",
+          "model": "deepseek-v4-pro",
+          "duration_ms": 7475,
+          "requested_model": "deepseek-v4-pro",
+          "reasoning_effort": "medium",
+          "response_id": "7394fc5a-e554-48b7-96da-89a9d13e2c45",
+          "input_tokens": 2601,
+          "output_tokens": 496,
+          "cached_input_tokens": 2560,
+          "cache_write_input_tokens": null,
+          "reasoning_output_tokens": null,
+          "total_tokens": 3097,
+          "service_tier": null,
+          "evidence_contract_version": "conversation-turn-v1",
+          "envelope_repaired": false
+        },
+        {
+          "prompt_version": "semantic-trip-intent-v11",
+          "model": "deepseek-v4-pro",
+          "duration_ms": 4944,
+          "requested_model": "deepseek-v4-pro",
+          "reasoning_effort": "medium",
+          "response_id": "48238791-6b2c-4864-84ff-4b126f876af0",
+          "input_tokens": 2585,
+          "output_tokens": 448,
+          "cached_input_tokens": 2560,
+          "cache_write_input_tokens": null,
+          "reasoning_output_tokens": null,
+          "total_tokens": 3033,
+          "service_tier": null,
+          "evidence_contract_version": "conversation-turn-v1",
+          "envelope_repaired": false
+        },
+        {
+          "prompt_version": "semantic-trip-intent-v11",
+          "model": "deepseek-v4-pro",
+          "duration_ms": 5049,
+          "requested_model": "deepseek-v4-pro",
+          "reasoning_effort": "medium",
+          "response_id": "56467c94-0333-48ac-9182-b4f454bd0d2f",
+          "input_tokens": 2601,
+          "output_tokens": 472,
+          "cached_input_tokens": 2560,
+          "cache_write_input_tokens": null,
+          "reasoning_output_tokens": null,
+          "total_tokens": 3073,
+          "service_tier": null,
+          "evidence_contract_version": "conversation-turn-v1",
+          "envelope_repaired": false
+        }
+      ],
+      "attempts": 2,
+      "passes": 2,
+      "stable": true
+    },
+    {
+      "case_id": "MT-03",
+      "title": "多城行程：北京→上海→杭州→北京，绝不许压缩成一段",
+      "passed": true,
+      "checks": [
+        {
+          "name": "legs",
+          "ok": true,
+          "detail": "[]"
+        },
+        {
+          "name": "no_search",
+          "ok": true,
+          "detail": "0"
+        },
+        {
+          "name": "no_request",
+          "ok": true,
+          "detail": "[]"
+        },
+        {
+          "name": "no_invented_return_leg",
+          "ok": true,
+          "detail": "[]"
+        }
+      ],
+      "state": "NEEDS_STRUCTURED_INPUT",
+      "legs": [],
+      "searches": 0,
+      "clarification_question": null,
+      "conflicts": [
+        "unresolved uncertainty: 上海到杭州的交通日期未明确",
+        "unresolved uncertainty: 杭州返回北京的日期未明确",
+        "unresolved uncertainty: 上海会议的具体时间未明确，无法确定到达上海的最后期限"
+      ],
+      "intent_fields": {
+        "origin": "Beijing",
+        "departure_after": "2026-09-15 00:00:00+08:00",
+        "client_location": "杭州",
+        "booking_scope": "ROUND_TRIP",
+        "lodging_requirement": "UNSPECIFIED"
+      },
+      "user_turns": [
+        "9月15号从北京去上海开会，然后去杭州见客户，最后回北京",
+        "上海会议9月16号上午10点，杭州9月18号下午2点见客户，9月19号晚上回北京"
+      ],
+      "transcript": [
+        {
+          "turn": 0,
+          "said": "9月15号从北京去上海开会，然后去杭州见客户，最后回北京",
+          "state": "NEEDS_CLARIFICATION"
+        },
+        {
+          "turn": 1,
+          "said": "上海会议9月16号上午10点，杭州9月18号下午2点见客户，9月19号晚上回北京",
+          "state": "NEEDS_STRUCTURED_INPUT",
+          "question": null
+        }
+      ],
+      "llm_calls": [
+        {
+          "prompt_version": "semantic-trip-intent-v11",
+          "model": "deepseek-v4-pro",
+          "duration_ms": 6670,
+          "requested_model": "deepseek-v4-pro",
+          "reasoning_effort": "medium",
+          "response_id": "3f480d2d-475d-49e4-bc8f-d6e1ca59af8d",
+          "input_tokens": 2586,
+          "output_tokens": 528,
+          "cached_input_tokens": 2560,
+          "cache_write_input_tokens": null,
+          "reasoning_output_tokens": null,
+          "total_tokens": 3114,
+          "service_tier": null,
+          "evidence_contract_version": "conversation-turn-v1",
+          "envelope_repaired": false
+        },
+        {
+          "prompt_version": "semantic-trip-intent-v11",
+          "model": "deepseek-v4-pro",
+          "duration_ms": 6233,
+          "requested_model": "deepseek-v4-pro",
+          "reasoning_effort": "medium",
+          "response_id": "4521904d-3ae7-4bf6-b022-105eb83d4c9b",
+          "input_tokens": 2586,
+          "output_tokens": 436,
+          "cached_input_tokens": 2560,
+          "cache_write_input_tokens": null,
+          "reasoning_output_tokens": null,
+          "total_tokens": 3022,
+          "service_tier": null,
+          "evidence_contract_version": "conversation-turn-v1",
+          "envelope_repaired": false
+        }
+      ],
+      "attempts": 2,
+      "passes": 2,
+      "stable": true
+    },
+    {
+      "case_id": "MT-04",
+      "title": "开口程：去上海、从杭州回，按用户说的两段走",
+      "passed": true,
+      "checks": [
+        {
+          "name": "legs",
+          "ok": true,
+          "detail": "[('Beijing', 'Shanghai'), ('杭州', 'Beijing')]"
+        }
+      ],
+      "state": "NO_FEASIBLE_OPTION",
+      "legs": [
+        [
+          "Beijing",
+          "Shanghai"
+        ],
+        [
+          "杭州",
+          "Beijing"
+        ]
+      ],
+      "searches": 2,
+      "clarification_question": null,
+      "conflicts": [],
+      "intent_fields": {
+        "origin": "Beijing",
+        "destination": "Shanghai",
+        "departure_after": "2026-09-15 00:00:00+08:00",
+        "arrive_by": "2026-09-16 12:00:00+08:00",
+        "return_after": "2026-09-20 00:00:00+08:00",
+        "return_before": "2026-09-20 20:00:00+08:00",
+        "booking_scope": "ROUND_TRIP",
+        "lodging_requirement": "UNSPECIFIED"
+      },
+      "user_turns": [
+        "去程9月15号北京飞上海，返程9月20号从杭州飞回北京",
+        "9月16号中午12点前到上海就行，返程9月20号晚上8点前到北京"
+      ],
+      "transcript": [
+        {
+          "turn": 0,
+          "said": "去程9月15号北京飞上海，返程9月20号从杭州飞回北京",
+          "state": "NEEDS_CLARIFICATION"
+        },
+        {
+          "turn": 1,
+          "said": "9月16号中午12点前到上海就行，返程9月20号晚上8点前到北京",
+          "state": "NO_FEASIBLE_OPTION",
+          "question": null
+        }
+      ],
+      "llm_calls": [
+        {
+          "prompt_version": "semantic-trip-intent-v11",
+          "model": "deepseek-v4-pro",
+          "duration_ms": 5718,
+          "requested_model": "deepseek-v4-pro",
+          "reasoning_effort": "medium",
+          "response_id": "2330c541-06a8-4c98-9360-b8a5d76fc940",
+          "input_tokens": 2588,
+          "output_tokens": 466,
+          "cached_input_tokens": 2560,
+          "cache_write_input_tokens": null,
+          "reasoning_output_tokens": null,
+          "total_tokens": 3054,
+          "service_tier": null,
+          "evidence_contract_version": "conversation-turn-v1",
+          "envelope_repaired": false
+        },
+        {
+          "prompt_version": "semantic-trip-intent-v11",
+          "model": "deepseek-v4-pro",
+          "duration_ms": 6015,
+          "requested_model": "deepseek-v4-pro",
+          "reasoning_effort": "medium",
+          "response_id": "ec4ab828-e3e6-4107-b21d-ccc7da5e5e11",
+          "input_tokens": 2645,
+          "output_tokens": 572,
+          "cached_input_tokens": 2560,
+          "cache_write_input_tokens": null,
+          "reasoning_output_tokens": null,
+          "total_tokens": 3217,
+          "service_tier": null,
+          "evidence_contract_version": "conversation-turn-v1",
+          "envelope_repaired": false
+        },
+        {
+          "prompt_version": "semantic-trip-intent-v11",
+          "model": "deepseek-v4-pro",
+          "duration_ms": 7256,
+          "requested_model": "deepseek-v4-pro",
+          "reasoning_effort": "medium",
+          "response_id": "1d728d5a-755b-4abf-bc51-a64b6d787720",
+          "input_tokens": 2588,
+          "output_tokens": 486,
+          "cached_input_tokens": 2560,
+          "cache_write_input_tokens": null,
+          "reasoning_output_tokens": null,
+          "total_tokens": 3074,
+          "service_tier": null,
+          "evidence_contract_version": "conversation-turn-v1",
+          "envelope_repaired": false
+        },
+        {
+          "prompt_version": "semantic-trip-intent-v11",
+          "model": "deepseek-v4-pro",
+          "duration_ms": 6416,
+          "requested_model": "deepseek-v4-pro",
+          "reasoning_effort": "medium",
+          "response_id": "753c5019-2254-4c8b-8919-6d67cbab5eb1",
+          "input_tokens": 2645,
+          "output_tokens": 576,
+          "cached_input_tokens": 2560,
+          "cache_write_input_tokens": null,
+          "reasoning_output_tokens": null,
+          "total_tokens": 3221,
+          "service_tier": null,
+          "evidence_contract_version": "conversation-turn-v1",
+          "envelope_repaired": false
+        }
+      ],
+      "attempts": 2,
+      "passes": 2,
+      "stable": true
+    },
+    {
+      "case_id": "MT-05",
+      "title": "第四轮推翻第一轮：后说的必须盖住先说的",
+      "passed": true,
+      "checks": [
+        {
+          "name": "origin",
+          "ok": true,
+          "detail": "expected Beijing, got Beijing"
+        },
+        {
+          "name": "destination",
+          "ok": true,
+          "detail": "expected Shanghai, got Shanghai"
+        },
+        {
+          "name": "departure_date",
+          "ok": true,
+          "detail": "expected 2026-09-17, got 2026-09-17"
+        },
+        {
+          "name": "lodging_requirement",
+          "ok": true,
+          "detail": "expected REQUIRED, got REQUIRED"
+        }
+      ],
+      "state": "NEEDS_CLARIFICATION",
+      "legs": [
+        [
+          "Beijing",
+          "Shanghai"
+        ]
+      ],
+      "searches": 2,
+      "clarification_question": "出发日期9月17日晚于要求到达日期9月16日中午12点前，请确认正确的出发或到达时间。",
+      "conflicts": [
+        "出发日期晚于要求到达日期",
+        "unresolved uncertainty: 出发日期晚于要求到达日期，时间矛盾"
+      ],
+      "intent_fields": {
+        "origin": "Beijing",
+        "destination": "Shanghai",
+        "departure_after": "2026-09-17 00:00:00+08:00",
+        "arrive_by": "2026-09-16 12:00:00+08:00",
+        "booking_scope": "OUTBOUND_ONLY",
+        "lodging_requirement": "REQUIRED",
+        "hard_constraints": "['hotel_required']"
+      },
+      "user_turns": [
+        "9月15号从北京去上海，9月16号中午12点前到，订酒店住两晚",
+        "酒店先不订了",
+        "出发改到9月17号",
+        "算了还是订酒店，住一晚"
+      ],
+      "transcript": [
+        {
+          "turn": 0,
+          "said": "9月15号从北京去上海，9月16号中午12点前到，订酒店住两晚",
+          "state": "NO_FEASIBLE_OPTION"
+        },
+        {
+          "turn": 1,
+          "said": "酒店先不订了",
+          "state": "NEEDS_STRUCTURED_INPUT",
+          "question": null
+        },
+        {
+          "turn": 2,
+          "said": "出发改到9月17号",
+          "state": "NEEDS_CLARIFICATION",
+          "question": "我发现行程中还有会影响搜索的歧义，请确认：出发时间9月17号晚于要求到达时间9月16号中午12点前，时间矛盾。。"
+        },
+        {
+          "turn": 3,
+          "said": "算了还是订酒店，住一晚",
+          "state": "NEEDS_CLARIFICATION",
+          "question": "出发日期9月17日晚于要求到达日期9月16日中午12点前，请确认正确的出发或到达时间。"
+        }
+      ],
+      "llm_calls": [
+        {
+          "prompt_version": "semantic-trip-intent-v11",
+          "model": "deepseek-v4-pro",
+          "duration_ms": 5471,
+          "requested_model": "deepseek-v4-pro",
+          "reasoning_effort": "medium",
+          "response_id": "3476ab47-77fa-49b3-92f5-2791000a5718",
+          "input_tokens": 2591,
+          "output_tokens": 493,
+          "cached_input_tokens": 2560,
+          "cache_write_input_tokens": null,
+          "reasoning_output_tokens": null,
+          "total_tokens": 3084,
+          "service_tier": null,
+          "evidence_contract_version": "conversation-turn-v1",
+          "envelope_repaired": false
+        },
+        {
+          "prompt_version": "semantic-trip-intent-v11",
+          "model": "deepseek-v4-pro",
+          "duration_ms": 6102,
+          "requested_model": "deepseek-v4-pro",
+          "reasoning_effort": "medium",
+          "response_id": "fa78aade-661c-4a79-9e8d-ccc6d5251c8a",
+          "input_tokens": 2623,
+          "output_tokens": 524,
+          "cached_input_tokens": 2560,
+          "cache_write_input_tokens": null,
+          "reasoning_output_tokens": null,
+          "total_tokens": 3147,
+          "service_tier": null,
+          "evidence_contract_version": "conversation-turn-v1",
+          "envelope_repaired": true
+        },
+        {
+          "prompt_version": "semantic-trip-intent-v11",
+          "model": "deepseek-v4-pro",
+          "duration_ms": 6248,
+          "requested_model": "deepseek-v4-pro",
+          "reasoning_effort": "medium",
+          "response_id": "981b7677-d5ac-4280-8cec-f932cd77d1eb",
+          "input_tokens": 2687,
+          "output_tokens": 524,
+          "cached_input_tokens": 2560,
+          "cache_write_input_tokens": null,
+          "reasoning_output_tokens": null,
+          "total_tokens": 3211,
+          "service_tier": null,
+          "evidence_contract_version": "conversation-turn-v1",
+          "envelope_repaired": true
+        },
+        {
+          "prompt_version": "semantic-trip-intent-v11",
+          "model": "deepseek-v4-pro",
+          "duration_ms": 5506,
+          "requested_model": "deepseek-v4-pro",
+          "reasoning_effort": "medium",
+          "response_id": "7015c74e-2402-48f6-a158-11e20280fe11",
+          "input_tokens": 2591,
+          "output_tokens": 498,
+          "cached_input_tokens": 2560,
+          "cache_write_input_tokens": null,
+          "reasoning_output_tokens": null,
+          "total_tokens": 3089,
+          "service_tier": null,
+          "evidence_contract_version": "conversation-turn-v1",
+          "envelope_repaired": false
+        },
+        {
+          "prompt_version": "semantic-trip-intent-v11",
+          "model": "deepseek-v4-pro",
+          "duration_ms": 5921,
+          "requested_model": "deepseek-v4-pro",
+          "reasoning_effort": "medium",
+          "response_id": "553ee524-0eec-4eb4-ad2d-b9c526d9196f",
+          "input_tokens": 2606,
+          "output_tokens": 507,
+          "cached_input_tokens": 2560,
+          "cache_write_input_tokens": null,
+          "reasoning_output_tokens": null,
+          "total_tokens": 3113,
+          "service_tier": null,
+          "evidence_contract_version": "conversation-turn-v1",
+          "envelope_repaired": false
+        },
+        {
+          "prompt_version": "semantic-trip-intent-v11",
+          "model": "deepseek-v4-pro",
+          "duration_ms": 7269,
+          "requested_model": "deepseek-v4-pro",
+          "reasoning_effort": "medium",
+          "response_id": "a3bf3364-027e-4c5a-b0ce-58b4cbd2db08",
+          "input_tokens": 2623,
+          "output_tokens": 490,
+          "cached_input_tokens": 2560,
+          "cache_write_input_tokens": null,
+          "reasoning_output_tokens": null,
+          "total_tokens": 3113,
+          "service_tier": null,
+          "evidence_contract_version": "conversation-turn-v1",
+          "envelope_repaired": true
+        },
+        {
+          "prompt_version": "semantic-trip-intent-v11",
+          "model": "deepseek-v4-pro",
+          "duration_ms": 6648,
+          "requested_model": "deepseek-v4-pro",
+          "reasoning_effort": "medium",
+          "response_id": "94a169af-6ff1-4f3e-bd69-6f69e1c28f03",
+          "input_tokens": 2687,
+          "output_tokens": 540,
+          "cached_input_tokens": 2560,
+          "cache_write_input_tokens": null,
+          "reasoning_output_tokens": null,
+          "total_tokens": 3227,
+          "service_tier": null,
+          "evidence_contract_version": "conversation-turn-v1",
+          "envelope_repaired": true
+        }
+      ],
+      "attempts": 2,
+      "passes": 2,
+      "stable": true
+    }
+  ]
+}

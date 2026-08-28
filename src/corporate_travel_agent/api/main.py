@@ -934,6 +934,12 @@ def _public_task(task: TripTask) -> dict[str, Any]:
             if task.request is not None
             else task.intent_fields.get("booking_scope")
         ),
+        "client_location": task.request.client_location if task.request else None,
+        "commitments": (
+            [asdict(item) for item in task.request.commitments]
+            if task.request is not None
+            else []
+        ),
         "transport_legs": (
             [asdict(leg) for leg in task.request.transport_legs()]
             if task.request is not None

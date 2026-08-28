@@ -73,6 +73,22 @@ class TripLeg:
 
 
 @dataclass(frozen=True, slots=True)
+class Commitment:
+    """旅行者必须到场的一件事：某地、某时之前、为了什么。
+
+    这是行程的**原因**，而不是行程本身。今天它被拆散在三处：会面地点被整个丢掉、
+    “会前必须到”是硬约束元组里的一个字符串、到达时限混在 `arrive_by` 里。
+    拆散之后，政策永远只能查单价，没法判断“这趟差旅本身合不合理”。
+    """
+
+    place: str
+    not_later_than: datetime
+    purpose: str | None = None
+    # 对应旧的 arrive_before_meeting：到场时间要额外留出政策规定的安全缓冲。
+    safety_buffer_required: bool = False
+
+
+@dataclass(frozen=True, slots=True)
 class TripRequestVersion:
     """一次行程请求的不可变版本（预订范围、航段、住宿与偏好）。"""
 
@@ -91,6 +107,13 @@ class TripRequestVersion:
     soft_preferences: tuple[str, ...] = ()
     # None 仅用于兼容旧持久化载荷；新请求必须显式写入。
     booking_scope: BookingScope | None = None
+    # 旅行者要到场的事。空元组表示这趟行程没有记录到任何到场要求。
+    # 有序航段列表：单程 1 段、往返 2 段、多城 N 段——**行程类型是数出来的，不是声明的**。
+    # 为空表示按旧的扁平字段推导（兼容既有载荷与冻结评测数据）。给了就以它为准。
+    journey: tuple[TripLeg, ...] = ()
+    commitments: tuple[Commitment, ...] = ()
+    # 会面地点。此前语义层抽出来后在编译成请求时被丢掉，规划器与政策引擎从未见过它。
+    client_location: str | None = None
     created_at: datetime = field(default_factory=lambda: datetime.now(UTC))
 
     @property
@@ -103,7 +126,13 @@ class TripRequestVersion:
         return BookingScope.OUTBOUND_ONLY
 
     def transport_legs(self) -> tuple[TripLeg, ...]:
-        """把兼容请求字段投影为 Provider 可直接执行的真实方向航段。"""
+        """本次行程要执行的航段序列。
+
+        给了 ``journey`` 就直接用它；没给才从扁平字段推导——推导只能表达
+        单程和**原路**往返，所以“去上海、从杭州回”这类行程必须显式给 ``journey``。
+        """
+        if self.journey:
+            return self.journey
         scope = self.resolved_booking_scope
         primary_role = (
             TripLegRole.RETURN if scope is BookingScope.RETURN_ONLY else TripLegRole.OUTBOUND
