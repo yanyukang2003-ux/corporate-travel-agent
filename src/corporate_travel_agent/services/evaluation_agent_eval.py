@@ -15,6 +15,7 @@ from typing import Any, Literal
 from corporate_travel_agent.agent.orchestrator import TripWorkflowOrchestrator, WorkflowError
 from corporate_travel_agent.domain.enums import PolicyOutcome, TaskState, TransportMode
 from corporate_travel_agent.domain.models import (
+    COMMUTE_UNKNOWN_MINUTES,
     EmployeeProfileSnapshot,
     HotelOffer,
     LevelTravelRule,
@@ -23,7 +24,6 @@ from corporate_travel_agent.domain.models import (
     TripRequestVersion,
 )
 from corporate_travel_agent.planning.feasibility import FeasibilityValidator
-from corporate_travel_agent.planning.planner import ItineraryPlanner
 from corporate_travel_agent.policy.engine import PolicyEngine
 from corporate_travel_agent.providers.mock import MockProvider
 from corporate_travel_agent.services.locations import CityNormalizer
@@ -518,7 +518,6 @@ def _recommended_policy(
     validator = FeasibilityValidator()
     engine = PolicyEngine()
     replay_now = _replay_now([*outbound, *inbound])
-    planner = ItineraryPlanner()
     best = None
     for out, back, hotel in product(outbound, inbound_choices, hotel_choices):
         segments = [out, *([back] if back else [])]
@@ -552,7 +551,7 @@ def _recommended_policy(
         duration = sum(
             int((item.arrive_at - item.depart_at).total_seconds() // 60) for item in segments
         )
-        preference_penalty = planner._preference_penalty(request, out, hotel)
+        preference_penalty = _oracle_preference_penalty(request, out, hotel)
         policy_penalty = (
             Decimal("1000") if decision.outcome is PolicyOutcome.REQUIRES_APPROVAL else Decimal("0")
         )
@@ -564,6 +563,36 @@ def _recommended_policy(
     if best is None:
         return None, None, None
     return best[1], best[2], best[3]
+
+
+
+def _oracle_preference_penalty(
+    request: TripRequestVersion,
+    outbound: TransportOffer,
+    hotel: HotelOffer | None,
+) -> Decimal:
+    """冻结数据集当初算标准答案时用的那套罚分，原样保留。
+
+    它**故意不跟着规划器走**。真规划器现在逐段评分（往返里说"优先高铁"，返程也算），
+    而这份 oracle 是给已冻结的期望值用的参照实现，同一个文件里的 `policy_penalty=1000`
+    也是同样的道理。两边一旦互相跟随，数据集就再也证明不了任何事。
+    """
+    penalty = Decimal("0")
+    preferences = set(request.soft_preferences)
+    if "avoid_early_departure" in preferences and outbound.depart_at.hour < 7:
+        penalty += Decimal("200")
+    if (
+        "hotel_near_client" in preferences
+        and hotel
+        and hotel.commute_minutes != COMMUTE_UNKNOWN_MINUTES
+        and hotel.commute_minutes > 30
+    ):
+        penalty += Decimal(hotel.commute_minutes - 30) * Decimal("2")
+    if "prefer_train" in preferences and outbound.mode is not TransportMode.TRAIN:
+        penalty += Decimal("80")
+    if "prefer_flight" in preferences and outbound.mode is not TransportMode.FLIGHT:
+        penalty += Decimal("80")
+    return penalty
 
 
 def build_oracle_observation(case: dict[str, Any], world: dict[str, Any]) -> D4Observation:

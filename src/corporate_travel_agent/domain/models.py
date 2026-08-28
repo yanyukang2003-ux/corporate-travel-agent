@@ -73,6 +73,24 @@ class TripLeg:
 
 
 @dataclass(frozen=True, slots=True)
+class ScopedRequirement:
+    """一条要求或偏好，外加它管到哪一段。
+
+    ``leg_index`` 为 None 表示整趟行程；给了数字就只管那一段（0 是第一段）。
+    在此之前要求只是一串名字，"去程直飞就行、返程无所谓"这句话没有地方安放：
+    宿主要么把直飞放大到全程（多筛掉了用户接受的方案），要么整条丢掉。
+    """
+
+    name: str
+    leg_index: int | None = None
+
+    @property
+    def whole_journey(self) -> bool:
+        """这条要求是否管整趟行程。"""
+        return self.leg_index is None
+
+
+@dataclass(frozen=True, slots=True)
 class Commitment:
     """旅行者必须到场的一件事：某地、某时之前、为了什么。
 
@@ -105,6 +123,10 @@ class TripRequestVersion:
     hotel_check_out: date | None
     hard_constraints: tuple[str, ...] = ()
     soft_preferences: tuple[str, ...] = ()
+    # 同样这些要求，但**带上它们管到哪一段**。为空表示按扁平字段理解成"管全程"
+    # （兼容既有载荷与冻结评测数据）；给了就以它为准，扁平字段退化成同一批名字的去重视图。
+    scoped_hard_constraints: tuple[ScopedRequirement, ...] = ()
+    scoped_soft_preferences: tuple[ScopedRequirement, ...] = ()
     # None 仅用于兼容旧持久化载荷；新请求必须显式写入。
     booking_scope: BookingScope | None = None
     # 旅行者要到场的事。空元组表示这趟行程没有记录到任何到场要求。
@@ -161,6 +183,42 @@ class TripRequestVersion:
                 )
             )
         return tuple(legs)
+
+    def scoped_constraints(self) -> tuple[ScopedRequirement, ...]:
+        """硬要求的完整视图；没写作用域的旧请求一律按"管全程"理解。"""
+        if self.scoped_hard_constraints:
+            return self.scoped_hard_constraints
+        return tuple(ScopedRequirement(name=name) for name in self.hard_constraints)
+
+    def scoped_preferences(self) -> tuple[ScopedRequirement, ...]:
+        """软偏好的完整视图；没写作用域的旧请求一律按"管全程"理解。"""
+        if self.scoped_soft_preferences:
+            return self.scoped_soft_preferences
+        return tuple(ScopedRequirement(name=name) for name in self.soft_preferences)
+
+    def constraints_for_leg(self, leg_index: int) -> frozenset[str]:
+        """管到第 ``leg_index`` 段的硬要求（含管全程的那些）。"""
+        return _names_for_leg(self.scoped_constraints(), leg_index)
+
+    def preferences_for_leg(self, leg_index: int) -> frozenset[str]:
+        """管到第 ``leg_index`` 段的软偏好（含管全程的那些）。"""
+        return _names_for_leg(self.scoped_preferences(), leg_index)
+
+    def journey_wide_preferences(self) -> frozenset[str]:
+        """只谈整趟行程的偏好——整单加权、结果集要不要放两种交通方式这类。"""
+        return frozenset(
+            item.name for item in self.scoped_preferences() if item.whole_journey
+        )
+
+
+def _names_for_leg(
+    requirements: tuple[ScopedRequirement, ...], leg_index: int
+) -> frozenset[str]:
+    return frozenset(
+        item.name
+        for item in requirements
+        if item.whole_journey or item.leg_index == leg_index
+    )
 
 
 @dataclass(frozen=True, slots=True)

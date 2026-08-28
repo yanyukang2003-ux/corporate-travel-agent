@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Any
 
+from corporate_travel_agent.domain.constraints import WHOLE_JOURNEY_ONLY_REQUIREMENTS
 from corporate_travel_agent.domain.enums import (
     BookingScope,
     LodgingRequirement,
@@ -13,6 +14,7 @@ from corporate_travel_agent.domain.enums import (
 )
 from corporate_travel_agent.domain.models import (
     Commitment,
+    ScopedRequirement,
     TripLeg,
     TripRequestVersion,
 )
@@ -122,6 +124,13 @@ def compile_search_command(
             ),
         )
 
+    journey = _journey_from(intent, city_normalizer)
+    scoped_hard = _scoped_from(
+        hard_constraints, intent.leg_scoped_hard_constraints, len(journey)
+    )
+    scoped_soft = _scoped_from(
+        intent.soft_preferences, intent.leg_scoped_soft_preferences, len(journey)
+    )
     request = TripRequestVersion(
         task_id=task_id,
         version=version,
@@ -134,10 +143,12 @@ def compile_search_command(
         return_before=intent.return_before,
         hotel_check_in=hotel_check_in,
         hotel_check_out=hotel_check_out,
-        hard_constraints=tuple(hard_constraints),
-        soft_preferences=tuple(intent.soft_preferences),
+        hard_constraints=_requirement_names(scoped_hard),
+        soft_preferences=_requirement_names(scoped_soft),
+        scoped_hard_constraints=scoped_hard,
+        scoped_soft_preferences=scoped_soft,
         booking_scope=intent.booking_scope,
-        journey=_journey_from(intent, city_normalizer),
+        journey=journey,
         commitments=_commitments_from(intent, hard_constraints),
         client_location=intent.client_location,
         created_at=created_at,
@@ -153,6 +164,48 @@ def compile_search_command(
             ),
         )
     return SearchCommandCompilation(command=SearchCommand(request=request))
+
+
+
+def _requirement_names(scoped: tuple[ScopedRequirement, ...]) -> tuple[str, ...]:
+    """带作用域的要求对应的扁平名字视图（去重，保留首次出现顺序）。"""
+    return tuple(dict.fromkeys(item.name for item in scoped))
+
+
+def _scoped_from(
+    names: list[str],
+    leg_scoped: list[Any],
+    leg_count: int,
+) -> tuple[ScopedRequirement, ...]:
+    """把"名字列表 + 谁只管哪一段"编译成带作用域的要求。
+
+    契约只有一条：名字仍然由扁平列表说了算，这两个数组只负责**收窄**它。
+    一个名字只要在 leg_scoped 里出现过，它就只管被点名的那几段；没出现过就管全程。
+    这样政策引擎、评测集和旧持久化载荷读到的扁平列表始终是完整的一批名字，
+    不会因为加了作用域而丢东西。
+
+    只谈整趟行程的名字（"住得离客户近"、"最便宜"）被标上航段号时按整趟理解：
+    给它们标段号是把话说错了，唯一说得通的读法只有一种，没有必要为此回头追问。
+    """
+    narrowed: dict[str, list[int]] = {}
+    for item in leg_scoped:
+        name = getattr(item, "name", None)
+        leg_index = getattr(item, "leg_index", None)
+        if not isinstance(name, str) or not isinstance(leg_index, int):
+            continue
+        if name in WHOLE_JOURNEY_ONLY_REQUIREMENTS:
+            continue
+        narrowed.setdefault(name, []).append(leg_index)
+    ordered = list(dict.fromkeys([*names, *narrowed]))
+    compiled: list[ScopedRequirement] = []
+    for name in ordered:
+        indices = sorted(set(narrowed.get(name, ())))
+        # 一条要求管遍了每一段，和"管全程"是同一件事，不必留着段号让下游多想一层。
+        if not indices or len(indices) == leg_count:
+            compiled.append(ScopedRequirement(name=name))
+            continue
+        compiled.extend(ScopedRequirement(name=name, leg_index=index) for index in indices)
+    return tuple(compiled)
 
 
 def _commitments_from(intent: Any, hard_constraints: list[str]) -> tuple[Commitment, ...]:

@@ -42,13 +42,16 @@ class FeasibilityValidator:
         if outbound.depart_at < request.departure_after:
             reasons.append("outbound departs before the allowed window")
         latest_arrival = request.arrive_by
-        # 会议前到达约束会额外扣减安全缓冲时间
-        if "arrive_before_meeting" in request.hard_constraints:
+        # 会议前到达约束会额外扣减安全缓冲时间。它是**这一段**的要求：
+        # 到场时限管的是把人送到会面地点的那一段，不是整趟行程的每一段。
+        outbound_constraints = request.constraints_for_leg(0)
+        needs_buffer = "arrive_before_meeting" in outbound_constraints
+        if needs_buffer:
             latest_arrival -= timedelta(minutes=arrival_buffer_minutes)
         if outbound.arrive_at > latest_arrival:
             reason = (
                 "outbound cannot meet arrival and safety-buffer requirement"
-                if "arrive_before_meeting" in request.hard_constraints
+                if needs_buffer
                 else "outbound arrives after the requested arrival time"
             )
             reasons.append(reason)

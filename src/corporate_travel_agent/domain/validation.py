@@ -7,7 +7,11 @@ from dataclasses import dataclass
 from datetime import date, datetime
 from typing import Any
 
-from .constraints import SUPPORTED_HARD_CONSTRAINTS, SUPPORTED_SOFT_PREFERENCES
+from .constraints import (
+    SUPPORTED_HARD_CONSTRAINTS,
+    SUPPORTED_SOFT_PREFERENCES,
+    WHOLE_JOURNEY_ONLY_REQUIREMENTS,
+)
 from .enums import BookingScope
 from .models import TripRequestVersion
 
@@ -62,6 +66,8 @@ def validate_trip_request(request: TripRequestVersion) -> TripRequestValidation:
             "hotel_check_out": request.hotel_check_out,
             "hard_constraints": request.hard_constraints,
             "soft_preferences": request.soft_preferences,
+            "scoped_hard_constraints": request.scoped_hard_constraints,
+            "scoped_soft_preferences": request.scoped_soft_preferences,
         }
     )
 
@@ -195,6 +201,25 @@ def validate_trip_request_values(fields: Mapping[str, Any]) -> TripRequestValida
             missing.append("hotel_check_out")
 
     conflicts.extend(_journey_conflicts(fields.get("journey")))
+    leg_count = _expected_leg_count(fields, scope)
+    conflicts.extend(
+        _scope_conflicts(
+            fields.get("scoped_hard_constraints"),
+            flat_names=normalized_hard,
+            supported=SUPPORTED_HARD_CONSTRAINTS,
+            leg_count=leg_count,
+            label="hard constraint",
+        )
+    )
+    conflicts.extend(
+        _scope_conflicts(
+            fields.get("scoped_soft_preferences"),
+            flat_names=normalized_soft,
+            supported=SUPPORTED_SOFT_PREFERENCES,
+            leg_count=leg_count,
+            label="soft preference",
+        )
+    )
 
     return TripRequestValidation(
         tuple(dict.fromkeys(missing)),
@@ -256,6 +281,64 @@ def _journey_conflicts(journey: Any) -> list[str]:
                 problems.append(
                     f"journey leg {index} departs before leg {index - 1} is due to arrive"
                 )
+    return problems
+
+
+
+def _expected_leg_count(fields: Mapping[str, Any], scope: BookingScope | None) -> int:
+    """这次请求会执行几段：显式给了航段就数它，否则按预订范围推。"""
+    journey = fields.get("journey")
+    if isinstance(journey, (list, tuple)) and journey:
+        return len(journey)
+    return 2 if scope is BookingScope.ROUND_TRIP else 1
+
+
+def _scope_conflicts(
+    scoped: Any,
+    *,
+    flat_names: set[str],
+    supported: frozenset[str],
+    leg_count: int,
+    label: str,
+) -> list[str]:
+    """校验带作用域的要求：名字在词表内、航段号存在、两种视图说的是同一批名字。
+
+    最后一条是关键：扁平列表仍然是政策引擎、评测集和旧持久化载荷读到的东西。
+    两个视图一旦讲不同的话，读哪一个就成了运气问题，所以宁可判冲突也不放行。
+    """
+    if not scoped:
+        return []
+    if not isinstance(scoped, (list, tuple)):
+        return [f"scoped {label}s must be a sequence"]
+    problems: list[str] = []
+    names: set[str] = set()
+    for item in scoped:
+        name = getattr(item, "name", None)
+        leg_index = getattr(item, "leg_index", None)
+        if not isinstance(name, str) or not name.strip():
+            problems.append(f"scoped {label} is missing a name")
+            continue
+        names.add(name)
+        if name not in supported:
+            problems.append(f"unsupported {label}s: {name}")
+            continue
+        if leg_index is None:
+            continue
+        if not isinstance(leg_index, int) or isinstance(leg_index, bool):
+            problems.append(f"{label} {name} has a non-numeric leg index")
+            continue
+        if name in WHOLE_JOURNEY_ONLY_REQUIREMENTS:
+            problems.append(f"{label} {name} applies to the whole journey, not one leg")
+            continue
+        if leg_index < 0 or leg_index >= leg_count:
+            problems.append(
+                f"{label} {name} names leg {leg_index}, but this journey has "
+                f"{leg_count} leg(s)"
+            )
+    if names and names != flat_names:
+        problems.append(
+            f"scoped {label}s and the flat {label} list must name the same requirements"
+        )
     return problems
 
 

@@ -6,7 +6,7 @@ from datetime import datetime
 from decimal import Decimal
 from itertools import product
 
-from corporate_travel_agent.domain.enums import PolicyOutcome
+from corporate_travel_agent.domain.enums import PolicyOutcome, TransportMode
 from corporate_travel_agent.domain.models import (
     COMMUTE_UNKNOWN_MINUTES,
     EmployeeProfileSnapshot,
@@ -19,6 +19,30 @@ from corporate_travel_agent.domain.models import (
 from corporate_travel_agent.policy.engine import PolicyEngine
 
 from .feasibility import FeasibilityValidator
+from .preferences import (
+    duration_minutes_per_unit,
+    preference_penalty,
+    wants_mode_comparison,
+)
+
+
+def _legs_satisfy_constraints(
+    request: TripRequestVersion, transports: list[TransportOffer]
+) -> bool:
+    """逐段核对硬要求：这一段受哪几条管，就只用那几条判它。
+
+    此前 `direct_only` 是一个全局字符串，"去程直飞就行、返程无所谓"只能被放大成全程直飞，
+    于是旅行者明明接受的返程方案被无声筛掉了。
+    """
+    for index, offer in enumerate(transports):
+        names = request.constraints_for_leg(index)
+        if "train_only" in names and offer.mode is not TransportMode.TRAIN:
+            return False
+        if "flight_only" in names and offer.mode is not TransportMode.FLIGHT:
+            return False
+        if "direct_only" in names and not offer.is_direct:
+            return False
+    return True
 
 
 class ItineraryPlanner:
@@ -52,23 +76,13 @@ class ItineraryPlanner:
             list(hotel_offers) if request.hotel_check_in is not None else [None]
         )
 
+        minutes_per_unit = duration_minutes_per_unit(request)
         options: list[TravelOptionVersion] = []
         for outbound, inbound, hotel in product(
             outbound_offers, inbound_choices, hotel_choices
         ):
             transports = [outbound, *([inbound] if inbound else [])]
-            hard_constraints = set(request.hard_constraints)
-            if "train_only" in hard_constraints and any(
-                item.mode.value != "TRAIN" for item in transports
-            ):
-                continue
-            if "flight_only" in hard_constraints and any(
-                item.mode.value != "FLIGHT" for item in transports
-            ):
-                continue
-            if "direct_only" in hard_constraints and any(
-                not item.is_direct for item in transports
-            ):
+            if not _legs_satisfy_constraints(request, transports):
                 continue
             feasibility = self.validator.validate(
                 request, outbound, inbound, hotel, policy.arrival_buffer_minutes, now=now
@@ -85,11 +99,11 @@ class ItineraryPlanner:
             if hotel:
                 total_cost += hotel.total_price
             duration = sum(self._minutes(item.depart_at, item.arrive_at) for item in transports)
-            preference_penalty = self._preference_penalty(request, outbound, hotel)
+            penalty = preference_penalty(request, transports, hotel)
             # 政策**不进分数**。它是三档分类结论，不是可以被价格投票推翻的权重：
             # 折算成罚分的话，一个需审批但足够便宜的方案会排到完全合规的前面。
             # 排序改为「先按政策分档，档内再按分数」，见 _select_ranked_options。
-            score = total_cost + Decimal(duration) / Decimal("10") + preference_penalty
+            score = total_cost + Decimal(duration) / minutes_per_unit + penalty
             snapshot_ids = tuple(
                 dict.fromkeys(
                     [outbound.snapshot_id]
@@ -129,14 +143,16 @@ class ItineraryPlanner:
                     total_duration_minutes=duration,
                     feasibility=feasibility,
                     policy_decision=decision,
-                    preference_penalty=preference_penalty,
+                    preference_penalty=penalty,
                     score=score,
                 explanation_facts=tuple(facts),
                 currency=policy.currency,
                 )
             )
 
-        return self._select_ranked_options(options, limit)
+        return self._select_ranked_options(
+            options, limit, compare_modes=wants_mode_comparison(request)
+        )
 
     #: 政策分档：合规优先，需审批其次，不可选的排最后。政策不参与分数计算。
     _POLICY_BANDS: dict[PolicyOutcome, int] = {
@@ -153,12 +169,18 @@ class ItineraryPlanner:
     def _select_ranked_options(
         options: list[TravelOptionVersion],
         limit: int,
+        *,
+        compare_modes: bool = False,
     ) -> list[TravelOptionVersion]:
         """先按政策分档、档内按分数排序；被政策挡住的方案只在本可胜出时才保留。
 
         保留的目的是**透明**，不是凑数：只有当一个被挡住的方案分数优于所有可选方案时，
         它才值得摆出来——那正是"最便宜的那个被政策禁了"这句话需要说出口的情形。
         比可选方案还差的被挡方案只是噪音，不保留。
+
+        ``compare_modes`` 对应偏好 `compare_train_and_flight`："我想比比高铁和飞机"。
+        这句话要的不是罚分而是**摆出来的这几个方案里两种都得有**，所以它在这里生效，
+        不在打分里生效。
         """
         ranked = sorted(
             options,
@@ -170,6 +192,7 @@ class ItineraryPlanner:
         )
         selectable: list[TravelOptionVersion] = []
         blocked: list[TravelOptionVersion] = []
+        eligible: list[TravelOptionVersion] = []
         seen: set[tuple[object, ...]] = set()
         for option in ranked:
             fingerprint = ItineraryPlanner._display_fingerprint(option)
@@ -177,16 +200,64 @@ class ItineraryPlanner:
                 continue
             seen.add(fingerprint)
             if ItineraryPlanner._policy_band(option) < ItineraryPlanner._BLOCKED_BAND:
+                eligible.append(option)
                 if len(selectable) < limit:
                     selectable.append(option)
             else:
                 blocked.append(option)
+
+        if compare_modes:
+            selectable = ItineraryPlanner._cover_both_modes(selectable, eligible, limit)
 
         if not selectable:
             return []
         best_selectable = min(item.score for item in selectable)
         would_have_won = [item for item in blocked if item.score < best_selectable]
         return selectable + would_have_won[:1]
+
+
+    @staticmethod
+    def _modes_used(option: TravelOptionVersion) -> frozenset[TransportMode]:
+        modes = {option.outbound.mode}
+        if option.inbound is not None:
+            modes.add(option.inbound.mode)
+        return frozenset(modes)
+
+    @staticmethod
+    def _cover_both_modes(
+        selectable: list[TravelOptionVersion],
+        eligible: list[TravelOptionVersion],
+        limit: int,
+    ) -> list[TravelOptionVersion]:
+        """让入选名单涵盖库存里真实存在的每种交通方式，名额不变。
+
+        库存里只有飞机时什么都不做——涵盖不了的东西不该靠编造来凑。
+        """
+        available = {
+            mode
+            for option in eligible
+            for mode in ItineraryPlanner._modes_used(option)
+            if mode in {TransportMode.TRAIN, TransportMode.FLIGHT}
+        }
+        chosen = list(selectable)
+        for mode in sorted(available, key=lambda item: item.value):
+            if any(mode in ItineraryPlanner._modes_used(item) for item in chosen):
+                continue
+            replacement = next(
+                (
+                    item
+                    for item in eligible
+                    if mode in ItineraryPlanner._modes_used(item) and item not in chosen
+                ),
+                None,
+            )
+            if replacement is None:
+                continue
+            if len(chosen) < limit:
+                chosen.append(replacement)
+            else:
+                chosen[-1] = replacement
+        return chosen
 
     @staticmethod
     def _display_fingerprint(option: TravelOptionVersion) -> tuple[object, ...]:
@@ -209,27 +280,3 @@ class ItineraryPlanner:
     @staticmethod
     def _minutes(start: datetime, end: datetime) -> int:
         return int((end - start).total_seconds() // 60)
-
-    @staticmethod
-    def _preference_penalty(
-        request: TripRequestVersion,
-        outbound: TransportOffer,
-        hotel: HotelOffer | None,
-    ) -> Decimal:
-        """根据软偏好（早班、通勤、交通方式）累加排序罚分。"""
-        penalty = Decimal("0")
-        preferences = set(request.soft_preferences)
-        if "avoid_early_departure" in preferences and outbound.depart_at.hour < 7:
-            penalty += Decimal("200")
-        if (
-            "hotel_near_client" in preferences
-            and hotel
-            and hotel.commute_minutes != COMMUTE_UNKNOWN_MINUTES
-            and hotel.commute_minutes > 30
-        ):
-            penalty += Decimal(hotel.commute_minutes - 30) * Decimal("2")
-        if "prefer_train" in preferences and outbound.mode.value != "TRAIN":
-            penalty += Decimal("80")
-        if "prefer_flight" in preferences and outbound.mode.value != "FLIGHT":
-            penalty += Decimal("80")
-        return penalty

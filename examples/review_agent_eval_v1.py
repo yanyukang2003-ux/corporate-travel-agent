@@ -29,8 +29,10 @@ from corporate_travel_agent.domain.models import (  # noqa: E402
     TripRequestVersion,
 )
 from corporate_travel_agent.planning.feasibility import FeasibilityValidator  # noqa: E402
-from corporate_travel_agent.planning.planner import ItineraryPlanner  # noqa: E402
 from corporate_travel_agent.policy.engine import PolicyEngine  # noqa: E402
+from corporate_travel_agent.services.evaluation_agent_eval import (  # noqa: E402
+    _oracle_preference_penalty,
+)
 
 DATASET_DIR = ROOT / "data" / "evaluation" / "agent-eval-v1"
 CASES_PATH = DATASET_DIR / "cases.jsonl"
@@ -494,7 +496,6 @@ def candidate_options(world: dict[str, Any]) -> list[Candidate]:
     hotel_choices: list[HotelOffer | None] = hotels if request.hotel_check_in else [None]
     validator = FeasibilityValidator()
     policy_engine = PolicyEngine()
-    planner = ItineraryPlanner()
     replay_now = _replay_now([*outbound, *inbound])
     result = []
     for out, back, hotel in product(outbound, inbound_choices, hotel_choices):
@@ -527,7 +528,7 @@ def candidate_options(world: dict[str, Any]) -> list[Candidate]:
         duration = sum(
             int((item.arrive_at - item.depart_at).total_seconds() // 60) for item in transports
         )
-        preference_penalty = planner._preference_penalty(request, out, hotel)
+        preference_penalty = _oracle_preference_penalty(request, out, hotel)
         policy_penalty = (
             Decimal("1000") if decision.outcome is PolicyOutcome.REQUIRES_APPROVAL else Decimal("0")
         )

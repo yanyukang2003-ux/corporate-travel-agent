@@ -9,6 +9,7 @@ from typing import Any
 from corporate_travel_agent.domain.constraints import (
     SUPPORTED_HARD_CONSTRAINTS,
     SUPPORTED_SOFT_PREFERENCES,
+    WHOLE_JOURNEY_ONLY_REQUIREMENTS,
 )
 from corporate_travel_agent.domain.models import TravelOptionVersion
 
@@ -363,7 +364,7 @@ class OpenAIResponsesLanguageModel:
 class OpenAISemanticIntentLanguageModel:
     """新语义链路的独立 LLM 适配器；不包含旧字段抽取方法。"""
 
-    semantic_prompt_version = "semantic-trip-intent-v11"
+    semantic_prompt_version = "semantic-trip-intent-v12"
 
     def __init__(
         self,
@@ -647,6 +648,14 @@ class OpenAISemanticIntentLanguageModel:
             + ". Supported soft preferences are: "
             + supported_soft
             + ". Keep other requested constraints in conflicts or unsupported_reasons. "
+            "A requirement the traveler attached to only part of the trip — 去程直飞就行、"
+            "返程无所谓 — still goes in hard_constraints or soft_preferences by name, and "
+            "additionally in leg_scoped_hard_constraints or leg_scoped_soft_preferences with "
+            "the leg it governs: leg_index 0 is the outbound leg, 1 is the return or second "
+            "leg. Leave those two arrays empty when the requirement covers the whole trip, "
+            "which is the normal case. Never use them for "
+            + ", ".join(sorted(WHOLE_JOURNEY_ONLY_REQUIREMENTS))
+            + ", which describe the trip as a whole rather than one leg. "
             "Lodging is REQUIRED only when explicitly requested, NOT_REQUIRED only when explicitly "
             "declined or self-arranged, otherwise UNSPECIFIED. Conditional lodging remains a "
             "condition and cannot be READY until the condition is resolved into an executable plan."

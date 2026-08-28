@@ -44,6 +44,20 @@ class EvidenceRef(BaseModel):
     quote: str = Field(min_length=1, max_length=300)
 
 
+class LegScopedRequirement(BaseModel):
+    """一条只管某一段的要求或偏好。
+
+    ``leg_index`` 数的是这趟行程的第几段：0 是去程，1 是返程或第二段。
+    "去程直飞就行、返程无所谓"整句话的意义就落在这个数字上——没有它，
+    宿主只能在"把直飞放大到全程"和"整条丢掉"之间二选一，两个都是错的。
+    """
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    name: str = Field(min_length=1, max_length=60)
+    leg_index: int = Field(ge=0)
+
+
 class SemanticIntent(BaseModel):
     """Expressive travel meaning, intentionally distinct from provider parameters."""
 
@@ -67,6 +81,10 @@ class SemanticIntent(BaseModel):
     client_location: str | None
     hard_constraints: list[str]
     soft_preferences: list[str]
+    # 上面两串名字里，哪些其实只管某一段。名字仍然要出现在上面的列表里——
+    # 这两个数组只是给它加个作用域，不是另起一份清单。
+    leg_scoped_hard_constraints: list[LegScopedRequirement] = Field(default_factory=list)
+    leg_scoped_soft_preferences: list[LegScopedRequirement] = Field(default_factory=list)
     alternatives: list[str]
     conditions: list[str]
     uncertainties: list[str]

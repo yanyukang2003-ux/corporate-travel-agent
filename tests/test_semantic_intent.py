@@ -339,7 +339,7 @@ def test_openai_adapter_uses_semantic_schema_and_complete_ledger() -> None:
     )
 
     assert result.decision == expected
-    assert result.metadata.prompt_version == "semantic-trip-intent-v11"
+    assert result.metadata.prompt_version == "semantic-trip-intent-v12"
     assert result.metadata.evidence_contract_version == "conversation-turn-v1"
 
 
