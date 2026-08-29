@@ -1144,6 +1144,11 @@ class TripWorkflowOrchestrator:
             created_at=self.clock(),
             already_grounded=carried_grounding(prior_history, decision.intent),
         )
+        # 宿主替旅行者定下来的事必须当面说出口：编译期消掉的分歧（"这两个名字是同一座
+        # 城市"、"住宿按行程推算"）和模型自己的假设一样，都要出现在任务上。
+        task.assumptions = tuple(
+            dict.fromkeys([*decision.assumptions, *compiled.assumptions])
+        )
         if not compiled.ready:
             return self._pause_for_semantic_clarification(
                 task,

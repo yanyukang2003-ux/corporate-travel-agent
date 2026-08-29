@@ -591,3 +591,21 @@ def test_changing_a_value_requires_fresh_evidence_again() -> None:
 
     assert task.state is TaskState.NEEDS_CLARIFICATION
     assert "destination" in task.missing_required_fields, task.missing_required_fields
+
+
+def test_a_decision_the_host_made_for_the_traveler_is_stated_on_the_task() -> None:
+    """宿主替旅行者定下来的事必须当面说出口，不能有静默决定。
+
+    第 06 步会消掉「这两个名字是同一座城市」这类不影响结论的分歧，不再为它追问。
+    不追问的代价就是**必须把这个决定摆在任务上**，否则就成了偷偷替人做主。
+    """
+    model = ScriptedSemanticModel(
+        [semantic_decision(semantic_intent(destination_candidates=["上海", "Shanghai"]))]
+    )
+    workflow = _workflow(model)
+
+    task = workflow.create_task_from_semantic_message(READY_MESSAGE, traveler_id="E1001")
+
+    assert task.request is not None
+    assert task.request.destination == "Shanghai"
+    assert any("同一座城市" in item for item in task.assumptions), task.assumptions
