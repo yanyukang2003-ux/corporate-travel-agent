@@ -986,6 +986,9 @@ def _public_task(task: TripTask) -> dict[str, Any]:
                 "trip_request_version": item.trip_request_version,
                 "inventory_snapshot_ids": item.inventory_snapshot_ids,
                 "inventory_refs": item.inventory_refs,
+                # 完整的有序航段列表。三段以上只有这里读得到——
+                # outbound / inbound 仍然照旧给，前端不改也能跑。
+                "legs": [_public_transport_offer(leg) for leg in item.legs],
                 "outbound": _public_transport_offer(item.outbound),
                 "inbound": (
                     _public_transport_offer(item.inbound) if item.inbound else None

@@ -514,8 +514,7 @@ def candidate_options(world: dict[str, Any]) -> list[Candidate]:
             reasons.append("违反 direct_only")
         feasibility = validator.validate(
             request,
-            out,
-            back,
+            [out, *([back] if back else [])],
             hotel,
             policy.arrival_buffer_minutes,
             now=replay_now,

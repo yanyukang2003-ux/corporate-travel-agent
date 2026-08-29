@@ -14,9 +14,11 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass, replace
 from datetime import datetime
 from decimal import Decimal
+from heapq import heappop, heappush
 from itertools import product
 
 from corporate_travel_agent.domain.enums import PolicyOutcome, TransportMode
@@ -31,9 +33,11 @@ from corporate_travel_agent.domain.models import (
 )
 from corporate_travel_agent.policy.engine import PolicyEngine
 
-from .feasibility import FeasibilityValidator
+from .feasibility import FeasibilityValidator, planned_leg_count
 from .preferences import (
     duration_minutes_per_unit,
+    leg_penalty,
+    lodging_penalty,
     preference_penalty,
     wants_mode_comparison,
 )
@@ -70,6 +74,60 @@ def _leg_satisfies_constraints(
     return not ("direct_only" in names and not offer.is_direct)
 
 
+@dataclass(frozen=True, slots=True)
+class _Choice:
+    """一段交通（或一次住宿）的一个候选，排序要用的几个量先算好。
+
+    ``band`` 是**这一项自己**的政策档。政策证据本来就是逐项产生的——每段各判舱位、
+    币种与生效窗口，住宿判城市上限——最后由 `PolicyEngine._aggregate` 取最差的一档。
+    所以"整条方案不超过某一档"和"每一项都不超过那一档"是同一件事，
+    这条等式是 `_shape_candidates` 能按段各取最优的前提。
+    """
+
+    offer: TransportOffer | HotelOffer | None
+    key: str
+    #: 摆出来长什么样。两个候选这一项相同，就是同一条方案的两种写法——
+    #: 和 `_display_fingerprint` 用的是同一条规则。
+    display_key: tuple[object, ...]
+    mode: TransportMode | None
+    band: int
+    score: Decimal
+    price: Decimal
+    duration: int
+
+
+#: "不住"这一个候选：不贡献价格、时长，也不贡献任何政策证据。
+_NO_LODGING = _Choice(
+    offer=None,
+    key="",
+    display_key=(),
+    mode=None,
+    band=0,
+    score=Decimal("0"),
+    price=Decimal("0"),
+    duration=0,
+)
+
+
+def _distinct_by_display(choices: list[_Choice]) -> list[_Choice]:
+    """同一轴上"摆出来一模一样"的候选只留最好的一个。
+
+    三家名字、价格、住期都相同的酒店在结果里本来就会被 `_display_fingerprint`
+    合成一条。留着它们，按名次取前几组时会把名额全耗在这组重复上——
+    真正该被摆出来的第二个航班反而挤不进来。先收掉，名次才落在有意义的差别上。
+    """
+    best: dict[tuple[object, ...], _Choice] = {}
+    for choice in choices:
+        current = best.get(choice.display_key)
+        if current is None or (choice.band, choice.score, choice.key) < (
+            current.band,
+            current.score,
+            current.key,
+        ):
+            best[choice.display_key] = choice
+    return list(best.values())
+
+
 class ItineraryPlanner:
     """先枚举走法，再为每种走法挑报价，最后按类别与政策分档选出要摆的方案。"""
 
@@ -86,63 +144,197 @@ class ItineraryPlanner:
         request: TripRequestVersion,
         employee: EmployeeProfileSnapshot,
         policy: PolicySnapshot,
-        outbound_offers: list[TransportOffer],
-        inbound_offers: list[TransportOffer],
+        leg_offers: Sequence[Sequence[TransportOffer]],
         hotel_offers: list[HotelOffer],
         limit: int = 3,
         *,
         now: datetime,
     ) -> list[TravelOptionVersion]:
-        """产出最多 ``limit`` 条**互不相同的**方案，外加需要说明的被挡方案。"""
+        """产出最多 ``limit`` 条**互不相同的**方案，外加需要说明的被挡方案。
+
+        ``leg_offers`` 按航段顺序给：第 i 项是第 i 段的报价。段数由请求自己说了算
+        （`planned_leg_count`），少给的段按"没货"处理。此前这里是
+        ``outbound_offers`` / ``inbound_offers`` 两个参数——两个位置，放不下第三段。
+        """
         pools = [
             [
                 offer
-                for offer in outbound_offers
-                if _leg_satisfies_constraints(request, 0, offer)
+                for offer in (leg_offers[index] if index < len(leg_offers) else ())
+                if _leg_satisfies_constraints(request, index, offer)
             ]
+            for index in range(planned_leg_count(request))
         ]
-        if request.return_after is not None:
-            pools.append(
-                [
-                    offer
-                    for offer in inbound_offers
-                    if _leg_satisfies_constraints(request, 1, offer)
-                ]
-            )
         hotel_choices: list[HotelOffer | None] = (
             list(hotel_offers) if request.hotel_check_in is not None else [None]
         )
 
         minutes_per_unit = duration_minutes_per_unit(request)
+        # 先把每一段（以及住宿）各自的候选算好：可行性、政策档、分数贡献都只看这一项，
+        # 所以整个行程只算一遍，各走法共用。
+        leg_axes = [
+            self._leg_choices(
+                request, employee, policy, index, pool, minutes_per_unit, now=now
+            )
+            for index, pool in enumerate(pools)
+        ]
+        hotel_axis = self._lodging_choices(request, employee, policy, hotel_choices)
+
         candidates: list[tuple[PlanShape, TravelOptionVersion]] = []
         for shape in _enumerate_shapes(pools, hotel_choices):
-            shaped_pools = [
-                [offer for offer in pool if offer.mode is shape.modes[index]]
-                for index, pool in enumerate(pools)
-            ]
-            shaped_hotels: list[HotelOffer | None] = (
-                [item for item in hotel_choices if item is not None]
-                if shape.with_lodging
-                else [None]
-            )
-            for combination in product(*shaped_pools, shaped_hotels):
-                *transports, hotel = combination
-                option = self._evaluate(
+            candidates.extend(
+                self._shape_candidates(
                     request,
                     employee,
                     policy,
-                    list(transports),
-                    hotel,
                     shape,
+                    leg_axes,
+                    hotel_axis,
                     minutes_per_unit,
+                    limit,
                     now=now,
                 )
-                if option is not None:
-                    candidates.append((shape, option))
+            )
 
         return _select_options(
             candidates, limit, compare_modes=wants_mode_comparison(request)
         )
+
+    def _leg_choices(
+        self,
+        request: TripRequestVersion,
+        employee: EmployeeProfileSnapshot,
+        policy: PolicySnapshot,
+        leg_index: int,
+        pool: list[TransportOffer],
+        minutes_per_unit: Decimal,
+        *,
+        now: datetime,
+    ) -> list[_Choice]:
+        """这一段自己站得住的报价，外加排序要用的几个量。"""
+        choices: list[_Choice] = []
+        for offer in pool:
+            if self.validator.leg_reasons(
+                request, leg_index, offer, policy.arrival_buffer_minutes, now=now
+            ):
+                continue
+            duration = _minutes(offer.depart_at, offer.arrive_at)
+            choices.append(
+                _Choice(
+                    offer=offer,
+                    key=offer.ref_id,
+                    display_key=(offer.ref_id,),
+                    mode=offer.mode,
+                    band=self._item_band(employee, policy, (offer,), None),
+                    score=(
+                        offer.price
+                        + Decimal(duration) / minutes_per_unit
+                        + leg_penalty(request, leg_index, offer)
+                    ),
+                    price=offer.price,
+                    duration=duration,
+                )
+            )
+        return choices
+
+    def _lodging_choices(
+        self,
+        request: TripRequestVersion,
+        employee: EmployeeProfileSnapshot,
+        policy: PolicySnapshot,
+        hotel_choices: list[HotelOffer | None],
+    ) -> list[_Choice]:
+        """住宿这一"段"的候选。这趟不需要住宿时，唯一的候选就是"不住"。"""
+        choices: list[_Choice] = []
+        for hotel in hotel_choices:
+            if self.validator.hotel_reasons(request, hotel):
+                continue
+            if hotel is None:
+                choices.append(_NO_LODGING)
+                continue
+            choices.append(
+                _Choice(
+                    offer=hotel,
+                    key=hotel.ref_id,
+                    display_key=_hotel_display_key(hotel),
+                    mode=None,
+                    band=self._item_band(employee, policy, (), hotel),
+                    score=hotel.total_price + lodging_penalty(request, hotel),
+                    price=hotel.total_price,
+                    duration=0,
+                )
+            )
+        return choices
+
+    def _item_band(
+        self,
+        employee: EmployeeProfileSnapshot,
+        policy: PolicySnapshot,
+        transports: tuple[TransportOffer, ...],
+        hotel: HotelOffer | None,
+    ) -> int:
+        """这一项**自己**落在哪一档。整条方案的档是各项里最差的那一档。"""
+        decision = self.policy_engine.evaluate(employee, policy, transports, hotel)
+        return _POLICY_BANDS.get(decision.outcome, _BLOCKED_BAND)
+
+    def _shape_candidates(
+        self,
+        request: TripRequestVersion,
+        employee: EmployeeProfileSnapshot,
+        policy: PolicySnapshot,
+        shape: PlanShape,
+        leg_axes: list[list[_Choice]],
+        hotel_axis: list[_Choice],
+        minutes_per_unit: Decimal,
+        limit: int,
+        *,
+        now: datetime,
+    ) -> list[tuple[PlanShape, TravelOptionVersion]]:
+        """这种走法值得摆出来的几条方案。
+
+        此前这里是 ``product(*shaped_pools, shaped_hotels)``——把每段的报价做全组合。
+        两段时是 50×50，六段时是 50⁶：按本机实测每组合约 14 µs 算要跑六十多个小时，
+        不是慢一点，是做不出来。而 `_select_options` 从候选里其实只读几个极值，
+        分数、价格、时长又都是**逐项相加**的，所以每个极值都等于"每一项各取最优"。
+        """
+        axes: list[list[_Choice]] = [
+            _distinct_by_display(
+                [choice for choice in axis if choice.mode is shape.modes[index]]
+            )
+            for index, axis in enumerate(leg_axes)
+        ]
+        axes.append(_distinct_by_display(list(hotel_axis)))
+        if any(not axis for axis in axes):
+            return []
+
+        combinations: dict[tuple[str, ...], tuple[_Choice, ...]] = {}
+        for ceiling in _POLICY_CEILINGS:
+            # 整条方案不超过某一档 ⇔ 每一项都不超过那一档，所以先按档收窄再各取最优。
+            limited = [
+                [choice for choice in axis if choice.band <= ceiling] for axis in axes
+            ]
+            if any(not axis for axis in limited):
+                continue
+            for combination in _representative_combinations(limited, limit):
+                combinations.setdefault(
+                    tuple(choice.key for choice in combination), combination
+                )
+
+        results: list[tuple[PlanShape, TravelOptionVersion]] = []
+        for combination in combinations.values():
+            *transports, lodging = combination
+            option = self._evaluate(
+                request,
+                employee,
+                policy,
+                [choice.offer for choice in transports],
+                lodging.offer,
+                shape,
+                minutes_per_unit,
+                now=now,
+            )
+            if option is not None:
+                results.append((shape, option))
+        return results
 
     def _evaluate(
         self,
@@ -157,10 +349,8 @@ class ItineraryPlanner:
         now: datetime,
     ) -> TravelOptionVersion | None:
         """把一种走法的一组具体报价评成一条方案；不可行则返回 None。"""
-        outbound = transports[0]
-        inbound = transports[1] if len(transports) > 1 else None
         feasibility = self.validator.validate(
-            request, outbound, inbound, hotel, policy.arrival_buffer_minutes, now=now
+            request, transports, hotel, policy.arrival_buffer_minutes, now=now
         )
         if not feasibility.feasible:
             return None
@@ -188,13 +378,17 @@ class ItineraryPlanner:
         facts = [
             f"total_cost={total_cost}",
             f"currency={policy.currency}",
-            f"outbound={outbound.ref_id}",
+            f"outbound={transports[0].ref_id}",
             f"policy={decision.outcome.value}",
             f"plan_shape={shape.label()}",
             f"inventory_snapshots={','.join(snapshot_ids)}",
         ]
-        if inbound:
-            facts.append(f"inbound={inbound.ref_id}")
+        # 前两段沿用 outbound / inbound 这两个名字：前端、评测与冻结数据集都认它们。
+        # 第三段起才用 leg2、leg3……——新名字只加在新东西上，旧的一个字不动。
+        if len(transports) > 1:
+            facts.append(f"inbound={transports[1].ref_id}")
+        for index, leg in enumerate(transports[2:], start=2):
+            facts.append(f"leg{index}={leg.ref_id}")
         if hotel:
             commute_fact = (
                 "commute_minutes=unknown"
@@ -210,8 +404,7 @@ class ItineraryPlanner:
             version=1,
             trip_request_version=request.version,
             inventory_snapshot_ids=snapshot_ids,
-            outbound=outbound,
-            inbound=inbound,
+            legs=tuple(transports),
             hotel=hotel,
             total_cost=total_cost,
             total_duration_minutes=duration,
@@ -251,6 +444,72 @@ _POLICY_BANDS: dict[PolicyOutcome, int] = {
     PolicyOutcome.REQUIRES_APPROVAL: 1,
 }
 _BLOCKED_BAND = 2
+
+#: 按档收窄时依次试的上限。分开试是必要的：最便宜的那条常常在更差的档里，
+#: 只按"全场最便宜"取一次，合规档里最便宜的那条就再也没机会被摆出来。
+_POLICY_CEILINGS: tuple[int, ...] = (0, 1, _BLOCKED_BAND)
+
+
+def _by_score(choice: _Choice) -> tuple[object, ...]:
+    return (choice.score, choice.key)
+
+
+def _by_price(choice: _Choice) -> tuple[object, ...]:
+    return (choice.price, choice.score, choice.key)
+
+
+def _by_duration(choice: _Choice) -> tuple[object, ...]:
+    return (choice.duration, choice.score, choice.key)
+
+
+def _representative_combinations(
+    axes: list[list[_Choice]], limit: int
+) -> list[tuple[_Choice, ...]]:
+    """这一档里值得组装成方案的几组选择。
+
+    `_select_options` 从候选里只读几个极值：综合最优、最便宜、最快，以及按名次
+    补齐名额时每种走法的前几名。这几个量全是**逐项相加**的，可行性也逐项独立，
+    所以每个极值都等于"每一项各取最优"——不必把组合枚举出来才知道谁最优。
+    """
+    combinations = [
+        tuple(min(axis, key=objective) for axis in axes)
+        for objective in (_by_score, _by_price, _by_duration)
+    ]
+    combinations.extend(_best_by_score(axes, limit))
+    return combinations
+
+
+def _best_by_score(axes: list[list[_Choice]], limit: int) -> list[tuple[_Choice, ...]]:
+    """分数上的前 ``limit`` 组。
+
+    补齐名额那一步是按名次走的，光有"最优的一组"不够。分数逐项相加，于是从最优
+    那一组出发，每次只把某一项换成它的下一名，就能按序把前几组取出来——
+    代价与 ``limit`` 成正比，和组合总数无关。
+    """
+    ordered = [sorted(axis, key=_by_score) for axis in axes]
+    start = (0,) * len(ordered)
+    heap: list[tuple[Decimal, tuple[int, ...]]] = [(_axes_score(ordered, start), start)]
+    seen = {start}
+    picked: list[tuple[_Choice, ...]] = []
+    while heap and len(picked) < limit:
+        _, indexes = heappop(heap)
+        picked.append(tuple(ordered[axis][index] for axis, index in enumerate(indexes)))
+        for axis, index in enumerate(indexes):
+            if index + 1 >= len(ordered[axis]):
+                continue
+            successor = indexes[:axis] + (index + 1,) + indexes[axis + 1 :]
+            if successor in seen:
+                continue
+            seen.add(successor)
+            heappush(heap, (_axes_score(ordered, successor), successor))
+    return picked
+
+
+def _axes_score(ordered: list[list[_Choice]], indexes: tuple[int, ...]) -> Decimal:
+    return sum(
+        (ordered[axis][index].score for axis, index in enumerate(indexes)),
+        Decimal("0"),
+    )
 
 
 def _policy_band(option: TravelOptionVersion) -> int:
@@ -367,10 +626,7 @@ def _category_labels(
 
 
 def _modes_used(option: TravelOptionVersion) -> frozenset[TransportMode]:
-    modes = {option.outbound.mode}
-    if option.inbound is not None:
-        modes.add(option.inbound.mode)
-    return frozenset(modes)
+    return frozenset(leg.mode for leg in option.legs)
 
 
 def _cover_every_available_mode(
@@ -411,22 +667,25 @@ def _cover_every_available_mode(
     return result
 
 
-def _display_fingerprint(option: TravelOptionVersion) -> tuple[object, ...]:
-    hotel = option.hotel
-    hotel_key: tuple[object, ...]
+def _hotel_display_key(hotel: HotelOffer | None) -> tuple[object, ...]:
+    """住宿摆出来长什么样。两家酒店这一项相同，结果里就是同一条方案。"""
     if hotel is None:
-        hotel_key = ()
-    else:
-        hotel_key = (
-            hotel.name.casefold(),
-            hotel.city.casefold(),
-            hotel.nightly_price,
-            hotel.nights,
-            hotel.check_in,
-            hotel.check_out,
-        )
-    inbound_id = option.inbound.ref_id if option.inbound else None
-    return (option.outbound.ref_id, inbound_id, hotel_key)
+        return ()
+    return (
+        hotel.name.casefold(),
+        hotel.city.casefold(),
+        hotel.nightly_price,
+        hotel.nights,
+        hotel.check_in,
+        hotel.check_out,
+    )
+
+
+def _display_fingerprint(option: TravelOptionVersion) -> tuple[object, ...]:
+    return (
+        tuple(leg.ref_id for leg in option.legs),
+        _hotel_display_key(option.hotel),
+    )
 
 
 def _minutes(start: datetime, end: datetime) -> int:

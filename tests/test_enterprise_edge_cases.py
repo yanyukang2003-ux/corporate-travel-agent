@@ -322,7 +322,7 @@ def test_cross_timezone_feasibility_compares_absolute_instants() -> None:
     )
 
     result = FeasibilityValidator().validate(
-        request, offer, None, None, 60, now=datetime.fromisoformat("2026-08-05T00:00:00+00:00")
+        request, [offer], None, 60, now=datetime.fromisoformat("2026-08-05T00:00:00+00:00")
     )
 
     assert result.feasible
@@ -352,12 +352,11 @@ def test_arrival_buffer_only_applies_to_meeting_constraint() -> None:
 
     pacific_now = datetime.fromisoformat("2026-08-20T00:00:00+08:00")
     plain_arrival = validator.validate(
-        base_request, offer, None, None, 60, now=pacific_now
+        base_request, [offer], None, 60, now=pacific_now
     )
     meeting_arrival = validator.validate(
         replace(base_request, hard_constraints=("arrive_before_meeting",)),
-        offer,
-        None,
+        [offer],
         None,
         60,
         now=pacific_now,

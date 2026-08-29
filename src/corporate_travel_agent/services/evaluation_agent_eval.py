@@ -532,8 +532,7 @@ def _recommended_policy(
             continue
         feasibility = validator.validate(
             request,
-            out,
-            back,
+            [out, *([back] if back else [])],
             hotel,
             policy.arrival_buffer_minutes,
             now=replay_now,

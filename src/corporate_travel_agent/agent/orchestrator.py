@@ -2443,8 +2443,10 @@ class TripWorkflowOrchestrator:
             request=request,
             employee=task.employee,
             policy=policy,
-            outbound_offers=self._transports(outbound_snapshot),
-            inbound_offers=self._transports(inbound_snapshot),
+            leg_offers=[
+                self._transports(outbound_snapshot),
+                self._transports(inbound_snapshot),
+            ],
             hotel_offers=self._hotels(hotel_snapshot),
             now=self.clock(),
         )
@@ -2606,8 +2608,7 @@ class TripWorkflowOrchestrator:
         ):
             feasibility = validator.validate(
                 request,
-                outbound_offer,
-                inbound_offer,
+                [outbound_offer, *([inbound_offer] if inbound_offer else [])],
                 hotel,
                 policy.arrival_buffer_minutes,
                 now=self.clock(),

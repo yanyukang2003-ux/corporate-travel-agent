@@ -347,8 +347,11 @@ class TravelOptionVersion:
     version: int
     trip_request_version: int
     inventory_snapshot_ids: tuple[str, ...]
-    outbound: TransportOffer
-    inbound: TransportOffer | None
+    # 这条方案要执行的交通航段，**有序**：单程 1 段、往返 2 段、多城 N 段。
+    # 此前这里是 `outbound` 和 `inbound` 两个槽——请求侧早就能表达 6 段
+    # （`TripRequestVersion.journey`），结果侧却只有两个位置放得下，
+    # 于是"领域模型支持多城"这句话只有一半是真的。
+    legs: tuple[TransportOffer, ...]
     hotel: HotelOffer | None
     total_cost: Decimal
     total_duration_minutes: int
@@ -360,11 +363,19 @@ class TravelOptionVersion:
     currency: str = "USD"
 
     @property
+    def outbound(self) -> TransportOffer:
+        """第一段。保留这个名字，是因为它在前端、评测与 API 响应里已经叫开了。"""
+        return self.legs[0]
+
+    @property
+    def inbound(self) -> TransportOffer | None:
+        """第二段；只有一段时为 None。三段以上请直接读 ``legs``。"""
+        return self.legs[1] if len(self.legs) > 1 else None
+
+    @property
     def inventory_refs(self) -> tuple[str, ...]:
         """方案引用的库存 ref_id 列表。"""
-        refs = [self.outbound.ref_id]
-        if self.inbound:
-            refs.append(self.inbound.ref_id)
+        refs = [leg.ref_id for leg in self.legs]
         if self.hotel:
             refs.append(self.hotel.ref_id)
         return tuple(refs)

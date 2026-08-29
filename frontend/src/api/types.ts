@@ -155,6 +155,7 @@ export interface TravelOption {
   trip_request_version: number
   inventory_snapshot_ids: string[]
   inventory_refs: string[]
+  legs: TransportOffer[]
   outbound: TransportOffer
   inbound: TransportOffer | null
   hotel: HotelOffer | null
