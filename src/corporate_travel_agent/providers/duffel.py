@@ -8,7 +8,7 @@ import math
 import os
 import re
 from collections import deque
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal, InvalidOperation
@@ -60,6 +60,10 @@ TEST_MODE_DISCLOSURE = (
 )
 _RETRYABLE_STATUS_CODES = frozenset({408, 429, 500, 502, 503, 504})
 _IATA_CODE = re.compile(r"^[A-Z]{3}$")
+
+#: 一次请求最多放几个 slice。抄的是 Amadeus 的上限，和 `validation.MAX_JOURNEY_LEGS`
+#: 是同一个数、同一个来源——两处对不上的话，宿主会拼出一个供应商必然拒绝的请求。
+MAX_JOURNEY_SLICES = 6
 
 # 已核对的城市/机场标签 → Duffel place code（多机场城市优先 metro code）。
 # fail-closed：仅精确匹配键；Test Mode 对国际线比国内线更稳。
@@ -237,6 +241,66 @@ class DuffelProvider:
         )
         response_payload = self._successful_payload(response)
         return self._snapshot_from_search(query, response_payload)
+
+    def search_multi_city(
+        self, queries: Sequence[TransportSearchQuery]
+    ) -> InventorySnapshot:
+        """一次请求问完整条多段行程，返回**整票**报价。
+
+        今天每段各发一次搜索，等于买 N 张单程票。Duffel 把多城当一次请求：
+        多个 slice、一个覆盖全部航段的 offer，按 IATA 票价构造规则定价——
+        **不是几张单程相加**。实测两次、四条行程八次比价全部同向，整票便宜
+        15%–76%（`reports/evaluation-runs/multicity-pricing-*/`），
+        连普通往返都便宜 18%–23%。
+
+        返回的 snapshot 里，**一张整票被摊成它的每一段**，同一张票的几段共用一个
+        ``fare_ref``；整票的价记在第一段上，其余段为 0。这样 ``sum(leg.price)``
+        仍然是真实总价，而"这几段不能拆开"这件事在数据里说得出口。
+        """
+        if len(queries) < 2:
+            raise ProviderError("multi-city search needs at least two legs")
+        if len(queries) > MAX_JOURNEY_SLICES:
+            raise ProviderError(
+                f"multi-city search supports at most {MAX_JOURNEY_SLICES} legs"
+            )
+        for query in queries:
+            self._validate_query(query)
+        codes = [
+            (self._location_code(item.origin), self._location_code(item.destination))
+            for item in queries
+        ]
+        for origin_code, destination_code in codes:
+            if origin_code == destination_code:
+                raise ProviderError(
+                    "Duffel origin and destination must differ after normalization"
+                )
+        payload = {
+            "data": {
+                "cabin_class": self._cabin_class,
+                "slices": [
+                    {
+                        "origin": origin_code,
+                        "destination": destination_code,
+                        "departure_date": query.depart_after.date().isoformat(),
+                    }
+                    for query, (origin_code, destination_code) in zip(
+                        queries, codes, strict=True
+                    )
+                ],
+                "passengers": [{"type": "adult"}],
+            }
+        }
+        response = self._send(
+            "POST",
+            "/air/offer_requests",
+            params={
+                "return_offers": "true",
+                "supplier_timeout": str(self._supplier_timeout_ms),
+            },
+            json_body=payload,
+        )
+        response_payload = self._successful_payload(response)
+        return self._snapshot_from_multi_city(tuple(queries), response_payload)
 
     def search_hotels(self, query: HotelSearchQuery) -> InventorySnapshot:
         """V1 仅支持航班；酒店必须由其他 Provider 覆盖。"""
@@ -574,6 +638,191 @@ class DuffelProvider:
             expires_at,
             None,
         )
+
+    def _snapshot_from_multi_city(
+        self,
+        queries: tuple[TransportSearchQuery, ...],
+        payload: dict[str, Any],
+    ) -> InventorySnapshot:
+        """把多段响应归一化成"一张票摊成几段"的快照。
+
+        **和单段那条路各走各的，一行不共用。** 单段那条路被冻结数据集、评测轨迹与
+        实链路 runner 盯着，它的行为一个字都不该因为多城而变。
+        """
+        captured_at = self._aware_now()
+        raw_bytes = json.dumps(
+            payload, ensure_ascii=False, sort_keys=True, separators=(",", ":")
+        ).encode("utf-8")
+        raw_hash = hashlib.sha256(raw_bytes).hexdigest()
+        query_hash = hashlib.sha256(
+            "|".join(inventory_query_hash(item) for item in queries).encode()
+        ).hexdigest()
+        identity = "|".join(
+            (query_hash, captured_at.isoformat(), raw_hash, self.provider_mode)
+        )
+        snapshot_id = f"duffel-journey-{hashlib.sha256(identity.encode()).hexdigest()[:16]}"
+        raw_response = self._archive_raw_payload(
+            payload, captured_at=captured_at, category="flight", identity=snapshot_id
+        )
+        self.last_raw_response = raw_response
+        data = self._response_data(payload)
+        self._require_test_mode(data)
+        raw_offers = data.get("offers")
+        if not isinstance(raw_offers, list):
+            raise ProviderError("Duffel response data.offers must be a list")
+
+        legs: list[TransportOffer] = []
+        expirations: list[datetime] = []
+        warnings = [TEST_MODE_DISCLOSURE]
+        filter_counts: dict[str, int] = {}
+        seen_fares: set[str] = set()
+        for index, raw_offer in enumerate(raw_offers[: self._max_offers]):
+            try:
+                fare_legs, expires_at, reason = self._normalize_journey_offer(
+                    queries, raw_offer
+                )
+            except (KeyError, TypeError, ValueError, InvalidOperation) as exc:
+                code = f"parse_error:{type(exc).__name__}"
+                filter_counts[code] = filter_counts.get(code, 0) + 1
+                warnings.append(
+                    f"Duffel journey offer index {index} was skipped: "
+                    f"{type(exc).__name__}: {str(exc)[:160]}"
+                )
+                continue
+            if fare_legs is None:
+                code = reason or "filtered_unknown"
+                filter_counts[code] = filter_counts.get(code, 0) + 1
+                continue
+            fare_ref = fare_legs[0].fare_ref or ""
+            if fare_ref in seen_fares:
+                continue
+            seen_fares.add(fare_ref)
+            legs.extend(fare_legs)
+            expirations.extend([expires_at] * len(fare_legs))
+
+        if filter_counts:
+            warnings.append(
+                "Duffel journey offers filtered: " + _format_filter_summary(filter_counts)
+            )
+        if raw_offers and not legs:
+            parse_failures = any(code.startswith("parse_error:") for code in filter_counts)
+            if parse_failures:
+                raise ProviderError(
+                    "Duffel returned journey offers but none could be safely "
+                    f"normalized; raw_response_sha256={raw_hash}"
+                )
+            warnings.append(
+                "Duffel returned journey offers outside the requested time windows; "
+                f"raw_response_sha256={raw_hash}"
+            )
+
+        items = tuple(replace(item, snapshot_id=snapshot_id) for item in legs)
+        self.quote_context_store.put_many(
+            tuple(
+                ProviderQuoteContext(
+                    provider=self.name,
+                    snapshot_id=snapshot_id,
+                    ref_id=item.ref_id,
+                    price=item.price,
+                    currency=item.currency,
+                    captured_at=captured_at,
+                    expires_at=expires_at,
+                    # 复核时要拿**整票**的 offer id 去查，不是这一段的合成 ref。
+                    payload={"offer_id": item.fare_ref or item.ref_id},
+                )
+                for item, expires_at in zip(items, expirations, strict=True)
+            )
+        )
+        valid_until = (
+            min(captured_at + timedelta(minutes=15), *expirations)
+            if expirations
+            else captured_at + timedelta(minutes=5)
+        )
+        return InventorySnapshot(
+            snapshot_id=snapshot_id,
+            provider=self.name,
+            source_type=SourceType.AUTHORIZED_API,
+            captured_at=captured_at,
+            valid_until=valid_until,
+            query_hash=query_hash,
+            raw_payload_hash=raw_hash,
+            items=items,
+            provider_warnings=tuple(warnings),
+            raw_response=raw_response,
+        )
+
+    def _normalize_journey_offer(
+        self,
+        queries: tuple[TransportSearchQuery, ...],
+        raw_offer: Any,
+    ) -> tuple[list[TransportOffer] | None, datetime, str | None]:
+        """一张整票 → 它的每一段。整票的价只记在第一段上。
+
+        少一段的报价一律丢掉：那是另一趟行程，便宜是应该的，拿来比价没有意义。
+        """
+        if not isinstance(raw_offer, Mapping):
+            raise TypeError("Duffel offer must be an object")
+        fare_ref = str(raw_offer.get("id") or "")
+        if not fare_ref.startswith("off_"):
+            raise ValueError("invalid Duffel offer ID")
+        price, currency = self._offer_price(raw_offer)
+        expires_at = self._offer_expiry(raw_offer)
+        if expires_at <= self._aware_now():
+            return None, expires_at, "filtered_expired"
+        if (
+            self._required_owner_name is not None
+            and self._offer_owner_name(raw_offer) != self._required_owner_name
+        ):
+            return None, expires_at, "filtered_owner"
+
+        slices = raw_offer["slices"]
+        if not isinstance(slices, list):
+            raise ValueError("journey offer must contain a slices list")
+        if len(slices) != len(queries):
+            return None, expires_at, "filtered_partial_journey"
+
+        legs: list[TransportOffer] = []
+        for index, (raw_slice, query) in enumerate(zip(slices, queries, strict=True)):
+            segments = raw_slice["segments"]
+            if not isinstance(segments, list) or not segments:
+                raise ValueError("offer slice must contain segments")
+            first, last = segments[0], segments[-1]
+            if not isinstance(first, Mapping) or not isinstance(last, Mapping):
+                raise TypeError("offer segment must be an object")
+            depart_at = self._parse_flight_datetime(
+                first["departing_at"], "departing_at", first.get("origin")
+            )
+            arrive_at = self._parse_flight_datetime(
+                last["arriving_at"], "arriving_at", last.get("destination")
+            )
+            if arrive_at <= depart_at:
+                raise ValueError("offer arrival must be after departure")
+            if depart_at < query.depart_after:
+                return None, expires_at, "filtered_by_depart_after"
+            if query.arrive_before is not None and arrive_at > query.arrive_before:
+                return None, expires_at, "filtered_by_arrive_before"
+            legs.append(
+                TransportOffer(
+                    # 一张票的每一段各需要一个自己的 ref，否则去重会把它们当成一条。
+                    # 前缀保留 off_ 是因为 `owns_ref` 认这个前缀。
+                    ref_id=f"{fare_ref}#{index}",
+                    snapshot_id="pending",
+                    provider=self.name,
+                    mode=TransportMode.FLIGHT,
+                    origin=query.origin,
+                    destination=query.destination,
+                    depart_at=depart_at,
+                    arrive_at=arrive_at,
+                    # 整票只有一个价，记在第一段上；其余段为 0。
+                    price=price if index == 0 else Decimal("0"),
+                    seat_class=self._cabin_class.upper(),
+                    available=True,
+                    is_direct=len(segments) == 1,
+                    currency=currency,
+                    fare_ref=fare_ref,
+                )
+            )
+        return legs, expires_at, None
 
     def _send(
         self,

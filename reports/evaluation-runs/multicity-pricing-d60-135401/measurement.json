@@ -1,0 +1,203 @@
+{
+  "measured_at": "2026-08-29T17:55:25.228349+00:00",
+  "runner_version": "multicity-pricing-measure-v1",
+  "billed_model_calls": 0,
+  "duffel_requests": 15,
+  "depart_in_days": 60,
+  "depart_on": "2026-10-28",
+  "journeys": [
+    {
+      "journey_id": "MP-01",
+      "title": "北京 → 上海 → 杭州 → 北京（国内三段）",
+      "legs": [
+        "PEK-SHA",
+        "SHA-HGH",
+        "HGH-PEK"
+      ],
+      "split": {
+        "legs": [
+          {
+            "leg": "PEK-SHA",
+            "offers": 44,
+            "cheapest": "67.05",
+            "currency": "USD"
+          },
+          {
+            "leg": "SHA-HGH",
+            "offers": 1,
+            "cheapest": "34.58",
+            "currency": "USD"
+          },
+          {
+            "leg": "HGH-PEK",
+            "offers": 30,
+            "cheapest": "376.10",
+            "currency": "USD"
+          }
+        ],
+        "complete": true,
+        "total": "477.73",
+        "currency": "USD",
+        "requests": 3
+      },
+      "one_request": {
+        "offers": 1,
+        "offers_covering_every_leg": 1,
+        "cheapest": "114.41",
+        "currency": "USD",
+        "requests": 1
+      },
+      "comparison": {
+        "comparable": true,
+        "split_total": "477.73",
+        "one_request_total": "114.41",
+        "delta": "-363.32",
+        "delta_pct": -76.05132606283884,
+        "cheaper": "one_request"
+      }
+    },
+    {
+      "journey_id": "MP-02",
+      "title": "北京 → 东京 → 新加坡 → 北京（跨境三段）",
+      "legs": [
+        "PEK-TYO",
+        "TYO-SIN",
+        "SIN-PEK"
+      ],
+      "split": {
+        "legs": [
+          {
+            "leg": "PEK-TYO",
+            "offers": 44,
+            "cheapest": "101.27",
+            "currency": "USD"
+          },
+          {
+            "leg": "TYO-SIN",
+            "offers": 39,
+            "cheapest": "215.36",
+            "currency": "USD"
+          },
+          {
+            "leg": "SIN-PEK",
+            "offers": 34,
+            "cheapest": "236.80",
+            "currency": "USD"
+          }
+        ],
+        "complete": true,
+        "total": "553.43",
+        "currency": "USD",
+        "requests": 3
+      },
+      "one_request": {
+        "offers": 1,
+        "offers_covering_every_leg": 1,
+        "cheapest": "428.57",
+        "currency": "USD",
+        "requests": 1
+      },
+      "comparison": {
+        "comparable": true,
+        "split_total": "553.43",
+        "one_request_total": "428.57",
+        "delta": "-124.86",
+        "delta_pct": -22.561118840684458,
+        "cheaper": "one_request"
+      }
+    },
+    {
+      "journey_id": "MP-03",
+      "title": "上海 → 香港 → 曼谷 → 上海（跨境三段）",
+      "legs": [
+        "SHA-HKG",
+        "HKG-BKK",
+        "BKK-SHA"
+      ],
+      "split": {
+        "legs": [
+          {
+            "leg": "SHA-HKG",
+            "offers": 48,
+            "cheapest": "72.32",
+            "currency": "USD"
+          },
+          {
+            "leg": "HKG-BKK",
+            "offers": 49,
+            "cheapest": "88.63",
+            "currency": "USD"
+          },
+          {
+            "leg": "BKK-SHA",
+            "offers": 34,
+            "cheapest": "137.80",
+            "currency": "USD"
+          }
+        ],
+        "complete": true,
+        "total": "298.75",
+        "currency": "USD",
+        "requests": 3
+      },
+      "one_request": {
+        "offers": 5796,
+        "offers_covering_every_leg": 5796,
+        "cheapest": "238.47",
+        "currency": "USD",
+        "requests": 1
+      },
+      "comparison": {
+        "comparable": true,
+        "split_total": "298.75",
+        "one_request_total": "238.47",
+        "delta": "-60.28",
+        "delta_pct": -20.177405857740585,
+        "cheaper": "one_request"
+      }
+    },
+    {
+      "journey_id": "MP-04",
+      "title": "**对照组：普通往返**（北京 ⇄ 上海）",
+      "legs": [
+        "PEK-SHA",
+        "SHA-PEK"
+      ],
+      "split": {
+        "legs": [
+          {
+            "leg": "PEK-SHA",
+            "offers": 44,
+            "cheapest": "65.80",
+            "currency": "USD"
+          },
+          {
+            "leg": "SHA-PEK",
+            "offers": 48,
+            "cheapest": "67.13",
+            "currency": "USD"
+          }
+        ],
+        "complete": true,
+        "total": "132.93",
+        "currency": "USD",
+        "requests": 2
+      },
+      "one_request": {
+        "offers": 1465,
+        "offers_covering_every_leg": 1465,
+        "cheapest": "108.90",
+        "currency": "USD",
+        "requests": 1
+      },
+      "comparison": {
+        "comparable": true,
+        "split_total": "132.93",
+        "one_request_total": "108.90",
+        "delta": "-24.03",
+        "delta_pct": -18.07718348002708,
+        "cheaper": "one_request"
+      }
+    }
+  ]
+}

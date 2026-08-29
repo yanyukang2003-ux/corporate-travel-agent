@@ -989,6 +989,11 @@ def _public_task(task: TripTask) -> dict[str, Any]:
                 # 完整的有序航段列表。三段以上只有这里读得到——
                 # outbound / inbound 仍然照旧给，前端不改也能跑。
                 "legs": [_public_transport_offer(leg) for leg in item.legs],
+                # 这条方案要买几张票、各多少钱。**展示价格读这里，不要逐段读 price**
+                # ——整票只有一个价，记在它第一段上，其余段为 0。
+                "fares": [
+                    {"fare_ref": ref, "total": total} for ref, total in item.fares
+                ],
                 "outbound": _public_transport_offer(item.outbound),
                 "inbound": (
                     _public_transport_offer(item.inbound) if item.inbound else None
@@ -1032,6 +1037,9 @@ def _public_transport_offer(offer: Any) -> dict[str, Any]:
         "available": offer.available,
         "is_direct": offer.is_direct,
         "currency": offer.currency,
+        # 这一段属于哪张票。null = 它自己就是一张票（分段购买）。
+        # 同一个 fare_ref 的几段是一张整票，不能拆开——**price 只在第一段上**。
+        "fare_ref": offer.fare_ref,
     }
 
 

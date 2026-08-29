@@ -148,6 +148,7 @@ class ItineraryPlanner:
         hotel_offers: Sequence[HotelOffer] | Sequence[Sequence[HotelOffer]],
         limit: int = 3,
         *,
+        journey_fares: Sequence[Sequence[TransportOffer]] = (),
         now: datetime,
     ) -> list[TravelOptionVersion]:
         """产出最多 ``limit`` 条**互不相同的**方案，外加需要说明的被挡方案。
@@ -158,6 +159,11 @@ class ItineraryPlanner:
 
         ``hotel_offers`` 同理按**住宿站**给：第 i 项是第 i 站的酒店。
         只给一串酒店（不分站）时按"只有一站"理解，和改动之前逐字一致。
+
+        ``journey_fares`` 是**整票**：一项就是一张覆盖全部航段的票，按航段顺序给出
+        它的每一段。整票和分段购买是两种**真正不同的走法**（§30.2），所以两边的
+        方案一起摆出来、由人取舍——不是二选一。整票便宜（实测 15%–76%），
+        分段可以各段单独退改，这个取舍不该由规划器替旅行者做。
         """
         pools = [
             [
@@ -184,6 +190,18 @@ class ItineraryPlanner:
         ]
 
         candidates: list[tuple[PlanShape, TravelOptionVersion]] = []
+        candidates.extend(
+            self._fare_candidates(
+                request,
+                employee,
+                policy,
+                journey_fares,
+                stay_axes,
+                minutes_per_unit,
+                limit,
+                now=now,
+            )
+        )
         for shape in _enumerate_shapes(pools, stay_pools):
             candidates.extend(
                 self._shape_candidates(
@@ -202,6 +220,75 @@ class ItineraryPlanner:
         return _select_options(
             candidates, limit, compare_modes=wants_mode_comparison(request)
         )
+
+    def _fare_candidates(
+        self,
+        request: TripRequestVersion,
+        employee: EmployeeProfileSnapshot,
+        policy: PolicySnapshot,
+        journey_fares: Sequence[Sequence[TransportOffer]],
+        stay_axes: list[list[_Choice]],
+        minutes_per_unit: Decimal,
+        limit: int,
+        *,
+        now: datetime,
+    ) -> list[tuple[PlanShape, TravelOptionVersion]]:
+        """整票各自评成方案。**一张整票是一个不可拆的候选。**
+
+        这是整票和分段购买最要紧的区别，也是它没法走上面那条路的原因：
+        `_shape_candidates` 把每段当成一根独立的轴、各取最优再组装，
+        而整票的几段**不能拆开、也不能和别的票的段混搭**——它们是一件商品。
+        所以这里不做组合，只把每张票原样评一遍，再配上住宿。
+
+        §32.3 那三条性质（逐项相加、逐项独立、逐项取最差）在住宿这几根轴上仍然成立，
+        所以住宿照旧按档各取最优；被固定住的只有交通那部分。
+        """
+        results: list[tuple[PlanShape, TravelOptionVersion]] = []
+        expected = planned_leg_count(request)
+        stay_choices = [_distinct_by_display(list(axis)) for axis in stay_axes]
+        for fare in journey_fares:
+            legs = list(fare)
+            if len(legs) != expected:
+                # 段数对不上的票不是这趟行程的票，直接不看。
+                continue
+            if not all(
+                _leg_satisfies_constraints(request, index, offer)
+                for index, offer in enumerate(legs)
+            ):
+                continue
+            shape = PlanShape(
+                modes=tuple(offer.mode for offer in legs),
+                with_lodging=bool(stay_choices),
+            )
+            combos: dict[tuple[str, ...], tuple[_Choice, ...]] = {}
+            if stay_choices:
+                for ceiling in _POLICY_CEILINGS:
+                    limited = [
+                        [item for item in axis if item.band <= ceiling]
+                        for axis in stay_choices
+                    ]
+                    if any(not axis for axis in limited):
+                        continue
+                    for combination in _representative_combinations(limited, limit):
+                        combos.setdefault(
+                            tuple(item.key for item in combination), combination
+                        )
+            else:
+                combos[()] = ()
+            for combination in combos.values():
+                option = self._evaluate(
+                    request,
+                    employee,
+                    policy,
+                    legs,
+                    [item.offer for item in combination if item.offer is not None],
+                    shape,
+                    minutes_per_unit,
+                    now=now,
+                )
+                if option is not None:
+                    results.append((shape, option))
+        return results
 
     def _leg_choices(
         self,

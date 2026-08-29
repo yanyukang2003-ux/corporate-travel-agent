@@ -106,6 +106,8 @@ export interface TransportOffer {
   available: boolean
   is_direct: boolean
   currency: string
+  /** 这一段属于哪张票。null = 分段购买；同一个值的几段是一张不可拆的整票。 */
+  fare_ref: string | null
 }
 
 /** 后端按真实方向生成的可执行交通航段。 */
@@ -156,6 +158,8 @@ export interface TravelOption {
   inventory_snapshot_ids: string[]
   inventory_refs: string[]
   legs: TransportOffer[]
+  /** 这条方案要买几张票、各多少钱。展示价格读这里，不要逐段读 price。 */
+  fares: { fare_ref: string | null; total: string | number }[]
   outbound: TransportOffer
   inbound: TransportOffer | null
   stays: HotelOffer[]

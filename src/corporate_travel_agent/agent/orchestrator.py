@@ -61,6 +61,7 @@ from corporate_travel_agent.planning.feasibility import leg_spec, planned_leg_co
 from corporate_travel_agent.planning.planner import ItineraryPlanner
 from corporate_travel_agent.providers.base import (
     HotelSearchQuery,
+    JourneySearchQuery,
     ProviderError,
     RetryableProviderError,
     TransportSearchQuery,
@@ -129,6 +130,23 @@ def _is_full_route_revision_message(message: str) -> bool:
     return english_route or chinese_route
 
 
+def _fares_from(offers: list[TransportOffer]) -> list[list[TransportOffer]]:
+    """把一次整票搜索的结果按 ``fare_ref`` 分回一张张票。
+
+    一张票的几段在快照里是并排放着的；分组之后每一组就是**一个不可拆的候选**。
+    没有 ``fare_ref`` 的（理论上不会出现在整票快照里）各自成一组，不会被静默丢掉。
+    """
+    grouped: dict[str, list[TransportOffer]] = {}
+    order: list[str] = []
+    for offer in offers:
+        key = offer.fare_ref or offer.ref_id
+        if key not in grouped:
+            grouped[key] = []
+            order.append(key)
+        grouped[key].append(offer)
+    return [grouped[key] for key in order]
+
+
 def _leg_phrase(request: TripRequestVersion, leg_index: int) -> str:
     """报错文案里怎么称呼这一段。
 
@@ -167,6 +185,15 @@ class TripWorkflowOrchestrator:
         clock: Callable[[], datetime] | None = None,
         timezone_name: str = "Asia/Shanghai",
         max_clarification_rounds: int = 5,
+        #: 几段起才额外问一次"整票"。
+        #:
+        #: **默认 3（只有多城走整票），是一个有意的保守选择，不是技术限制。**
+        #: 实测整票连普通往返都便宜 18%–23%
+        #: （`reports/evaluation-runs/multicity-pricing-*/`），但把它对往返也打开
+        #: 意味着**每一趟差旅都多发一次供应商请求**——那是项目所有者的取舍
+        #: （HANDOFF §1.5 第 3 条一直挂着这一条），不是规划层该替他定的。
+        #: 要打开就把它设成 2。
+        journey_fare_min_legs: int = 3,
         max_tool_calls: int = 12,
         max_provider_attempts: int = MAX_PROVIDER_ATTEMPTS,
         max_llm_attempts: int = MAX_LLM_ATTEMPTS,
@@ -226,6 +253,9 @@ class TripWorkflowOrchestrator:
         self.clock = clock or (lambda: datetime.now(UTC))
         self.timezone_name = timezone_name
         self.max_clarification_rounds = max_clarification_rounds
+        if journey_fare_min_legs < 2:
+            raise ValueError("journey_fare_min_legs must be at least 2")
+        self.journey_fare_min_legs = journey_fare_min_legs
         self.max_tool_calls = max_tool_calls
         self.max_provider_attempts = max_provider_attempts
         self.max_llm_attempts = max_llm_attempts
@@ -2356,7 +2386,14 @@ class TripWorkflowOrchestrator:
         # 一段交通一次、一站住宿一次。此前住宿无论几站都只算一次，
         # 多城行程会在预算够两次时开搜、搜到第二站才发现调用用光。
         stays = request.lodging_stays()
-        required_calls = len(transport_legs) + len(stays)
+        # 两段起再加一次"整票"搜索：一次请求问完整条行程，供应商按 IATA 票价构造
+        # 规则给一个覆盖全程的价——**不是几张单程相加**。实测整票便宜 15%–76%，
+        # 连普通往返都便宜 18%–23%（`reports/evaluation-runs/multicity-pricing-*/`）。
+        # 整票和分段购买是两种真正不同的走法，一起摆出来由人取舍。
+        wants_journey_fare = len(transport_legs) >= self.journey_fare_min_legs and hasattr(
+            self.provider, "search_multi_city"
+        )
+        required_calls = len(transport_legs) + len(stays) + int(wants_journey_fare)
         if task.tool_calls_remaining < required_calls:
             return self._stop_for_tool_budget(
                 task,
@@ -2388,6 +2425,31 @@ class TripWorkflowOrchestrator:
                         ),
                     )
                 )
+            journey_snapshot: InventorySnapshot | None = None
+            if wants_journey_fare:
+                leg_queries = [
+                    TransportSearchQuery(
+                        origin=leg.origin,
+                        destination=leg.destination,
+                        depart_after=leg.depart_after,
+                        arrive_before=leg.arrive_before,
+                    )
+                    for leg in transport_legs
+                ]
+                try:
+                    journey_snapshot = self._invoke_tool(
+                        task,
+                        tool_name="provider.search_transport.journey",
+                        tool_kind="PROVIDER",
+                        input_value=JourneySearchQuery(tuple(leg_queries)),
+                        operation=lambda: self.provider.search_multi_city(leg_queries),
+                    )
+                except ProviderError as exc:
+                    # **整票搜不到不算失败。** 它是一条额外的、更便宜的走法；
+                    # 供应商给不出来就退回分段购买——少省一笔钱，不是这趟走不了。
+                    # 分段那几次搜索已经成功，不该被这一次拖垮。
+                    task.metadata["journey_fare_unavailable"] = str(exc)[:200]
+
             # 一站一次搜索。此前只搜一次，城市写死是 `request.destination`
             # ——多城行程的第二站根本没有被搜过。
             hotel_snapshots: list[InventorySnapshot] = []
@@ -2453,7 +2515,11 @@ class TripWorkflowOrchestrator:
             return task
 
         self.provider_circuit_breaker.record_success()
-        snapshots = [*leg_snapshots, *hotel_snapshots]
+        snapshots = [
+            *leg_snapshots,
+            *([journey_snapshot] if journey_snapshot is not None else []),
+            *hotel_snapshots,
+        ]
         invalid_snapshots = self._invalid_snapshot_ids(snapshots)
         if invalid_snapshots:
             task.failure = "provider returned expired or invalid inventory snapshots: " + ", ".join(
@@ -2478,6 +2544,7 @@ class TripWorkflowOrchestrator:
             employee=task.employee,
             policy=policy,
             leg_offers=[self._transports(item) for item in leg_snapshots],
+            journey_fares=_fares_from(self._transports(journey_snapshot)),
             hotel_offers=[self._hotels(item) for item in hotel_snapshots],
             now=self.clock(),
         )

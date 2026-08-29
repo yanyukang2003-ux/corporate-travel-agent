@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from datetime import datetime
 from typing import Protocol
 
@@ -47,6 +48,15 @@ class CompositeTravelInventoryProvider:
 
     def search_transport(self, query: TransportSearchQuery) -> InventorySnapshot:
         return self.transport_provider.search_transport(query)
+
+    def search_multi_city(
+        self, queries: Sequence[TransportSearchQuery]
+    ) -> InventorySnapshot:
+        """整票搜索透传给交通 Provider；它不支持就当作"这条路没有"。"""
+        search = getattr(self.transport_provider, "search_multi_city", None)
+        if search is None:
+            raise ProviderError("transport provider does not support multi-city search")
+        return search(queries)
 
     def search_hotels(self, query: HotelSearchQuery) -> InventorySnapshot:
         return self.hotel_provider.search_hotels(query)

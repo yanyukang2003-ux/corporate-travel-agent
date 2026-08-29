@@ -273,6 +273,15 @@ class TransportOffer:
     available: bool = True
     is_direct: bool = True
     currency: str = "USD"
+    # 这一段属于哪张票。``None`` 表示它自己就是一张票——今天的分段购买。
+    #
+    # 同一个 ``fare_ref`` 的几段是**一张整票**：不能拆开，也不能和别的票的段混搭。
+    # 整票只有一个价，记在这组的**第一段**上，其余段为 0——所以
+    # ``sum(leg.price)`` 仍然是整条行程的真实总价，但**单看某一段的 price 没有意义**，
+    # 要看价请先按 ``fare_ref`` 分组。这不是记账技巧，是 IATA 票价构造规则的事实：
+    # 多城整票不是几张单程相加，实测便宜 15%–76%
+    # （`reports/evaluation-runs/multicity-pricing-*/`）。
+    fare_ref: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -409,6 +418,26 @@ class TravelOptionVersion:
     def inbound(self) -> TransportOffer | None:
         """第二段；只有一段时为 None。三段以上请直接读 ``legs``。"""
         return self.legs[1] if len(self.legs) > 1 else None
+
+    @property
+    def fares(self) -> tuple[tuple[str | None, Decimal], ...]:
+        """这条方案要买几张票，各多少钱。
+
+        分段购买时一段一张票（``fare_ref`` 为 None，各按各的价）；
+        多城整票时几段共用一个 ``fare_ref``，只出现一次、一个价。
+        **展示价格请读这里，不要逐段读 `price`**——整票的价只记在第一段上。
+        """
+        totals: dict[str | None, Decimal] = {}
+        order: list[str | None] = []
+        for index, leg in enumerate(self.legs):
+            key = leg.fare_ref if leg.fare_ref else f"__leg{index}"
+            if key not in totals:
+                totals[key] = Decimal("0")
+                order.append(key)
+            totals[key] += leg.price
+        return tuple(
+            (None if str(key).startswith("__leg") else key, totals[key]) for key in order
+        )
 
     @property
     def hotel(self) -> HotelOffer | None:

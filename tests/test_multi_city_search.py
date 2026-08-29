@@ -166,7 +166,12 @@ def _system(
 
 class MultiCitySearchTests(unittest.TestCase):
     def test_a_three_leg_two_stay_trip_searches_each_one_exactly_once(self) -> None:
-        """本步的闸门：三段交通各搜一次，两站住宿各搜一次，一次不多一次不少。"""
+        """三段交通各搜一次，两站住宿各搜一次，外加一次**整票**。
+
+        整票那一次是第 06 步（§37）加的：一次请求问完整条行程，供应商按 IATA 票价
+        构造规则给一个覆盖全程的价——实测便宜 15%–76%。它是**额外**的一次，
+        分段那几次一次都没少：整票和分段购买是两种真正不同的走法，一起摆出来由人取舍。
+        """
         task = _system().create_task(_request("mc-search"))
 
         self.assertEqual(
@@ -175,9 +180,30 @@ class MultiCitySearchTests(unittest.TestCase):
                 "provider.search_transport.outbound",
                 "provider.search_transport.inbound",
                 "provider.search_transport.leg2",
+                "provider.search_transport.journey",
                 "provider.search_hotels",
                 "provider.search_hotels.stay1",
             ],
+        )
+
+    def test_a_round_trip_does_not_pay_for_a_journey_fare_search_by_default(self) -> None:
+        """**往返默认不问整票。**
+
+        实测整票连往返都便宜 18%–23%，但对往返打开意味着每一趟差旅都多发一次
+        供应商请求——那是项目所有者的取舍（HANDOFF §1.5 第 3 条），不是规划层该替
+        他定的。默认 `journey_fare_min_legs=3`，要打开就设成 2。
+        """
+        transports, hotels = _inventory()
+        request = _request(
+            "mc-roundtrip",
+            journey=(JOURNEY[0], JOURNEY[2]),
+            stays=STAYS[:1],
+        )
+        task = _system(transports, hotels).create_task(request)
+
+        self.assertNotIn(
+            "provider.search_transport.journey",
+            [item.tool_name for item in task.tool_calls],
         )
 
     def test_the_trip_plans_end_to_end_with_a_hotel_in_each_city(self) -> None:
@@ -273,6 +299,99 @@ class MultiCitySearchTests(unittest.TestCase):
         )
         option = task.options[0]
         self.assertEqual([stay.city for stay in option.stays], ["Shanghai"])
+
+
+class JourneyFareTests(unittest.TestCase):
+    """整票：一次请求问完整条行程，供应商给一个覆盖全程的价。
+
+    **整票和分段购买是两种真正不同的走法**（§30.2），所以两边的方案一起摆出来、
+    由人取舍——不是二选一。整票便宜（实测 15%–76%），分段可以各段单独退改。
+    """
+
+    def _system_with_discount(self, discount: str):
+        stock_transports, stock_hotels = _inventory()
+        provider = MockProvider(stock_transports, stock_hotels, clock=lambda: NOW)
+        provider.journey_fare_discount = Decimal(discount)
+        workflow, _ = build_demo_system(
+            clock=lambda: NOW, provider=provider, max_tool_calls=12
+        )
+        return workflow
+
+    def test_the_cheaper_journey_fare_is_put_on_the_table(self) -> None:
+        """整票便宜就该被摆出来，而且它的几段带着同一个 fare_ref。"""
+        task = self._system_with_discount("0.7").create_task(_request("mc-fare"))
+
+        fares = [
+            option
+            for option in task.options
+            if any(leg.fare_ref for leg in option.legs)
+        ]
+        self.assertTrue(fares, "整票便宜 30% 却一条都没摆出来")
+        option = fares[0]
+        refs = {leg.fare_ref for leg in option.legs}
+        self.assertEqual(len(refs), 1, "一张整票的几段必须共用一个 fare_ref")
+
+    def test_a_fare_is_priced_as_one_ticket_not_three(self) -> None:
+        """整票只有一个价。
+
+        `sum(leg.price)` 仍然是真实总价，但**单看某一段的 price 没有意义**——
+        整票的价只记在第一段上。要展示价格请读 `option.fares`。
+        """
+        task = self._system_with_discount("0.7").create_task(_request("mc-fare-price"))
+        option = next(
+            item for item in task.options if any(leg.fare_ref for leg in item.legs)
+        )
+
+        # 三段交通只对应**一张票**，不是三张。
+        transport_fares = [
+            (ref, total) for ref, total in option.fares if ref is not None
+        ]
+        self.assertEqual(len(transport_fares), 1)
+        self.assertEqual(
+            transport_fares[0][1], sum(leg.price for leg in option.legs)
+        )
+
+    def test_both_ways_of_buying_stay_on_the_table(self) -> None:
+        """分段购买的方案不许因为整票更便宜就消失。
+
+        便宜不是唯一的取舍：整票的几段绑在一起，分段可以各段单独退改。
+        **取舍交回给人**，不由规划器代劳。
+        """
+        task = self._system_with_discount("0.7").create_task(_request("mc-both"))
+
+        has_fare = any(any(leg.fare_ref for leg in o.legs) for o in task.options)
+        has_split = any(all(not leg.fare_ref for leg in o.legs) for o in task.options)
+        self.assertTrue(has_fare, "整票没被摆出来")
+        self.assertTrue(has_split, "分段购买被整票挤掉了")
+
+    def test_a_provider_without_multi_city_still_plans(self) -> None:
+        """供应商做不了整票时退回分段购买——**少省一笔钱，不是这趟走不了**。"""
+
+        class NoJourneyProvider:
+            """去掉 search_multi_city 的替身；其余行为原样委托。"""
+
+            def __init__(self, inner: MockProvider) -> None:
+                self._inner = inner
+                self.name = inner.name
+
+            def __getattr__(self, item: str) -> object:
+                if item == "search_multi_city":
+                    raise AttributeError(item)
+                return getattr(self._inner, item)
+
+        stock_transports, stock_hotels = _inventory()
+        provider = NoJourneyProvider(
+            MockProvider(stock_transports, stock_hotels, clock=lambda: NOW)
+        )
+        workflow, _ = build_demo_system(clock=lambda: NOW, provider=provider)
+        task = workflow.create_task(_request("mc-no-journey"))
+
+        self.assertEqual(task.state, TaskState.WAITING_FOR_USER, task.failure)
+        self.assertTrue(task.options)
+        self.assertNotIn(
+            "provider.search_transport.journey",
+            [item.tool_name for item in task.tool_calls],
+        )
 
 
 class StayValidationTests(unittest.TestCase):

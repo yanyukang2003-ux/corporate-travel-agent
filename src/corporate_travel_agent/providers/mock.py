@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from dataclasses import asdict, replace
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
@@ -30,6 +30,7 @@ from corporate_travel_agent.services.object_storage import (
 
 from .base import (
     HotelSearchQuery,
+    JourneySearchQuery,
     ProviderError,
     RetryableProviderError,
     TransportSearchQuery,
@@ -69,6 +70,8 @@ class MockProvider:
         self.inventory_valid_until: datetime | None = None
         self.provider_warnings: tuple[str, ...] = ()
         self.handoff_expires_at: datetime | None = None
+        #: 整票相对分段合计的折扣。1.0 = 不打折；测试想验"整票更便宜"就调小它。
+        self.journey_fare_discount = Decimal("1")
 
     def _maybe_fail_search(self) -> None:
         if self.fail_search:
@@ -90,6 +93,47 @@ class MockProvider:
             and (query.arrive_before is None or item.arrive_at <= query.arrive_before)
         )
         return self._snapshot("transport", query, items)
+
+    def search_multi_city(
+        self, queries: Sequence[TransportSearchQuery]
+    ) -> InventorySnapshot:
+        """把每段最便宜的一条拼成一张"整票"，整票价按 `journey_fare_discount` 打折。
+
+        **这是替身，不是定价模型。** 真实整票的价来自 IATA 票价构造规则，Mock 只保证
+        "整票比分段便宜"这条性质成立，好让确定性测试验得了宿主与规划器的行为。
+        默认不打折（1.0），要验价格差异的测试自己把它调下来。
+        """
+        self._maybe_fail_search()
+        legs: list[TransportOffer] = []
+        total = Decimal("0")
+        fare_ref = "off_mock-journey"
+        for query in queries:
+            matches = [
+                item
+                for item in self._transports.values()
+                if item.origin == query.origin
+                and item.destination == query.destination
+                and item.depart_at >= query.depart_after
+                and (query.arrive_before is None or item.arrive_at <= query.arrive_before)
+            ]
+            if not matches:
+                # 少一段就不是这趟行程的票——整票要么完整，要么没有。
+                return self._snapshot("transport", JourneySearchQuery(tuple(queries)), ())
+            best = min(matches, key=lambda item: item.price)
+            total += best.price
+            legs.append(best)
+        priced = tuple(
+            replace(
+                leg,
+                ref_id=f"{fare_ref}#{index}",
+                price=(
+                    (total * self.journey_fare_discount) if index == 0 else Decimal("0")
+                ),
+                fare_ref=fare_ref,
+            )
+            for index, leg in enumerate(legs)
+        )
+        return self._snapshot("transport", JourneySearchQuery(tuple(queries)), priced)
 
     def search_hotels(self, query: HotelSearchQuery) -> InventorySnapshot:
         """按城市与入住覆盖日期过滤内存酒店库存。"""

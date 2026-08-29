@@ -79,6 +79,18 @@ class TransportSearchQuery:
 
 
 @dataclass(frozen=True, slots=True)
+class JourneySearchQuery:
+    """一次问完整条多段行程的查询：按走的顺序给出每一段。
+
+    和"发 N 次 `TransportSearchQuery`"**不是一回事**：那是买 N 张单程票，
+    这是问一张覆盖全程的整票。两者的价格按 IATA 票价构造规则算出来不同，
+    实测整票便宜 15%–76%（`reports/evaluation-runs/multicity-pricing-*/`）。
+    """
+
+    legs: tuple[TransportSearchQuery, ...]
+
+
+@dataclass(frozen=True, slots=True)
 class HotelSearchQuery:
     """酒店库存搜索查询（城市与入住/离店日期）。"""
 
@@ -93,6 +105,11 @@ class TravelInventoryProvider(Protocol):
     name: str
 
     def search_transport(self, query: TransportSearchQuery) -> InventorySnapshot: ...
+
+    # 整票搜索是**可选能力**：不是每家供应商都做得了多段，也不是每条链路都需要。
+    # 宿主用 `hasattr` 判断，没有就退回分段购买——少省一笔钱，不是坏掉。
+    # def search_multi_city(self, queries: Sequence[TransportSearchQuery])
+    #     -> InventorySnapshot: ...
 
     def search_hotels(self, query: HotelSearchQuery) -> InventorySnapshot: ...
 

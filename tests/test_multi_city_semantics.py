@@ -343,7 +343,7 @@ class MultiCityEndToEndTests(unittest.TestCase):
             )
 
     def test_every_leg_was_actually_searched(self) -> None:
-        """三段各搜一次——**这是第 03 步接上第 05 步的那一环**。"""
+        """三段各搜一次，外加一次整票——第 03、05、06 三步接在一起的那一环。"""
         workflow = self._system()
         task = workflow.create_task_from_semantic_message(
             "9月15号从北京去上海开会，9月18号去杭州见客户，9月19号回北京",
@@ -362,6 +362,7 @@ class MultiCityEndToEndTests(unittest.TestCase):
                 "provider.search_transport.outbound",
                 "provider.search_transport.inbound",
                 "provider.search_transport.leg2",
+                "provider.search_transport.journey",
             ],
         )
 
