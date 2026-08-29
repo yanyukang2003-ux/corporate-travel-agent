@@ -1,0 +1,194 @@
+{
+  "started_at": "2026-08-29T16:44:34.098804+00:00",
+  "finished_at": "2026-08-29T16:45:21.332294+00:00",
+  "runner_version": "semantic-multiturn-model-runner-v1",
+  "gate_id": "MT-semantic",
+  "entrypoint": "semantic",
+  "inventory": "mock",
+  "model": "deepseek-v4-pro",
+  "semantic_prompt_version": "semantic-trip-intent-v13d",
+  "repeats": 2,
+  "model_calls": 6,
+  "price_table_version": "model-prices-openai-20260802-v1",
+  "price_table_sha256": "dd2a754fb067cbb147677d6d75ac462f4f327480776696fadc8c6547cbdbbf46",
+  "currency": "USD",
+  "estimated_cost_usd": 0.01396263,
+  "measurement_only": true,
+  "passed": 1,
+  "total": 1,
+  "unstable_cases": [],
+  "cases": [
+    {
+      "case_id": "MT-03",
+      "title": "多城行程：北京→上海→杭州→北京，三段都要读出来",
+      "passed": true,
+      "checks": [
+        {
+          "name": "legs",
+          "ok": true,
+          "detail": "[('Beijing', 'Shanghai'), ('Shanghai', 'Hangzhou'), ('Hangzhou', 'Beijing')]"
+        }
+      ],
+      "state": "NO_FEASIBLE_OPTION",
+      "legs": [
+        [
+          "Beijing",
+          "Shanghai"
+        ],
+        [
+          "Shanghai",
+          "Hangzhou"
+        ],
+        [
+          "Hangzhou",
+          "Beijing"
+        ]
+      ],
+      "searches": 3,
+      "clarification_question": null,
+      "conflicts": [],
+      "intent_fields": {
+        "origin": "Beijing",
+        "destination": "Shanghai",
+        "departure_after": "2026-09-15 00:00:00+08:00",
+        "arrive_by": "2026-09-16 10:00:00+08:00",
+        "return_after": "2026-09-19 00:00:00+08:00",
+        "return_before": "2026-09-19 23:00:00+08:00",
+        "client_location": "杭州",
+        "booking_scope": "ROUND_TRIP",
+        "lodging_requirement": "UNSPECIFIED"
+      },
+      "user_turns": [
+        "9月15号从北京去上海开会，然后去杭州见客户，最后回北京",
+        "上海会议9月16号上午10点，杭州9月18号下午2点见客户，9月19号晚上回北京",
+        "9月19号晚上11点前到北京就行"
+      ],
+      "transcript": [
+        {
+          "turn": 0,
+          "said": "9月15号从北京去上海开会，然后去杭州见客户，最后回北京",
+          "state": "NEEDS_CLARIFICATION"
+        },
+        {
+          "turn": 1,
+          "said": "上海会议9月16号上午10点，杭州9月18号下午2点见客户，9月19号晚上回北京",
+          "state": "NEEDS_CLARIFICATION",
+          "question": "另外我还需要知道：返程最晚什么时候到。"
+        },
+        {
+          "turn": 2,
+          "said": "9月19号晚上11点前到北京就行",
+          "state": "NO_FEASIBLE_OPTION",
+          "question": null
+        }
+      ],
+      "llm_calls": [
+        {
+          "prompt_version": "semantic-trip-intent-v13d",
+          "model": "deepseek-v4-pro",
+          "duration_ms": 7126,
+          "requested_model": "deepseek-v4-pro",
+          "reasoning_effort": "medium",
+          "response_id": "222a3bc2-fedc-42bc-9b01-da8c4400d1e6",
+          "input_tokens": 3745,
+          "output_tokens": 596,
+          "cached_input_tokens": 768,
+          "cache_write_input_tokens": null,
+          "reasoning_output_tokens": null,
+          "total_tokens": 4341,
+          "service_tier": null,
+          "evidence_contract_version": "conversation-turn-v1",
+          "envelope_repaired": false
+        },
+        {
+          "prompt_version": "semantic-trip-intent-v13d",
+          "model": "deepseek-v4-pro",
+          "duration_ms": 7914,
+          "requested_model": "deepseek-v4-pro",
+          "reasoning_effort": "medium",
+          "response_id": "3d1506d6-2cf6-447f-abfa-74510f475f38",
+          "input_tokens": 3803,
+          "output_tokens": 794,
+          "cached_input_tokens": 3712,
+          "cache_write_input_tokens": null,
+          "reasoning_output_tokens": null,
+          "total_tokens": 4597,
+          "service_tier": null,
+          "evidence_contract_version": "conversation-turn-v1",
+          "envelope_repaired": false
+        },
+        {
+          "prompt_version": "semantic-trip-intent-v13d",
+          "model": "deepseek-v4-pro",
+          "duration_ms": 7993,
+          "requested_model": "deepseek-v4-pro",
+          "reasoning_effort": "medium",
+          "response_id": "64c04de2-f2dd-4d21-ba2e-15e162354350",
+          "input_tokens": 3846,
+          "output_tokens": 852,
+          "cached_input_tokens": 3712,
+          "cache_write_input_tokens": null,
+          "reasoning_output_tokens": null,
+          "total_tokens": 4698,
+          "service_tier": null,
+          "evidence_contract_version": "conversation-turn-v1",
+          "envelope_repaired": false
+        },
+        {
+          "prompt_version": "semantic-trip-intent-v13d",
+          "model": "deepseek-v4-pro",
+          "duration_ms": 6945,
+          "requested_model": "deepseek-v4-pro",
+          "reasoning_effort": "medium",
+          "response_id": "0345b2c3-3af7-4b88-9390-9eeaadb0541b",
+          "input_tokens": 3745,
+          "output_tokens": 667,
+          "cached_input_tokens": 3712,
+          "cache_write_input_tokens": null,
+          "reasoning_output_tokens": null,
+          "total_tokens": 4412,
+          "service_tier": null,
+          "evidence_contract_version": "conversation-turn-v1",
+          "envelope_repaired": false
+        },
+        {
+          "prompt_version": "semantic-trip-intent-v13d",
+          "model": "deepseek-v4-pro",
+          "duration_ms": 8268,
+          "requested_model": "deepseek-v4-pro",
+          "reasoning_effort": "medium",
+          "response_id": "14ff47fc-dc21-416f-a2dc-6d2f3e90cf55",
+          "input_tokens": 3803,
+          "output_tokens": 877,
+          "cached_input_tokens": 3712,
+          "cache_write_input_tokens": null,
+          "reasoning_output_tokens": null,
+          "total_tokens": 4680,
+          "service_tier": null,
+          "evidence_contract_version": "conversation-turn-v1",
+          "envelope_repaired": false
+        },
+        {
+          "prompt_version": "semantic-trip-intent-v13d",
+          "model": "deepseek-v4-pro",
+          "duration_ms": 8718,
+          "requested_model": "deepseek-v4-pro",
+          "reasoning_effort": "medium",
+          "response_id": "71339332-7b52-4f71-a1b6-e3401ca26c35",
+          "input_tokens": 3824,
+          "output_tokens": 880,
+          "cached_input_tokens": 3712,
+          "cache_write_input_tokens": null,
+          "reasoning_output_tokens": null,
+          "total_tokens": 4704,
+          "service_tier": null,
+          "evidence_contract_version": "conversation-turn-v1",
+          "envelope_repaired": false
+        }
+      ],
+      "attempts": 2,
+      "passes": 2,
+      "stable": true
+    }
+  ]
+}

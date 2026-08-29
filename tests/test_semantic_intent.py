@@ -339,7 +339,7 @@ def test_openai_adapter_uses_semantic_schema_and_complete_ledger() -> None:
     )
 
     assert result.decision == expected
-    assert result.metadata.prompt_version == "semantic-trip-intent-v12"
+    assert result.metadata.prompt_version == "semantic-trip-intent-v13d"
     assert result.metadata.evidence_contract_version == "conversation-turn-v1"
 
 
@@ -768,7 +768,14 @@ def test_prompt_tells_the_model_to_keep_a_city_it_cannot_book() -> None:
     # 关键是告诉模型：记下来是你的活，能不能订是宿主的活。
     assert "Dropping a city the traveler named" in prompt
     assert "the host's job, not yours" in prompt
-    assert "three or more cities" in prompt
+    # 三段以上不再只是"记下来"，而是有地方放：legs 数组，一段一条，按走的顺序。
+    assert "three or more places in order" in prompt
+    assert "legs array" in prompt
+    assert "Leave both arrays empty for the normal trip" in prompt
+    # 加 legs 之后真跑抓到的退步：模型被"留空"带偏，连说清楚了的日期也不填了。
+    assert "never replace, excuse or empty any field above" in prompt
+    # **位置就是权重**：这段必须在最后，不能插在既有的日期规则中间。
+    assert prompt.index("legs array") > prompt.index("Numeric dates in these requests")
 
 
 def test_evidence_may_name_the_schema_fields_rather_than_the_short_names() -> None:

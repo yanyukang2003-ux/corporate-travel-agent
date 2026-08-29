@@ -1,0 +1,152 @@
+{
+  "measured_at": "2026-08-29T16:05:19.341466+00:00",
+  "runner_version": "multicity-extraction-measure-v1",
+  "model": "deepseek-v4-pro",
+  "semantic_prompt_version": "semantic-trip-intent-v13",
+  "repeats": 3,
+  "case_count": 1,
+  "total_runs": 3,
+  "model_calls": 3,
+  "aspect_totals": {
+    "count": 3,
+    "route": 3,
+    "order": 3,
+    "windows": 1,
+    "stays": 3
+  },
+  "all_ok_runs": 1,
+  "cases_always_ok": 0,
+  "price_table_version": "model-prices-openai-20260802-v1",
+  "price_table_sha256": "dd2a754fb067cbb147677d6d75ac462f4f327480776696fadc8c6547cbdbbf46",
+  "currency": "USD",
+  "estimated_cost_usd": 0.006903015000000001,
+  "cases": [
+    {
+      "case_id": "MC-03",
+      "title": "三段，说的顺序和走的顺序不一样；开会日 ≠ 出发日",
+      "notes": "两件事一起考：legs 必须按**走的顺序**而不是说的顺序；开会日不许当成出发日，但明说了的那一段要填",
+      "runs": 3,
+      "ok_runs": 1,
+      "always_ok": false,
+      "attempts": [
+        {
+          "case_id": "MC-03",
+          "status": "NEEDS_CLARIFICATION",
+          "scores": {
+            "count": true,
+            "route": true,
+            "order": true,
+            "windows": false,
+            "stays": true
+          },
+          "all_ok": false,
+          "read_legs": [
+            [
+              "Beijing",
+              "Nanjing"
+            ],
+            [
+              "Nanjing",
+              "Xi'an"
+            ],
+            [
+              "Xi'an",
+              "Beijing"
+            ]
+          ],
+          "read_depart_dates": [
+            null,
+            null,
+            null
+          ],
+          "read_stays": [],
+          "clarification_question": "请问北京到南京的出发日期是哪一天？",
+          "usage": {
+            "model": "deepseek-v4-pro",
+            "input_tokens": 3805,
+            "output_tokens": 755
+          },
+          "attempt": 0
+        },
+        {
+          "case_id": "MC-03",
+          "status": "NEEDS_CLARIFICATION",
+          "scores": {
+            "count": true,
+            "route": true,
+            "order": true,
+            "windows": false,
+            "stays": true
+          },
+          "all_ok": false,
+          "read_legs": [
+            [
+              "Beijing",
+              "Nanjing"
+            ],
+            [
+              "Nanjing",
+              "Xi'an"
+            ],
+            [
+              "Xi'an",
+              "Beijing"
+            ]
+          ],
+          "read_depart_dates": [
+            null,
+            null,
+            null
+          ],
+          "read_stays": [],
+          "clarification_question": "请问北京飞南京的具体出发日期是哪天？",
+          "usage": {
+            "model": "deepseek-v4-pro",
+            "input_tokens": 3805,
+            "output_tokens": 748
+          },
+          "attempt": 1
+        },
+        {
+          "case_id": "MC-03",
+          "status": "NEEDS_CLARIFICATION",
+          "scores": {
+            "count": true,
+            "route": true,
+            "order": true,
+            "windows": true,
+            "stays": true
+          },
+          "all_ok": true,
+          "read_legs": [
+            [
+              "Beijing",
+              "Nanjing"
+            ],
+            [
+              "Nanjing",
+              "Xi'an"
+            ],
+            [
+              "Xi'an",
+              "Beijing"
+            ]
+          ],
+          "read_depart_dates": [
+            null,
+            null,
+            "2026-10-02"
+          ],
+          "read_stays": [],
+          "clarification_question": "请问北京飞南京和南京飞西安的具体出发日期分别是什么时候？",
+          "usage": {
+            "model": "deepseek-v4-pro",
+            "input_tokens": 3805,
+            "output_tokens": 724
+          },
+          "attempt": 2
+        }
+      ]
+    }
+  ]
+}

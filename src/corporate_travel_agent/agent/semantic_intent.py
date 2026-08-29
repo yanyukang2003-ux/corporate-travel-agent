@@ -58,6 +58,36 @@ class LegScopedRequirement(BaseModel):
     leg_index: int = Field(ge=0)
 
 
+class SemanticLeg(BaseModel):
+    """行程里的一段：从哪到哪、什么时候走、什么时候要到。
+
+    **只在三段及以上时才用。** 单程和往返由下面那几个扁平字段表达——它们已经够用，
+    而且前端、评测与冻结数据集都认那几个名字。这个数组是为了放下"北京→上海→杭州→
+    北京"里中间那一段：扁平字段一共只有两个时间窗，第三段无处可放。
+    """
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    origin: str = Field(min_length=1, max_length=120)
+    destination: str = Field(min_length=1, max_length=120)
+    depart_after: datetime | None
+    arrive_before: datetime | None
+
+
+class SemanticStay(BaseModel):
+    """一次过夜：在哪座城市、住哪几天。
+
+    同样只在**多于一处住宿**时才用。多城行程有 N-1 个过夜点，
+    ``hotel_check_in`` / ``hotel_check_out`` 一对日期只放得下一处。
+    """
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    city: str = Field(min_length=1, max_length=120)
+    check_in: date | None
+    check_out: date | None
+
+
 class SemanticIntent(BaseModel):
     """Expressive travel meaning, intentionally distinct from provider parameters."""
 
@@ -85,6 +115,11 @@ class SemanticIntent(BaseModel):
     # 这两个数组只是给它加个作用域，不是另起一份清单。
     leg_scoped_hard_constraints: list[LegScopedRequirement] = Field(default_factory=list)
     leg_scoped_soft_preferences: list[LegScopedRequirement] = Field(default_factory=list)
+    # 三段及以上的行程走这里；一两段留空，按上面的扁平字段理解。
+    # **留空是正常情况**——绝大多数差旅是单程或往返，多写一份只会多一处对不上。
+    legs: list[SemanticLeg] = Field(default_factory=list)
+    # 多于一处住宿时走这里；一处或不住留空。
+    stays: list[SemanticStay] = Field(default_factory=list)
     alternatives: list[str]
     conditions: list[str]
     uncertainties: list[str]

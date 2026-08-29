@@ -17,6 +17,7 @@ from corporate_travel_agent.domain.models import (
     ScopedRequirement,
     TripLeg,
     TripRequestVersion,
+    TripStay,
 )
 from corporate_travel_agent.domain.validation import validate_trip_request
 from corporate_travel_agent.planning.divergence import (
@@ -117,6 +118,11 @@ def compile_search_command(
         hotel_check_in = None
         hotel_check_out = None
         hard_constraints = [item for item in hard_constraints if item != "hotel_required"]
+    # 住宿站跟着"这趟到底订不订酒店"走。真跑抓到的：多城行程模型会**主动**填 stays
+    # ——行程确实要过夜，但旅行者没要求订房。把它原样传下去就会拼出一个自相矛盾的
+    # 请求（有住宿站、没有住宿日期），校验拒绝，用户看到一句莫名其妙的追问。
+    # **过夜是事实，订不订房是旅行者的决定**，两件事不能混。
+    lodging_required = intent.lodging_requirement is LodgingRequirement.REQUIRED
 
     missing_tuple = tuple(dict.fromkeys(missing))
     conflicts_tuple = tuple(dict.fromkeys(item for item in conflicts if item))
@@ -163,6 +169,9 @@ def compile_search_command(
         scoped_soft_preferences=scoped_soft,
         booking_scope=intent.booking_scope,
         journey=journey,
+        stays=(
+            _stays_from_model(intent, city_normalizer) if lodging_required else ()
+        ),
         commitments=_commitments_from(intent, hard_constraints),
         client_location=intent.client_location,
         created_at=created_at,
@@ -272,6 +281,64 @@ def _requirement_names(scoped: tuple[ScopedRequirement, ...]) -> tuple[str, ...]
     return tuple(dict.fromkeys(item.name for item in scoped))
 
 
+def _legs_from_model(
+    intent: Any, city_normalizer: CityNormalizer
+) -> tuple[TripLeg, ...] | None:
+    """模型显式给出的航段序列；一两段或没给时返回 None，走扁平字段那条路。
+
+    **两段及以下一律不走这里。** 扁平字段已经够表达，而且前端、评测与冻结数据集
+    都认那几个名字——同一件事两个视图各说各话，是这个仓库反复吃过亏的地方。
+
+    时间窗**缺一个就整条不用**：`TripLeg` 的窗口不可为空，而"没说的不许编"是红线。
+    这种情况退回扁平字段，缺的字段照旧走追问。
+    """
+    raw = list(getattr(intent, "legs", None) or [])
+    if len(raw) < 3:
+        return None
+    legs: list[TripLeg] = []
+    for index, leg in enumerate(raw):
+        depart_after = getattr(leg, "depart_after", None)
+        arrive_before = getattr(leg, "arrive_before", None)
+        origin = city_normalizer.canonicalize(str(getattr(leg, "origin", "") or ""))
+        destination = city_normalizer.canonicalize(
+            str(getattr(leg, "destination", "") or "")
+        )
+        if not origin or not destination or depart_after is None or arrive_before is None:
+            return None
+        legs.append(
+            TripLeg(
+                role=TripLegRole.RETURN if index == len(raw) - 1 else TripLegRole.OUTBOUND,
+                origin=origin,
+                destination=destination,
+                depart_after=depart_after,
+                arrive_before=arrive_before,
+            )
+        )
+    return tuple(legs)
+
+
+def _stays_from_model(
+    intent: Any, city_normalizer: CityNormalizer
+) -> tuple[TripStay, ...]:
+    """模型显式给出的住宿站；少于两处时为空，走扁平的那对日期。
+
+    和航段同一条规矩：一处住宿扁平字段就够，两处起才需要这个数组。
+    日期缺一个就整条不用——住宿日期是算得出来的（§31.3），但**编不出来**。
+    """
+    raw = list(getattr(intent, "stays", None) or [])
+    if len(raw) < 2:
+        return ()
+    stays: list[TripStay] = []
+    for item in raw:
+        check_in = getattr(item, "check_in", None)
+        check_out = getattr(item, "check_out", None)
+        city = city_normalizer.canonicalize(str(getattr(item, "city", "") or ""))
+        if not city or check_in is None or check_out is None:
+            return ()
+        stays.append(TripStay(city=city, check_in=check_in, check_out=check_out))
+    return tuple(stays)
+
+
 def _scoped_from(
     names: list[str],
     leg_scoped: list[Any],
@@ -346,7 +413,14 @@ def _journey_from(
     返程的**起点**用旅行者说过的那座城市；没说就是原路返回。此前领域模型没有地方
     放"从别的城市回"，于是这句话被无声丢掉，宿主按"目的地→出发地"拼出一条用户
     没要过的航线并真的去搜了库存。现在它只是第二段自己的 origin，不再是特例。
+
+    **三段及以上直接读模型给的 `legs`。** 扁平字段一共只有两个时间窗，第三段无处
+    可放；实测（`reports/evaluation-runs/multicity-extraction-*/`）模型把段数、
+    起讫、顺序、过夜城市都读得对，21/21。
     """
+    explicit = _legs_from_model(intent, city_normalizer)
+    if explicit is not None:
+        return explicit
     outbound_role = (
         TripLegRole.RETURN
         if intent.booking_scope is BookingScope.RETURN_ONLY

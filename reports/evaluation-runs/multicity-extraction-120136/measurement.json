@@ -1,0 +1,775 @@
+{
+  "measured_at": "2026-08-29T16:01:37.105895+00:00",
+  "runner_version": "multicity-extraction-measure-v1",
+  "model": "deepseek-v4-pro",
+  "semantic_prompt_version": "semantic-trip-intent-v13",
+  "repeats": 3,
+  "case_count": 6,
+  "total_runs": 18,
+  "model_calls": 18,
+  "aspect_totals": {
+    "count": 18,
+    "route": 18,
+    "order": 18,
+    "windows": 15,
+    "stays": 18
+  },
+  "all_ok_runs": 15,
+  "cases_always_ok": 5,
+  "price_table_version": "model-prices-openai-20260802-v1",
+  "price_table_sha256": "dd2a754fb067cbb147677d6d75ac462f4f327480776696fadc8c6547cbdbbf46",
+  "currency": "USD",
+  "estimated_cost_usd": 0.04175521500000001,
+  "cases": [
+    {
+      "case_id": "MC-01",
+      "title": "三段，顺序与城市都在一句话里说清了",
+      "notes": "",
+      "runs": 3,
+      "ok_runs": 3,
+      "always_ok": true,
+      "attempts": [
+        {
+          "case_id": "MC-01",
+          "status": "READY",
+          "scores": {
+            "count": true,
+            "route": true,
+            "order": true,
+            "windows": true,
+            "stays": true
+          },
+          "all_ok": true,
+          "read_legs": [
+            [
+              "Beijing",
+              "Shanghai"
+            ],
+            [
+              "Shanghai",
+              "Hangzhou"
+            ],
+            [
+              "Hangzhou",
+              "Beijing"
+            ]
+          ],
+          "read_depart_dates": [
+            "2026-09-15",
+            "2026-09-18",
+            "2026-09-19"
+          ],
+          "read_stays": [
+            "Shanghai",
+            "Hangzhou"
+          ],
+          "clarification_question": null,
+          "usage": {
+            "model": "deepseek-v4-pro",
+            "input_tokens": 3804,
+            "output_tokens": 766
+          },
+          "attempt": 0
+        },
+        {
+          "case_id": "MC-01",
+          "status": "READY",
+          "scores": {
+            "count": true,
+            "route": true,
+            "order": true,
+            "windows": true,
+            "stays": true
+          },
+          "all_ok": true,
+          "read_legs": [
+            [
+              "Beijing",
+              "Shanghai"
+            ],
+            [
+              "Shanghai",
+              "Hangzhou"
+            ],
+            [
+              "Hangzhou",
+              "Beijing"
+            ]
+          ],
+          "read_depart_dates": [
+            "2026-09-15",
+            "2026-09-18",
+            "2026-09-19"
+          ],
+          "read_stays": [
+            "Shanghai",
+            "Hangzhou"
+          ],
+          "clarification_question": null,
+          "usage": {
+            "model": "deepseek-v4-pro",
+            "input_tokens": 3804,
+            "output_tokens": 766
+          },
+          "attempt": 1
+        },
+        {
+          "case_id": "MC-01",
+          "status": "READY",
+          "scores": {
+            "count": true,
+            "route": true,
+            "order": true,
+            "windows": true,
+            "stays": true
+          },
+          "all_ok": true,
+          "read_legs": [
+            [
+              "Beijing",
+              "Shanghai"
+            ],
+            [
+              "Shanghai",
+              "Hangzhou"
+            ],
+            [
+              "Hangzhou",
+              "Beijing"
+            ]
+          ],
+          "read_depart_dates": [
+            "2026-09-15",
+            "2026-09-18",
+            "2026-09-19"
+          ],
+          "read_stays": [
+            "Shanghai",
+            "Hangzhou"
+          ],
+          "clarification_question": null,
+          "usage": {
+            "model": "deepseek-v4-pro",
+            "input_tokens": 3804,
+            "output_tokens": 762
+          },
+          "attempt": 2
+        }
+      ]
+    },
+    {
+      "case_id": "MC-02",
+      "title": "四段，中间两段只说了先后没说日期",
+      "notes": "考的是「没说的不许编」：中间两段没有日期，填出来就是错的",
+      "runs": 3,
+      "ok_runs": 3,
+      "always_ok": true,
+      "attempts": [
+        {
+          "case_id": "MC-02",
+          "status": "READY",
+          "scores": {
+            "count": true,
+            "route": true,
+            "order": true,
+            "windows": true,
+            "stays": true
+          },
+          "all_ok": true,
+          "read_legs": [
+            [
+              "Beijing",
+              "Guangzhou"
+            ],
+            [
+              "Guangzhou",
+              "Shenzhen"
+            ],
+            [
+              "Shenzhen",
+              "Chengdu"
+            ],
+            [
+              "Chengdu",
+              "Beijing"
+            ]
+          ],
+          "read_depart_dates": [
+            "2026-10-08",
+            null,
+            null,
+            "2026-10-14"
+          ],
+          "read_stays": [],
+          "clarification_question": null,
+          "usage": {
+            "model": "deepseek-v4-pro",
+            "input_tokens": 3798,
+            "output_tokens": 745
+          },
+          "attempt": 0
+        },
+        {
+          "case_id": "MC-02",
+          "status": "READY",
+          "scores": {
+            "count": true,
+            "route": true,
+            "order": true,
+            "windows": true,
+            "stays": true
+          },
+          "all_ok": true,
+          "read_legs": [
+            [
+              "Beijing",
+              "Guangzhou"
+            ],
+            [
+              "Guangzhou",
+              "Shenzhen"
+            ],
+            [
+              "Shenzhen",
+              "Chengdu"
+            ],
+            [
+              "Chengdu",
+              "Beijing"
+            ]
+          ],
+          "read_depart_dates": [
+            "2026-10-08",
+            null,
+            null,
+            "2026-10-14"
+          ],
+          "read_stays": [],
+          "clarification_question": null,
+          "usage": {
+            "model": "deepseek-v4-pro",
+            "input_tokens": 3798,
+            "output_tokens": 674
+          },
+          "attempt": 1
+        },
+        {
+          "case_id": "MC-02",
+          "status": "READY",
+          "scores": {
+            "count": true,
+            "route": true,
+            "order": true,
+            "windows": true,
+            "stays": true
+          },
+          "all_ok": true,
+          "read_legs": [
+            [
+              "Beijing",
+              "Guangzhou"
+            ],
+            [
+              "Guangzhou",
+              "Shenzhen"
+            ],
+            [
+              "Shenzhen",
+              "Chengdu"
+            ],
+            [
+              "Chengdu",
+              "Beijing"
+            ]
+          ],
+          "read_depart_dates": [
+            "2026-10-08",
+            null,
+            null,
+            "2026-10-14"
+          ],
+          "read_stays": [],
+          "clarification_question": null,
+          "usage": {
+            "model": "deepseek-v4-pro",
+            "input_tokens": 3798,
+            "output_tokens": 719
+          },
+          "attempt": 2
+        }
+      ]
+    },
+    {
+      "case_id": "MC-03",
+      "title": "三段，说的顺序和走的顺序不一样",
+      "notes": "原话先说西安后说南京，legs 必须按**走的顺序**而不是说的顺序",
+      "runs": 3,
+      "ok_runs": 0,
+      "always_ok": false,
+      "attempts": [
+        {
+          "case_id": "MC-03",
+          "status": "NEEDS_CLARIFICATION",
+          "scores": {
+            "count": true,
+            "route": true,
+            "order": true,
+            "windows": false,
+            "stays": true
+          },
+          "all_ok": false,
+          "read_legs": [
+            [
+              "Beijing",
+              "Nanjing"
+            ],
+            [
+              "Nanjing",
+              "Xi'an"
+            ],
+            [
+              "Xi'an",
+              "Beijing"
+            ]
+          ],
+          "read_depart_dates": [
+            null,
+            null,
+            null
+          ],
+          "read_stays": [],
+          "clarification_question": "请问北京飞南京的具体出发日期是哪天？",
+          "usage": {
+            "model": "deepseek-v4-pro",
+            "input_tokens": 3805,
+            "output_tokens": 744
+          },
+          "attempt": 0
+        },
+        {
+          "case_id": "MC-03",
+          "status": "NEEDS_CLARIFICATION",
+          "scores": {
+            "count": true,
+            "route": true,
+            "order": true,
+            "windows": false,
+            "stays": true
+          },
+          "all_ok": false,
+          "read_legs": [
+            [
+              "Beijing",
+              "Nanjing"
+            ],
+            [
+              "Nanjing",
+              "Xi'an"
+            ],
+            [
+              "Xi'an",
+              "Beijing"
+            ]
+          ],
+          "read_depart_dates": [
+            null,
+            null,
+            null
+          ],
+          "read_stays": [],
+          "clarification_question": "请问南京飞西安和西安回北京的具体出发时间有要求吗？",
+          "usage": {
+            "model": "deepseek-v4-pro",
+            "input_tokens": 3805,
+            "output_tokens": 742
+          },
+          "attempt": 1
+        },
+        {
+          "case_id": "MC-03",
+          "status": "NEEDS_CLARIFICATION",
+          "scores": {
+            "count": true,
+            "route": true,
+            "order": true,
+            "windows": false,
+            "stays": true
+          },
+          "all_ok": false,
+          "read_legs": [
+            [
+              "Beijing",
+              "Nanjing"
+            ],
+            [
+              "Nanjing",
+              "Xi'an"
+            ],
+            [
+              "Xi'an",
+              "Beijing"
+            ]
+          ],
+          "read_depart_dates": [
+            null,
+            null,
+            null
+          ],
+          "read_stays": [],
+          "clarification_question": "请问北京飞南京的具体出发日期是哪天？",
+          "usage": {
+            "model": "deepseek-v4-pro",
+            "input_tokens": 3805,
+            "output_tokens": 717
+          },
+          "attempt": 2
+        }
+      ]
+    },
+    {
+      "case_id": "MC-04",
+      "title": "英文，三段跨境",
+      "notes": "",
+      "runs": 3,
+      "ok_runs": 3,
+      "always_ok": true,
+      "attempts": [
+        {
+          "case_id": "MC-04",
+          "status": "READY",
+          "scores": {
+            "count": true,
+            "route": true,
+            "order": true,
+            "windows": true,
+            "stays": true
+          },
+          "all_ok": true,
+          "read_legs": [
+            [
+              "Beijing",
+              "Tokyo"
+            ],
+            [
+              "Tokyo",
+              "Singapore"
+            ],
+            [
+              "Singapore",
+              "Beijing"
+            ]
+          ],
+          "read_depart_dates": [
+            "2026-10-12",
+            "2026-10-15",
+            "2026-10-18"
+          ],
+          "read_stays": [
+            "Tokyo",
+            "Singapore"
+          ],
+          "clarification_question": null,
+          "usage": {
+            "model": "deepseek-v4-pro",
+            "input_tokens": 3814,
+            "output_tokens": 864
+          },
+          "attempt": 0
+        },
+        {
+          "case_id": "MC-04",
+          "status": "READY",
+          "scores": {
+            "count": true,
+            "route": true,
+            "order": true,
+            "windows": true,
+            "stays": true
+          },
+          "all_ok": true,
+          "read_legs": [
+            [
+              "Beijing",
+              "Tokyo"
+            ],
+            [
+              "Tokyo",
+              "Singapore"
+            ],
+            [
+              "Singapore",
+              "Beijing"
+            ]
+          ],
+          "read_depart_dates": [
+            "2026-10-12",
+            "2026-10-15",
+            "2026-10-18"
+          ],
+          "read_stays": [
+            "Tokyo",
+            "Singapore"
+          ],
+          "clarification_question": null,
+          "usage": {
+            "model": "deepseek-v4-pro",
+            "input_tokens": 3814,
+            "output_tokens": 882
+          },
+          "attempt": 1
+        },
+        {
+          "case_id": "MC-04",
+          "status": "READY",
+          "scores": {
+            "count": true,
+            "route": true,
+            "order": true,
+            "windows": true,
+            "stays": true
+          },
+          "all_ok": true,
+          "read_legs": [
+            [
+              "Beijing",
+              "Tokyo"
+            ],
+            [
+              "Tokyo",
+              "Singapore"
+            ],
+            [
+              "Singapore",
+              "Beijing"
+            ]
+          ],
+          "read_depart_dates": [
+            "2026-10-12",
+            "2026-10-15",
+            "2026-10-18"
+          ],
+          "read_stays": [
+            "Tokyo",
+            "Singapore"
+          ],
+          "clarification_question": null,
+          "usage": {
+            "model": "deepseek-v4-pro",
+            "input_tokens": 3814,
+            "output_tokens": 881
+          },
+          "attempt": 2
+        }
+      ]
+    },
+    {
+      "case_id": "MC-05",
+      "title": "**对照组：普通往返，legs 必须留空**",
+      "notes": "加了 legs 之后最容易出的退步：把一两段的行程也塞进 legs，两个视图从此对不上",
+      "runs": 3,
+      "ok_runs": 3,
+      "always_ok": true,
+      "attempts": [
+        {
+          "case_id": "MC-05",
+          "status": "READY",
+          "scores": {
+            "count": true,
+            "route": true,
+            "order": true,
+            "windows": true,
+            "stays": true
+          },
+          "all_ok": true,
+          "read_legs": [],
+          "read_depart_dates": [],
+          "read_stays": [],
+          "clarification_question": null,
+          "usage": {
+            "model": "deepseek-v4-pro",
+            "input_tokens": 3795,
+            "output_tokens": 558
+          },
+          "attempt": 0
+        },
+        {
+          "case_id": "MC-05",
+          "status": "READY",
+          "scores": {
+            "count": true,
+            "route": true,
+            "order": true,
+            "windows": true,
+            "stays": true
+          },
+          "all_ok": true,
+          "read_legs": [],
+          "read_depart_dates": [],
+          "read_stays": [],
+          "clarification_question": null,
+          "usage": {
+            "model": "deepseek-v4-pro",
+            "input_tokens": 3795,
+            "output_tokens": 551
+          },
+          "attempt": 1
+        },
+        {
+          "case_id": "MC-05",
+          "status": "READY",
+          "scores": {
+            "count": true,
+            "route": true,
+            "order": true,
+            "windows": true,
+            "stays": true
+          },
+          "all_ok": true,
+          "read_legs": [],
+          "read_depart_dates": [],
+          "read_stays": [],
+          "clarification_question": null,
+          "usage": {
+            "model": "deepseek-v4-pro",
+            "input_tokens": 3795,
+            "output_tokens": 550
+          },
+          "attempt": 2
+        }
+      ]
+    },
+    {
+      "case_id": "MC-06",
+      "title": "三段，但其中一段旅行者明说了坐高铁",
+      "notes": "交通方式是走法枚举的事（第 05 步 §31.2），这里只看航段有没有被读全",
+      "runs": 3,
+      "ok_runs": 3,
+      "always_ok": true,
+      "attempts": [
+        {
+          "case_id": "MC-06",
+          "status": "READY",
+          "scores": {
+            "count": true,
+            "route": true,
+            "order": true,
+            "windows": true,
+            "stays": true
+          },
+          "all_ok": true,
+          "read_legs": [
+            [
+              "Beijing",
+              "Shanghai"
+            ],
+            [
+              "Shanghai",
+              "Hangzhou"
+            ],
+            [
+              "Hangzhou",
+              "Beijing"
+            ]
+          ],
+          "read_depart_dates": [
+            "2026-11-03",
+            "2026-11-05",
+            "2026-11-06"
+          ],
+          "read_stays": [
+            "Hangzhou"
+          ],
+          "clarification_question": null,
+          "usage": {
+            "model": "deepseek-v4-pro",
+            "input_tokens": 3801,
+            "output_tokens": 928
+          },
+          "attempt": 0
+        },
+        {
+          "case_id": "MC-06",
+          "status": "READY",
+          "scores": {
+            "count": true,
+            "route": true,
+            "order": true,
+            "windows": true,
+            "stays": true
+          },
+          "all_ok": true,
+          "read_legs": [
+            [
+              "Beijing",
+              "Shanghai"
+            ],
+            [
+              "Shanghai",
+              "Hangzhou"
+            ],
+            [
+              "Hangzhou",
+              "Beijing"
+            ]
+          ],
+          "read_depart_dates": [
+            "2026-11-03",
+            "2026-11-05",
+            "2026-11-06"
+          ],
+          "read_stays": [
+            "Hangzhou"
+          ],
+          "clarification_question": null,
+          "usage": {
+            "model": "deepseek-v4-pro",
+            "input_tokens": 3801,
+            "output_tokens": 998
+          },
+          "attempt": 1
+        },
+        {
+          "case_id": "MC-06",
+          "status": "READY",
+          "scores": {
+            "count": true,
+            "route": true,
+            "order": true,
+            "windows": true,
+            "stays": true
+          },
+          "all_ok": true,
+          "read_legs": [
+            [
+              "Beijing",
+              "Shanghai"
+            ],
+            [
+              "Shanghai",
+              "Hangzhou"
+            ],
+            [
+              "Hangzhou",
+              "Beijing"
+            ]
+          ],
+          "read_depart_dates": [
+            "2026-11-03",
+            "2026-11-05",
+            "2026-11-06"
+          ],
+          "read_stays": [
+            "Hangzhou"
+          ],
+          "clarification_question": null,
+          "usage": {
+            "model": "deepseek-v4-pro",
+            "input_tokens": 3801,
+            "output_tokens": 922
+          },
+          "attempt": 2
+        }
+      ]
+    }
+  ]
+}

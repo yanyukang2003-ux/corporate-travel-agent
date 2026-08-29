@@ -364,7 +364,7 @@ class OpenAIResponsesLanguageModel:
 class OpenAISemanticIntentLanguageModel:
     """新语义链路的独立 LLM 适配器；不包含旧字段抽取方法。"""
 
-    semantic_prompt_version = "semantic-trip-intent-v12"
+    semantic_prompt_version = "semantic-trip-intent-v13d"
 
     def __init__(
         self,
@@ -622,8 +622,7 @@ class OpenAISemanticIntentLanguageModel:
             "leg's own origin. Leave the field empty only when they return from where "
             "they went. Dropping a city the traveler named is the one thing you must "
             "never do, and deciding what can be booked is the host's job, not yours: "
-            "keep every city you read, including on a journey through three or more "
-            "cities that this system may not be able to arrange in one request. "
+            "keep every city you read. "
             "Numeric dates in these requests are written month-first: 8/5, 8.5, 8-5 and "
             "8月5日 all mean August 5, never May 8. Settle the month/day reading this way "
             "before you apply the year rule below, so a correctly-read future date is never "
@@ -658,7 +657,22 @@ class OpenAISemanticIntentLanguageModel:
             + ", which describe the trip as a whole rather than one leg. "
             "Lodging is REQUIRED only when explicitly requested, NOT_REQUIRED only when explicitly "
             "declined or self-arranged, otherwise UNSPECIFIED. Conditional lodging remains a "
-            "condition and cannot be READY until the condition is resolved into an executable plan."
+            "condition and cannot be READY until the condition is resolved into an "
+            "executable plan. "
+            # 这一段**必须留在提示词最后**。它第一版插在数字日期规则的正前方，
+            # 真跑一次 8/8 掉到 7/8：模型开始把说清楚了的 "8.5" 也留空。
+            # 长提示词里位置就是权重，新加的段落别插在既有规则中间。
+            "Last: a journey that visits three or more places in order — 北京去上海开会、"
+            "再去杭州见客户、然后回北京 — ALSO goes in the legs array, one entry per flight "
+            "or train ride, in travel order, each with its own origin, destination and time "
+            "window; when — and only when — the traveller asked you to arrange lodging, the "
+            "overnight stops go in the stays array, one entry per city slept in. Sleeping "
+            "somewhere is a fact about the itinerary; booking a hotel there is the "
+            "traveller's decision, so never fill stays for a trip that did not ask for one. "
+            "Leave both arrays empty for the normal trip — one-way, there-and-back, or a "
+            "single hotel stay. These arrays only ADD the third and later legs. They never "
+            "replace, excuse or empty any field above: fill departure_after, arrive_by and "
+            "every other field exactly as you would on a trip with no legs array at all."
         )
 
 

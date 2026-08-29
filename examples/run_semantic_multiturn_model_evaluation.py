@@ -115,13 +115,26 @@ CASES: tuple[MultiTurnCase, ...] = (
     ),
     MultiTurnCase(
         case_id="MT-03",
-        title="多城行程：北京→上海→杭州→北京，绝不许压缩成一段",
+        title="多城行程：北京→上海→杭州→北京，三段都要读出来",
         turns=(
             "9月15号从北京去上海开会，然后去杭州见客户，最后回北京",
             "上海会议9月16号上午10点，杭州9月18号下午2点见客户，9月19号晚上回北京",
+            # 第三轮是**真跑之后补的**：前两轮里"9月19号晚上回北京"只说了什么时候走，
+            # 没说最晚几点要到。模型和宿主都正确地追问了这一条——所以少的是这轮对话，
+            # 不是能力。航段的时间窗**缺一个就整条不用**，绝不拿另一段的时间凑。
+            "9月19号晚上11点前到北京就行",
         ),
-        expect_legs=(),
-        forbid_search=True,
+        # **这条用例的期望在方案第 05 步（HANDOFF §36）翻过来了。** 此前多城
+        # 系统表达不了，所以它是一条"必须被拦住、一次库存都不查"的安全用例；
+        # 现在语义层有 legs 数组、结果侧有 legs、搜索侧按段循环，三段是能走通的。
+        # 真正的危险从来不是"拦不拦"，而是**悄悄压缩**：把三段读成"上海→北京"
+        # 一段，然后拿一条用户没要过的航线去搜库存（§28 抓到过）。
+        # 所以现在盯的是"三段一段不少、顺序不乱"。
+        expect_legs=(
+            ("Beijing", "Shanghai"),
+            ("Shanghai", "Hangzhou"),
+            ("Hangzhou", "Beijing"),
+        ),
     ),
     MultiTurnCase(
         case_id="MT-04",
@@ -332,8 +345,9 @@ def _markdown(payload: dict[str, Any]) -> str:
         f"- 模型调用: {payload['model_calls']} 次，估算 "
         f"**{payload['estimated_cost_usd']:.6f} {payload['currency']}**",
         "",
-        "MT-03 / MT-04 是安全用例：这两种行程系统**表达不了**，必须一次库存都不查，",
-        "尤其不能把用户没要过的返程航线拼出来。",
+        "MT-03 多城、MT-04 开口程：这两种行程**现在都表达得了**（§29 开口程、",
+        "§36 多城）。它们盯的不再是「拦没拦住」，而是**有没有被悄悄压缩**——",
+        "把三段读成一段、或把返程起点换成目的地，然后拿用户没要过的航线去搜库存。",
         "",
         "| ID | Result | 通过率 | Title |",
         "|---|---|---|---|",
@@ -383,12 +397,24 @@ def main() -> None:
     parser.add_argument("--model", default=os.getenv("OPENAI_MODEL", "gpt-5.6"))
     parser.add_argument("--confirm-billable-model-calls", action="store_true")
     parser.add_argument("--repeats", type=int, default=1)
+    parser.add_argument(
+        "--case-id",
+        action="append",
+        default=None,
+        help="只跑这几条（可重复）。改了某条用例后单独复跑，省钱",
+    )
     parser.add_argument("--gate", action="store_true")
     args = parser.parse_args()
 
     if not 1 <= args.repeats <= 5:
         parser.error("--repeats must be between 1 and 5")
-    turns = sum(len(case.turns) for case in CASES) * args.repeats
+    selected = CASES
+    if args.case_id:
+        wanted = set(args.case_id)
+        selected = tuple(case for case in CASES if case.case_id in wanted)
+        if not selected:
+            parser.error(f"没有匹配的用例：{sorted(wanted)}")
+    turns = sum(len(case.turns) for case in selected) * args.repeats
     if not args.confirm_billable_model_calls:
         parser.error(
             f"这一轮最多会真实调用 {turns} 次计费模型。确认后加 "
@@ -414,7 +440,7 @@ def main() -> None:
 
     started = datetime.now(UTC).isoformat()
     cases: list[dict[str, Any]] = []
-    for case in CASES:
+    for case in selected:
         attempts = [_run_case(case, model_factory) for _ in range(args.repeats)]
         wins = sum(1 for item in attempts if item["passed"])
         record = dict(attempts[0])
