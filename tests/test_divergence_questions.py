@@ -195,6 +195,22 @@ def test_the_host_asks_for_everything_at_once_instead_of_one_field_per_round() -
     assert "最晚什么时候要到" in question
 
 
+def test_the_model_wording_survives_when_the_host_adds_the_rest() -> None:
+    """真跑抓到的退步：宿主补全不能把模型那句盖掉。
+
+    只有模型说得出这次到底哪里有歧义——"这周五还是下周五"这种话，宿主手上
+    只有一个字段名，再怎么措辞也问不出那个"周五"。所以模型那句必须原样打头。
+    """
+    compiled = _compile(
+        semantic_intent(departure_after=None, arrive_by=None),
+        clarification_question="您说的是这周五还是下周五？",
+    )
+    assert not compiled.ready
+    question = compiled.clarification_question or ""
+    assert question.startswith("您说的是这周五还是下周五？")
+    assert "最晚什么时候要到" in question
+
+
 def test_the_model_keeps_the_wording_when_only_one_thing_is_open() -> None:
     """只剩一件事时两边说的是同一件事，模型说得更像人话。"""
     compiled = _compile(

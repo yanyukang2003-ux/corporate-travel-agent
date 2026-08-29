@@ -392,14 +392,19 @@ def _question_for(
 
     此前这里无条件让位给模型那一句追问。模型一次只问一件事，于是一段五轮的对话
     被拆成一轮一个字段问了五次——其中好几个问题的答案根本不改变最终推荐哪班车。
-    现在：宿主手上还剩两件以上没定的事时，用宿主自己那句（它一次把全部列出来）；
-    只剩一件时才用模型的措辞，因为那时两边说的是同一件事，模型说得更像人话。
+
+    但**盖掉模型那一句也是错的**：只有它说得出这次到底哪里有歧义——
+    "这周五还是下周五"这种话，宿主手上只有一个字段名 `departure_after`，
+    再怎么措辞也问不出那个"周五"。所以两边各管各的：模型那句照旧打头，
+    宿主把还差的事补在后面，一次说完。
     """
     if any(item.startswith(PAST_DATE_PREFIX) for item in conflicts):
         return _clarification_for(missing, conflicts)
-    if len(missing) > 1:
+    if not model_question:
         return _clarification_for(missing, conflicts)
-    return model_question or _clarification_for(missing, conflicts)
+    if len(missing) <= 1:
+        return model_question
+    return model_question + " " + _still_needed(missing)
 
 
 def _dates_already_passed(intent: Any, now: datetime) -> list[str]:
@@ -446,14 +451,20 @@ _FIELD_LABELS = {
 }
 
 
+
+def _still_needed(missing: tuple[str, ...]) -> str:
+    """宿主自己那半句：还差哪几件事。用日常说法，不把内部字段名摔在用户脸上。"""
+    labels = [_FIELD_LABELS.get(item, item) for item in missing]
+    return "另外我还需要知道：" + "、".join(labels) + "。"
+
+
 def _clarification_for(missing: tuple[str, ...], conflicts: tuple[str, ...]) -> str:
     blocking = [item for item in conflicts if item.startswith(PAST_DATE_PREFIX)]
     if blocking:
         # 这类结论不是"再问一遍"能解决的歧义，直接把结论摆出来。
         return "；".join(blocking)
     if missing:
-        labels = [_FIELD_LABELS.get(item, item) for item in missing]
-        return "还差这几件事我就能去查了：" + "、".join(labels) + "。"
+        return _still_needed(missing)
     if conflicts:
         return "我发现行程中还有会影响搜索的歧义，请确认：" + "；".join(conflicts) + "。"
     return "请确认我对这次出行的理解后再继续搜索。"
