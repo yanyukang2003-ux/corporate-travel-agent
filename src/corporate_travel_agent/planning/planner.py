@@ -145,7 +145,7 @@ class ItineraryPlanner:
         employee: EmployeeProfileSnapshot,
         policy: PolicySnapshot,
         leg_offers: Sequence[Sequence[TransportOffer]],
-        hotel_offers: list[HotelOffer],
+        hotel_offers: Sequence[HotelOffer] | Sequence[Sequence[HotelOffer]],
         limit: int = 3,
         *,
         now: datetime,
@@ -155,6 +155,9 @@ class ItineraryPlanner:
         ``leg_offers`` 按航段顺序给：第 i 项是第 i 段的报价。段数由请求自己说了算
         （`planned_leg_count`），少给的段按"没货"处理。此前这里是
         ``outbound_offers`` / ``inbound_offers`` 两个参数——两个位置，放不下第三段。
+
+        ``hotel_offers`` 同理按**住宿站**给：第 i 项是第 i 站的酒店。
+        只给一串酒店（不分站）时按"只有一站"理解，和改动之前逐字一致。
         """
         pools = [
             [
@@ -164,23 +167,24 @@ class ItineraryPlanner:
             ]
             for index in range(planned_leg_count(request))
         ]
-        hotel_choices: list[HotelOffer | None] = (
-            list(hotel_offers) if request.hotel_check_in is not None else [None]
-        )
+        stay_pools = _stay_pools(request, hotel_offers)
 
         minutes_per_unit = duration_minutes_per_unit(request)
-        # 先把每一段（以及住宿）各自的候选算好：可行性、政策档、分数贡献都只看这一项，
-        # 所以整个行程只算一遍，各走法共用。
+        # 先把每一段（以及每一站住宿）各自的候选算好：可行性、政策档、分数贡献都
+        # 只看这一项，所以整个行程只算一遍，各走法共用。
         leg_axes = [
             self._leg_choices(
                 request, employee, policy, index, pool, minutes_per_unit, now=now
             )
             for index, pool in enumerate(pools)
         ]
-        hotel_axis = self._lodging_choices(request, employee, policy, hotel_choices)
+        stay_axes = [
+            self._lodging_choices(request, employee, policy, index, pool)
+            for index, pool in enumerate(stay_pools)
+        ]
 
         candidates: list[tuple[PlanShape, TravelOptionVersion]] = []
-        for shape in _enumerate_shapes(pools, hotel_choices):
+        for shape in _enumerate_shapes(pools, stay_pools):
             candidates.extend(
                 self._shape_candidates(
                     request,
@@ -188,7 +192,7 @@ class ItineraryPlanner:
                     policy,
                     shape,
                     leg_axes,
-                    hotel_axis,
+                    stay_axes,
                     minutes_per_unit,
                     limit,
                     now=now,
@@ -241,12 +245,13 @@ class ItineraryPlanner:
         request: TripRequestVersion,
         employee: EmployeeProfileSnapshot,
         policy: PolicySnapshot,
-        hotel_choices: list[HotelOffer | None],
+        stay_index: int,
+        hotel_choices: Sequence[HotelOffer | None],
     ) -> list[_Choice]:
-        """住宿这一"段"的候选。这趟不需要住宿时，唯一的候选就是"不住"。"""
+        """第 ``stay_index`` 站住宿的候选。这一站不需要住时，唯一的候选就是"不住"。"""
         choices: list[_Choice] = []
         for hotel in hotel_choices:
-            if self.validator.hotel_reasons(request, hotel):
+            if self.validator.stay_reasons(request, stay_index, hotel):
                 continue
             if hotel is None:
                 choices.append(_NO_LODGING)
@@ -283,7 +288,7 @@ class ItineraryPlanner:
         policy: PolicySnapshot,
         shape: PlanShape,
         leg_axes: list[list[_Choice]],
-        hotel_axis: list[_Choice],
+        stay_axes: list[list[_Choice]],
         minutes_per_unit: Decimal,
         limit: int,
         *,
@@ -302,7 +307,8 @@ class ItineraryPlanner:
             )
             for index, axis in enumerate(leg_axes)
         ]
-        axes.append(_distinct_by_display(list(hotel_axis)))
+        # 每一站住宿各是一根轴——和交通段一样，逐项相加、逐项独立。
+        axes.extend(_distinct_by_display(list(axis)) for axis in stay_axes)
         if any(not axis for axis in axes):
             return []
 
@@ -319,15 +325,17 @@ class ItineraryPlanner:
                     tuple(choice.key for choice in combination), combination
                 )
 
+        leg_count = len(leg_axes)
         results: list[tuple[PlanShape, TravelOptionVersion]] = []
         for combination in combinations.values():
-            *transports, lodging = combination
+            transports = combination[:leg_count]
+            lodging = combination[leg_count:]
             option = self._evaluate(
                 request,
                 employee,
                 policy,
                 [choice.offer for choice in transports],
-                lodging.offer,
+                [choice.offer for choice in lodging if choice.offer is not None],
                 shape,
                 minutes_per_unit,
                 now=now,
@@ -342,15 +350,16 @@ class ItineraryPlanner:
         employee: EmployeeProfileSnapshot,
         policy: PolicySnapshot,
         transports: list[TransportOffer],
-        hotel: HotelOffer | None,
+        stays: Sequence[HotelOffer],
         shape: PlanShape,
         minutes_per_unit: Decimal,
         *,
         now: datetime,
     ) -> TravelOptionVersion | None:
         """把一种走法的一组具体报价评成一条方案；不可行则返回 None。"""
+        stays = tuple(stays)
         feasibility = self.validator.validate(
-            request, transports, hotel, policy.arrival_buffer_minutes, now=now
+            request, transports, stays, policy.arrival_buffer_minutes, now=now
         )
         if not feasibility.feasible:
             return None
@@ -358,13 +367,12 @@ class ItineraryPlanner:
         # 政策只做标注，不在这里过滤。被禁的方案也要带着理由留在结果里——
         # 否则旅行者只会看到一份莫名偏贵的列表，永远不知道最便宜那个是被政策禁的。
         # 要不要展示给用户，是展示层的决定，不是规划层的决定。
-        decision = self.policy_engine.evaluate(employee, policy, transports, hotel)
+        decision = self.policy_engine.evaluate(employee, policy, transports, stays)
 
         total_cost = sum((item.price for item in transports), Decimal("0"))
-        if hotel:
-            total_cost += hotel.total_price
+        total_cost += sum((stay.total_price for stay in stays), Decimal("0"))
         duration = sum(_minutes(item.depart_at, item.arrive_at) for item in transports)
-        penalty = preference_penalty(request, transports, hotel)
+        penalty = preference_penalty(request, transports, stays)
         # 政策**不进分数**。它是三档分类结论，不是可以被价格投票推翻的权重：
         # 折算成罚分的话，一个需审批但足够便宜的方案会排到完全合规的前面。
         # 排序改为「先按政策分档，档内再按分数」，见 _select_options。
@@ -372,7 +380,7 @@ class ItineraryPlanner:
         snapshot_ids = tuple(
             dict.fromkeys(
                 [item.snapshot_id for item in transports]
-                + ([hotel.snapshot_id] if hotel else [])
+                + [stay.snapshot_id for stay in stays]
             )
         )
         facts = [
@@ -389,23 +397,33 @@ class ItineraryPlanner:
             facts.append(f"inbound={transports[1].ref_id}")
         for index, leg in enumerate(transports[2:], start=2):
             facts.append(f"leg{index}={leg.ref_id}")
-        if hotel:
-            commute_fact = (
-                "commute_minutes=unknown"
-                if hotel.commute_minutes == COMMUTE_UNKNOWN_MINUTES
-                else f"commute_minutes={hotel.commute_minutes}"
+        # 第一处住宿沿用 hotel= / commute_minutes= 这两个名字，第二处起才是
+        # stay1= / stay1_commute_minutes=——和航段那边同一条规矩。
+        for index, stay in enumerate(stays):
+            commute = (
+                "unknown"
+                if stay.commute_minutes == COMMUTE_UNKNOWN_MINUTES
+                else str(stay.commute_minutes)
             )
-            facts.extend([f"hotel={hotel.ref_id}", commute_fact])
-        option_key = "-".join(item.ref_id for item in transports)
-        if hotel:
-            option_key += f"-{hotel.ref_id}"
+            if index == 0:
+                facts.extend([f"hotel={stay.ref_id}", f"commute_minutes={commute}"])
+            else:
+                facts.extend(
+                    [
+                        f"stay{index}={stay.ref_id}",
+                        f"stay{index}_commute_minutes={commute}",
+                    ]
+                )
+        option_key = "-".join(
+            [item.ref_id for item in transports] + [stay.ref_id for stay in stays]
+        )
         return TravelOptionVersion(
             option_id=f"opt-{option_key}",
             version=1,
             trip_request_version=request.version,
             inventory_snapshot_ids=snapshot_ids,
             legs=tuple(transports),
-            hotel=hotel,
+            stays=stays,
             total_cost=total_cost,
             total_duration_minutes=duration,
             feasibility=feasibility,
@@ -417,8 +435,30 @@ class ItineraryPlanner:
         )
 
 
+def _stay_pools(
+    request: TripRequestVersion,
+    hotel_offers: Sequence[HotelOffer] | Sequence[Sequence[HotelOffer]],
+) -> list[list[HotelOffer]]:
+    """按住宿站分好的酒店报价：第 i 项是第 i 站的候选。
+
+    这趟不住店时为空列表。**只给一串酒店（不分站）时按"只有一站"理解**——
+    既有调用方与冻结评测数据都是这么给的，行为和改动之前逐字一致。
+    """
+    stays = request.lodging_stays()
+    if not stays:
+        return []
+    flat = bool(hotel_offers) and isinstance(hotel_offers[0], HotelOffer)
+    per_stay: Sequence[Sequence[HotelOffer]] = (
+        [hotel_offers] if flat else hotel_offers  # type: ignore[list-item]
+    )
+    return [
+        list(per_stay[index]) if index < len(per_stay) else []
+        for index in range(len(stays))
+    ]
+
+
 def _enumerate_shapes(
-    pools: list[list[TransportOffer]], hotel_choices: list[HotelOffer | None]
+    pools: list[list[TransportOffer]], stay_pools: list[list[HotelOffer]]
 ) -> list[PlanShape]:
     """先把走法数出来：每段有哪几种交通方式的货，住宿是不是一个真选择。
 
@@ -430,7 +470,9 @@ def _enumerate_shapes(
     ]
     if not mode_sets or any(not modes for modes in mode_sets):
         return []
-    lodging_choices = [True] if any(item is not None for item in hotel_choices) else [False]
+    # 住宿仍然是整趟一个"住不住"：哪几站住由请求的 `stays` 说了算，
+    # 不是走法要枚举的自由度。
+    lodging_choices = [True] if any(stay_pools) else [False]
     return [
         PlanShape(modes=tuple(modes), with_lodging=lodging)
         for modes in product(*mode_sets)
@@ -684,7 +726,7 @@ def _hotel_display_key(hotel: HotelOffer | None) -> tuple[object, ...]:
 def _display_fingerprint(option: TravelOptionVersion) -> tuple[object, ...]:
     return (
         tuple(leg.ref_id for leg in option.legs),
-        _hotel_display_key(option.hotel),
+        tuple(_hotel_display_key(stay) for stay in option.stays),
     )
 
 

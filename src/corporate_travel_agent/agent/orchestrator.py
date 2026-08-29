@@ -7,7 +7,7 @@
 from __future__ import annotations
 
 import re
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from dataclasses import asdict, replace
 from datetime import UTC, date, datetime, timedelta
 from random import random
@@ -21,7 +21,9 @@ from corporate_travel_agent.agent.error_recovery import (
     RecoveryDecision,
     SideEffectClass,
     classify_tool_failure,
+    hotel_search_tool_name,
     recon_search_legs,
+    transport_search_tool_name,
 )
 from corporate_travel_agent.agent.ports import (
     LanguageModelError,
@@ -55,6 +57,7 @@ from corporate_travel_agent.domain.validation import (
     validate_trip_request,
     validate_trip_request_values,
 )
+from corporate_travel_agent.planning.feasibility import leg_spec, planned_leg_count
 from corporate_travel_agent.planning.planner import ItineraryPlanner
 from corporate_travel_agent.providers.base import (
     HotelSearchQuery,
@@ -124,6 +127,23 @@ def _is_full_route_revision_message(message: str) -> bool:
         token in text for token in ("改飞", "改签", "改订", "重新订", "改为", "改成")
     ) and ("到" in text or "去" in text)
     return english_route or chinese_route
+
+
+def _leg_phrase(request: TripRequestVersion, leg_index: int) -> str:
+    """报错文案里怎么称呼这一段。
+
+    沿用旧名字的那两段（outbound、以及往返里的 return）说法一个字不变——
+    既有文案、评测断言与前端都认这两个词。**其余段一律带上自己的航线**：
+    多城行程里光说"第 1 段没搜到"看的人根本不知道是哪一程，
+    而这正是中间段搜不到时唯一能给出的线索。
+
+    按**标签**判而不是按下标判：三段行程的第 1 段是中途那一段，不是返程，
+    `leg_spec` 已经叫它 "leg 1" 了——那它就该带航线。
+    """
+    spec = leg_spec(request, leg_index)
+    if spec.label in {"outbound", "return"}:
+        return spec.label
+    return f"{spec.label} ({spec.origin} → {spec.destination})"
 
 
 class TripWorkflowOrchestrator:
@@ -2130,11 +2150,28 @@ class TripWorkflowOrchestrator:
         return normalized
 
     def _canonicalize_request_cities(self, request: TripRequestVersion) -> TripRequestVersion:
-        """规范化请求中的城市名。"""
+        """规范化请求中的城市名。
+
+        **航段与住宿站的城市也要规范化。** 它们和 `origin` / `destination` 一样
+        会被原样送去 Provider 查询——只规范化扁平字段的话，多城行程里
+        "去上海、再去东京"的后两段会拿着没规范化的名字去搜。
+        """
+        canonical = self.city_normalizer.canonicalize
         return replace(
             request,
-            origin=self.city_normalizer.canonicalize(request.origin),
-            destination=self.city_normalizer.canonicalize(request.destination),
+            origin=canonical(request.origin),
+            destination=canonical(request.destination),
+            journey=tuple(
+                replace(
+                    leg,
+                    origin=canonical(leg.origin),
+                    destination=canonical(leg.destination),
+                )
+                for leg in request.journey
+            ),
+            stays=tuple(
+                replace(stay, city=canonical(stay.city)) for stay in request.stays
+            ),
         )
 
     @staticmethod
@@ -2316,9 +2353,10 @@ class TripWorkflowOrchestrator:
         task.metadata.pop("no_feasible_reasons", None)
         request = self._request(task)
         transport_legs = request.transport_legs()
-        required_calls = len(transport_legs)
-        if request.hotel_check_in and request.hotel_check_out:
-            required_calls += 1
+        # 一段交通一次、一站住宿一次。此前住宿无论几站都只算一次，
+        # 多城行程会在预算够两次时开搜、搜到第二站才发现调用用光。
+        stays = request.lodging_stays()
+        required_calls = len(transport_legs) + len(stays)
         if task.tool_calls_remaining < required_calls:
             return self._stop_for_tool_budget(
                 task,
@@ -2328,49 +2366,47 @@ class TripWorkflowOrchestrator:
         if not self._prepare_provider_operation(task, resume_operation="SEARCH"):
             return task
         try:
-            primary_leg = transport_legs[0]
-            outbound_query = TransportSearchQuery(
-                origin=primary_leg.origin,
-                destination=primary_leg.destination,
-                depart_after=primary_leg.depart_after,
-                arrive_before=primary_leg.arrive_before,
-            )
-            outbound_snapshot = self._invoke_tool(
-                task,
-                tool_name="provider.search_transport.outbound",
-                tool_kind="PROVIDER",
-                input_value=outbound_query,
-                operation=lambda: self.provider.search_transport(outbound_query),
-            )
-            inbound_snapshot = None
-            if len(transport_legs) > 1:
-                return_leg = transport_legs[1]
-                inbound_query = TransportSearchQuery(
-                    origin=return_leg.origin,
-                    destination=return_leg.destination,
-                    depart_after=return_leg.depart_after,
-                    arrive_before=return_leg.arrive_before,
+            # 一段一次搜索，段数由行程自己说了算。此前这里是写死的"去程一次、返程一次"
+            # ——第三段没有位置可搜，规划器再能规划多城也拿不到货。
+            leg_snapshots: list[InventorySnapshot] = []
+            for index, leg in enumerate(transport_legs):
+                leg_query = TransportSearchQuery(
+                    origin=leg.origin,
+                    destination=leg.destination,
+                    depart_after=leg.depart_after,
+                    arrive_before=leg.arrive_before,
                 )
-                inbound_snapshot = self._invoke_tool(
-                    task,
-                    tool_name="provider.search_transport.inbound",
-                    tool_kind="PROVIDER",
-                    input_value=inbound_query,
-                    operation=lambda: self.provider.search_transport(inbound_query),
+                leg_snapshots.append(
+                    self._invoke_tool(
+                        task,
+                        tool_name=transport_search_tool_name(index),
+                        tool_kind="PROVIDER",
+                        input_value=leg_query,
+                        # 每轮各自绑住自己的 query：闭包晚绑定会让所有段都搜最后一段。
+                        operation=lambda query=leg_query: self.provider.search_transport(
+                            query
+                        ),
+                    )
                 )
-            hotel_snapshot = None
-            if request.hotel_check_in and request.hotel_check_out:
+            # 一站一次搜索。此前只搜一次，城市写死是 `request.destination`
+            # ——多城行程的第二站根本没有被搜过。
+            hotel_snapshots: list[InventorySnapshot] = []
+            for index, stay in enumerate(stays):
                 hotel_query = HotelSearchQuery(
-                    city=request.destination,
-                    check_in=request.hotel_check_in,
-                    check_out=request.hotel_check_out,
+                    city=stay.city,
+                    check_in=stay.check_in,
+                    check_out=stay.check_out,
                 )
-                hotel_snapshot = self._invoke_tool(
-                    task,
-                    tool_name="provider.search_hotels",
-                    tool_kind="PROVIDER",
-                    input_value=hotel_query,
-                    operation=lambda: self.provider.search_hotels(hotel_query),
+                hotel_snapshots.append(
+                    self._invoke_tool(
+                        task,
+                        tool_name=hotel_search_tool_name(index),
+                        tool_kind="PROVIDER",
+                        input_value=hotel_query,
+                        operation=lambda query=hotel_query: self.provider.search_hotels(
+                            query
+                        ),
+                    )
                 )
         except ToolBudgetExceeded:
             self.provider_circuit_breaker.record_success()
@@ -2417,9 +2453,7 @@ class TripWorkflowOrchestrator:
             return task
 
         self.provider_circuit_breaker.record_success()
-        snapshots = [outbound_snapshot, *([inbound_snapshot] if inbound_snapshot else [])]
-        if hotel_snapshot:
-            snapshots.append(hotel_snapshot)
+        snapshots = [*leg_snapshots, *hotel_snapshots]
         invalid_snapshots = self._invalid_snapshot_ids(snapshots)
         if invalid_snapshots:
             task.failure = "provider returned expired or invalid inventory snapshots: " + ", ".join(
@@ -2443,19 +2477,15 @@ class TripWorkflowOrchestrator:
             request=request,
             employee=task.employee,
             policy=policy,
-            leg_offers=[
-                self._transports(outbound_snapshot),
-                self._transports(inbound_snapshot),
-            ],
-            hotel_offers=self._hotels(hotel_snapshot),
+            leg_offers=[self._transports(item) for item in leg_snapshots],
+            hotel_offers=[self._hotels(item) for item in hotel_snapshots],
             now=self.clock(),
         )
         if not task.options:
             reasons = self._no_feasible_reasons(
                 request,
-                outbound_snapshot,
-                inbound_snapshot,
-                hotel_snapshot,
+                leg_snapshots,
+                hotel_snapshots,
                 policy=policy,
             )
             task.metadata["no_feasible_reasons"] = reasons
@@ -2478,31 +2508,34 @@ class TripWorkflowOrchestrator:
     def _no_feasible_reasons(
         self,
         request: TripRequestVersion,
-        outbound_snapshot: InventorySnapshot,
-        inbound_snapshot: InventorySnapshot | None,
-        hotel_snapshot: InventorySnapshot | None,
+        leg_snapshots: Sequence[InventorySnapshot],
+        hotel_snapshots: Sequence[InventorySnapshot],
         *,
         policy: PolicySnapshot | None = None,
     ) -> tuple[str, ...]:
         """汇总无可行动方案的原因文案。"""
         reasons: list[str] = []
-        outbound = self._transports(outbound_snapshot)
-        inbound = self._transports(inbound_snapshot)
-        hotels = self._hotels(hotel_snapshot)
-        if not outbound:
-            window = self._time_window_filter_reason(outbound_snapshot)
+        leg_pools = [self._transports(item) for item in leg_snapshots]
+        stay_pools = [self._hotels(item) for item in hotel_snapshots]
+        hotels = [offer for pool in stay_pools for offer in pool]
+        for index in range(planned_leg_count(request)):
+            snapshot = leg_snapshots[index] if index < len(leg_snapshots) else None
+            if index < len(leg_pools) and leg_pools[index]:
+                continue
             reasons.append(
-                window
-                or "no outbound inventory matched the requested route and time window"
+                self._time_window_filter_reason(snapshot)
+                or f"no {_leg_phrase(request, index)} inventory matched the requested "
+                "route and time window"
             )
-        if request.return_after is not None and not inbound:
-            window = self._time_window_filter_reason(inbound_snapshot)
+        for index, stay in enumerate(request.lodging_stays()):
+            if index < len(stay_pools) and stay_pools[index]:
+                continue
+            # 第一站的说法一个字没动；第二站起才把城市名写进话里。
             reasons.append(
-                window
-                or "no return inventory matched the requested route and time window"
+                "no hotel inventory matched the requested city and dates"
+                if index == 0
+                else f"no hotel inventory matched {stay.city} for the requested dates"
             )
-        if request.hotel_check_in is not None and not hotels:
-            reasons.append("no hotel inventory matched the requested city and dates")
         if reasons:
             return tuple(reasons)
 
@@ -2512,8 +2545,7 @@ class TripWorkflowOrchestrator:
         if policy is not None:
             priced_currencies = sorted(
                 {
-                    *(item.currency for item in outbound),
-                    *(item.currency for item in inbound),
+                    *(offer.currency for pool in leg_pools for offer in pool),
                     *(item.currency for item in hotels),
                 }
             )
@@ -2543,9 +2575,8 @@ class TripWorkflowOrchestrator:
             sample_reasons = self._sample_itinerary_rejection_reasons(
                 request,
                 policy,
-                outbound,
-                inbound if request.return_after is not None else [],
-                hotels if request.hotel_check_in is not None else [],
+                leg_pools[: planned_leg_count(request)],
+                stay_pools[: len(request.lodging_stays())],
             )
             reasons.extend(sample_reasons)
         if not reasons:
@@ -2578,21 +2609,28 @@ class TripWorkflowOrchestrator:
         self,
         request: TripRequestVersion,
         policy: PolicySnapshot,
-        outbound: list[TransportOffer],
-        inbound: list[TransportOffer],
-        hotels: list[HotelOffer],
+        leg_pools: Sequence[list[TransportOffer]],
+        stay_pools: Sequence[list[HotelOffer]],
         *,
         sample_limit: int = 3,
+        combination_limit: int = 64,
     ) -> list[str]:
-        """Return a few concrete rejection codes from sampled flight×hotel combos."""
-        from itertools import product
+        """Return a few concrete rejection codes from sampled flight×hotel combos.
+
+        只在**每段都有货**的前提下才走到这里（上面为空的段已经各自出过话），
+        所以直接按段取样即可。段数一多组合数是指数的，用 ``combination_limit``
+        兜住——这是给运维看的取样，不是穷举。
+        """
+        from itertools import islice, product
 
         from corporate_travel_agent.planning.feasibility import FeasibilityValidator
         from corporate_travel_agent.policy.engine import PolicyEngine
         from corporate_travel_agent.services.repositories import NotFoundError
 
-        inbound_choices: list[TransportOffer | None] = list(inbound) if inbound else [None]
-        hotel_choices: list[HotelOffer | None] = list(hotels) if hotels else [None]
+        sampled_legs = [pool[:sample_limit] for pool in leg_pools if pool]
+        if not sampled_legs:
+            return []
+        sampled_stays = [pool[:sample_limit] for pool in stay_pools if pool]
         try:
             employee = self.tasks.get(request.task_id).employee
         except NotFoundError:
@@ -2601,15 +2639,15 @@ class TripWorkflowOrchestrator:
         validator = FeasibilityValidator()
         engine = PolicyEngine()
         counts: dict[str, int] = {}
-        for outbound_offer, inbound_offer, hotel in product(
-            outbound[:sample_limit],
-            inbound_choices[:sample_limit],
-            hotel_choices[:sample_limit],
-        ):
+        leg_count = len(sampled_legs)
+        combinations = product(*sampled_legs, *sampled_stays)
+        for combination in islice(combinations, combination_limit):
+            transports = list(combination[:leg_count])
+            hotels = list(combination[leg_count:])
             feasibility = validator.validate(
                 request,
-                [outbound_offer, *([inbound_offer] if inbound_offer else [])],
-                hotel,
+                transports,
+                hotels,
                 policy.arrival_buffer_minutes,
                 now=self.clock(),
             )
@@ -2618,12 +2656,7 @@ class TripWorkflowOrchestrator:
                     key = f"feasibility:{reason}"
                     counts[key] = counts.get(key, 0) + 1
                 continue
-            decision = engine.evaluate(
-                employee,
-                policy,
-                [outbound_offer, *([inbound_offer] if inbound_offer else [])],
-                hotel,
-            )
+            decision = engine.evaluate(employee, policy, transports, hotels)
             if decision.outcome in {
                 PolicyOutcome.FORBIDDEN,
                 PolicyOutcome.INSUFFICIENT_EVIDENCE,

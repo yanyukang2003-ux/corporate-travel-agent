@@ -114,6 +114,26 @@ def leg_spec(request: TripRequestVersion, leg_index: int) -> LegSpec:
     )
 
 
+def _stay_label(stay_index: int) -> str:
+    """报错文案里怎么称呼这一处住宿。
+
+    第一处仍叫 ``hotel``——"hotel is required"、"hotel city does not match…"
+    这些话前端、评测与冻结数据集都认；第二处起才是 ``stay 1``、``stay 2``。
+    """
+    return "hotel" if stay_index == 0 else f"stay {stay_index}"
+
+
+def _as_stays(
+    stays: Sequence[HotelOffer] | HotelOffer | None,
+) -> tuple[HotelOffer, ...]:
+    """把"一家酒店或 None"和"一串住宿"都收成同一种形状。"""
+    if stays is None:
+        return ()
+    if isinstance(stays, HotelOffer):
+        return (stays,)
+    return tuple(item for item in stays if item is not None)
+
+
 class FeasibilityValidator:
     """对交通与酒店做硬约束校验，返回可行性结果与原因列表。"""
 
@@ -156,40 +176,65 @@ class FeasibilityValidator:
                 )
         return tuple(reasons)
 
+    def stay_reasons(
+        self, request: TripRequestVersion, stay_index: int, hotel: HotelOffer | None
+    ) -> tuple[str, ...]:
+        """第 ``stay_index`` 处住宿不可行的理由；这趟不住这一处时永远为空。
+
+        **每处住宿对照它自己那一站的城市与日期。** 此前这里对照的是
+        ``request.destination`` 加那一对扁平日期——一个目的地、一处住宿，
+        多城行程里第二站的酒店会被当成"城市对不上"。
+        """
+        stays = request.lodging_stays()
+        if stay_index >= len(stays):
+            return ()
+        stay = stays[stay_index]
+        label = _stay_label(stay_index)
+        if hotel is None:
+            return (f"{label} is required",)
+        reasons: list[str] = []
+        if not hotel.available:
+            reasons.append(f"{label} inventory is unavailable")
+        if hotel.city != stay.city:
+            # 第一处的说法一个字没动；第二处起才把城市名写进话里——多城行程里
+            # 光说"城市对不上"看的人不知道说的是哪一站。
+            reasons.append(
+                "hotel city does not match the destination"
+                if stay_index == 0
+                else f"{label} city does not match {stay.city}"
+            )
+        if hotel.check_in > stay.check_in or hotel.check_out < stay.check_out:
+            reasons.append(
+                "hotel stay does not cover requested dates"
+                if stay_index == 0
+                else f"{label} does not cover requested dates"
+            )
+        return tuple(reasons)
+
     def hotel_reasons(
         self, request: TripRequestVersion, hotel: HotelOffer | None
     ) -> tuple[str, ...]:
-        """住宿不可行的理由；这趟不需要住宿时永远为空。"""
-        if request.hotel_check_in is None or request.hotel_check_out is None:
-            return ()
-        if hotel is None:
-            return ("hotel is required",)
-        reasons: list[str] = []
-        if not hotel.available:
-            reasons.append("hotel inventory is unavailable")
-        if hotel.city != request.destination:
-            reasons.append("hotel city does not match the destination")
-        if (
-            hotel.check_in > request.hotel_check_in
-            or hotel.check_out < request.hotel_check_out
-        ):
-            reasons.append("hotel stay does not cover requested dates")
-        return tuple(reasons)
+        """第一处住宿不可行的理由。保留这个名字，既有调用方与文案都认它。"""
+        return self.stay_reasons(request, 0, hotel)
 
     def validate(
         self,
         request: TripRequestVersion,
         transports: Sequence[TransportOffer],
-        hotel: HotelOffer | None,
+        stays: Sequence[HotelOffer] | HotelOffer | None,
         arrival_buffer_minutes: int,
         *,
         now: datetime,
     ) -> FeasibilityResult:
         """校验一整组库存是否满足请求窗口、路由与到达缓冲；任一失败则不可行。
 
-        此前这里收的是 ``outbound`` 和 ``inbound`` 两个参数——两个位置，
-        放不下第三段。现在收整条航段列表，段数由请求自己说了算。
+        此前这里收的是 ``outbound`` 和 ``inbound`` 两个参数、外加**一家**酒店——
+        位置不够放第三段，也不够放第二座城市的酒店。现在两边都收整串，
+        段数与住宿处数都由请求自己说了算。
+
+        ``stays`` 仍接受单个酒店或 ``None``：既有调用方一个字都不用改。
         """
+        booked_stays = _as_stays(stays)
         reasons: list[str] = []
         for index in range(planned_leg_count(request)):
             if index >= len(transports):
@@ -201,5 +246,7 @@ class FeasibilityValidator:
                 )
             )
 
-        reasons.extend(self.hotel_reasons(request, hotel))
+        for index in range(len(request.lodging_stays())):
+            stay = booked_stays[index] if index < len(booked_stays) else None
+            reasons.extend(self.stay_reasons(request, index, stay))
         return FeasibilityResult(feasible=not reasons, reasons=tuple(reasons))

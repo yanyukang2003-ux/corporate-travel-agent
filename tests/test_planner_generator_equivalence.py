@@ -71,9 +71,17 @@ def _exhaustive_plan(
         list(hotel_offers) if request.hotel_check_in is not None else [None]
     )
 
+    # 对照实现只覆盖 1–2 段、单处住宿——它证明的是"去笛卡尔积没有改变结果"，
+    # 不是多城。多城的证人是 tests/test_multi_city_planning.py。
+    stay_pools = (
+        [[item for item in hotel_choices if item is not None]]
+        if request.hotel_check_in is not None
+        else []
+    )
+
     minutes_per_unit = duration_minutes_per_unit(request)
     candidates: list[tuple[object, TravelOptionVersion]] = []
-    for shape in _enumerate_shapes(pools, hotel_choices):
+    for shape in _enumerate_shapes(pools, stay_pools):
         shaped_pools = [
             [offer for offer in pool if offer.mode is shape.modes[index]]
             for index, pool in enumerate(pools)
@@ -90,7 +98,7 @@ def _exhaustive_plan(
                 employee,
                 policy,
                 list(transports),
-                hotel,
+                [hotel] if hotel is not None else [],
                 shape,
                 minutes_per_unit,
                 now=now,

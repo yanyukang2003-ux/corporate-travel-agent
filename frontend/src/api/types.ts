@@ -158,6 +158,7 @@ export interface TravelOption {
   legs: TransportOffer[]
   outbound: TransportOffer
   inbound: TransportOffer | null
+  stays: HotelOffer[]
   hotel: HotelOffer | null
   total_cost: string | number
   total_duration_minutes: number

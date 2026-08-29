@@ -166,9 +166,16 @@ def _exhaustive_plan(
     hotel_choices: list[HotelOffer | None] = (
         list(hotel_offers) if request.hotel_check_in is not None else [None]
     )
+    # 对照实现只覆盖两段往返、单处住宿——它量的是"去笛卡尔积快了多少"，
+    # 不是多城。多城的证人是 tests/test_multi_city_search.py。
+    stay_pools = (
+        [[item for item in hotel_choices if item is not None]]
+        if request.hotel_check_in is not None
+        else []
+    )
     minutes_per_unit = duration_minutes_per_unit(request)
     candidates: list[tuple[object, TravelOptionVersion]] = []
-    for shape in _enumerate_shapes(pools, hotel_choices):
+    for shape in _enumerate_shapes(pools, stay_pools):
         shaped_pools = [
             [offer for offer in pool if offer.mode is shape.modes[index]]
             for index, pool in enumerate(pools)
@@ -185,7 +192,7 @@ def _exhaustive_plan(
                 employee,
                 policy,
                 list(transports),
-                hotel,
+                [hotel] if hotel is not None else [],
                 shape,
                 minutes_per_unit,
                 now=NOW,

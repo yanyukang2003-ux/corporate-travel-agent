@@ -1,0 +1,93 @@
+{
+  "two_leg_measured": [
+    {
+      "offers_per_leg": 10,
+      "hotels": 4,
+      "exhaustive_combinations_evaluated": 400,
+      "generator_combinations_evaluated": 16,
+      "exhaustive_seconds": 0.0089,
+      "generator_seconds": 0.0021,
+      "speedup": 4.2,
+      "same_options": true
+    },
+    {
+      "offers_per_leg": 20,
+      "hotels": 4,
+      "exhaustive_combinations_evaluated": 1600,
+      "generator_combinations_evaluated": 16,
+      "exhaustive_seconds": 0.0363,
+      "generator_seconds": 0.001,
+      "speedup": 36.2,
+      "same_options": true
+    },
+    {
+      "offers_per_leg": 40,
+      "hotels": 4,
+      "exhaustive_combinations_evaluated": 6400,
+      "generator_combinations_evaluated": 22,
+      "exhaustive_seconds": 0.1477,
+      "generator_seconds": 0.0015,
+      "speedup": 100.6,
+      "same_options": true
+    },
+    {
+      "offers_per_leg": 50,
+      "hotels": 4,
+      "exhaustive_combinations_evaluated": 10000,
+      "generator_combinations_evaluated": 16,
+      "exhaustive_seconds": 0.236,
+      "generator_seconds": 0.0016,
+      "speedup": 145.9,
+      "same_options": true
+    },
+    {
+      "offers_per_leg": 80,
+      "hotels": 4,
+      "exhaustive_combinations_evaluated": 25600,
+      "generator_combinations_evaluated": 19,
+      "exhaustive_seconds": 0.6705,
+      "generator_seconds": 0.0023,
+      "speedup": 288.4,
+      "same_options": true
+    }
+  ],
+  "seconds_per_combination": 2.619140625e-05,
+  "duffel_offers_per_leg": 50,
+  "exhaustive_projection": [
+    {
+      "legs": 2,
+      "measured": true,
+      "exhaustive_combinations": 2500,
+      "exhaustive_seconds": 0.065,
+      "within_acceptable": true
+    },
+    {
+      "legs": 3,
+      "measured": false,
+      "exhaustive_combinations": 125000,
+      "exhaustive_seconds": 3.274,
+      "within_acceptable": false
+    },
+    {
+      "legs": 4,
+      "measured": false,
+      "exhaustive_combinations": 6250000,
+      "exhaustive_seconds": 163.696,
+      "within_acceptable": false
+    },
+    {
+      "legs": 5,
+      "measured": false,
+      "exhaustive_combinations": 312500000,
+      "exhaustive_seconds": 8184.814,
+      "within_acceptable": false
+    },
+    {
+      "legs": 6,
+      "measured": false,
+      "exhaustive_combinations": 15625000000,
+      "exhaustive_seconds": 409240.723,
+      "within_acceptable": false
+    }
+  ]
+}

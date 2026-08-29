@@ -993,6 +993,9 @@ def _public_task(task: TripTask) -> dict[str, Any]:
                 "inbound": (
                     _public_transport_offer(item.inbound) if item.inbound else None
                 ),
+                # 完整的有序住宿列表，一站一条。两处以上只有这里读得到——
+                # hotel 仍然照旧给第一处，前端不改也能跑。
+                "stays": [_public_hotel_offer(stay) for stay in item.stays],
                 "hotel": _public_hotel_offer(item.hotel) if item.hotel else None,
                 "total_cost": item.total_cost,
                 "total_duration_minutes": item.total_duration_minutes,

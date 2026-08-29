@@ -152,7 +152,7 @@ def _option() -> TravelOptionVersion:
         trip_request_version=1,
         inventory_snapshot_ids=("flight", "hotel"),
         legs=(transport,),
-        hotel=hotel,
+        stays=(hotel,) if hotel else (),
         total_cost=Decimal("300"),
         total_duration_minutes=480,
         feasibility=None,  # type: ignore[arg-type]

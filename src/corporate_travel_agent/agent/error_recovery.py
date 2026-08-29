@@ -82,11 +82,41 @@ _PROVIDER_WRITE_TOOLS = frozenset(
     }
 )
 
-_SEARCH_LEG_TOOLS = (
-    "provider.search_transport.outbound",
-    "provider.search_transport.inbound",
+#: 交通搜索每段各叫什么。前两段沿用 outbound / inbound——错误恢复、评测轨迹与
+#: 冻结数据集都认这两个名字；第三段起才是 leg2、leg3……**新名字只加在新东西上。**
+def transport_search_tool_name(leg_index: int) -> str:
+    """第 ``leg_index`` 段那次搜索的工具名。"""
+    if leg_index == 0:
+        return "provider.search_transport.outbound"
+    if leg_index == 1:
+        return "provider.search_transport.inbound"
+    return f"provider.search_transport.leg{leg_index}"
+
+
+def hotel_search_tool_name(stay_index: int) -> str:
+    """第 ``stay_index`` 站那次酒店搜索的工具名。
+
+    第一站仍叫 ``provider.search_hotels``——评测轨迹、恢复用例与冻结数据集都认
+    这个名字；第二站起才是 ``provider.search_hotels.stay1``。
+    """
+    if stay_index == 0:
+        return "provider.search_hotels"
+    return f"provider.search_hotels.stay{stay_index}"
+
+
+_SEARCH_LEG_TOOL_PREFIXES = (
+    "provider.search_transport.",
     "provider.search_hotels",
 )
+
+
+def is_search_leg_tool(name: object) -> bool:
+    """这次工具调用算不算"多段搜索里的一段"。
+
+    此前这里是一张写死的三个名字的表，第三段起的搜索**不会被算成一段**——
+    中途某段失败时侦察会说"没有搜索活动"，等于把已经花掉的调用当成没发生。
+    """
+    return isinstance(name, str) and name.startswith(_SEARCH_LEG_TOOL_PREFIXES)
 
 
 @dataclass(frozen=True, slots=True)
@@ -212,7 +242,7 @@ def recon_search_legs(tool_calls: list[Any] | tuple[Any, ...]) -> dict[str, Any]
     started: list[str] = []
     for record in tool_calls:
         name = getattr(record, "tool_name", None)
-        if name not in _SEARCH_LEG_TOOLS:
+        if not is_search_leg_tool(name):
             continue
         status = getattr(record, "status", None)
         status_value = status.value if hasattr(status, "value") else str(status)

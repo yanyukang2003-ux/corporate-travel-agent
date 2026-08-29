@@ -73,6 +73,20 @@ class TripLeg:
 
 
 @dataclass(frozen=True, slots=True)
+class TripStay:
+    """一次住宿：在哪座城市、住哪几天。
+
+    此前住宿在请求里只有 ``hotel_check_in`` / ``hotel_check_out`` 一对日期，
+    城市则默认是 ``destination``——**一个目的地、一处住宿**。多城行程有 N-1 个
+    过夜点（去上海开会、再去杭州见客户，两座城市各住），一对日期放不下。
+    """
+
+    city: str
+    check_in: date
+    check_out: date
+
+
+@dataclass(frozen=True, slots=True)
 class ScopedRequirement:
     """一条要求或偏好，外加它管到哪一段。
 
@@ -133,6 +147,9 @@ class TripRequestVersion:
     # 有序航段列表：单程 1 段、往返 2 段、多城 N 段——**行程类型是数出来的，不是声明的**。
     # 为空表示按旧的扁平字段推导（兼容既有载荷与冻结评测数据）。给了就以它为准。
     journey: tuple[TripLeg, ...] = ()
+    # 有序住宿列表：一站一条。为空表示按旧的扁平字段推导（兼容既有载荷与冻结评测
+    # 数据）——推导只能表达"在目的地住一次"，多城的每站住宿必须显式给 ``stays``。
+    stays: tuple[TripStay, ...] = ()
     commitments: tuple[Commitment, ...] = ()
     # 会面地点。此前语义层抽出来后在编译成请求时被丢掉，规划器与政策引擎从未见过它。
     client_location: str | None = None
@@ -183,6 +200,24 @@ class TripRequestVersion:
                 )
             )
         return tuple(legs)
+
+    def lodging_stays(self) -> tuple[TripStay, ...]:
+        """本次行程要订的住宿序列；这趟不住店时为空。
+
+        给了 ``stays`` 就直接用它；没给才从扁平字段推导，推出来的那一条
+        **和改动之前逐字一致**：目的地那座城市，那一对日期。
+        """
+        if self.stays:
+            return self.stays
+        if self.hotel_check_in is None or self.hotel_check_out is None:
+            return ()
+        return (
+            TripStay(
+                city=self.destination,
+                check_in=self.hotel_check_in,
+                check_out=self.hotel_check_out,
+            ),
+        )
 
     def scoped_constraints(self) -> tuple[ScopedRequirement, ...]:
         """硬要求的完整视图；没写作用域的旧请求一律按"管全程"理解。"""
@@ -352,7 +387,10 @@ class TravelOptionVersion:
     # （`TripRequestVersion.journey`），结果侧却只有两个位置放得下，
     # 于是"领域模型支持多城"这句话只有一半是真的。
     legs: tuple[TransportOffer, ...]
-    hotel: HotelOffer | None
+    # 这条方案要订的住宿，**按站有序**：不住 0 处、单城 1 处、多城 N-1 处。
+    # 此前这里是 `hotel` 一个槽——和 `outbound`/`inbound` 一样的毛病，只是发生在
+    # 住宿上：一个位置只放得下一座城市的酒店。
+    stays: tuple[HotelOffer, ...]
     total_cost: Decimal
     total_duration_minutes: int
     feasibility: FeasibilityResult
@@ -373,11 +411,18 @@ class TravelOptionVersion:
         return self.legs[1] if len(self.legs) > 1 else None
 
     @property
+    def hotel(self) -> HotelOffer | None:
+        """第一处住宿；不住店时为 None。两处以上请直接读 ``stays``。
+
+        保留这个名字，是因为它在前端、评测与 API 响应里已经叫开了。
+        """
+        return self.stays[0] if self.stays else None
+
+    @property
     def inventory_refs(self) -> tuple[str, ...]:
         """方案引用的库存 ref_id 列表。"""
         refs = [leg.ref_id for leg in self.legs]
-        if self.hotel:
-            refs.append(self.hotel.ref_id)
+        refs.extend(stay.ref_id for stay in self.stays)
         return tuple(refs)
 
 

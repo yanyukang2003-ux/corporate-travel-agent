@@ -57,6 +57,7 @@ def validate_trip_request(request: TripRequestVersion) -> TripRequestValidation:
             "origin": request.origin,
             "destination": request.destination,
             "journey": request.journey,
+            "stays": request.stays,
             "departure_after": request.departure_after,
             "arrive_by": request.arrive_by,
             "return_after": request.return_after,
@@ -201,6 +202,14 @@ def validate_trip_request_values(fields: Mapping[str, Any]) -> TripRequestValida
             missing.append("hotel_check_out")
 
     conflicts.extend(_journey_conflicts(fields.get("journey")))
+    conflicts.extend(
+        _stay_conflicts(
+            fields.get("stays"),
+            journey=fields.get("journey"),
+            hotel_check_in=hotel_check_in,
+            hotel_check_out=hotel_check_out,
+        )
+    )
     leg_count = _expected_leg_count(fields, scope)
     conflicts.extend(
         _scope_conflicts(
@@ -283,6 +292,69 @@ def _journey_conflicts(journey: Any) -> list[str]:
                 )
     return problems
 
+
+
+def _stay_conflicts(
+    stays: Any,
+    *,
+    journey: Any,
+    hotel_check_in: Any,
+    hotel_check_out: Any,
+) -> list[str]:
+    """校验显式给出的住宿站序列：城市、日期、站数，以及与扁平字段是否讲同一句话。
+
+    住宿站是继航段之后第二个"结构化字段盖过扁平字段"的地方，所以守门的规矩
+    和 `_journey_conflicts` 一样：**没人替它兜底，它自己必须站得住。**
+    """
+    if not stays:
+        return []
+    if not isinstance(stays, (list, tuple)):
+        return ["stays must be a sequence of lodging stops"]
+    items = list(stays)
+    problems: list[str] = []
+
+    # 一趟行程最多在 N-1 个中途点过夜（最后一段落地就到家了）。没给 journey 时
+    # 按往返的一站算——这正是扁平字段能表达的极限。
+    leg_count = len(journey) if isinstance(journey, (list, tuple)) and journey else 2
+    if len(items) > max(leg_count - 1, 1):
+        problems.append(
+            f"stays has {len(items)} stops; a {leg_count}-leg journey can stay over at "
+            f"most {max(leg_count - 1, 1)} times"
+        )
+
+    for index, stay in enumerate(items):
+        city = getattr(stay, "city", None)
+        check_in = getattr(stay, "check_in", None)
+        check_out = getattr(stay, "check_out", None)
+        if not isinstance(city, str) or not city.strip():
+            problems.append(f"stay {index} is missing a city")
+        if (
+            not isinstance(check_in, date)
+            or isinstance(check_in, datetime)
+            or not isinstance(check_out, date)
+            or isinstance(check_out, datetime)
+        ):
+            problems.append(f"stay {index} needs a check-in and check-out date")
+            continue
+        if check_out <= check_in:
+            problems.append(f"stay {index} must check out after it checks in")
+        if index == 0:
+            continue
+        previous_out = getattr(items[index - 1], "check_out", None)
+        if isinstance(previous_out, date) and check_in < previous_out:
+            problems.append(f"stay {index} checks in before stay {index - 1} checks out")
+
+    # 两个视图必须讲同一句话：第一站就是扁平字段说的那一次住宿。
+    first = items[0]
+    first_in = getattr(first, "check_in", None)
+    first_out = getattr(first, "check_out", None)
+    if hotel_check_in is not None and first_in != hotel_check_in:
+        problems.append("stays[0] check-in disagrees with hotel_check_in")
+    if hotel_check_out is not None and first_out != hotel_check_out:
+        problems.append("stays[0] check-out disagrees with hotel_check_out")
+    if hotel_check_in is None and hotel_check_out is None:
+        problems.append("stays were given without hotel_check_in/hotel_check_out")
+    return problems
 
 
 def _expected_leg_count(fields: Mapping[str, Any], scope: BookingScope | None) -> int:

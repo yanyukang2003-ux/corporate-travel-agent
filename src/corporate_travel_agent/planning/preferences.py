@@ -8,6 +8,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from decimal import Decimal
 from enum import StrEnum
 
@@ -118,15 +119,27 @@ def lodging_penalty(request: TripRequestVersion, hotel: HotelOffer | None) -> De
 
 def preference_penalty(
     request: TripRequestVersion,
-    transports: list[TransportOffer] | tuple[TransportOffer, ...],
-    hotel: HotelOffer | None,
+    transports: Sequence[TransportOffer],
+    stays: Sequence[HotelOffer] | HotelOffer | None,
 ) -> Decimal:
-    """整趟走法的偏好罚分：每一段都算，住宿也算。"""
+    """整趟走法的偏好罚分：每一段都算，**每一处住宿也各算一遍**。
+
+    ``stays`` 仍接受单个酒店或 ``None``，既有调用方一个字都不用改。
+    """
+    lodging: Sequence[HotelOffer]
+    if stays is None:
+        lodging = ()
+    elif isinstance(stays, HotelOffer):
+        lodging = (stays,)
+    else:
+        lodging = [item for item in stays if item is not None]
     total = sum(
         (leg_penalty(request, index, offer) for index, offer in enumerate(transports)),
         Decimal("0"),
     )
-    return total + lodging_penalty(request, hotel)
+    return total + sum(
+        (lodging_penalty(request, stay) for stay in lodging), Decimal("0")
+    )
 
 
 def wants_mode_comparison(request: TripRequestVersion) -> bool:
