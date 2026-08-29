@@ -1,0 +1,1160 @@
+{
+  "schema_version": 1,
+  "cities": [
+    {
+      "code": "AE-AUH",
+      "canonical_name": "Abu Dhabi",
+      "aliases": [
+        "阿布扎比"
+      ],
+      "timezone": "Asia/Dubai",
+      "duffel_code": "AUH",
+      "liteapi": null
+    },
+    {
+      "code": "NL-AMS",
+      "canonical_name": "Amsterdam",
+      "aliases": [
+        "阿姆斯特丹"
+      ],
+      "timezone": "Europe/Amsterdam",
+      "duffel_code": "AMS",
+      "liteapi": {
+        "cityName": "Amsterdam",
+        "countryCode": "NL"
+      }
+    },
+    {
+      "code": "GR-ATH",
+      "canonical_name": "Athens",
+      "aliases": [
+        "雅典"
+      ],
+      "timezone": "Europe/Athens",
+      "duffel_code": "ATH",
+      "liteapi": null
+    },
+    {
+      "code": "US-ATL",
+      "canonical_name": "Atlanta",
+      "aliases": [
+        "亚特兰大",
+        "亞特蘭大"
+      ],
+      "timezone": "America/New_York",
+      "duffel_code": "ATL",
+      "liteapi": null
+    },
+    {
+      "code": "NZ-AKL",
+      "canonical_name": "Auckland",
+      "aliases": [
+        "奥克兰",
+        "奧克蘭"
+      ],
+      "timezone": "Pacific/Auckland",
+      "duffel_code": "AKL",
+      "liteapi": null
+    },
+    {
+      "code": "IN-BLR",
+      "canonical_name": "Bangalore",
+      "aliases": [
+        "bengaluru",
+        "班加罗尔"
+      ],
+      "timezone": "Asia/Kolkata",
+      "duffel_code": "BLR",
+      "liteapi": null
+    },
+    {
+      "code": "TH-BKK",
+      "canonical_name": "Bangkok",
+      "aliases": [
+        "曼谷"
+      ],
+      "timezone": "Asia/Bangkok",
+      "duffel_code": "BKK",
+      "liteapi": {
+        "cityName": "Bangkok",
+        "countryCode": "TH"
+      }
+    },
+    {
+      "code": "ES-BCN",
+      "canonical_name": "Barcelona",
+      "aliases": [
+        "巴塞罗那",
+        "巴塞羅那"
+      ],
+      "timezone": "Europe/Madrid",
+      "duffel_code": "BCN",
+      "liteapi": null
+    },
+    {
+      "code": "CN-BJS",
+      "canonical_name": "Beijing",
+      "aliases": [
+        "北京",
+        "北京市"
+      ],
+      "timezone": "Asia/Shanghai",
+      "duffel_code": "BJS",
+      "liteapi": {
+        "cityName": "Beijing",
+        "countryCode": "CN"
+      }
+    },
+    {
+      "code": "DE-BER",
+      "canonical_name": "Berlin",
+      "aliases": [
+        "柏林"
+      ],
+      "timezone": "Europe/Berlin",
+      "duffel_code": "BER",
+      "liteapi": null
+    },
+    {
+      "code": "US-BOS",
+      "canonical_name": "Boston",
+      "aliases": [
+        "波士頓",
+        "波士顿"
+      ],
+      "timezone": "America/New_York",
+      "duffel_code": "BOS",
+      "liteapi": {
+        "cityName": "Boston",
+        "countryCode": "US"
+      }
+    },
+    {
+      "code": "BE-BRU",
+      "canonical_name": "Brussels",
+      "aliases": [
+        "布鲁塞尔"
+      ],
+      "timezone": "Europe/Brussels",
+      "duffel_code": "BRU",
+      "liteapi": null
+    },
+    {
+      "code": "CN-CSX",
+      "canonical_name": "Changsha",
+      "aliases": [
+        "changsha",
+        "长沙",
+        "长沙市"
+      ],
+      "timezone": "Asia/Shanghai",
+      "duffel_code": "CSX",
+      "liteapi": {
+        "cityName": "Changsha",
+        "countryCode": "CN"
+      }
+    },
+    {
+      "code": "CN-CTU",
+      "canonical_name": "Chengdu",
+      "aliases": [
+        "chengdu",
+        "成都",
+        "成都市"
+      ],
+      "timezone": "Asia/Shanghai",
+      "duffel_code": "CTU",
+      "liteapi": {
+        "cityName": "Chengdu",
+        "countryCode": "CN"
+      }
+    },
+    {
+      "code": "US-CHI",
+      "canonical_name": "Chicago",
+      "aliases": [
+        "芝加哥"
+      ],
+      "timezone": "America/Chicago",
+      "duffel_code": "CHI",
+      "liteapi": {
+        "cityName": "Chicago",
+        "countryCode": "US"
+      }
+    },
+    {
+      "code": "CN-CKG",
+      "canonical_name": "Chongqing",
+      "aliases": [
+        "chongqing",
+        "重庆",
+        "重庆市"
+      ],
+      "timezone": "Asia/Shanghai",
+      "duffel_code": "CKG",
+      "liteapi": {
+        "cityName": "Chongqing",
+        "countryCode": "CN"
+      }
+    },
+    {
+      "code": "DK-CPH",
+      "canonical_name": "Copenhagen",
+      "aliases": [
+        "哥本哈根"
+      ],
+      "timezone": "Europe/Copenhagen",
+      "duffel_code": "CPH",
+      "liteapi": null
+    },
+    {
+      "code": "CN-DLC",
+      "canonical_name": "Dalian",
+      "aliases": [
+        "dalian",
+        "大连",
+        "大连市"
+      ],
+      "timezone": "Asia/Shanghai",
+      "duffel_code": "DLC",
+      "liteapi": {
+        "cityName": "Dalian",
+        "countryCode": "CN"
+      }
+    },
+    {
+      "code": "US-DFW",
+      "canonical_name": "Dallas",
+      "aliases": [
+        "达拉斯",
+        "達拉斯"
+      ],
+      "timezone": "America/Chicago",
+      "duffel_code": "DFW",
+      "liteapi": null
+    },
+    {
+      "code": "IN-DEL",
+      "canonical_name": "Delhi",
+      "aliases": [
+        "德里",
+        "新德里"
+      ],
+      "timezone": "Asia/Kolkata",
+      "duffel_code": "DEL",
+      "liteapi": null
+    },
+    {
+      "code": "US-DEN",
+      "canonical_name": "Denver",
+      "aliases": [
+        "丹佛"
+      ],
+      "timezone": "America/Denver",
+      "duffel_code": "DEN",
+      "liteapi": null
+    },
+    {
+      "code": "US-DTW",
+      "canonical_name": "Detroit",
+      "aliases": [
+        "底特律"
+      ],
+      "timezone": "America/Detroit",
+      "duffel_code": "DTW",
+      "liteapi": null
+    },
+    {
+      "code": "QA-DOH",
+      "canonical_name": "Doha",
+      "aliases": [
+        "多哈"
+      ],
+      "timezone": "Asia/Qatar",
+      "duffel_code": "DOH",
+      "liteapi": null
+    },
+    {
+      "code": "AE-DXB",
+      "canonical_name": "Dubai",
+      "aliases": [
+        "迪拜"
+      ],
+      "timezone": "Asia/Dubai",
+      "duffel_code": "DXB",
+      "liteapi": {
+        "cityName": "Dubai",
+        "countryCode": "AE"
+      }
+    },
+    {
+      "code": "IE-DUB",
+      "canonical_name": "Dublin",
+      "aliases": [
+        "都柏林"
+      ],
+      "timezone": "Europe/Dublin",
+      "duffel_code": "DUB",
+      "liteapi": null
+    },
+    {
+      "code": "DE-FRA",
+      "canonical_name": "Frankfurt",
+      "aliases": [
+        "法兰克福",
+        "法蘭克福"
+      ],
+      "timezone": "Europe/Berlin",
+      "duffel_code": "FRA",
+      "liteapi": {
+        "cityName": "Frankfurt",
+        "countryCode": "DE"
+      }
+    },
+    {
+      "code": "CN-CAN",
+      "canonical_name": "Guangzhou",
+      "aliases": [
+        "guangzhou",
+        "广州",
+        "广州市"
+      ],
+      "timezone": "Asia/Shanghai",
+      "duffel_code": "CAN",
+      "liteapi": {
+        "cityName": "Guangzhou",
+        "countryCode": "CN"
+      }
+    },
+    {
+      "code": "CN-HGH",
+      "canonical_name": "Hangzhou",
+      "aliases": [
+        "hangzhou",
+        "杭州",
+        "杭州市"
+      ],
+      "timezone": "Asia/Shanghai",
+      "duffel_code": "HGH",
+      "liteapi": {
+        "cityName": "Hangzhou",
+        "countryCode": "CN"
+      }
+    },
+    {
+      "code": "CN-HRB",
+      "canonical_name": "Harbin",
+      "aliases": [
+        "harbin",
+        "哈尔滨",
+        "哈尔滨市"
+      ],
+      "timezone": "Asia/Shanghai",
+      "duffel_code": "HRB",
+      "liteapi": {
+        "cityName": "Harbin",
+        "countryCode": "CN"
+      }
+    },
+    {
+      "code": "FI-HEL",
+      "canonical_name": "Helsinki",
+      "aliases": [
+        "赫尔辛基"
+      ],
+      "timezone": "Europe/Helsinki",
+      "duffel_code": "HEL",
+      "liteapi": null
+    },
+    {
+      "code": "HK-HKG",
+      "canonical_name": "Hong Kong",
+      "aliases": [
+        "hongkong",
+        "香港"
+      ],
+      "timezone": "Asia/Hong_Kong",
+      "duffel_code": "HKG",
+      "liteapi": {
+        "cityName": "Hong Kong",
+        "countryCode": "HK"
+      }
+    },
+    {
+      "code": "US-IAH",
+      "canonical_name": "Houston",
+      "aliases": [
+        "休斯頓",
+        "休斯顿"
+      ],
+      "timezone": "America/Chicago",
+      "duffel_code": "IAH",
+      "liteapi": null
+    },
+    {
+      "code": "TR-IST",
+      "canonical_name": "Istanbul",
+      "aliases": [
+        "伊斯坦布尔"
+      ],
+      "timezone": "Europe/Istanbul",
+      "duffel_code": "IST",
+      "liteapi": null
+    },
+    {
+      "code": "MY-KUL",
+      "canonical_name": "Kuala Lumpur",
+      "aliases": [
+        "吉隆坡"
+      ],
+      "timezone": "Asia/Kuala_Lumpur",
+      "duffel_code": "KUL",
+      "liteapi": null
+    },
+    {
+      "code": "CN-KMG",
+      "canonical_name": "Kunming",
+      "aliases": [
+        "kunming",
+        "昆明",
+        "昆明市"
+      ],
+      "timezone": "Asia/Shanghai",
+      "duffel_code": "KMG",
+      "liteapi": {
+        "cityName": "Kunming",
+        "countryCode": "CN"
+      }
+    },
+    {
+      "code": "US-LAS",
+      "canonical_name": "Las Vegas",
+      "aliases": [
+        "拉斯維加斯",
+        "拉斯维加斯"
+      ],
+      "timezone": "America/Los_Angeles",
+      "duffel_code": "LAS",
+      "liteapi": null
+    },
+    {
+      "code": "PT-LIS",
+      "canonical_name": "Lisbon",
+      "aliases": [
+        "里斯本"
+      ],
+      "timezone": "Europe/Lisbon",
+      "duffel_code": "LIS",
+      "liteapi": null
+    },
+    {
+      "code": "GB-LON",
+      "canonical_name": "London",
+      "aliases": [
+        "伦敦",
+        "倫敦"
+      ],
+      "timezone": "Europe/London",
+      "duffel_code": "LON",
+      "liteapi": {
+        "cityName": "London",
+        "countryCode": "GB"
+      }
+    },
+    {
+      "code": "US-LAX",
+      "canonical_name": "Los Angeles",
+      "aliases": [
+        "la",
+        "losangeles",
+        "洛杉矶",
+        "洛杉磯"
+      ],
+      "timezone": "America/Los_Angeles",
+      "duffel_code": "LAX",
+      "liteapi": {
+        "cityName": "Los Angeles",
+        "countryCode": "US"
+      }
+    },
+    {
+      "code": "ES-MAD",
+      "canonical_name": "Madrid",
+      "aliases": [
+        "馬德里",
+        "马德里"
+      ],
+      "timezone": "Europe/Madrid",
+      "duffel_code": "MAD",
+      "liteapi": {
+        "cityName": "Madrid",
+        "countryCode": "ES"
+      }
+    },
+    {
+      "code": "AU-MEL",
+      "canonical_name": "Melbourne",
+      "aliases": [
+        "墨尔本",
+        "墨爾本"
+      ],
+      "timezone": "Australia/Melbourne",
+      "duffel_code": "MEL",
+      "liteapi": null
+    },
+    {
+      "code": "US-MIA",
+      "canonical_name": "Miami",
+      "aliases": [
+        "迈阿密",
+        "邁阿密"
+      ],
+      "timezone": "America/New_York",
+      "duffel_code": "MIA",
+      "liteapi": {
+        "cityName": "Miami",
+        "countryCode": "US"
+      }
+    },
+    {
+      "code": "IT-MIL",
+      "canonical_name": "Milan",
+      "aliases": [
+        "米兰",
+        "米蘭"
+      ],
+      "timezone": "Europe/Rome",
+      "duffel_code": "MIL",
+      "liteapi": null
+    },
+    {
+      "code": "US-MSP",
+      "canonical_name": "Minneapolis",
+      "aliases": [],
+      "timezone": "America/Chicago",
+      "duffel_code": "MSP",
+      "liteapi": null
+    },
+    {
+      "code": "CA-YMQ",
+      "canonical_name": "Montreal",
+      "aliases": [
+        "蒙特利尔"
+      ],
+      "timezone": "America/Toronto",
+      "duffel_code": "YMQ",
+      "liteapi": null
+    },
+    {
+      "code": "RU-MOW",
+      "canonical_name": "Moscow",
+      "aliases": [
+        "莫斯科"
+      ],
+      "timezone": "Europe/Moscow",
+      "duffel_code": "MOW",
+      "liteapi": null
+    },
+    {
+      "code": "IN-BOM",
+      "canonical_name": "Mumbai",
+      "aliases": [
+        "孟买",
+        "孟買"
+      ],
+      "timezone": "Asia/Kolkata",
+      "duffel_code": "BOM",
+      "liteapi": null
+    },
+    {
+      "code": "DE-MUC",
+      "canonical_name": "Munich",
+      "aliases": [
+        "慕尼黑"
+      ],
+      "timezone": "Europe/Berlin",
+      "duffel_code": "MUC",
+      "liteapi": {
+        "cityName": "Munich",
+        "countryCode": "DE"
+      }
+    },
+    {
+      "code": "CN-NKG",
+      "canonical_name": "Nanjing",
+      "aliases": [
+        "nanjing",
+        "南京",
+        "南京市"
+      ],
+      "timezone": "Asia/Shanghai",
+      "duffel_code": "NKG",
+      "liteapi": {
+        "cityName": "Nanjing",
+        "countryCode": "CN"
+      }
+    },
+    {
+      "code": "US-NYC",
+      "canonical_name": "New York",
+      "aliases": [
+        "newyork",
+        "紐約",
+        "纽约"
+      ],
+      "timezone": "America/New_York",
+      "duffel_code": "NYC",
+      "liteapi": {
+        "cityName": "New York",
+        "countryCode": "US"
+      }
+    },
+    {
+      "code": "US-MCO",
+      "canonical_name": "Orlando",
+      "aliases": [
+        "奥兰多"
+      ],
+      "timezone": "America/New_York",
+      "duffel_code": "MCO",
+      "liteapi": null
+    },
+    {
+      "code": "JP-OSA",
+      "canonical_name": "Osaka",
+      "aliases": [
+        "大阪"
+      ],
+      "timezone": "Asia/Tokyo",
+      "duffel_code": "OSA",
+      "liteapi": {
+        "cityName": "Osaka",
+        "countryCode": "JP"
+      }
+    },
+    {
+      "code": "FR-PAR",
+      "canonical_name": "Paris",
+      "aliases": [
+        "巴黎"
+      ],
+      "timezone": "Europe/Paris",
+      "duffel_code": "PAR",
+      "liteapi": {
+        "cityName": "Paris",
+        "countryCode": "FR"
+      }
+    },
+    {
+      "code": "US-PHL",
+      "canonical_name": "Philadelphia",
+      "aliases": [
+        "philly",
+        "費城",
+        "费城"
+      ],
+      "timezone": "America/New_York",
+      "duffel_code": "PHL",
+      "liteapi": {
+        "cityName": "Philadelphia",
+        "countryCode": "US"
+      }
+    },
+    {
+      "code": "US-PHX",
+      "canonical_name": "Phoenix",
+      "aliases": [
+        "凤凰城",
+        "鳳凰城"
+      ],
+      "timezone": "America/Phoenix",
+      "duffel_code": "PHX",
+      "liteapi": null
+    },
+    {
+      "code": "CN-TAO",
+      "canonical_name": "Qingdao",
+      "aliases": [
+        "qingdao",
+        "青岛",
+        "青岛市"
+      ],
+      "timezone": "Asia/Shanghai",
+      "duffel_code": "TAO",
+      "liteapi": {
+        "cityName": "Qingdao",
+        "countryCode": "CN"
+      }
+    },
+    {
+      "code": "IT-ROM",
+      "canonical_name": "Rome",
+      "aliases": [
+        "罗马",
+        "羅馬"
+      ],
+      "timezone": "Europe/Rome",
+      "duffel_code": "ROM",
+      "liteapi": {
+        "cityName": "Rome",
+        "countryCode": "IT"
+      }
+    },
+    {
+      "code": "US-SAN",
+      "canonical_name": "San Diego",
+      "aliases": [
+        "圣地亚哥"
+      ],
+      "timezone": "America/Los_Angeles",
+      "duffel_code": "SAN",
+      "liteapi": null
+    },
+    {
+      "code": "US-SFO",
+      "canonical_name": "San Francisco",
+      "aliases": [
+        "sanfrancisco",
+        "sf",
+        "三藩市",
+        "旧金山"
+      ],
+      "timezone": "America/Los_Angeles",
+      "duffel_code": "SFO",
+      "liteapi": {
+        "cityName": "San Francisco",
+        "countryCode": "US"
+      }
+    },
+    {
+      "code": "CN-SYX",
+      "canonical_name": "Sanya",
+      "aliases": [
+        "sanya",
+        "三亚",
+        "三亚市"
+      ],
+      "timezone": "Asia/Shanghai",
+      "duffel_code": "SYX",
+      "liteapi": {
+        "cityName": "Sanya",
+        "countryCode": "CN"
+      }
+    },
+    {
+      "code": "US-SEA",
+      "canonical_name": "Seattle",
+      "aliases": [
+        "西雅图",
+        "西雅圖"
+      ],
+      "timezone": "America/Los_Angeles",
+      "duffel_code": "SEA",
+      "liteapi": {
+        "cityName": "Seattle",
+        "countryCode": "US"
+      }
+    },
+    {
+      "code": "KR-SEL",
+      "canonical_name": "Seoul",
+      "aliases": [
+        "首尔",
+        "首爾"
+      ],
+      "timezone": "Asia/Seoul",
+      "duffel_code": "SEL",
+      "liteapi": {
+        "cityName": "Seoul",
+        "countryCode": "KR"
+      }
+    },
+    {
+      "code": "CN-SHA",
+      "canonical_name": "Shanghai",
+      "aliases": [
+        "上海",
+        "上海市"
+      ],
+      "timezone": "Asia/Shanghai",
+      "duffel_code": "SHA",
+      "liteapi": {
+        "cityName": "Shanghai",
+        "countryCode": "CN"
+      }
+    },
+    {
+      "code": "CN-SHE",
+      "canonical_name": "Shenyang",
+      "aliases": [
+        "shenyang",
+        "沈阳",
+        "沈阳市"
+      ],
+      "timezone": "Asia/Shanghai",
+      "duffel_code": "SHE",
+      "liteapi": {
+        "cityName": "Shenyang",
+        "countryCode": "CN"
+      }
+    },
+    {
+      "code": "CN-SZX",
+      "canonical_name": "Shenzhen",
+      "aliases": [
+        "shenzhen",
+        "深圳",
+        "深圳市"
+      ],
+      "timezone": "Asia/Shanghai",
+      "duffel_code": "SZX",
+      "liteapi": {
+        "cityName": "Shenzhen",
+        "countryCode": "CN"
+      }
+    },
+    {
+      "code": "SG-SIN",
+      "canonical_name": "Singapore",
+      "aliases": [
+        "新加坡"
+      ],
+      "timezone": "Asia/Singapore",
+      "duffel_code": "SIN",
+      "liteapi": {
+        "cityName": "Singapore",
+        "countryCode": "SG"
+      }
+    },
+    {
+      "code": "SE-STO",
+      "canonical_name": "Stockholm",
+      "aliases": [
+        "斯德哥尔摩"
+      ],
+      "timezone": "Europe/Stockholm",
+      "duffel_code": "STO",
+      "liteapi": null
+    },
+    {
+      "code": "AU-SYD",
+      "canonical_name": "Sydney",
+      "aliases": [
+        "悉尼"
+      ],
+      "timezone": "Australia/Sydney",
+      "duffel_code": "SYD",
+      "liteapi": {
+        "cityName": "Sydney",
+        "countryCode": "AU"
+      }
+    },
+    {
+      "code": "TW-TPE",
+      "canonical_name": "Taipei",
+      "aliases": [
+        "台北",
+        "臺北"
+      ],
+      "timezone": "Asia/Taipei",
+      "duffel_code": "TPE",
+      "liteapi": {
+        "cityName": "Taipei",
+        "countryCode": "TW"
+      }
+    },
+    {
+      "code": "CN-TSN",
+      "canonical_name": "Tianjin",
+      "aliases": [
+        "tianjin",
+        "天津",
+        "天津市"
+      ],
+      "timezone": "Asia/Shanghai",
+      "duffel_code": "TSN",
+      "liteapi": {
+        "cityName": "Tianjin",
+        "countryCode": "CN"
+      }
+    },
+    {
+      "code": "JP-TYO",
+      "canonical_name": "Tokyo",
+      "aliases": [
+        "东京",
+        "東京"
+      ],
+      "timezone": "Asia/Tokyo",
+      "duffel_code": "TYO",
+      "liteapi": {
+        "cityName": "Tokyo",
+        "countryCode": "JP"
+      }
+    },
+    {
+      "code": "CA-YTO",
+      "canonical_name": "Toronto",
+      "aliases": [
+        "多伦多",
+        "多倫多"
+      ],
+      "timezone": "America/Toronto",
+      "duffel_code": "YTO",
+      "liteapi": {
+        "cityName": "Toronto",
+        "countryCode": "CA"
+      }
+    },
+    {
+      "code": "CA-YVR",
+      "canonical_name": "Vancouver",
+      "aliases": [
+        "温哥华",
+        "溫哥華"
+      ],
+      "timezone": "America/Vancouver",
+      "duffel_code": "YVR",
+      "liteapi": {
+        "cityName": "Vancouver",
+        "countryCode": "CA"
+      }
+    },
+    {
+      "code": "AT-VIE",
+      "canonical_name": "Vienna",
+      "aliases": [
+        "維也納",
+        "维也纳"
+      ],
+      "timezone": "Europe/Vienna",
+      "duffel_code": "VIE",
+      "liteapi": null
+    },
+    {
+      "code": "US-WAS",
+      "canonical_name": "Washington",
+      "aliases": [
+        "washington d.c.",
+        "washington dc",
+        "华盛顿",
+        "華盛頓"
+      ],
+      "timezone": "America/New_York",
+      "duffel_code": "WAS",
+      "liteapi": {
+        "cityName": "Washington",
+        "countryCode": "US"
+      }
+    },
+    {
+      "code": "CN-WUH",
+      "canonical_name": "Wuhan",
+      "aliases": [
+        "wuhan",
+        "武汉",
+        "武汉市"
+      ],
+      "timezone": "Asia/Shanghai",
+      "duffel_code": "WUH",
+      "liteapi": {
+        "cityName": "Wuhan",
+        "countryCode": "CN"
+      }
+    },
+    {
+      "code": "CN-SIA",
+      "canonical_name": "Xi'an",
+      "aliases": [
+        "xi'an",
+        "xian",
+        "西安",
+        "西安市"
+      ],
+      "timezone": "Asia/Shanghai",
+      "duffel_code": "SIA",
+      "liteapi": {
+        "cityName": "Xi'an",
+        "countryCode": "CN"
+      }
+    },
+    {
+      "code": "CN-XMN",
+      "canonical_name": "Xiamen",
+      "aliases": [
+        "xiamen",
+        "厦门",
+        "厦门市"
+      ],
+      "timezone": "Asia/Shanghai",
+      "duffel_code": "XMN",
+      "liteapi": {
+        "cityName": "Xiamen",
+        "countryCode": "CN"
+      }
+    },
+    {
+      "code": "CN-CGO",
+      "canonical_name": "Zhengzhou",
+      "aliases": [
+        "zhengzhou",
+        "郑州",
+        "郑州市"
+      ],
+      "timezone": "Asia/Shanghai",
+      "duffel_code": "CGO",
+      "liteapi": {
+        "cityName": "Zhengzhou",
+        "countryCode": "CN"
+      }
+    },
+    {
+      "code": "CH-ZRH",
+      "canonical_name": "Zurich",
+      "aliases": [
+        "苏黎世",
+        "蘇黎世"
+      ],
+      "timezone": "Europe/Zurich",
+      "duffel_code": "ZRH",
+      "liteapi": null
+    }
+  ],
+  "airports": [
+    {
+      "iata": "ARN",
+      "city": "SE-STO",
+      "timezone": "Europe/Stockholm"
+    },
+    {
+      "iata": "BWI",
+      "city": "US-WAS",
+      "timezone": "America/New_York"
+    },
+    {
+      "iata": "CDG",
+      "city": "FR-PAR",
+      "timezone": "Europe/Paris"
+    },
+    {
+      "iata": "DCA",
+      "city": "US-WAS",
+      "timezone": "America/New_York"
+    },
+    {
+      "iata": "EWR",
+      "city": "US-NYC",
+      "timezone": "America/New_York"
+    },
+    {
+      "iata": "FCO",
+      "city": "IT-ROM",
+      "timezone": "Europe/Rome"
+    },
+    {
+      "iata": "HND",
+      "city": "JP-TYO",
+      "timezone": "Asia/Tokyo"
+    },
+    {
+      "iata": "IAD",
+      "city": "US-WAS",
+      "timezone": "America/New_York"
+    },
+    {
+      "iata": "ICN",
+      "city": "KR-SEL",
+      "timezone": "Asia/Seoul"
+    },
+    {
+      "iata": "JFK",
+      "city": "US-NYC",
+      "timezone": "America/New_York"
+    },
+    {
+      "iata": "KIX",
+      "city": "JP-OSA",
+      "timezone": "Asia/Tokyo"
+    },
+    {
+      "iata": "LAX",
+      "city": "US-LAX",
+      "timezone": "America/Los_Angeles"
+    },
+    {
+      "iata": "LGA",
+      "city": "US-NYC",
+      "timezone": "America/New_York"
+    },
+    {
+      "iata": "LGW",
+      "city": "GB-LON",
+      "timezone": "Europe/London"
+    },
+    {
+      "iata": "LHR",
+      "city": "GB-LON",
+      "timezone": "Europe/London"
+    },
+    {
+      "iata": "MDW",
+      "city": "US-CHI",
+      "timezone": "America/Chicago"
+    },
+    {
+      "iata": "MXP",
+      "city": "IT-MIL",
+      "timezone": "Europe/Rome"
+    },
+    {
+      "iata": "NRT",
+      "city": "JP-TYO",
+      "timezone": "Asia/Tokyo"
+    },
+    {
+      "iata": "ORD",
+      "city": "US-CHI",
+      "timezone": "America/Chicago"
+    },
+    {
+      "iata": "ORY",
+      "city": "FR-PAR",
+      "timezone": "Europe/Paris"
+    },
+    {
+      "iata": "PEK",
+      "city": "CN-BJS",
+      "timezone": "Asia/Shanghai"
+    },
+    {
+      "iata": "PVG",
+      "city": "CN-SHA",
+      "timezone": "Asia/Shanghai"
+    },
+    {
+      "iata": "SFO",
+      "city": "US-SFO",
+      "timezone": "America/Los_Angeles"
+    },
+    {
+      "iata": "STN",
+      "city": "GB-LON",
+      "timezone": "Europe/London"
+    },
+    {
+      "iata": "SVO",
+      "city": "RU-MOW",
+      "timezone": "Europe/Moscow"
+    },
+    {
+      "iata": "YUL",
+      "city": "CA-YMQ",
+      "timezone": "America/Toronto"
+    },
+    {
+      "iata": "YYZ",
+      "city": "CA-YTO",
+      "timezone": "America/Toronto"
+    }
+  ]
+}

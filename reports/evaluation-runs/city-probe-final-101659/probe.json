@@ -1,0 +1,312 @@
+{
+  "probed_at": "2026-08-29T14:20:00.722902+00:00",
+  "billed_model_calls": 0,
+  "liteapi_read_only_calls": 20,
+  "duffel_read_only_calls": 20,
+  "check_in": "2026-09-28",
+  "check_out": "2026-09-30",
+  "hotels": [
+    {
+      "city": "Guangzhou",
+      "verdict": "found",
+      "hotels": 10,
+      "warnings": [
+        "LiteAPI/Nuitee Connect Sandbox hotel rates; availability and prices are test data",
+        "LiteAPI hotel rates are search quotes only; no prebook, booking, or payment was created",
+        "LiteAPI does not provide client-office commute time; commute_minutes=1440 marks this evidence as unknown"
+      ]
+    },
+    {
+      "city": "Shenzhen",
+      "verdict": "found",
+      "hotels": 10,
+      "warnings": [
+        "LiteAPI/Nuitee Connect Sandbox hotel rates; availability and prices are test data",
+        "LiteAPI hotel rates are search quotes only; no prebook, booking, or payment was created",
+        "LiteAPI does not provide client-office commute time; commute_minutes=1440 marks this evidence as unknown"
+      ]
+    },
+    {
+      "city": "Chengdu",
+      "verdict": "found",
+      "hotels": 9,
+      "warnings": [
+        "LiteAPI/Nuitee Connect Sandbox hotel rates; availability and prices are test data",
+        "LiteAPI hotel rates are search quotes only; no prebook, booking, or payment was created",
+        "LiteAPI does not provide client-office commute time; commute_minutes=1440 marks this evidence as unknown"
+      ]
+    },
+    {
+      "city": "Hangzhou",
+      "verdict": "found",
+      "hotels": 8,
+      "warnings": [
+        "LiteAPI/Nuitee Connect Sandbox hotel rates; availability and prices are test data",
+        "LiteAPI hotel rates are search quotes only; no prebook, booking, or payment was created",
+        "LiteAPI does not provide client-office commute time; commute_minutes=1440 marks this evidence as unknown"
+      ]
+    },
+    {
+      "city": "Nanjing",
+      "verdict": "found",
+      "hotels": 10,
+      "warnings": [
+        "LiteAPI/Nuitee Connect Sandbox hotel rates; availability and prices are test data",
+        "LiteAPI hotel rates are search quotes only; no prebook, booking, or payment was created",
+        "LiteAPI does not provide client-office commute time; commute_minutes=1440 marks this evidence as unknown"
+      ]
+    },
+    {
+      "city": "Xi'an",
+      "verdict": "found",
+      "hotels": 9,
+      "warnings": [
+        "LiteAPI/Nuitee Connect Sandbox hotel rates; availability and prices are test data",
+        "LiteAPI hotel rates are search quotes only; no prebook, booking, or payment was created",
+        "LiteAPI does not provide client-office commute time; commute_minutes=1440 marks this evidence as unknown"
+      ]
+    },
+    {
+      "city": "Chongqing",
+      "verdict": "found",
+      "hotels": 10,
+      "warnings": [
+        "LiteAPI/Nuitee Connect Sandbox hotel rates; availability and prices are test data",
+        "LiteAPI hotel rates are search quotes only; no prebook, booking, or payment was created",
+        "LiteAPI does not provide client-office commute time; commute_minutes=1440 marks this evidence as unknown"
+      ]
+    },
+    {
+      "city": "Wuhan",
+      "verdict": "found",
+      "hotels": 8,
+      "warnings": [
+        "LiteAPI/Nuitee Connect Sandbox hotel rates; availability and prices are test data",
+        "LiteAPI hotel rates are search quotes only; no prebook, booking, or payment was created",
+        "LiteAPI does not provide client-office commute time; commute_minutes=1440 marks this evidence as unknown"
+      ]
+    },
+    {
+      "city": "Qingdao",
+      "verdict": "found",
+      "hotels": 9,
+      "warnings": [
+        "LiteAPI/Nuitee Connect Sandbox hotel rates; availability and prices are test data",
+        "LiteAPI hotel rates are search quotes only; no prebook, booking, or payment was created",
+        "LiteAPI does not provide client-office commute time; commute_minutes=1440 marks this evidence as unknown"
+      ]
+    },
+    {
+      "city": "Xiamen",
+      "verdict": "found",
+      "hotels": 10,
+      "warnings": [
+        "LiteAPI/Nuitee Connect Sandbox hotel rates; availability and prices are test data",
+        "LiteAPI hotel rates are search quotes only; no prebook, booking, or payment was created",
+        "LiteAPI does not provide client-office commute time; commute_minutes=1440 marks this evidence as unknown"
+      ]
+    },
+    {
+      "city": "Tianjin",
+      "verdict": "found",
+      "hotels": 8,
+      "warnings": [
+        "LiteAPI/Nuitee Connect Sandbox hotel rates; availability and prices are test data",
+        "LiteAPI hotel rates are search quotes only; no prebook, booking, or payment was created",
+        "LiteAPI does not provide client-office commute time; commute_minutes=1440 marks this evidence as unknown"
+      ]
+    },
+    {
+      "city": "Changsha",
+      "verdict": "found",
+      "hotels": 10,
+      "warnings": [
+        "LiteAPI/Nuitee Connect Sandbox hotel rates; availability and prices are test data",
+        "LiteAPI hotel rates are search quotes only; no prebook, booking, or payment was created",
+        "LiteAPI does not provide client-office commute time; commute_minutes=1440 marks this evidence as unknown"
+      ]
+    },
+    {
+      "city": "Zhengzhou",
+      "verdict": "found",
+      "hotels": 9,
+      "warnings": [
+        "LiteAPI/Nuitee Connect Sandbox hotel rates; availability and prices are test data",
+        "LiteAPI hotel rates are search quotes only; no prebook, booking, or payment was created",
+        "LiteAPI does not provide client-office commute time; commute_minutes=1440 marks this evidence as unknown"
+      ]
+    },
+    {
+      "city": "Kunming",
+      "verdict": "found",
+      "hotels": 9,
+      "warnings": [
+        "LiteAPI/Nuitee Connect Sandbox hotel rates; availability and prices are test data",
+        "LiteAPI hotel rates are search quotes only; no prebook, booking, or payment was created",
+        "LiteAPI does not provide client-office commute time; commute_minutes=1440 marks this evidence as unknown"
+      ]
+    },
+    {
+      "city": "Dalian",
+      "verdict": "found",
+      "hotels": 10,
+      "warnings": [
+        "LiteAPI/Nuitee Connect Sandbox hotel rates; availability and prices are test data",
+        "LiteAPI hotel rates are search quotes only; no prebook, booking, or payment was created",
+        "LiteAPI does not provide client-office commute time; commute_minutes=1440 marks this evidence as unknown"
+      ]
+    },
+    {
+      "city": "Shenyang",
+      "verdict": "found",
+      "hotels": 10,
+      "warnings": [
+        "LiteAPI/Nuitee Connect Sandbox hotel rates; availability and prices are test data",
+        "LiteAPI hotel rates are search quotes only; no prebook, booking, or payment was created",
+        "LiteAPI does not provide client-office commute time; commute_minutes=1440 marks this evidence as unknown"
+      ]
+    },
+    {
+      "city": "Harbin",
+      "verdict": "found",
+      "hotels": 9,
+      "warnings": [
+        "LiteAPI/Nuitee Connect Sandbox hotel rates; availability and prices are test data",
+        "LiteAPI hotel rates are search quotes only; no prebook, booking, or payment was created",
+        "LiteAPI does not provide client-office commute time; commute_minutes=1440 marks this evidence as unknown"
+      ]
+    },
+    {
+      "city": "Sanya",
+      "verdict": "found",
+      "hotels": 10,
+      "warnings": [
+        "LiteAPI/Nuitee Connect Sandbox hotel rates; availability and prices are test data",
+        "LiteAPI hotel rates are search quotes only; no prebook, booking, or payment was created",
+        "LiteAPI does not provide client-office commute time; commute_minutes=1440 marks this evidence as unknown"
+      ]
+    },
+    {
+      "city": "Dubai",
+      "verdict": "found",
+      "hotels": 9,
+      "warnings": [
+        "LiteAPI/Nuitee Connect Sandbox hotel rates; availability and prices are test data",
+        "LiteAPI hotel rates are search quotes only; no prebook, booking, or payment was created",
+        "LiteAPI does not provide client-office commute time; commute_minutes=1440 marks this evidence as unknown"
+      ]
+    },
+    {
+      "city": "Sydney",
+      "verdict": "found",
+      "hotels": 9,
+      "warnings": [
+        "LiteAPI/Nuitee Connect Sandbox hotel rates; availability and prices are test data",
+        "LiteAPI hotel rates are search quotes only; no prebook, booking, or payment was created",
+        "LiteAPI does not provide client-office commute time; commute_minutes=1440 marks this evidence as unknown"
+      ]
+    }
+  ],
+  "flights": [
+    {
+      "code": "CAN",
+      "accepted": true,
+      "offers": 35
+    },
+    {
+      "code": "SZX",
+      "accepted": true,
+      "offers": 50
+    },
+    {
+      "code": "CTU",
+      "accepted": true,
+      "offers": 50
+    },
+    {
+      "code": "HGH",
+      "accepted": true,
+      "offers": 49
+    },
+    {
+      "code": "NKG",
+      "accepted": true,
+      "offers": 21
+    },
+    {
+      "code": "SIA",
+      "accepted": true,
+      "offers": 50
+    },
+    {
+      "code": "CKG",
+      "accepted": true,
+      "offers": 50
+    },
+    {
+      "code": "WUH",
+      "accepted": true,
+      "offers": 24
+    },
+    {
+      "code": "TAO",
+      "accepted": true,
+      "offers": 31
+    },
+    {
+      "code": "XMN",
+      "accepted": true,
+      "offers": 47
+    },
+    {
+      "code": "TSN",
+      "accepted": true,
+      "offers": 1
+    },
+    {
+      "code": "CSX",
+      "accepted": true,
+      "offers": 38
+    },
+    {
+      "code": "CGO",
+      "accepted": true,
+      "offers": 26
+    },
+    {
+      "code": "KMG",
+      "accepted": true,
+      "offers": 46
+    },
+    {
+      "code": "DLC",
+      "accepted": true,
+      "offers": 31
+    },
+    {
+      "code": "SHE",
+      "accepted": true,
+      "offers": 26
+    },
+    {
+      "code": "HRB",
+      "accepted": true,
+      "offers": 34
+    },
+    {
+      "code": "SYX",
+      "accepted": true,
+      "offers": 32
+    },
+    {
+      "code": "DXB",
+      "accepted": true,
+      "offers": 42
+    },
+    {
+      "code": "SYD",
+      "accepted": true,
+      "offers": 43
+    }
+  ]
+}

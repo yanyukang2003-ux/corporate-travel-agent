@@ -1,0 +1,634 @@
+{
+  "measured_at": "2026-08-29T14:03:05.068181+00:00",
+  "billed_model_calls": 0,
+  "external_calls": 0,
+  "table_sizes": {
+    "config_cities_aliases": 107,
+    "config_cities_canonical": 21,
+    "hotel_city_caps": 10,
+    "duffel_aliases": 242,
+    "duffel_codes": 87,
+    "liteapi_aliases": 58,
+    "timezone_aliases": 185
+  },
+  "config_city_mismatch": [
+    {
+      "canonical": "Dubai",
+      "missing_from": [
+        "LiteAPI"
+      ]
+    },
+    {
+      "canonical": "Sydney",
+      "missing_from": [
+        "LiteAPI"
+      ]
+    }
+  ],
+  "groups": {
+    "repo_exercised": {
+      "total": 20,
+      "in_alias_table": 6,
+      "in_timezone_table": 7,
+      "in_duffel_table": 7,
+      "in_liteapi_table": 7,
+      "has_hotel_cap": 5,
+      "searchable": 7,
+      "fully_covered": 5,
+      "cases": [
+        {
+          "spoken": "北京",
+          "canonical": "Beijing",
+          "alias": true,
+          "timezone": true,
+          "duffel": true,
+          "liteapi": true,
+          "hotel_cap": false,
+          "searchable": true
+        },
+        {
+          "spoken": "上海",
+          "canonical": "Shanghai",
+          "alias": true,
+          "timezone": true,
+          "duffel": true,
+          "liteapi": true,
+          "hotel_cap": true,
+          "searchable": true
+        },
+        {
+          "spoken": "杭州",
+          "canonical": "杭州",
+          "alias": false,
+          "timezone": false,
+          "duffel": false,
+          "liteapi": false,
+          "hotel_cap": false,
+          "searchable": false
+        },
+        {
+          "spoken": "广州",
+          "canonical": "广州",
+          "alias": false,
+          "timezone": false,
+          "duffel": false,
+          "liteapi": false,
+          "hotel_cap": false,
+          "searchable": false
+        },
+        {
+          "spoken": "深圳",
+          "canonical": "深圳",
+          "alias": false,
+          "timezone": false,
+          "duffel": false,
+          "liteapi": false,
+          "hotel_cap": false,
+          "searchable": false
+        },
+        {
+          "spoken": "成都",
+          "canonical": "成都",
+          "alias": false,
+          "timezone": false,
+          "duffel": false,
+          "liteapi": false,
+          "hotel_cap": false,
+          "searchable": false
+        },
+        {
+          "spoken": "哈尔滨",
+          "canonical": "哈尔滨",
+          "alias": false,
+          "timezone": false,
+          "duffel": false,
+          "liteapi": false,
+          "hotel_cap": false,
+          "searchable": false
+        },
+        {
+          "spoken": "福州",
+          "canonical": "福州",
+          "alias": false,
+          "timezone": false,
+          "duffel": false,
+          "liteapi": false,
+          "hotel_cap": false,
+          "searchable": false
+        },
+        {
+          "spoken": "珠海",
+          "canonical": "珠海",
+          "alias": false,
+          "timezone": false,
+          "duffel": false,
+          "liteapi": false,
+          "hotel_cap": false,
+          "searchable": false
+        },
+        {
+          "spoken": "阿勒泰",
+          "canonical": "阿勒泰",
+          "alias": false,
+          "timezone": false,
+          "duffel": false,
+          "liteapi": false,
+          "hotel_cap": false,
+          "searchable": false
+        },
+        {
+          "spoken": "大阪",
+          "canonical": "大阪",
+          "alias": false,
+          "timezone": true,
+          "duffel": true,
+          "liteapi": true,
+          "hotel_cap": false,
+          "searchable": true
+        },
+        {
+          "spoken": "西安",
+          "canonical": "西安",
+          "alias": false,
+          "timezone": false,
+          "duffel": false,
+          "liteapi": false,
+          "hotel_cap": false,
+          "searchable": false
+        },
+        {
+          "spoken": "重庆",
+          "canonical": "重庆",
+          "alias": false,
+          "timezone": false,
+          "duffel": false,
+          "liteapi": false,
+          "hotel_cap": false,
+          "searchable": false
+        },
+        {
+          "spoken": "青岛",
+          "canonical": "青岛",
+          "alias": false,
+          "timezone": false,
+          "duffel": false,
+          "liteapi": false,
+          "hotel_cap": false,
+          "searchable": false
+        },
+        {
+          "spoken": "昆明",
+          "canonical": "昆明",
+          "alias": false,
+          "timezone": false,
+          "duffel": false,
+          "liteapi": false,
+          "hotel_cap": false,
+          "searchable": false
+        },
+        {
+          "spoken": "南京",
+          "canonical": "南京",
+          "alias": false,
+          "timezone": false,
+          "duffel": false,
+          "liteapi": false,
+          "hotel_cap": false,
+          "searchable": false
+        },
+        {
+          "spoken": "伦敦",
+          "canonical": "London",
+          "alias": true,
+          "timezone": true,
+          "duffel": true,
+          "liteapi": true,
+          "hotel_cap": true,
+          "searchable": true
+        },
+        {
+          "spoken": "纽约",
+          "canonical": "New York",
+          "alias": true,
+          "timezone": true,
+          "duffel": true,
+          "liteapi": true,
+          "hotel_cap": true,
+          "searchable": true
+        },
+        {
+          "spoken": "费城",
+          "canonical": "Philadelphia",
+          "alias": true,
+          "timezone": true,
+          "duffel": true,
+          "liteapi": true,
+          "hotel_cap": true,
+          "searchable": true
+        },
+        {
+          "spoken": "东京",
+          "canonical": "Tokyo",
+          "alias": true,
+          "timezone": true,
+          "duffel": true,
+          "liteapi": true,
+          "hotel_cap": true,
+          "searchable": true
+        }
+      ]
+    },
+    "named_air_markets": {
+      "total": 38,
+      "in_alias_table": 5,
+      "in_timezone_table": 10,
+      "in_duffel_table": 10,
+      "in_liteapi_table": 7,
+      "has_hotel_cap": 1,
+      "searchable": 7,
+      "fully_covered": 1,
+      "cases": [
+        {
+          "spoken": "北京",
+          "canonical": "Beijing",
+          "alias": true,
+          "timezone": true,
+          "duffel": true,
+          "liteapi": true,
+          "hotel_cap": false,
+          "searchable": true
+        },
+        {
+          "spoken": "上海",
+          "canonical": "Shanghai",
+          "alias": true,
+          "timezone": true,
+          "duffel": true,
+          "liteapi": true,
+          "hotel_cap": true,
+          "searchable": true
+        },
+        {
+          "spoken": "广州",
+          "canonical": "广州",
+          "alias": false,
+          "timezone": false,
+          "duffel": false,
+          "liteapi": false,
+          "hotel_cap": false,
+          "searchable": false
+        },
+        {
+          "spoken": "深圳",
+          "canonical": "深圳",
+          "alias": false,
+          "timezone": false,
+          "duffel": false,
+          "liteapi": false,
+          "hotel_cap": false,
+          "searchable": false
+        },
+        {
+          "spoken": "成都",
+          "canonical": "成都",
+          "alias": false,
+          "timezone": false,
+          "duffel": false,
+          "liteapi": false,
+          "hotel_cap": false,
+          "searchable": false
+        },
+        {
+          "spoken": "重庆",
+          "canonical": "重庆",
+          "alias": false,
+          "timezone": false,
+          "duffel": false,
+          "liteapi": false,
+          "hotel_cap": false,
+          "searchable": false
+        },
+        {
+          "spoken": "昆明",
+          "canonical": "昆明",
+          "alias": false,
+          "timezone": false,
+          "duffel": false,
+          "liteapi": false,
+          "hotel_cap": false,
+          "searchable": false
+        },
+        {
+          "spoken": "西安",
+          "canonical": "西安",
+          "alias": false,
+          "timezone": false,
+          "duffel": false,
+          "liteapi": false,
+          "hotel_cap": false,
+          "searchable": false
+        },
+        {
+          "spoken": "杭州",
+          "canonical": "杭州",
+          "alias": false,
+          "timezone": false,
+          "duffel": false,
+          "liteapi": false,
+          "hotel_cap": false,
+          "searchable": false
+        },
+        {
+          "spoken": "南京",
+          "canonical": "南京",
+          "alias": false,
+          "timezone": false,
+          "duffel": false,
+          "liteapi": false,
+          "hotel_cap": false,
+          "searchable": false
+        },
+        {
+          "spoken": "郑州",
+          "canonical": "郑州",
+          "alias": false,
+          "timezone": false,
+          "duffel": false,
+          "liteapi": false,
+          "hotel_cap": false,
+          "searchable": false
+        },
+        {
+          "spoken": "长沙",
+          "canonical": "长沙",
+          "alias": false,
+          "timezone": false,
+          "duffel": false,
+          "liteapi": false,
+          "hotel_cap": false,
+          "searchable": false
+        },
+        {
+          "spoken": "武汉",
+          "canonical": "武汉",
+          "alias": false,
+          "timezone": false,
+          "duffel": false,
+          "liteapi": false,
+          "hotel_cap": false,
+          "searchable": false
+        },
+        {
+          "spoken": "青岛",
+          "canonical": "青岛",
+          "alias": false,
+          "timezone": false,
+          "duffel": false,
+          "liteapi": false,
+          "hotel_cap": false,
+          "searchable": false
+        },
+        {
+          "spoken": "厦门",
+          "canonical": "厦门",
+          "alias": false,
+          "timezone": false,
+          "duffel": false,
+          "liteapi": false,
+          "hotel_cap": false,
+          "searchable": false
+        },
+        {
+          "spoken": "天津",
+          "canonical": "天津",
+          "alias": false,
+          "timezone": false,
+          "duffel": false,
+          "liteapi": false,
+          "hotel_cap": false,
+          "searchable": false
+        },
+        {
+          "spoken": "海口",
+          "canonical": "海口",
+          "alias": false,
+          "timezone": false,
+          "duffel": false,
+          "liteapi": false,
+          "hotel_cap": false,
+          "searchable": false
+        },
+        {
+          "spoken": "三亚",
+          "canonical": "三亚",
+          "alias": false,
+          "timezone": false,
+          "duffel": false,
+          "liteapi": false,
+          "hotel_cap": false,
+          "searchable": false
+        },
+        {
+          "spoken": "乌鲁木齐",
+          "canonical": "乌鲁木齐",
+          "alias": false,
+          "timezone": false,
+          "duffel": false,
+          "liteapi": false,
+          "hotel_cap": false,
+          "searchable": false
+        },
+        {
+          "spoken": "大连",
+          "canonical": "大连",
+          "alias": false,
+          "timezone": false,
+          "duffel": false,
+          "liteapi": false,
+          "hotel_cap": false,
+          "searchable": false
+        },
+        {
+          "spoken": "沈阳",
+          "canonical": "沈阳",
+          "alias": false,
+          "timezone": false,
+          "duffel": false,
+          "liteapi": false,
+          "hotel_cap": false,
+          "searchable": false
+        },
+        {
+          "spoken": "哈尔滨",
+          "canonical": "哈尔滨",
+          "alias": false,
+          "timezone": false,
+          "duffel": false,
+          "liteapi": false,
+          "hotel_cap": false,
+          "searchable": false
+        },
+        {
+          "spoken": "济南",
+          "canonical": "济南",
+          "alias": false,
+          "timezone": false,
+          "duffel": false,
+          "liteapi": false,
+          "hotel_cap": false,
+          "searchable": false
+        },
+        {
+          "spoken": "福州",
+          "canonical": "福州",
+          "alias": false,
+          "timezone": false,
+          "duffel": false,
+          "liteapi": false,
+          "hotel_cap": false,
+          "searchable": false
+        },
+        {
+          "spoken": "南宁",
+          "canonical": "南宁",
+          "alias": false,
+          "timezone": false,
+          "duffel": false,
+          "liteapi": false,
+          "hotel_cap": false,
+          "searchable": false
+        },
+        {
+          "spoken": "贵阳",
+          "canonical": "贵阳",
+          "alias": false,
+          "timezone": false,
+          "duffel": false,
+          "liteapi": false,
+          "hotel_cap": false,
+          "searchable": false
+        },
+        {
+          "spoken": "兰州",
+          "canonical": "兰州",
+          "alias": false,
+          "timezone": false,
+          "duffel": false,
+          "liteapi": false,
+          "hotel_cap": false,
+          "searchable": false
+        },
+        {
+          "spoken": "太原",
+          "canonical": "太原",
+          "alias": false,
+          "timezone": false,
+          "duffel": false,
+          "liteapi": false,
+          "hotel_cap": false,
+          "searchable": false
+        },
+        {
+          "spoken": "合肥",
+          "canonical": "合肥",
+          "alias": false,
+          "timezone": false,
+          "duffel": false,
+          "liteapi": false,
+          "hotel_cap": false,
+          "searchable": false
+        },
+        {
+          "spoken": "宁波",
+          "canonical": "宁波",
+          "alias": false,
+          "timezone": false,
+          "duffel": false,
+          "liteapi": false,
+          "hotel_cap": false,
+          "searchable": false
+        },
+        {
+          "spoken": "首尔",
+          "canonical": "首尔",
+          "alias": false,
+          "timezone": true,
+          "duffel": true,
+          "liteapi": true,
+          "hotel_cap": false,
+          "searchable": true
+        },
+        {
+          "spoken": "曼谷",
+          "canonical": "曼谷",
+          "alias": false,
+          "timezone": true,
+          "duffel": true,
+          "liteapi": true,
+          "hotel_cap": false,
+          "searchable": true
+        },
+        {
+          "spoken": "吉隆坡",
+          "canonical": "吉隆坡",
+          "alias": false,
+          "timezone": true,
+          "duffel": true,
+          "liteapi": false,
+          "hotel_cap": false,
+          "searchable": false
+        },
+        {
+          "spoken": "台北",
+          "canonical": "台北",
+          "alias": false,
+          "timezone": true,
+          "duffel": true,
+          "liteapi": true,
+          "hotel_cap": false,
+          "searchable": true
+        },
+        {
+          "spoken": "大阪",
+          "canonical": "大阪",
+          "alias": false,
+          "timezone": true,
+          "duffel": true,
+          "liteapi": true,
+          "hotel_cap": false,
+          "searchable": true
+        },
+        {
+          "spoken": "悉尼",
+          "canonical": "Sydney",
+          "alias": true,
+          "timezone": true,
+          "duffel": true,
+          "liteapi": false,
+          "hotel_cap": false,
+          "searchable": false
+        },
+        {
+          "spoken": "迪拜",
+          "canonical": "Dubai",
+          "alias": true,
+          "timezone": true,
+          "duffel": true,
+          "liteapi": false,
+          "hotel_cap": false,
+          "searchable": false
+        },
+        {
+          "spoken": "多伦多",
+          "canonical": "Toronto",
+          "alias": true,
+          "timezone": true,
+          "duffel": true,
+          "liteapi": true,
+          "hotel_cap": false,
+          "searchable": true
+        }
+      ]
+    }
+  }
+}

@@ -21,6 +21,7 @@ from corporate_travel_agent.domain.models import (
     LevelTravelRule,
     PolicySnapshot,
 )
+from corporate_travel_agent.services.city_registry import city_registry
 
 MAX_POLICY_CONFIG_BYTES = 1024 * 1024
 KNOWN_EXCEPTION_RULE_IDS = frozenset(
@@ -360,11 +361,17 @@ def _parse_policy_configuration(
         raise PolicyConfigurationError(f"Invalid policy configuration: {exc}") from exc
 
     cities = {city.code: city.canonical_name for city in config.cities}
-    city_aliases = {
-        alias: city.canonical_name
-        for city in config.cities
-        for alias in (*city.aliases, city.canonical_name, city.code)
-    }
+    # 别名先取城市登记表（`config/cities.json`，地理事实），再让这份政策配置覆盖它。
+    # **顺序是有意的**：登记表管"世界上有哪些城市、都叫什么"，政策配置管"这家公司
+    # 怎么称呼它们"——同名时以部署方的配置为准，但部署方不写也不会因此少认一座城市。
+    city_aliases = dict(city_registry().alias_map())
+    city_aliases.update(
+        {
+            alias: city.canonical_name
+            for city in config.cities
+            for alias in (*city.aliases, city.canonical_name, city.code)
+        }
+    )
     employees = tuple(
         EmployeeProfileSnapshot(
             snapshot_id=employee.snapshot_id,

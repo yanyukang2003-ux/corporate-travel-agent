@@ -33,6 +33,7 @@ from corporate_travel_agent.domain.models import (
 
 # 供既有测试与调用方继续从本模块导入
 __all__ = ("COMMUTE_UNKNOWN_MINUTES", "LiteAPIHotelProvider")
+from corporate_travel_agent.services.city_registry import city_registry
 from corporate_travel_agent.services.object_storage import (
     InMemoryRawResponseObjectStore,
     RawResponseObjectStore,
@@ -65,70 +66,11 @@ _IATA_CODE = re.compile(r"^[A-Z]{3}$")
 _ISO2_CODE = re.compile(r"^[A-Z]{2}$")
 _CURRENCY_CODE = re.compile(r"^[A-Z]{3}$")
 
-DEFAULT_LOCATIONS: dict[str, dict[str, str]] = {
-    # 大中华 / 东亚
-    "beijing": {"cityName": "Beijing", "countryCode": "CN"},
-    "北京": {"cityName": "Beijing", "countryCode": "CN"},
-    "shanghai": {"cityName": "Shanghai", "countryCode": "CN"},
-    "上海": {"cityName": "Shanghai", "countryCode": "CN"},
-    "hong kong": {"cityName": "Hong Kong", "countryCode": "HK"},
-    "香港": {"cityName": "Hong Kong", "countryCode": "HK"},
-    "taipei": {"cityName": "Taipei", "countryCode": "TW"},
-    "台北": {"cityName": "Taipei", "countryCode": "TW"},
-    "tokyo": {"cityName": "Tokyo", "countryCode": "JP"},
-    "东京": {"cityName": "Tokyo", "countryCode": "JP"},
-    "osaka": {"cityName": "Osaka", "countryCode": "JP"},
-    "大阪": {"cityName": "Osaka", "countryCode": "JP"},
-    "seoul": {"cityName": "Seoul", "countryCode": "KR"},
-    "首尔": {"cityName": "Seoul", "countryCode": "KR"},
-    "singapore": {"cityName": "Singapore", "countryCode": "SG"},
-    "新加坡": {"cityName": "Singapore", "countryCode": "SG"},
-    "bangkok": {"cityName": "Bangkok", "countryCode": "TH"},
-    "曼谷": {"cityName": "Bangkok", "countryCode": "TH"},
-    # 美国 / 加拿大
-    "new york": {"cityName": "New York", "countryCode": "US"},
-    "纽约": {"cityName": "New York", "countryCode": "US"},
-    "philadelphia": {"cityName": "Philadelphia", "countryCode": "US"},
-    "费城": {"cityName": "Philadelphia", "countryCode": "US"},
-    "los angeles": {"cityName": "Los Angeles", "countryCode": "US"},
-    "洛杉矶": {"cityName": "Los Angeles", "countryCode": "US"},
-    "san francisco": {"cityName": "San Francisco", "countryCode": "US"},
-    "旧金山": {"cityName": "San Francisco", "countryCode": "US"},
-    "chicago": {"cityName": "Chicago", "countryCode": "US"},
-    "芝加哥": {"cityName": "Chicago", "countryCode": "US"},
-    "boston": {"cityName": "Boston", "countryCode": "US"},
-    "波士顿": {"cityName": "Boston", "countryCode": "US"},
-    "washington": {"cityName": "Washington", "countryCode": "US"},
-    "华盛顿": {"cityName": "Washington", "countryCode": "US"},
-    "seattle": {"cityName": "Seattle", "countryCode": "US"},
-    "西雅图": {"cityName": "Seattle", "countryCode": "US"},
-    "miami": {"cityName": "Miami", "countryCode": "US"},
-    "迈阿密": {"cityName": "Miami", "countryCode": "US"},
-    "toronto": {"cityName": "Toronto", "countryCode": "CA"},
-    "多伦多": {"cityName": "Toronto", "countryCode": "CA"},
-    "vancouver": {"cityName": "Vancouver", "countryCode": "CA"},
-    "温哥华": {"cityName": "Vancouver", "countryCode": "CA"},
-    # 欧洲
-    "london": {"cityName": "London", "countryCode": "GB"},
-    "伦敦": {"cityName": "London", "countryCode": "GB"},
-    "paris": {"cityName": "Paris", "countryCode": "FR"},
-    "巴黎": {"cityName": "Paris", "countryCode": "FR"},
-    "frankfurt": {"cityName": "Frankfurt", "countryCode": "DE"},
-    "法兰克福": {"cityName": "Frankfurt", "countryCode": "DE"},
-    "amsterdam": {"cityName": "Amsterdam", "countryCode": "NL"},
-    "阿姆斯特丹": {"cityName": "Amsterdam", "countryCode": "NL"},
-    "madrid": {"cityName": "Madrid", "countryCode": "ES"},
-    "马德里": {"cityName": "Madrid", "countryCode": "ES"},
-    "rome": {"cityName": "Rome", "countryCode": "IT"},
-    "罗马": {"cityName": "Rome", "countryCode": "IT"},
-    "munich": {"cityName": "Munich", "countryCode": "DE"},
-    "慕尼黑": {"cityName": "Munich", "countryCode": "DE"},
-    # 机场码风格（仅精确复合别名）
-    "london lhr": {"iataCode": "LHR"},
-    "new york jfk": {"iataCode": "JFK"},
-    "los angeles lax": {"iataCode": "LAX"},
-    "san francisco sfo": {"iataCode": "SFO"},
-}
+#: 用户侧地名 → LiteAPI 定位。**由城市登记表派生**（`config/cities.json`）。
+#: 登记表里 `liteapi` 为 null 的城市**不会出现在这里**——那表示这家供应商那边
+#: 还没验证过这座城市。查不到时 `_location_fields` 会抛 ProviderError：
+#: 拿一条没验证过的定位去搜，搜不到还说不清为什么。
+DEFAULT_LOCATIONS: dict[str, dict[str, str]] = city_registry().liteapi_locations()
 
 
 @dataclass(frozen=True, slots=True)

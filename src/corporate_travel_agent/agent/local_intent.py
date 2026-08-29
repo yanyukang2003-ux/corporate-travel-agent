@@ -36,6 +36,9 @@ _WEEKDAY_INDEX = {
     "sunday": 6,
 }
 
+#: 光秃秃的三字母 IATA 码。扫描自由文本时它们只认大写——见 `_city_mentions`。
+_BARE_IATA = re.compile(r"[a-z]{3}", re.I)
+
 _ROUTE_CN = re.compile(
     r"从(?P<origin>.{1,20}?)(?:出发)?(?:去|到|至)(?P<destination>.{1,20}?)(?:见|开会|出差|，|。|$)"
 )
@@ -351,8 +354,22 @@ class GroundedLocalIntentParser:
             if not alias:
                 continue
             if any("a" <= char <= "z" for char in alias):
-                pattern = re.compile(rf"(?<![a-z]){re.escape(alias)}(?![a-z])", re.I)
-                for match in pattern.finditer(folded):
+                # 三字母 IATA 码**只认大写**。它们里有一半是常用英文词——can（广州）、
+                # was、sin、sea、den、las、san。不区分大小写地扫自由文本，
+                # "The CEO said I **can** use first class" 就会被读成"去广州"，
+                # 而且读错之后不报错，只是悄悄改了路线。
+                # 用户真要用机场码时写的是大写（"从 PEK 走"），这条不受影响。
+                if _BARE_IATA.fullmatch(alias):
+                    pattern = re.compile(
+                        rf"(?<![A-Za-z]){re.escape(alias.upper())}(?![A-Za-z])"
+                    )
+                    haystack = text
+                else:
+                    pattern = re.compile(
+                        rf"(?<![a-z]){re.escape(alias)}(?![a-z])", re.I
+                    )
+                    haystack = folded
+                for match in pattern.finditer(haystack):
                     start, end = match.start(), match.end()
                     if any(occupied[start:end]):
                         continue
