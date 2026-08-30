@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "mode": "llm_judge",
+  "generated_at": "2026-08-30T14:37:59.381622+00:00",
+  "run_directory": "reports/evaluation-runs/workflow-quality-20260830",
+  "rubric_id": "output-quality-v1",
+  "rubric_sha256": "9ed4721a38738ad4a6ad1141b47baf113b142297802410e462cf02547b310096",
+  "judge_id": "output-quality-judge-v1:deepseek-v4-pro",
+  "judge_prompt_version": "output-quality-judge-v1",
+  "judged_runs": 60,
+  "abstentions": 3,
+  "hard_rule_failed_runs": 0,
+  "mean_judge_quality_score": 4.566666666666666,
+  "calibration_status": "insufficient_samples",
+  "exact_agreement_rate": null,
+  "adjacent_agreement_rate": null,
+  "target_agreement": 0.9,
+  "human_double_rated": false,
+  "model_calls": 60,
+  "total_tokens": 116734,
+  "limitations": [
+    "The judge never overrides deterministic hard assertions.",
+    "Abstentions are excluded from the mean, never scored as 0.",
+    "A judge score is uncalibrated until calibration_status is 'passed'."
+  ]
+}

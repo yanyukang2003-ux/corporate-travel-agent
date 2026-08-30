@@ -1,0 +1,1037 @@
+{
+  "runner_version": "tool-loop-calendar-runner-v1",
+  "prompt_version": "tool-loop-v3",
+  "architecture": "tool-loop",
+  "generated_at": "2026-08-30T14:33:28.507861+00:00",
+  "model": "deepseek-v4-pro",
+  "repeats": 2,
+  "max_iterations": 12,
+  "cases_total": 8,
+  "cases_passed": 6,
+  "llm_calls": 35,
+  "input_tokens": 93292,
+  "output_tokens": 5031,
+  "estimated_cost_usd": 0.04495899,
+  "price_table_version": "model-prices-openai-20260802-v1",
+  "price_table_sha256": "dd2a754fb067cbb147677d6d75ac462f4f327480776696fadc8c6547cbdbbf46",
+  "results": [
+    {
+      "case_id": "H-01",
+      "title": "下下周三 = 下下个星期的星期三",
+      "message": "下下周三从北京去上海开会",
+      "reference_time": "2026-08-19T15:00:00+08:00",
+      "outcome_kind": "propose_options",
+      "question": null,
+      "summary": "下下周三（2026-09-02）北京→上海开会，需 10:00 前到达。两个直飞航班都合规、同价 950 USD：\n\n1. **前一晚出发**（9/1 21:44 起飞，23:59 到）——到得早、第二天从容，但要在上海过夜。\n2. **当天早班**（9/2 07:45 起飞，10:00 准点落地）——不用过夜，但落地即开会，几乎零缓冲，稍有延误就赶不上。\n\n我的建议：如果会议重要、不能迟到，选前一晚那班更稳妥；如果不想多住一晚，早班也能赶上但风险自担。",
+      "assumptions": [
+        "搜索窗口从 2026-09-01 16:00（Beijing 当地）起算，到达时限往前 18 小时，这样前一晚出发也能被搜到；因为你要求 09月02日 10:00 前到达"
+      ],
+      "transcript": [
+        {
+          "tool": "search_transport",
+          "arguments": {
+            "origin": "北京",
+            "destination": "上海",
+            "arrive_by": "2026-09-02T10:00:00+08:00",
+            "date_evidence": "下下周三从北京去上海开会"
+          },
+          "ok": true,
+          "result": {
+            "origin": "Beijing",
+            "destination": "Shanghai",
+            "depart_after": "2026-09-01T16:00:00+08:00",
+            "arrive_by": "2026-09-02T10:00:00+08:00",
+            "assumed": "搜索窗口从 2026-09-01 16:00（Beijing 当地）起算，到达时限往前 18 小时，这样前一晚出发也能被搜到；因为你要求 09月02日 10:00 前到达",
+            "snapshot_id": "mock-transport-76a032dfbf38",
+            "valid_until": "2026-08-19T15:15:00+08:00",
+            "options": [
+              {
+                "ref_id": "SYN-BESH-09012144",
+                "mode": "FLIGHT",
+                "depart_at": "2026-09-01T21:44:59.999999+08:00",
+                "arrive_at": "2026-09-01T23:59:59.999999+08:00",
+                "price": "950 USD",
+                "seat_class": "ECONOMY",
+                "is_direct": true,
+                "policy_outcome": "COMPLIANT",
+                "policy_violations": []
+              },
+              {
+                "ref_id": "SYN-BESH-09020745",
+                "mode": "FLIGHT",
+                "depart_at": "2026-09-02T07:45:00+08:00",
+                "arrive_at": "2026-09-02T10:00:00+08:00",
+                "price": "950 USD",
+                "seat_class": "ECONOMY",
+                "is_direct": true,
+                "policy_outcome": "COMPLIANT",
+                "policy_violations": []
+              }
+            ],
+            "option_count": 2,
+            "next_step": null
+          }
+        }
+      ],
+      "checks": [
+        {
+          "name": "departure_date_read_correctly",
+          "ok": true,
+          "detail": "expected 2026-09-02 among attempted searches, got ['2026-09-02']"
+        },
+        {
+          "name": "departure_date_searched",
+          "ok": true,
+          "detail": "expected 2026-09-02 among executed searches, got ['2026-09-02']"
+        }
+      ],
+      "passed": true,
+      "llm_calls": 2,
+      "input_tokens": 5372,
+      "output_tokens": 352,
+      "attempt": 1
+    },
+    {
+      "case_id": "H-02",
+      "title": "这周五还是下周五：不许自己挑一个",
+      "message": "这周五还是下周五从北京去上海",
+      "reference_time": "2026-08-19T15:00:00+08:00",
+      "outcome_kind": "ask_traveler",
+      "question": "这周五和下周五是两个不同的日期，我需要先确认您指的是哪一个。\n\n- 这周五 = 2026-08-21\n- 下周五 = 2026-08-28\n\n请问您指的是哪一个？",
+      "summary": null,
+      "assumptions": [],
+      "transcript": [],
+      "checks": [
+        {
+          "name": "no_search_on_unresolved_date",
+          "ok": true,
+          "detail": "[]"
+        },
+        {
+          "name": "clarifies",
+          "ok": true,
+          "detail": "ask_traveler"
+        },
+        {
+          "name": "question_mentions_ambiguity",
+          "ok": true,
+          "detail": "expected one of ('周五', '日期', '公历') in '这周五和下周五是两个不同的日期，我需要先确认您指的是哪一个。\\n\\n- 这周五 = 2026-08-21\\n- 下周五 = 2026-08-28\\n\\n请问您指的是哪一个？'"
+        }
+      ],
+      "passed": true,
+      "llm_calls": 1,
+      "input_tokens": 2423,
+      "output_tokens": 46,
+      "attempt": 1
+    },
+    {
+      "case_id": "H-03a",
+      "title": "8/5 在该日之前 = 今年 8 月 5 日",
+      "message": "8/5从北京去上海开会",
+      "reference_time": "2026-08-01T09:00:00+08:00",
+      "outcome_kind": "propose_options",
+      "question": null,
+      "summary": "8/5 北京→上海开会，按 10:00 前到达搜索，两个直飞航班均合规。前一晚 21:44 出发（8/4 23:59 到）更稳妥，当天 07:45 出发 10:00 落地几乎无缓冲，若会议准点开始建议选前一晚。",
+      "assumptions": [
+        "搜索窗口从 2026-08-04 16:00（Beijing 当地）起算，到达时限往前 18 小时，这样前一晚出发也能被搜到；因为你要求 08月05日 10:00 前到达"
+      ],
+      "transcript": [
+        {
+          "tool": "search_transport",
+          "arguments": {
+            "origin": "北京",
+            "destination": "上海",
+            "arrive_by": "2026-08-05T10:00:00+08:00",
+            "date_evidence": "8/5从北京去上海开会"
+          },
+          "ok": true,
+          "result": {
+            "origin": "Beijing",
+            "destination": "Shanghai",
+            "depart_after": "2026-08-04T16:00:00+08:00",
+            "arrive_by": "2026-08-05T10:00:00+08:00",
+            "assumed": "搜索窗口从 2026-08-04 16:00（Beijing 当地）起算，到达时限往前 18 小时，这样前一晚出发也能被搜到；因为你要求 08月05日 10:00 前到达",
+            "snapshot_id": "mock-transport-ef3e8aa91176",
+            "valid_until": "2026-08-01T09:15:00+08:00",
+            "options": [
+              {
+                "ref_id": "SYN-BESH-08042144",
+                "mode": "FLIGHT",
+                "depart_at": "2026-08-04T21:44:59.999999+08:00",
+                "arrive_at": "2026-08-04T23:59:59.999999+08:00",
+                "price": "950 USD",
+                "seat_class": "ECONOMY",
+                "is_direct": true,
+                "policy_outcome": "COMPLIANT",
+                "policy_violations": []
+              },
+              {
+                "ref_id": "SYN-BESH-08050745",
+                "mode": "FLIGHT",
+                "depart_at": "2026-08-05T07:45:00+08:00",
+                "arrive_at": "2026-08-05T10:00:00+08:00",
+                "price": "950 USD",
+                "seat_class": "ECONOMY",
+                "is_direct": true,
+                "policy_outcome": "COMPLIANT",
+                "policy_violations": []
+              }
+            ],
+            "option_count": 2,
+            "next_step": null
+          }
+        }
+      ],
+      "checks": [
+        {
+          "name": "departure_date_read_correctly",
+          "ok": true,
+          "detail": "expected 2026-08-05 among attempted searches, got ['2026-08-05']"
+        },
+        {
+          "name": "departure_date_searched",
+          "ok": true,
+          "detail": "expected 2026-08-05 among executed searches, got ['2026-08-05']"
+        }
+      ],
+      "passed": true,
+      "llm_calls": 2,
+      "input_tokens": 5373,
+      "output_tokens": 465,
+      "attempt": 1
+    },
+    {
+      "case_id": "H-03b",
+      "title": "8.5 在该日之前 = 今年 8 月 5 日",
+      "message": "8.5从北京去上海开会",
+      "reference_time": "2026-08-01T09:00:00+08:00",
+      "outcome_kind": "propose_options",
+      "question": null,
+      "summary": "8月5日北京→上海只搜到一班直飞航班：21:44 起飞、23:59 落地（经济舱，950 USD），符合政策。这是当天唯一可订的选项，且到达时间很晚——如果会议是当天上午或下午，这班会赶不上。建议确认会议具体时间：若需当天上午到，前一晚（8/4）出发的班次更合适，我可以再帮你搜。",
+      "assumptions": [
+        "搜索窗口从 2026-08-05 05:59（Beijing 当地）起算，到达时限往前 18 小时，这样前一晚出发也能被搜到；因为你要求 08月05日 23:59 前到达"
+      ],
+      "transcript": [
+        {
+          "tool": "search_transport",
+          "arguments": {
+            "origin": "北京",
+            "destination": "上海",
+            "arrive_by": "2026-08-05T23:59:00+08:00",
+            "date_evidence": "8.5从北京去上海开会"
+          },
+          "ok": true,
+          "result": {
+            "origin": "Beijing",
+            "destination": "Shanghai",
+            "depart_after": "2026-08-05T05:59:00+08:00",
+            "arrive_by": "2026-08-05T23:59:00+08:00",
+            "assumed": "搜索窗口从 2026-08-05 05:59（Beijing 当地）起算，到达时限往前 18 小时，这样前一晚出发也能被搜到；因为你要求 08月05日 23:59 前到达",
+            "snapshot_id": "mock-transport-53eac2dda0dd",
+            "valid_until": "2026-08-01T09:15:00+08:00",
+            "options": [
+              {
+                "ref_id": "SYN-BESH-08052144",
+                "mode": "FLIGHT",
+                "depart_at": "2026-08-05T21:44:00+08:00",
+                "arrive_at": "2026-08-05T23:59:00+08:00",
+                "price": "950 USD",
+                "seat_class": "ECONOMY",
+                "is_direct": true,
+                "policy_outcome": "COMPLIANT",
+                "policy_violations": []
+              }
+            ],
+            "option_count": 1,
+            "next_step": null
+          }
+        }
+      ],
+      "checks": [
+        {
+          "name": "departure_date_read_correctly",
+          "ok": true,
+          "detail": "expected 2026-08-05 among attempted searches, got ['2026-08-05']"
+        },
+        {
+          "name": "departure_date_searched",
+          "ok": true,
+          "detail": "expected 2026-08-05 among executed searches, got ['2026-08-05']"
+        }
+      ],
+      "passed": true,
+      "llm_calls": 2,
+      "input_tokens": 5260,
+      "output_tokens": 340,
+      "attempt": 1
+    },
+    {
+      "case_id": "H-03c",
+      "title": "2026.8.5 写了年份就按年份，哪怕已经过去",
+      "message": "2026.8.5从北京去上海开会",
+      "reference_time": "2026-08-19T15:00:00+08:00",
+      "outcome_kind": "ask_traveler",
+      "question": "您说的 8月5日 已经过去了（现在是 2026年8月19日）。请问您是想安排一个未来的日期去上海开会吗？如果是，请告诉我新的日期（比如 8月20日、下周三等），我马上帮您查。",
+      "summary": null,
+      "assumptions": [],
+      "transcript": [
+        {
+          "tool": "search_transport",
+          "arguments": {
+            "origin": "北京",
+            "destination": "上海",
+            "arrive_by": "2026-08-05T10:00:00+08:00",
+            "date_evidence": "2026.8.5从北京去上海开会"
+          },
+          "ok": false,
+          "result": {
+            "error": "到达时限 2026-08-05T10:00:00+08:00 已经过去了（现在是 2026-08-19T15:00:00+08:00）",
+            "field": "arrive_by"
+          }
+        }
+      ],
+      "checks": [
+        {
+          "name": "departure_date_read_correctly",
+          "ok": true,
+          "detail": "expected 2026-08-05 among attempted searches, got ['2026-08-05']"
+        },
+        {
+          "name": "departure_date_searched",
+          "ok": false,
+          "detail": "expected 2026-08-05 among executed searches, got []"
+        }
+      ],
+      "passed": false,
+      "llm_calls": 2,
+      "input_tokens": 5038,
+      "output_tokens": 178,
+      "attempt": 1
+    },
+    {
+      "case_id": "H-03d",
+      "title": "没写年份的 8/5 已经过去：问哪一年或报日期已过，绝不顺延到明年",
+      "message": "8/5从北京去上海开会",
+      "reference_time": "2026-08-19T15:00:00+08:00",
+      "outcome_kind": "ask_traveler",
+      "question": "8/5 已经过去了——现在是 2026-08-19，8月5日的会议日期已经过了。\n\n请问您是想安排**明年（2027年）8月5日**的行程，还是这个日期其实写错了（比如是别的日期）？",
+      "summary": null,
+      "assumptions": [],
+      "transcript": [
+        {
+          "tool": "search_transport",
+          "arguments": {
+            "origin": "北京",
+            "destination": "上海",
+            "arrive_by": "2026-08-05T10:00:00+08:00",
+            "date_evidence": "8/5从北京去上海开会"
+          },
+          "ok": false,
+          "result": {
+            "error": "到达时限 2026-08-05T10:00:00+08:00 已经过去了（现在是 2026-08-19T15:00:00+08:00）",
+            "field": "arrive_by"
+          }
+        }
+      ],
+      "checks": [
+        {
+          "name": "clarifies",
+          "ok": true,
+          "detail": "ask_traveler"
+        },
+        {
+          "name": "no_search",
+          "ok": true,
+          "detail": "[]"
+        },
+        {
+          "name": "no_year_rollforward",
+          "ok": true,
+          "detail": "[]"
+        },
+        {
+          "name": "question_mentions_ambiguity",
+          "ok": true,
+          "detail": "expected one of ('明年', '哪一年', '日期已过') in '8/5 已经过去了——现在是 2026-08-19，8月5日的会议日期已经过了。\\n\\n请问您是想安排**明年（2027年）8月5日**的行程，还是这个日期其实写错了（比如是别的日期）？'"
+        }
+      ],
+      "passed": true,
+      "llm_calls": 2,
+      "input_tokens": 5029,
+      "output_tokens": 175,
+      "attempt": 1
+    },
+    {
+      "case_id": "H-04",
+      "title": "春节不许编成某个公历日",
+      "message": "春节从北京去上海出差",
+      "reference_time": "2026-08-19T15:00:00+08:00",
+      "outcome_kind": "ask_traveler",
+      "question": "我来帮你查北京到上海的交通。不过你还没有说具体日期——春节是哪一天出发、需要哪天到上海呢？\n\n先确认一下：你说的\"春节\"是指哪一天？2026年春节是2月17日（除夕是2月16日）。你是想春节当天出发，还是春节前后？\n\n请告诉我具体的出发日期或需要到达上海的日期，我马上帮你查。",
+      "summary": null,
+      "assumptions": [],
+      "transcript": [],
+      "checks": [
+        {
+          "name": "no_search_on_unresolved_date",
+          "ok": true,
+          "detail": "[]"
+        },
+        {
+          "name": "clarifies",
+          "ok": true,
+          "detail": "ask_traveler"
+        },
+        {
+          "name": "cities_survive_a_clarification_round",
+          "ok": true,
+          "detail": "routes=[('北京', '上海')]"
+        }
+      ],
+      "follow_up": "就下个月10号出发吧，当天不回",
+      "follow_up_kind": "propose_options",
+      "follow_up_question": "下个月10号是 2026-09-10。查到了当天北京到上海的航班：\n\n**推荐选项**\n\n- **航班** SYN-BESH-09102144：9月10日 21:44 起飞 → 23:59 到达上海，直飞，经济舱，950 USD（符合差旅政策）\n\n这是当天唯一可订的直飞航班，到达时间较晚（接近午夜）。如果你希望早点到上海，我可以帮你查前一晚（9月9日）出发的航班或高铁。\n\n另外你提到\"当天不回\"，但还没说回程日期——需要我帮你查返程吗？如果需要，请告诉我大概哪天回北京。",
+      "follow_up_routes": [
+        "北京->上海"
+      ],
+      "follow_up_check": {
+        "name": "cities_survive_a_clarification_round",
+        "ok": true,
+        "detail": "routes=[('北京', '上海')]"
+      },
+      "passed": true,
+      "llm_calls": 4,
+      "input_tokens": 10688,
+      "output_tokens": 430,
+      "attempt": 1
+    },
+    {
+      "case_id": "H-05",
+      "title": "12月30日去、1月2日回：返程跨到下一年",
+      "message": "12月30日从北京去上海开会，1月2日回",
+      "reference_time": "2026-08-19T15:00:00+08:00",
+      "outcome_kind": "propose_options",
+      "question": null,
+      "summary": "北京⇄上海往返各找到一个直飞航班，均为经济舱、950 USD、合规。去程 12月30日 21:44 起飞、23:59 抵达上海（当天深夜到，适合次日开会）；回程 1月2日 21:44 起飞、23:59 抵达北京。两程都是当天最晚的直飞班次，若你希望更早出发或白天到达，我可以再按具体时间搜。",
+      "assumptions": [
+        "搜索窗口从 2026-12-30 05:59（Beijing 当地）起算，到达时限往前 18 小时，这样前一晚出发也能被搜到；因为你要求 12月30日 23:59 前到达",
+        "搜索窗口从 2027-01-02 05:59（Shanghai 当地）起算，到达时限往前 18 小时，这样前一晚出发也能被搜到；因为你要求 01月02日 23:59 前到达"
+      ],
+      "transcript": [
+        {
+          "tool": "search_transport",
+          "arguments": {
+            "origin": "北京",
+            "destination": "上海",
+            "arrive_by": "2026-12-30T23:59:00+08:00",
+            "date_evidence": "12月30日从北京去上海开会"
+          },
+          "ok": true,
+          "result": {
+            "origin": "Beijing",
+            "destination": "Shanghai",
+            "depart_after": "2026-12-30T05:59:00+08:00",
+            "arrive_by": "2026-12-30T23:59:00+08:00",
+            "assumed": "搜索窗口从 2026-12-30 05:59（Beijing 当地）起算，到达时限往前 18 小时，这样前一晚出发也能被搜到；因为你要求 12月30日 23:59 前到达",
+            "snapshot_id": "mock-transport-7b685da6fdca",
+            "valid_until": "2026-08-19T15:15:00+08:00",
+            "options": [
+              {
+                "ref_id": "SYN-BESH-12302144",
+                "mode": "FLIGHT",
+                "depart_at": "2026-12-30T21:44:00+08:00",
+                "arrive_at": "2026-12-30T23:59:00+08:00",
+                "price": "950 USD",
+                "seat_class": "ECONOMY",
+                "is_direct": true,
+                "policy_outcome": "COMPLIANT",
+                "policy_violations": []
+              }
+            ],
+            "option_count": 1,
+            "next_step": null
+          }
+        },
+        {
+          "tool": "search_transport",
+          "arguments": {
+            "origin": "上海",
+            "destination": "北京",
+            "arrive_by": "2026-01-02T23:59:00+08:00",
+            "date_evidence": "1月2日回"
+          },
+          "ok": false,
+          "result": {
+            "error": "到达时限 2026-01-02T23:59:00+08:00 已经过去了（现在是 2026-08-19T15:00:00+08:00）",
+            "field": "arrive_by"
+          }
+        },
+        {
+          "tool": "search_transport",
+          "arguments": {
+            "origin": "上海",
+            "destination": "北京",
+            "arrive_by": "2027-01-02T23:59:00+08:00",
+            "date_evidence": "1月2日回"
+          },
+          "ok": true,
+          "result": {
+            "origin": "Shanghai",
+            "destination": "Beijing",
+            "depart_after": "2027-01-02T05:59:00+08:00",
+            "arrive_by": "2027-01-02T23:59:00+08:00",
+            "assumed": "搜索窗口从 2027-01-02 05:59（Shanghai 当地）起算，到达时限往前 18 小时，这样前一晚出发也能被搜到；因为你要求 01月02日 23:59 前到达",
+            "snapshot_id": "mock-transport-5b3502e7e6f4",
+            "valid_until": "2026-08-19T15:15:00+08:00",
+            "options": [
+              {
+                "ref_id": "SYN-SHBE-01022144",
+                "mode": "FLIGHT",
+                "depart_at": "2027-01-02T21:44:00+08:00",
+                "arrive_at": "2027-01-02T23:59:00+08:00",
+                "price": "950 USD",
+                "seat_class": "ECONOMY",
+                "is_direct": true,
+                "policy_outcome": "COMPLIANT",
+                "policy_violations": []
+              }
+            ],
+            "option_count": 1,
+            "next_step": null
+          }
+        }
+      ],
+      "checks": [
+        {
+          "name": "departure_date_read_correctly",
+          "ok": true,
+          "detail": "expected 2026-12-30 among attempted searches, got ['2026-12-30', '2026-01-02', '2027-01-02']"
+        },
+        {
+          "name": "departure_date_searched",
+          "ok": true,
+          "detail": "expected 2026-12-30 among executed searches, got ['2026-12-30', '2027-01-02']"
+        },
+        {
+          "name": "return_date",
+          "ok": true,
+          "detail": "expected 2027-01-02 among searches, got ['2026-12-30', '2027-01-02']"
+        }
+      ],
+      "passed": true,
+      "llm_calls": 3,
+      "input_tokens": 8900,
+      "output_tokens": 515,
+      "attempt": 1
+    },
+    {
+      "case_id": "H-01",
+      "title": "下下周三 = 下下个星期的星期三",
+      "message": "下下周三从北京去上海开会",
+      "reference_time": "2026-08-19T15:00:00+08:00",
+      "outcome_kind": "propose_options",
+      "question": null,
+      "summary": "下下周三（2026-09-02）北京→上海开会，需 10:00 前到达。找到两个直飞航班，均合规、经济舱 950 USD：\n\n1. **前一晚出发**（9/1 21:44 起飞，23:59 到）——到得早、有充足休息，但需在上海过夜。\n2. **当天早班**（9/2 07:45 起飞，10:00 准点落地）——不用过夜，但落地即开会，几乎零缓冲，稍有延误就会迟到。\n\n我的建议：如果会议重要、不能迟到，选前一晚那班更稳妥；如果不想多住一晚，早班也能赶上，但要接受无缓冲的风险。",
+      "assumptions": [
+        "搜索窗口从 2026-09-01 16:00（Beijing 当地）起算，到达时限往前 18 小时，这样前一晚出发也能被搜到；因为你要求 09月02日 10:00 前到达"
+      ],
+      "transcript": [
+        {
+          "tool": "search_transport",
+          "arguments": {
+            "origin": "北京",
+            "destination": "上海",
+            "arrive_by": "2026-09-02T10:00:00+08:00",
+            "date_evidence": "下下周三从北京去上海开会"
+          },
+          "ok": true,
+          "result": {
+            "origin": "Beijing",
+            "destination": "Shanghai",
+            "depart_after": "2026-09-01T16:00:00+08:00",
+            "arrive_by": "2026-09-02T10:00:00+08:00",
+            "assumed": "搜索窗口从 2026-09-01 16:00（Beijing 当地）起算，到达时限往前 18 小时，这样前一晚出发也能被搜到；因为你要求 09月02日 10:00 前到达",
+            "snapshot_id": "mock-transport-76a032dfbf38",
+            "valid_until": "2026-08-19T15:15:00+08:00",
+            "options": [
+              {
+                "ref_id": "SYN-BESH-09012144",
+                "mode": "FLIGHT",
+                "depart_at": "2026-09-01T21:44:59.999999+08:00",
+                "arrive_at": "2026-09-01T23:59:59.999999+08:00",
+                "price": "950 USD",
+                "seat_class": "ECONOMY",
+                "is_direct": true,
+                "policy_outcome": "COMPLIANT",
+                "policy_violations": []
+              },
+              {
+                "ref_id": "SYN-BESH-09020745",
+                "mode": "FLIGHT",
+                "depart_at": "2026-09-02T07:45:00+08:00",
+                "arrive_at": "2026-09-02T10:00:00+08:00",
+                "price": "950 USD",
+                "seat_class": "ECONOMY",
+                "is_direct": true,
+                "policy_outcome": "COMPLIANT",
+                "policy_violations": []
+              }
+            ],
+            "option_count": 2,
+            "next_step": null
+          }
+        }
+      ],
+      "checks": [
+        {
+          "name": "departure_date_read_correctly",
+          "ok": true,
+          "detail": "expected 2026-09-02 among attempted searches, got ['2026-09-02']"
+        },
+        {
+          "name": "departure_date_searched",
+          "ok": true,
+          "detail": "expected 2026-09-02 among executed searches, got ['2026-09-02']"
+        }
+      ],
+      "passed": true,
+      "llm_calls": 2,
+      "input_tokens": 5372,
+      "output_tokens": 387,
+      "attempt": 2
+    },
+    {
+      "case_id": "H-02",
+      "title": "这周五还是下周五：不许自己挑一个",
+      "message": "这周五还是下周五从北京去上海",
+      "reference_time": "2026-08-19T15:00:00+08:00",
+      "outcome_kind": "ask_traveler",
+      "question": "这周五和下周五是两个不同的日期，我需要先确认一下。以今天 2026-08-19（周三）为基准：\n\n- **这周五** = 2026-08-21\n- **下周五** = 2026-08-28\n\n你说的\"这周五还是下周五\"——是想让我两个都查，还是你其实在问我该选哪个？如果是后者，我需要知道你去上海是做什么（开会？见客户？），以及有没有必须到达的时间点，才能帮你判断。\n\n请告诉我：**你倾向哪天出发，以及到上海有没有最晚到达时间？**",
+      "summary": null,
+      "assumptions": [],
+      "transcript": [],
+      "checks": [
+        {
+          "name": "no_search_on_unresolved_date",
+          "ok": true,
+          "detail": "[]"
+        },
+        {
+          "name": "clarifies",
+          "ok": true,
+          "detail": "ask_traveler"
+        },
+        {
+          "name": "question_mentions_ambiguity",
+          "ok": true,
+          "detail": "expected one of ('周五', '日期', '公历') in '这周五和下周五是两个不同的日期，我需要先确认一下。以今天 2026-08-19（周三）为基准：\\n\\n- **这周五** = 2026-08-21\\n- **下周五** = 2026-08-28\\n\\n你说的\"这周五还是下周五\"——是想让我两个都查，还是你其实在问我该选哪个？如果是后者，我需要知道你去上海是做什么（开会？见客户？），以及有没有必须到达的时间点，才能帮你判断。\\n\\n请告诉我：**你倾向哪天出发，以及到上海有没有最晚到达时间？**'"
+        }
+      ],
+      "passed": true,
+      "llm_calls": 1,
+      "input_tokens": 2423,
+      "output_tokens": 126,
+      "attempt": 2
+    },
+    {
+      "case_id": "H-03a",
+      "title": "8/5 在该日之前 = 今年 8 月 5 日",
+      "message": "8/5从北京去上海开会",
+      "reference_time": "2026-08-01T09:00:00+08:00",
+      "outcome_kind": "propose_options",
+      "question": null,
+      "summary": "8/5 上午 10 点前到上海开会，找到两个直飞航班，均合规：\n\n1. **前一晚出发**（SYN-BESH-08042144）：8/4 21:44 起飞，23:59 到上海，950 USD。好处是前一晚就到，8/5 早上从容不赶，但需要多住一晚。\n2. **当天早班机**（SYN-BESH-08050745）：8/5 07:45 起飞，10:00 整点落地，950 USD。省一晚住宿，但落地即开会，几乎没有缓冲——如果航班稍有延误就会迟到。\n\n我的建议：如果会议重要、不能迟到，选前一晚那班更稳妥；如果时间紧、想省一晚住宿，选早班机但要有延误风险的心理准备。",
+      "assumptions": [
+        "搜索窗口从 2026-08-04 16:00（Beijing 当地）起算，到达时限往前 18 小时，这样前一晚出发也能被搜到；因为你要求 08月05日 10:00 前到达"
+      ],
+      "transcript": [
+        {
+          "tool": "search_transport",
+          "arguments": {
+            "origin": "北京",
+            "destination": "上海",
+            "arrive_by": "2026-08-05T10:00:00+08:00",
+            "date_evidence": "8/5从北京去上海开会"
+          },
+          "ok": true,
+          "result": {
+            "origin": "Beijing",
+            "destination": "Shanghai",
+            "depart_after": "2026-08-04T16:00:00+08:00",
+            "arrive_by": "2026-08-05T10:00:00+08:00",
+            "assumed": "搜索窗口从 2026-08-04 16:00（Beijing 当地）起算，到达时限往前 18 小时，这样前一晚出发也能被搜到；因为你要求 08月05日 10:00 前到达",
+            "snapshot_id": "mock-transport-ef3e8aa91176",
+            "valid_until": "2026-08-01T09:15:00+08:00",
+            "options": [
+              {
+                "ref_id": "SYN-BESH-08042144",
+                "mode": "FLIGHT",
+                "depart_at": "2026-08-04T21:44:59.999999+08:00",
+                "arrive_at": "2026-08-04T23:59:59.999999+08:00",
+                "price": "950 USD",
+                "seat_class": "ECONOMY",
+                "is_direct": true,
+                "policy_outcome": "COMPLIANT",
+                "policy_violations": []
+              },
+              {
+                "ref_id": "SYN-BESH-08050745",
+                "mode": "FLIGHT",
+                "depart_at": "2026-08-05T07:45:00+08:00",
+                "arrive_at": "2026-08-05T10:00:00+08:00",
+                "price": "950 USD",
+                "seat_class": "ECONOMY",
+                "is_direct": true,
+                "policy_outcome": "COMPLIANT",
+                "policy_violations": []
+              }
+            ],
+            "option_count": 2,
+            "next_step": null
+          }
+        }
+      ],
+      "checks": [
+        {
+          "name": "departure_date_read_correctly",
+          "ok": true,
+          "detail": "expected 2026-08-05 among attempted searches, got ['2026-08-05']"
+        },
+        {
+          "name": "departure_date_searched",
+          "ok": true,
+          "detail": "expected 2026-08-05 among executed searches, got ['2026-08-05']"
+        }
+      ],
+      "passed": true,
+      "llm_calls": 2,
+      "input_tokens": 5373,
+      "output_tokens": 374,
+      "attempt": 2
+    },
+    {
+      "case_id": "H-03b",
+      "title": "8.5 在该日之前 = 今年 8 月 5 日",
+      "message": "8.5从北京去上海开会",
+      "reference_time": "2026-08-01T09:00:00+08:00",
+      "outcome_kind": "propose_options",
+      "question": null,
+      "summary": "8月5日北京→上海只搜到一班直飞航班：21:44 起飞、23:59 落地（经济舱，950 USD），符合政策。这是当天唯一可订的选项，且到达时间很晚——如果会议是当天上午或下午，这班会赶不上。若会议时间较早，建议改乘前一晚（8月4日）出发的班次或高铁，我可以再帮你查。",
+      "assumptions": [
+        "搜索窗口从 2026-08-05 05:59（Beijing 当地）起算，到达时限往前 18 小时，这样前一晚出发也能被搜到；因为你要求 08月05日 23:59 前到达"
+      ],
+      "transcript": [
+        {
+          "tool": "search_transport",
+          "arguments": {
+            "origin": "北京",
+            "destination": "上海",
+            "arrive_by": "2026-08-05T23:59:00+08:00",
+            "date_evidence": "8.5从北京去上海开会"
+          },
+          "ok": true,
+          "result": {
+            "origin": "Beijing",
+            "destination": "Shanghai",
+            "depart_after": "2026-08-05T05:59:00+08:00",
+            "arrive_by": "2026-08-05T23:59:00+08:00",
+            "assumed": "搜索窗口从 2026-08-05 05:59（Beijing 当地）起算，到达时限往前 18 小时，这样前一晚出发也能被搜到；因为你要求 08月05日 23:59 前到达",
+            "snapshot_id": "mock-transport-53eac2dda0dd",
+            "valid_until": "2026-08-01T09:15:00+08:00",
+            "options": [
+              {
+                "ref_id": "SYN-BESH-08052144",
+                "mode": "FLIGHT",
+                "depart_at": "2026-08-05T21:44:00+08:00",
+                "arrive_at": "2026-08-05T23:59:00+08:00",
+                "price": "950 USD",
+                "seat_class": "ECONOMY",
+                "is_direct": true,
+                "policy_outcome": "COMPLIANT",
+                "policy_violations": []
+              }
+            ],
+            "option_count": 1,
+            "next_step": null
+          }
+        }
+      ],
+      "checks": [
+        {
+          "name": "departure_date_read_correctly",
+          "ok": true,
+          "detail": "expected 2026-08-05 among attempted searches, got ['2026-08-05']"
+        },
+        {
+          "name": "departure_date_searched",
+          "ok": true,
+          "detail": "expected 2026-08-05 among executed searches, got ['2026-08-05']"
+        }
+      ],
+      "passed": true,
+      "llm_calls": 2,
+      "input_tokens": 5260,
+      "output_tokens": 340,
+      "attempt": 2
+    },
+    {
+      "case_id": "H-03c",
+      "title": "2026.8.5 写了年份就按年份，哪怕已经过去",
+      "message": "2026.8.5从北京去上海开会",
+      "reference_time": "2026-08-19T15:00:00+08:00",
+      "outcome_kind": "ask_traveler",
+      "question": "您说的 8月5日 已经过去了（现在是 2026年8月19日）。请问您是想安排一个未来的日期去上海开会吗？如果是，请告诉我新的日期（比如 8月20日、下周三等），我马上帮您查。",
+      "summary": null,
+      "assumptions": [],
+      "transcript": [
+        {
+          "tool": "search_transport",
+          "arguments": {
+            "origin": "北京",
+            "destination": "上海",
+            "arrive_by": "2026-08-05T10:00:00+08:00",
+            "date_evidence": "2026.8.5从北京去上海开会"
+          },
+          "ok": false,
+          "result": {
+            "error": "到达时限 2026-08-05T10:00:00+08:00 已经过去了（现在是 2026-08-19T15:00:00+08:00）",
+            "field": "arrive_by"
+          }
+        }
+      ],
+      "checks": [
+        {
+          "name": "departure_date_read_correctly",
+          "ok": true,
+          "detail": "expected 2026-08-05 among attempted searches, got ['2026-08-05']"
+        },
+        {
+          "name": "departure_date_searched",
+          "ok": false,
+          "detail": "expected 2026-08-05 among executed searches, got []"
+        }
+      ],
+      "passed": false,
+      "llm_calls": 2,
+      "input_tokens": 5038,
+      "output_tokens": 178,
+      "attempt": 2
+    },
+    {
+      "case_id": "H-03d",
+      "title": "没写年份的 8/5 已经过去：问哪一年或报日期已过，绝不顺延到明年",
+      "message": "8/5从北京去上海开会",
+      "reference_time": "2026-08-19T15:00:00+08:00",
+      "outcome_kind": "ask_traveler",
+      "question": "8/5 已经过去了——现在是 2026-08-19，8月5日的会议日期已经过了。\n\n请问您是想改期吗？如果是，请告诉我新的会议日期（以及是否需要当天上午到），我再帮您查北京到上海的交通。",
+      "summary": null,
+      "assumptions": [],
+      "transcript": [
+        {
+          "tool": "search_transport",
+          "arguments": {
+            "origin": "北京",
+            "destination": "上海",
+            "arrive_by": "2026-08-05T10:00:00+08:00",
+            "date_evidence": "8/5从北京去上海开会"
+          },
+          "ok": false,
+          "result": {
+            "error": "到达时限 2026-08-05T10:00:00+08:00 已经过去了（现在是 2026-08-19T15:00:00+08:00）",
+            "field": "arrive_by"
+          }
+        }
+      ],
+      "checks": [
+        {
+          "name": "clarifies",
+          "ok": true,
+          "detail": "ask_traveler"
+        },
+        {
+          "name": "no_search",
+          "ok": true,
+          "detail": "[]"
+        },
+        {
+          "name": "no_year_rollforward",
+          "ok": true,
+          "detail": "[]"
+        },
+        {
+          "name": "question_mentions_ambiguity",
+          "ok": false,
+          "detail": "expected one of ('明年', '哪一年', '日期已过') in '8/5 已经过去了——现在是 2026-08-19，8月5日的会议日期已经过了。\\n\\n请问您是想改期吗？如果是，请告诉我新的会议日期（以及是否需要当天上午到），我再帮您查北京到上海的交通。'"
+        }
+      ],
+      "passed": false,
+      "llm_calls": 2,
+      "input_tokens": 5029,
+      "output_tokens": 173,
+      "attempt": 2
+    },
+    {
+      "case_id": "H-04",
+      "title": "春节不许编成某个公历日",
+      "message": "春节从北京去上海出差",
+      "reference_time": "2026-08-19T15:00:00+08:00",
+      "outcome_kind": "ask_traveler",
+      "question": "春节期间的哪一天从北京出发去上海？请告诉我具体的出发日期（例如 2月15日、2月16日 等）。",
+      "summary": null,
+      "assumptions": [],
+      "transcript": [],
+      "checks": [
+        {
+          "name": "no_search_on_unresolved_date",
+          "ok": true,
+          "detail": "[]"
+        },
+        {
+          "name": "clarifies",
+          "ok": true,
+          "detail": "ask_traveler"
+        },
+        {
+          "name": "cities_survive_a_clarification_round",
+          "ok": true,
+          "detail": "routes=[('北京', '上海')]"
+        }
+      ],
+      "follow_up": "就下个月10号出发吧，当天不回",
+      "follow_up_kind": "propose_options",
+      "follow_up_question": null,
+      "follow_up_routes": [
+        "北京->上海"
+      ],
+      "follow_up_check": {
+        "name": "cities_survive_a_clarification_round",
+        "ok": true,
+        "detail": "routes=[('北京', '上海')]"
+      },
+      "passed": true,
+      "llm_calls": 3,
+      "input_tokens": 7814,
+      "output_tokens": 434,
+      "attempt": 2
+    },
+    {
+      "case_id": "H-05",
+      "title": "12月30日去、1月2日回：返程跨到下一年",
+      "message": "12月30日从北京去上海开会，1月2日回",
+      "reference_time": "2026-08-19T15:00:00+08:00",
+      "outcome_kind": "propose_options",
+      "question": null,
+      "summary": "北京⇄上海往返各找到一个直飞航班，均为经济舱、950 USD、合规。去程 12月30日 21:44 起飞、23:59 抵达上海（当天深夜到，适合次日开会）；回程 1月2日 21:44 起飞、23:59 抵达北京。两程都是当天最晚的直飞班次，若你希望更早出发或更早到达，我可以再按具体时间窗口重搜。",
+      "assumptions": [
+        "搜索窗口从 2026-12-30 05:59（Beijing 当地）起算，到达时限往前 18 小时，这样前一晚出发也能被搜到；因为你要求 12月30日 23:59 前到达",
+        "搜索窗口从 2027-01-02 05:59（Shanghai 当地）起算，到达时限往前 18 小时，这样前一晚出发也能被搜到；因为你要求 01月02日 23:59 前到达"
+      ],
+      "transcript": [
+        {
+          "tool": "search_transport",
+          "arguments": {
+            "origin": "北京",
+            "destination": "上海",
+            "arrive_by": "2026-12-30T23:59:00+08:00",
+            "date_evidence": "12月30日从北京去上海开会"
+          },
+          "ok": true,
+          "result": {
+            "origin": "Beijing",
+            "destination": "Shanghai",
+            "depart_after": "2026-12-30T05:59:00+08:00",
+            "arrive_by": "2026-12-30T23:59:00+08:00",
+            "assumed": "搜索窗口从 2026-12-30 05:59（Beijing 当地）起算，到达时限往前 18 小时，这样前一晚出发也能被搜到；因为你要求 12月30日 23:59 前到达",
+            "snapshot_id": "mock-transport-7b685da6fdca",
+            "valid_until": "2026-08-19T15:15:00+08:00",
+            "options": [
+              {
+                "ref_id": "SYN-BESH-12302144",
+                "mode": "FLIGHT",
+                "depart_at": "2026-12-30T21:44:00+08:00",
+                "arrive_at": "2026-12-30T23:59:00+08:00",
+                "price": "950 USD",
+                "seat_class": "ECONOMY",
+                "is_direct": true,
+                "policy_outcome": "COMPLIANT",
+                "policy_violations": []
+              }
+            ],
+            "option_count": 1,
+            "next_step": null
+          }
+        },
+        {
+          "tool": "search_transport",
+          "arguments": {
+            "origin": "上海",
+            "destination": "北京",
+            "arrive_by": "2026-01-02T23:59:00+08:00",
+            "date_evidence": "1月2日回"
+          },
+          "ok": false,
+          "result": {
+            "error": "到达时限 2026-01-02T23:59:00+08:00 已经过去了（现在是 2026-08-19T15:00:00+08:00）",
+            "field": "arrive_by"
+          }
+        },
+        {
+          "tool": "search_transport",
+          "arguments": {
+            "origin": "上海",
+            "destination": "北京",
+            "arrive_by": "2027-01-02T23:59:00+08:00",
+            "date_evidence": "1月2日回"
+          },
+          "ok": true,
+          "result": {
+            "origin": "Shanghai",
+            "destination": "Beijing",
+            "depart_after": "2027-01-02T05:59:00+08:00",
+            "arrive_by": "2027-01-02T23:59:00+08:00",
+            "assumed": "搜索窗口从 2027-01-02 05:59（Shanghai 当地）起算，到达时限往前 18 小时，这样前一晚出发也能被搜到；因为你要求 01月02日 23:59 前到达",
+            "snapshot_id": "mock-transport-5b3502e7e6f4",
+            "valid_until": "2026-08-19T15:15:00+08:00",
+            "options": [
+              {
+                "ref_id": "SYN-SHBE-01022144",
+                "mode": "FLIGHT",
+                "depart_at": "2027-01-02T21:44:00+08:00",
+                "arrive_at": "2027-01-02T23:59:00+08:00",
+                "price": "950 USD",
+                "seat_class": "ECONOMY",
+                "is_direct": true,
+                "policy_outcome": "COMPLIANT",
+                "policy_violations": []
+              }
+            ],
+            "option_count": 1,
+            "next_step": null
+          }
+        }
+      ],
+      "checks": [
+        {
+          "name": "departure_date_read_correctly",
+          "ok": true,
+          "detail": "expected 2026-12-30 among attempted searches, got ['2026-12-30', '2026-01-02', '2027-01-02']"
+        },
+        {
+          "name": "departure_date_searched",
+          "ok": true,
+          "detail": "expected 2026-12-30 among executed searches, got ['2026-12-30', '2027-01-02']"
+        },
+        {
+          "name": "return_date",
+          "ok": true,
+          "detail": "expected 2027-01-02 among searches, got ['2026-12-30', '2027-01-02']"
+        }
+      ],
+      "passed": true,
+      "llm_calls": 3,
+      "input_tokens": 8900,
+      "output_tokens": 518,
+      "attempt": 2
+    }
+  ]
+}

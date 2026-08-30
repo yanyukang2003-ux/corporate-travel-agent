@@ -1,0 +1,276 @@
+{
+  "schema_version": 1,
+  "evaluation_id": "eval-8792b8eb-62d7-4fb3-ab22-a0610361e2c2",
+  "protocol_id": "agent-eval-v1",
+  "generated_at": "2026-08-30T14:31:41.657014Z",
+  "run_ids": [
+    "run-4bcdce04-ba36-4c55-9dd6-dfb4cb411c5a",
+    "run-1c2e7c0c-e45a-44f7-b255-61d2cecfd9eb",
+    "run-b0229267-64b3-4375-a5c5-d5d66368abbb",
+    "run-6c0193b3-44b0-4289-a826-076dd490bb17",
+    "run-ba4dfe1b-aba1-492f-b2f9-a5b3f808d48c",
+    "run-96116d81-928d-4bae-9130-f142a4b4217f",
+    "run-b2e72467-72f5-4b91-afea-ab304ab31ab4",
+    "run-fd4f8420-8fa2-465d-b77a-bfc07b2978fd",
+    "run-d1ecb958-dcdd-4778-8c15-581c2e05a950",
+    "run-bdcc9cb2-37d4-4dff-afa5-34ebe6587d1b",
+    "run-2e970d15-fc61-4f04-8e71-275cc64c992a",
+    "run-bea7ec8f-70ea-42a8-931d-e1bce0063e54",
+    "run-6e54b2bf-feaa-4f94-a010-4ec0e9a832a2",
+    "run-bc86412b-a61c-46db-9185-8ae1651360b2",
+    "run-fa8ce2d2-b392-49aa-ad5c-92cf2e3e3e74",
+    "run-cc0eb437-ce05-4820-99d6-cd075a5f53b0",
+    "run-c924842a-c31b-4a05-af9e-c76e63cc9eca",
+    "run-d2f5470f-876d-4bfd-8603-23e56a54d4a7",
+    "run-cac3ddc9-a3fd-431f-ae3c-14d568bf343c",
+    "run-bc2de09b-ae87-4732-bc29-3b0775a0cf2b",
+    "run-8cbfcc26-8ae6-46f3-8c68-d20cea3f8442",
+    "run-55b6f620-9e8d-446e-b8df-2a3b1b4ac273",
+    "run-9356258c-f019-4c23-884c-20d92cd5351f",
+    "run-ab4d6053-d7ab-4e99-a07c-3441b34105bf",
+    "run-dc7a8be3-2ff7-493e-a9ef-0d95434957e5",
+    "run-4b5b22e4-7c0f-4d9c-9000-e127c2f6755d",
+    "run-1424bde9-219a-408f-83d0-602a9e900171",
+    "run-97c21c5d-cd0d-40b9-b531-0185f9e0e041",
+    "run-5519b2de-862f-48c6-9287-dfa0d4c29e8f",
+    "run-8190099d-065f-429b-a3bb-1363d1b7279b",
+    "run-6f199d35-49e3-4742-ac0f-03b70a70b994",
+    "run-380865a5-14fd-4174-82cc-6f610d769647",
+    "run-7847191a-0d9c-4b6b-9282-a63e28a1c453",
+    "run-3d18c511-cc56-4f2a-9e97-5ad98088700d",
+    "run-1395c08d-4b35-4d19-ab13-30511e54d8fa",
+    "run-905a927c-43da-48b0-80ed-2c6eb31712af",
+    "run-6c2cba3e-fb75-464f-a401-484fac6294c3",
+    "run-29883f58-31d8-4ef4-a652-65591c0852f6",
+    "run-034f247d-4f83-4c88-afe5-4da7bf45e5ca",
+    "run-072d75cb-ef12-454b-9cde-366c62cb0e65",
+    "run-f5cc728b-8d8f-4603-8a9e-b8e324da700c",
+    "run-086418b1-9fc1-4067-8028-c7888fda6d8f",
+    "run-a9dc8dc0-6220-495c-8bf5-bd5f3f02e6d3",
+    "run-61d679a4-16f7-4483-a7e2-827bc988b5de",
+    "run-0321fd0e-89cc-4896-b6ca-05dad8987437",
+    "run-422f86e5-5bd5-495f-8526-743f7a8aabb7",
+    "run-50b0d650-5a8d-4d17-8bef-0b96d7cdb2f0",
+    "run-79dbe19c-e9b7-4188-bab9-d7ad0dc8755e",
+    "run-24360fc2-85bb-4ed2-8f63-c1445e85a56e",
+    "run-68cc0634-52c8-44cc-8e55-129adc284ba2",
+    "run-3844d9e8-cfb8-4120-b4aa-2c22f9c36a7b",
+    "run-570c08c2-569b-4c9d-96a9-6173ec6b6ea5",
+    "run-01f9630a-57ec-4855-9c5d-0a6fe7b464a2",
+    "run-3cee8abb-0ac1-4629-afec-da0673363e23",
+    "run-345c838e-957c-4d3b-bb40-3ec8c91f596a",
+    "run-5a116ffb-1bf2-4a9e-9c80-085189267f2a",
+    "run-d893b028-951b-413a-b92d-9864be240158",
+    "run-5ae64272-0f27-4eaa-a619-2bf726eeab95",
+    "run-002801da-1adc-4f80-bb23-8ecafa21150a",
+    "run-f1565dd8-1af4-4a4c-be84-ff91469d26b8"
+  ],
+  "coverage": {
+    "dataset_id": "corporate-travel-derived-v2-workflow",
+    "dataset_version": "2",
+    "selected_cases": 60,
+    "completed_runs": 60,
+    "expected_runs": 60,
+    "slices": {
+      "COMPLIANT": {
+        "runs": 20,
+        "hard_passed": 20,
+        "rule_quality_passed": 20
+      },
+      "NO_FEASIBLE_OPTION": {
+        "runs": 8,
+        "hard_passed": 8,
+        "rule_quality_passed": 8
+      },
+      "PREFERENCE_CONFLICT": {
+        "runs": 10,
+        "hard_passed": 10,
+        "rule_quality_passed": 10
+      },
+      "PROVIDER_FAILURE": {
+        "runs": 6,
+        "hard_passed": 6,
+        "rule_quality_passed": 6
+      },
+      "REQUIRES_APPROVAL": {
+        "runs": 10,
+        "hard_passed": 10,
+        "rule_quality_passed": 10
+      },
+      "REVALIDATION_CHANGED": {
+        "runs": 6,
+        "hard_passed": 6,
+        "rule_quality_passed": 6
+      }
+    }
+  },
+  "metrics": {
+    "task_pass_rate": {
+      "status": "measured",
+      "value": 1.0,
+      "numerator": 60.0,
+      "denominator": 60.0,
+      "unit": "rate",
+      "exposure_note": null,
+      "confidence_note": "Deterministic D1 Mock evaluation."
+    },
+    "hard_assertion_pass_rate": {
+      "status": "measured",
+      "value": 1.0,
+      "numerator": 529.0,
+      "denominator": 529.0,
+      "unit": "rate",
+      "exposure_note": null,
+      "confidence_note": "Deterministic D1 Mock evaluation."
+    },
+    "rule_output_completeness_rate": {
+      "status": "measured",
+      "value": 1.0,
+      "numerator": 60.0,
+      "denominator": 60.0,
+      "unit": "rate",
+      "exposure_note": null,
+      "confidence_note": "Deterministic D1 Mock evaluation."
+    },
+    "rule_output_quality_mean": {
+      "status": "measured",
+      "value": 1.0,
+      "numerator": 60.0,
+      "denominator": 60.0,
+      "unit": "score_0_to_1",
+      "exposure_note": null,
+      "confidence_note": "Deterministic structural rubric; not an LLM Judge score."
+    },
+    "judge_quality_score": {
+      "status": "unavailable",
+      "value": null,
+      "numerator": null,
+      "denominator": null,
+      "unit": "score_1_to_5",
+      "exposure_note": "No Judge call was made for this run.",
+      "confidence_note": "Rubric output-quality-v1 is frozen; run the judge separately to populate this metric."
+    },
+    "stage_2_rule_gate": {
+      "status": "measured",
+      "value": 1.0,
+      "numerator": 1.0,
+      "denominator": 1.0,
+      "unit": "boolean",
+      "exposure_note": null,
+      "confidence_note": null
+    },
+    "task_pass_rate.scenario.COMPLIANT": {
+      "status": "measured",
+      "value": 1.0,
+      "numerator": 20.0,
+      "denominator": 20.0,
+      "unit": "rate",
+      "exposure_note": null,
+      "confidence_note": "Deterministic D1 Mock evaluation."
+    },
+    "rule_output_completeness_rate.scenario.COMPLIANT": {
+      "status": "measured",
+      "value": 1.0,
+      "numerator": 20.0,
+      "denominator": 20.0,
+      "unit": "rate",
+      "exposure_note": null,
+      "confidence_note": "Deterministic D1 Mock evaluation."
+    },
+    "task_pass_rate.scenario.NO_FEASIBLE_OPTION": {
+      "status": "measured",
+      "value": 1.0,
+      "numerator": 8.0,
+      "denominator": 8.0,
+      "unit": "rate",
+      "exposure_note": null,
+      "confidence_note": "Deterministic D1 Mock evaluation."
+    },
+    "rule_output_completeness_rate.scenario.NO_FEASIBLE_OPTION": {
+      "status": "measured",
+      "value": 1.0,
+      "numerator": 8.0,
+      "denominator": 8.0,
+      "unit": "rate",
+      "exposure_note": null,
+      "confidence_note": "Deterministic D1 Mock evaluation."
+    },
+    "task_pass_rate.scenario.PREFERENCE_CONFLICT": {
+      "status": "measured",
+      "value": 1.0,
+      "numerator": 10.0,
+      "denominator": 10.0,
+      "unit": "rate",
+      "exposure_note": null,
+      "confidence_note": "Deterministic D1 Mock evaluation."
+    },
+    "rule_output_completeness_rate.scenario.PREFERENCE_CONFLICT": {
+      "status": "measured",
+      "value": 1.0,
+      "numerator": 10.0,
+      "denominator": 10.0,
+      "unit": "rate",
+      "exposure_note": null,
+      "confidence_note": "Deterministic D1 Mock evaluation."
+    },
+    "task_pass_rate.scenario.PROVIDER_FAILURE": {
+      "status": "measured",
+      "value": 1.0,
+      "numerator": 6.0,
+      "denominator": 6.0,
+      "unit": "rate",
+      "exposure_note": null,
+      "confidence_note": "Deterministic D1 Mock evaluation."
+    },
+    "rule_output_completeness_rate.scenario.PROVIDER_FAILURE": {
+      "status": "measured",
+      "value": 1.0,
+      "numerator": 6.0,
+      "denominator": 6.0,
+      "unit": "rate",
+      "exposure_note": null,
+      "confidence_note": "Deterministic D1 Mock evaluation."
+    },
+    "task_pass_rate.scenario.REQUIRES_APPROVAL": {
+      "status": "measured",
+      "value": 1.0,
+      "numerator": 10.0,
+      "denominator": 10.0,
+      "unit": "rate",
+      "exposure_note": null,
+      "confidence_note": "Deterministic D1 Mock evaluation."
+    },
+    "rule_output_completeness_rate.scenario.REQUIRES_APPROVAL": {
+      "status": "measured",
+      "value": 1.0,
+      "numerator": 10.0,
+      "denominator": 10.0,
+      "unit": "rate",
+      "exposure_note": null,
+      "confidence_note": "Deterministic D1 Mock evaluation."
+    },
+    "task_pass_rate.scenario.REVALIDATION_CHANGED": {
+      "status": "measured",
+      "value": 1.0,
+      "numerator": 6.0,
+      "denominator": 6.0,
+      "unit": "rate",
+      "exposure_note": null,
+      "confidence_note": "Deterministic D1 Mock evaluation."
+    },
+    "rule_output_completeness_rate.scenario.REVALIDATION_CHANGED": {
+      "status": "measured",
+      "value": 1.0,
+      "numerator": 6.0,
+      "denominator": 6.0,
+      "unit": "rate",
+      "exposure_note": null,
+      "confidence_note": "Deterministic D1 Mock evaluation."
+    }
+  },
+  "judge": null,
+  "cost": null,
+  "gate_status": "not_evaluated",
+  "hard_failures": [],
+  "bad_case_candidates": []
+}
