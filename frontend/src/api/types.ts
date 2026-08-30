@@ -281,7 +281,7 @@ export interface ClarificationQuestion {
 /** 完整差旅任务详情（summary=false）。 */
 export interface TripTask {
   task_id: string
-  intent_entrypoint: 'structured' | 'legacy' | 'semantic'
+  intent_entrypoint: 'structured' | 'legacy' | 'semantic' | 'agentic'
   state: TaskState
   request_version: number | null
   booking_scope: BookingScope | null

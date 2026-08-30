@@ -37,7 +37,10 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from corporate_travel_agent.agent.openai_adapter import OpenAISemanticIntentLanguageModel
+from corporate_travel_agent.agent.openai_adapter import (
+    _SEMANTIC_PROMPT_VERSIONS,
+    OpenAISemanticIntentLanguageModel,
+)
 from corporate_travel_agent.demo import SHANGHAI_TZ, build_demo_system
 from corporate_travel_agent.domain.enums import TaskState
 from corporate_travel_agent.services.evaluation_performance import load_model_price_table
@@ -403,6 +406,12 @@ def main() -> None:
         default=None,
         help="只跑这几条（可重复）。改了某条用例后单独复跑，省钱",
     )
+    parser.add_argument(
+        "--prompt-variant",
+        default="v13d",
+        choices=("v13d", "lean-v1"),
+        help="语义提示词变体；lean-v1 是只留领域契约的对照组",
+    )
     parser.add_argument("--gate", action="store_true")
     args = parser.parse_args()
 
@@ -436,6 +445,7 @@ def main() -> None:
         return OpenAISemanticIntentLanguageModel(
             model=args.model,
             request_timeout_seconds=float(os.getenv("OPENAI_TIMEOUT_SECONDS", "90")),
+            prompt_variant=args.prompt_variant,
         )
 
     started = datetime.now(UTC).isoformat()
@@ -461,7 +471,7 @@ def main() -> None:
         "entrypoint": "semantic",
         "inventory": "mock",
         "model": args.model,
-        "semantic_prompt_version": OpenAISemanticIntentLanguageModel.semantic_prompt_version,
+        "semantic_prompt_version": _SEMANTIC_PROMPT_VERSIONS[args.prompt_variant],
         "repeats": args.repeats,
         "model_calls": len(all_usage),
         "price_table_version": price_table.price_table_version,

@@ -53,8 +53,10 @@ def build_demo_system(
     *,
     language_model: LanguageModelPort | None = None,
     semantic_language_model: SemanticLanguageModelPort | None = None,
+    tool_calling_language_model: object | None = None,
     clock: Callable[[], datetime] | None = None,
     max_tool_calls: int = 12,
+    agentic_tool_call_limit: int = 20,
     max_provider_attempts: int = MAX_PROVIDER_ATTEMPTS,
     max_llm_attempts: int = 2,
     retry_backoff_base_seconds: float = 0.5,
@@ -80,6 +82,16 @@ def build_demo_system(
     effective_clock = clock or (lambda: datetime.now(UTC))
     policy_configuration = policy_configuration or load_policy_configuration()
     transports = [
+        _transport(
+            "CA-EVE",
+            TransportMode.FLIGHT,
+            "Beijing",
+            "Shanghai",
+            datetime(2026, 8, 4, 19, 30, tzinfo=SHANGHAI_TZ),
+            datetime(2026, 8, 4, 21, 50, tzinfo=SHANGHAI_TZ),
+            "980",
+            "ECONOMY",
+        ),
         _transport(
             "MU-EARLY",
             TransportMode.FLIGHT,
@@ -183,6 +195,8 @@ def build_demo_system(
         provider=provider,
         language_model=language_model,
         semantic_language_model=semantic_language_model,
+        tool_calling_language_model=tool_calling_language_model,
+        agentic_tool_call_limit=agentic_tool_call_limit,
         clock=effective_clock,
         max_tool_calls=max_tool_calls,
         max_provider_attempts=max_provider_attempts,

@@ -152,7 +152,9 @@ def test_health_reports_disabled_booking_and_llm_configuration() -> None:
         "structured": "/trip-tasks",
         "legacy": "/legacy/trip-tasks",
         "semantic": "/semantic/trip-tasks",
+        "agentic": "/agentic/trip-tasks",
     }
+    assert response.json()["tool_calling_language_model"] in {"configured", "not_configured"}
 
 
 def test_structured_task_creation_remains_available_without_llm() -> None:

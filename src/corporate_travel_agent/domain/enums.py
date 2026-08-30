@@ -78,6 +78,8 @@ class IntentEntrypoint(StrEnum):
     STRUCTURED = "structured"
     LEGACY = "legacy"
     SEMANTIC = "semantic"
+    #: 工具循环：模型每轮挑一个带类型的工具，校验在工具签名上，没有全局必填表。
+    AGENTIC = "agentic"
 
 
 class SourceType(StrEnum):

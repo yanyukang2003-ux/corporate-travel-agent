@@ -148,6 +148,13 @@ export const api = {
       body: JSON.stringify({ message, traveler_id }),
     }),
 
+  /** 用工具循环入口创建自然语言任务：模型决定下一查，没有填表编译。 */
+  createAgenticNaturalLanguage: (message: string, traveler_id: string) =>
+    request<TripTask>('/agentic/trip-tasks', {
+      method: 'POST',
+      body: JSON.stringify({ message, traveler_id }),
+    }),
+
   /** 用结构化字段创建新的差旅任务。 */
   createStructured: (payload: StructuredTripCreate) =>
     request<TripTask>('/trip-tasks', {
@@ -165,6 +172,13 @@ export const api = {
   /** 仅向新语义任务追加消息。 */
   submitSemanticMessage: (taskId: string, message: string) =>
     request<TripTask>(`/semantic/trip-tasks/${taskId}/messages`, {
+      method: 'POST',
+      body: JSON.stringify({ message }),
+    }),
+
+  /** 仅向工具循环任务追加消息。 */
+  submitAgenticMessage: (taskId: string, message: string) =>
+    request<TripTask>(`/agentic/trip-tasks/${taskId}/messages`, {
       method: 'POST',
       body: JSON.stringify({ message }),
     }),

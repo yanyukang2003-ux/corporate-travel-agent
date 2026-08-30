@@ -22,6 +22,7 @@ import type {
   UserIdentity,
 } from './api/types'
 import { formatTravelDate, formatTravelTime, getStateMeta, parseIsoWallClock } from './utils/state'
+import { factsForOptionCard, openQuestionsFromTask } from './utils/notices'
 import {
   EXAMPLE_TRIP_MESSAGE,
   clarificationRetry,
@@ -266,7 +267,9 @@ function displayOptionFromApi(
     policy: isCompliant ? '全部合规' : needsApproval ? '需要审批' : option.policy_outcome === 'FORBIDDEN' ? '政策禁止' : '证据不足',
     policyTone: isCompliant ? 'ok' : 'warn',
     carbon: `${option.outbound.provider} 实时库存`,
-    facts: option.facts.length ? option.facts.slice(0, 3) : option.rule_evidence.slice(0, 3).map((rule) => rule.message),
+    facts: option.facts.length
+      ? factsForOptionCard(option.facts)
+      : option.rule_evidence.slice(0, 3).map((rule) => rule.message),
     live: true,
   }
 }
@@ -1179,11 +1182,21 @@ function PlanView({ onToast, composerEpoch }: { onToast: (text: string) => void;
       const isClarification = !composingNew
         && task
         && (task.state === 'NEEDS_CLARIFICATION' || task.state === 'NEEDS_STRUCTURED_INPUT')
-      const nextTask = isClarification
-        ? task.intent_entrypoint === 'legacy'
-          ? await api.submitLegacyMessage(task.task_id, message)
-          : await api.submitSemanticMessage(task.task_id, message)
-        : await api.createSemanticNaturalLanguage(message, user.employee_id ?? user.user_id)
+      const continueAgentic = !composingNew
+        && task
+        && task.intent_entrypoint === 'agentic'
+        && (
+          isClarification
+          || task.state === 'WAITING_FOR_USER'
+          || task.state === 'NO_FEASIBLE_OPTION'
+        )
+      const nextTask = continueAgentic
+        ? await api.submitAgenticMessage(task.task_id, message)
+        : isClarification
+          ? task.intent_entrypoint === 'legacy'
+            ? await api.submitLegacyMessage(task.task_id, message)
+            : await api.submitSemanticMessage(task.task_id, message)
+          : await api.createAgenticNaturalLanguage(message, user.employee_id ?? user.user_id)
       setInstruction(message)
       composingNewRef.current = false
       setComposingNew(false)
@@ -1323,6 +1336,9 @@ function PlanView({ onToast, composerEpoch }: { onToast: (text: string) => void;
               <div>
                 <b>API 返回 {displayOptions.length} 个可行方案</b>
                 <p>结果来自 <strong>{selectedApiOption?.outbound.provider}</strong> 库存，并已通过后端政策引擎评估。</p>
+                {openQuestionsFromTask(task).map((question) => (
+                  <p key={question} className="gap-notice">{question}</p>
+                ))}
                 {Array.isArray(task.intent_fields.soft_preferences) && task.intent_fields.soft_preferences.includes('hotel_near_client') && selectedApiOption?.hotel && (selectedApiOption.hotel.commute_known === false || selectedApiOption.hotel.commute_minutes >= 1440) && (
                   <p>你提到希望酒店靠近客户公司，但未提供客户地址。当前酒店是目的地城市报价，<strong>不能按通勤距离筛选</strong>。</p>
                 )}

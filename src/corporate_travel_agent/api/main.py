@@ -28,6 +28,7 @@ from corporate_travel_agent.agent.orchestrator import (
     WorkflowError,
 )
 from corporate_travel_agent.agent.ports import LanguageModelError
+from corporate_travel_agent.agent.tool_loop_adapter import OpenAIToolCallingLanguageModel
 from corporate_travel_agent.demo import build_demo_system
 from corporate_travel_agent.domain.constraints import HardConstraint, SoftPreference
 from corporate_travel_agent.domain.enums import BookingScope
@@ -132,6 +133,23 @@ def _configured_semantic_language_model() -> OpenAISemanticIntentLanguageModel |
         return OpenAISemanticIntentLanguageModel(
             model=os.getenv("OPENAI_MODEL", "gpt-5.6"),
             fallback_model=os.getenv("OPENAI_FALLBACK_MODEL") or None,
+            request_timeout_seconds=float(os.getenv("OPENAI_TIMEOUT_SECONDS", "60")),
+        )
+    except LanguageModelError:
+        return None
+
+
+def _configured_tool_calling_language_model() -> OpenAIToolCallingLanguageModel | None:
+    """装配工具循环入口的模型端口。
+
+    和上面两个用同一份凭证与模型名——差别不在模型，在于**要它做什么**：
+    这里每轮只让它挑一个工具，不让它一次交出整个结构体。
+    """
+    if not os.getenv("OPENAI_API_KEY"):
+        return None
+    try:
+        return OpenAIToolCallingLanguageModel(
+            model=os.getenv("OPENAI_MODEL", "gpt-5.6"),
             request_timeout_seconds=float(os.getenv("OPENAI_TIMEOUT_SECONDS", "60")),
         )
     except LanguageModelError:
@@ -266,6 +284,7 @@ configured_travel_provider = travel_provider_from_environment(
 workflow, _provider = build_demo_system(
     language_model=_configured_language_model(),
     semantic_language_model=_configured_semantic_language_model(),
+    tool_calling_language_model=_configured_tool_calling_language_model(),
     task_repository=task_repository,
     raw_response_store=raw_response_store,
     raw_response_retention_days=_configured_retention_days(),
@@ -402,10 +421,14 @@ def health() -> dict[str, Any]:
         "semantic_language_model": (
             "configured" if workflow.semantic_language_model else "not_configured"
         ),
+        "tool_calling_language_model": (
+            "configured" if workflow.tool_calling_language_model else "not_configured"
+        ),
         "intent_entrypoints": {
             "structured": "/trip-tasks",
             "legacy": "/legacy/trip-tasks",
             "semantic": "/semantic/trip-tasks",
+            "agentic": "/agentic/trip-tasks",
         },
         "language_model_status": (
             getattr(workflow, "llm_runtime_status", "unknown")
@@ -520,6 +543,24 @@ def create_semantic_trip(
     )
 
 
+@app.post("/agentic/trip-tasks")
+def create_agentic_trip(
+    payload: NaturalLanguageTripCreate,
+    identity: CurrentIdentity,
+) -> dict[str, Any]:
+    """用工具循环入口创建自然语言任务。
+
+    和 `/semantic` 并行存在，按 ADR-0002 的并行迁移方式：新入口另起一条，
+    旧的一个字不动，两条链路可以拿同一句话直接对照。
+    """
+    _require_can_create(identity, payload.traveler_id)
+    return _run(
+        lambda: workflow.create_task_from_agentic_message(
+            payload.message, traveler_id=payload.traveler_id
+        )
+    )
+
+
 @app.get("/trip-tasks")
 def list_trips(
     identity: CurrentIdentity,
@@ -594,6 +635,17 @@ def submit_semantic_message(
     """仅向新语义任务提交跟进消息。"""
     _require_can_operate(identity, _visible_task(task_id, identity))
     return _run(lambda: workflow.submit_semantic_message(task_id, payload.message))
+
+
+@app.post("/agentic/trip-tasks/{task_id}/messages")
+def submit_agentic_message(
+    task_id: str,
+    payload: MessageCreate,
+    identity: CurrentIdentity,
+) -> dict[str, Any]:
+    """仅向工具循环任务提交跟进消息。"""
+    _require_can_operate(identity, _visible_task(task_id, identity))
+    return _run(lambda: workflow.submit_agentic_message(task_id, payload.message))
 
 
 @app.post("/trip-tasks/{task_id}/structured-request")

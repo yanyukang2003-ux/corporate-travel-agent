@@ -216,6 +216,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px
 .assistant-mark { width: 31px; height: 31px; flex: 0 0 auto; display: grid; place-items: center; border-radius: 50%; color: #fff; background: var(--green); }
 .assistant-note b { display: block; margin-bottom: 3px; font-size: 12px; }
 .assistant-note p { margin: 0; color: #667771; font-size: 11px; line-height: 1.6; }
+.assistant-note p.gap-notice { margin-top: 6px; color: #6b4f2a; }
 .assistant-note p strong { color: #35584e; }
 .assistant-note button { margin-left: auto; padding-top: 2px; color: var(--green); font-size: 10px; white-space: nowrap; }
 .list-toolbar { display: flex; align-items: center; justify-content: space-between; padding: 14px 1px 9px; }

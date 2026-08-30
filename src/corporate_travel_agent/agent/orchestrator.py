@@ -34,12 +34,14 @@ from corporate_travel_agent.agent.ports import (
 )
 from corporate_travel_agent.domain.enums import (
     ApprovalStatus,
+    BookingScope,
     IntentEntrypoint,
     LodgingRequirement,
     PolicyOutcome,
     RevalidationStatus,
     TaskState,
     ToolCallStatus,
+    TripLegRole,
 )
 from corporate_travel_agent.domain.models import (
     ApprovalRequest,
@@ -50,7 +52,9 @@ from corporate_travel_agent.domain.models import (
     PolicySnapshot,
     ToolCallRecord,
     TransportOffer,
+    TripLeg,
     TripRequestVersion,
+    TripStay,
     TripTask,
 )
 from corporate_travel_agent.domain.validation import (
@@ -164,6 +168,15 @@ def _leg_phrase(request: TripRequestVersion, leg_index: int) -> str:
     return f"{spec.label} ({spec.origin} → {spec.destination})"
 
 
+def _empty_corridor_question(query: TransportSearchQuery) -> str:
+    """一段搜空时对旅行者说的话：不编火车票，也不把整趟行程停掉。"""
+    return (
+        f"{query.origin}→{query.destination} 这段没有可用机票。"
+        "短途通常更适合高铁；系统目前查不了火车票，这一段需要你自己安排，"
+        "或者告诉我换一个日期再搜。"
+    )
+
+
 class TripWorkflowOrchestrator:
     """有界 Agent 循环的确定性控制器（Orchestrator）。
 
@@ -180,6 +193,7 @@ class TripWorkflowOrchestrator:
         provider: TravelInventoryProvider,
         language_model: LanguageModelPort | None = None,
         semantic_language_model: SemanticLanguageModelPort | None = None,
+        tool_calling_language_model: Any | None = None,
         planner: ItineraryPlanner | None = None,
         state_machine: StateMachine | None = None,
         clock: Callable[[], datetime] | None = None,
@@ -195,6 +209,16 @@ class TripWorkflowOrchestrator:
         #: 要打开就把它设成 2。
         journey_fare_min_legs: int = 3,
         max_tool_calls: int = 12,
+        #: 工具循环入口的预算上限，**默认比另外两条高**。
+        #:
+        #: 这不是放松限制，是算术：循环一轮要花两次预算（选工具一次、执行工具
+        #: 一次），旧链路一个动作花一次。12 次只够循环走 6 轮，而三城行程至少要
+        #: 四次搜索加一次交付，一点余量都没有——实测多城在 12 下跑不完，20 下能
+        #: 收敛（`reports/evaluation-runs/toolloop-*`）。
+        #:
+        #: 另外两条入口保持 12 不动：它们有冻结的评测基线，改了预算旧数字就不能
+        #: 直接对比了。
+        agentic_tool_call_limit: int = 20,
         max_provider_attempts: int = MAX_PROVIDER_ATTEMPTS,
         max_llm_attempts: int = MAX_LLM_ATTEMPTS,
         retry_backoff_base_seconds: float = 0.5,
@@ -246,6 +270,9 @@ class TripWorkflowOrchestrator:
             self.intent_interpreter = ConversationIntentInterpreter(semantic_language_model)
         else:
             self.intent_interpreter = None
+        # 工具循环入口的模型端口。它和上面两个不同：不要求一次交出完整结构体，
+        # 每轮只决定下一步调哪个工具。没配就只是这条入口不可用，其余照常。
+        self.tool_calling_language_model = tool_calling_language_model
         self.fallback_model = getattr(language_model, "fallback_model", None)
         self.llm_runtime_status = "unknown"
         self.planner = planner or ItineraryPlanner()
@@ -257,6 +284,9 @@ class TripWorkflowOrchestrator:
             raise ValueError("journey_fare_min_legs must be at least 2")
         self.journey_fare_min_legs = journey_fare_min_legs
         self.max_tool_calls = max_tool_calls
+        if agentic_tool_call_limit < 1:
+            raise ValueError("agentic_tool_call_limit must be at least 1")
+        self.agentic_tool_call_limit = agentic_tool_call_limit
         self.max_provider_attempts = max_provider_attempts
         self.max_llm_attempts = max_llm_attempts
         self.retry_backoff_base_seconds = retry_backoff_base_seconds
@@ -550,6 +580,470 @@ class TripWorkflowOrchestrator:
         self._transition(task, TaskState.DRAFT)
         task.messages.append(ConversationMessage(role="user", content=message))
         return self._interpret_and_continue_semantically(task)
+
+    # ------------------------------------------------------------------
+    # 工具循环入口（ADR-0002 的并行迁移方式：新入口另起一条，旧的一个字不动）
+    # ------------------------------------------------------------------
+
+    def create_task_from_agentic_message(
+        self,
+        message: str,
+        *,
+        traveler_id: str,
+        task_id: str | None = None,
+    ) -> TripTask:
+        """用工具循环入口创建任务。
+
+        和语义入口的差别只有一条，但那一条是结构性的：**没有全局必填表。**
+        模型每轮挑一个带类型的工具，够不够往下走由那个工具自己的签名决定。
+        """
+        message = self._validate_message(message)
+        if self.tool_calling_language_model is None:
+            raise LanguageModelUnavailable("No tool-calling language model adapter is configured")
+        employee = self.employees.snapshot(traveler_id)
+        policy = self.policies.current()
+        task = TripTask(
+            task_id=task_id or str(uuid4()),
+            state=TaskState.DRAFT,
+            request=None,
+            employee=employee,
+            policy_snapshot_id=policy.snapshot_id,
+            intent_fields=self._empty_intent_fields(),
+            messages=[ConversationMessage(role="user", content=message)],
+            tool_call_limit=self.agentic_tool_call_limit,
+            metadata={
+                "policy_content_hash": policy.content_hash,
+                "intent_entrypoint": IntentEntrypoint.AGENTIC.value,
+            },
+        )
+        self.tasks.add(task)
+        self._audit(
+            task,
+            "AGENTIC_TASK_CREATED_FROM_MESSAGE",
+            message,
+            {"state": task.state.value},
+        )
+        return self._run_tool_loop(task)
+
+    def submit_agentic_message(self, task_id: str, message: str) -> TripTask:
+        """向工具循环任务追加消息；整段对话重跑一次循环。
+
+        不做"补一格字段"那种增量修补——旧链路那样做会把上一轮的错误一起带下来。
+        """
+        message = self._validate_message(message)
+        task = self.tasks.get(task_id)
+        self._require_intent_entrypoint(task, IntentEntrypoint.AGENTIC)
+        if self.tool_calling_language_model is None:
+            raise LanguageModelUnavailable("No tool-calling language model adapter is configured")
+        allowed = {
+            TaskState.NEEDS_CLARIFICATION,
+            TaskState.NEEDS_STRUCTURED_INPUT,
+            TaskState.WAITING_FOR_USER,
+            TaskState.NO_FEASIBLE_OPTION,
+            TaskState.PROVIDER_FAILED,
+            TaskState.WAITING_FOR_PROVIDER,
+            TaskState.OUT_OF_SCOPE,
+        }
+        if task.state not in allowed:
+            raise WorkflowError(f"Cannot submit agentic message in {task.state.value}")
+        prior_state = task.state
+        task.failure = None
+        task.clarification_question = None
+        if prior_state is TaskState.NEEDS_CLARIFICATION:
+            self._audit(task, "AGENTIC_CLARIFICATION_RECEIVED", message, task.clarification_rounds)
+        else:
+            task.metadata.pop(PROVIDER_RETRY_METADATA_KEY, None)
+            self._audit(
+                task,
+                "AGENTIC_REVISION_RECEIVED",
+                message,
+                {"from_state": prior_state.value},
+            )
+        self._transition(task, TaskState.DRAFT)
+        task.messages.append(ConversationMessage(role="user", content=message))
+        return self._run_tool_loop(task)
+
+    def _run_tool_loop(self, task: TripTask) -> TripTask:
+        """跑一轮有界工具循环，把它的终局动作落成任务状态。
+
+        循环里的**每一次**调用（含每轮选工具的模型调用）都走 `_invoke_tool`：
+        工具预算、审计轨迹、有界重试、并发闸和其余两条入口共用同一套，不另起炉灶。
+        """
+        from corporate_travel_agent.agent.semantic_intent import ConversationLedger
+        from corporate_travel_agent.agent.tool_loop import (
+            ToolExecutor,
+            ToolLoopAborted,
+            ToolLoopRunner,
+        )
+
+        policy = self._policy_for(task)
+        ledger = ConversationLedger.from_messages(task.messages)
+        executor = ToolExecutor(
+            provider=self.provider,
+            # 和规划器**同一个**政策引擎实例：政策结论只有一个来源。
+            policy_engine=self.planner.policy_engine,
+            employee=task.employee,
+            policy=policy,
+            city_normalizer=self.city_normalizer,
+            now=self.clock(),
+            fallback_timezone=self.timezone_name,
+            # 每一段的日期都要能在这段原文里逐字找到出处，编的对不上。
+            conversation=ledger.render(),
+        )
+        runner = ToolLoopRunner(
+            model=self.tool_calling_language_model,
+            executor=executor,
+            # 一轮最多花 2 次预算（选工具 1 次 + 执行工具 1 次），所以轮数上限要按
+            # 剩余预算的一半算。此前直接用 max_tool_calls，循环永远是被预算掐断的，
+            # "最后一轮只给终局工具"那道保险根本轮不到生效。
+            max_iterations=max(1, task.tool_calls_remaining // 2),
+            invoke=lambda *, tool_name, tool_kind, operation: self._invoke_tool(
+                task,
+                tool_name=tool_name,
+                tool_kind=tool_kind,
+                input_value={"task_id": task.task_id, "turns": len(ledger.turns)},
+                operation=operation,
+            ),
+        )
+        context = {
+            "reference_time": self.clock().isoformat(),
+            "timezone": self.timezone_name,
+            "clarification_round": task.clarification_rounds,
+            "max_clarification_rounds": self.max_clarification_rounds,
+        }
+        # 循环期间**留在 DRAFT**。它把"理解"和"搜索"交织在一起做，现有状态机里
+        # 没有一个格子正好对应这件事；进 SEARCHING 会让"最后决定提问"变成非法迁移。
+        # 状态标签在这里比循环实际做的事粗——真实经过在 tool_calls 和审计里。
+        try:
+            outcome = runner.run(ledger.render(), context=context)
+        except ToolBudgetExceeded:
+            # 预算耗尽时**把已经查到的事实带出来**。真模型实测会在一条没货的航线上
+            # 反复搜到预算见底；只回一句"预算用完了"，用户根本不知道发生过什么。
+            #
+            # 状态仍然是 TOOL_BUDGET_EXHAUSTED——预算确实用光了，这是运维要看见的
+            # 事实，不该被包装成"没有方案"。但话要说清楚。
+            findings = self._loop_findings(executor)
+            task.metadata["agentic_partial_findings"] = findings
+            task = self._stop_for_tool_budget(task, "agentic.tool_loop")
+            empty = [
+                f"{item['origin']}→{item['destination']}"
+                for item in findings["searched_legs"]
+                if item["option_count"] == 0
+            ]
+            if empty:
+                task.failure = (
+                    f"{task.failure}。已经查明：{'、'.join(dict.fromkeys(empty))} "
+                    "在试过的时间窗里都没有库存。"
+                )
+            return task
+        except ToolLoopAborted as exc:
+            # 循环没收敛不是"没方案"，是这条链路没走完——别把它伪装成结论。
+            task.metadata["agentic_partial_findings"] = self._loop_findings(executor)
+            task.metadata["agentic_transcript"] = [
+                {
+                    "tool": exchange.invocation.name,
+                    "arguments": dict(exchange.invocation.arguments),
+                    "ok": exchange.ok,
+                    "error": None if exchange.ok else str(exchange.result.get("error", ""))[:300],
+                }
+                for exchange in exc.transcript
+            ]
+            task.failure = str(exc)
+            task.clarification_question = None
+            self._transition(task, TaskState.NEEDS_STRUCTURED_INPUT)
+            self._audit(task, "AGENTIC_LOOP_ABORTED", {"turns": len(ledger.turns)}, task.failure)
+            return task
+        except LanguageModelError as exc:
+            task.failure = str(exc)
+            task.metadata["agentic_loop_failure"] = exc.trace_details()
+            task.clarification_question = None
+            self._transition(task, TaskState.NEEDS_STRUCTURED_INPUT)
+            self._audit(
+                task,
+                "AGENTIC_LOOP_FAILED",
+                {"turns": len(ledger.turns)},
+                task.metadata["agentic_loop_failure"],
+            )
+            return task
+        except ProviderError as exc:
+            task.failure = str(exc)
+            task.options = []
+            # 先记 SEARCHING 再记失败：库存确实去要过了，状态机也只从这里通往 PROVIDER_FAILED。
+            self._transition(task, TaskState.SEARCHING)
+            self._transition(task, TaskState.PROVIDER_FAILED)
+            self._audit(task, "AGENTIC_PROVIDER_FAILED", {"turns": len(ledger.turns)}, task.failure)
+            return task
+
+        self._note_llm_success()
+        # 宿主替旅行者定下来的事必须当面说出口。循环里唯一这样的推导就是
+        # "只说了几点前到，搜索窗口从时限往前扩，覆盖前一晚出发"。
+        task.assumptions = tuple(dict.fromkeys(executor.assumptions))
+        task.metadata["agentic_transcript"] = [
+            {
+                "tool": exchange.invocation.name,
+                "arguments": dict(exchange.invocation.arguments),
+                "ok": exchange.ok,
+            }
+            for exchange in outcome.transcript
+        ]
+        if outcome.kind == "ask_traveler":
+            return self._pause_for_agentic_question(task, outcome.question)
+        return self._plan_from_tool_loop(task, executor, outcome, policy)
+
+    @staticmethod
+    def _loop_findings(executor: Any) -> dict[str, Any]:
+        """循环没走完时，把它已经查到的事实留下来，别让证据跟着失败一起消失。"""
+        return {
+            "searched_legs": [
+                {
+                    "origin": query.origin,
+                    "destination": query.destination,
+                    "depart_after": query.depart_after.isoformat(),
+                    "arrive_before": (
+                        query.arrive_before.isoformat() if query.arrive_before else None
+                    ),
+                    "option_count": len(snapshot.items),
+                }
+                for query, snapshot in executor.leg_searches
+            ],
+            "searched_stays": [
+                {
+                    "city": query.city,
+                    "check_in": query.check_in.isoformat(),
+                    "check_out": query.check_out.isoformat(),
+                    "option_count": len(snapshot.items),
+                }
+                for query, snapshot in executor.stay_searches
+            ],
+            "assumptions": list(dict.fromkeys(executor.assumptions)),
+        }
+
+    def _pause_for_agentic_question(self, task: TripTask, question: str | None) -> TripTask:
+        """模型主动调用 `ask_traveler` 收的场。
+
+        **和旧链路的追问不是同一种东西。** 旧的是编译失败之后按字段名查表拼出来的；
+        这里提问是一个模型可以主动选的动作，所以它能引用已经搜到的真实选项。
+        """
+        task.request = None
+        task.options = []
+        task.selected_option_id = None
+        task.booking_intent = None
+        task.approval = None
+        task.missing_required_fields = ()
+        task.intent_conflicts = ()
+        task.failure = None
+        task.clarification_rounds += 1
+        if task.clarification_rounds > self.max_clarification_rounds:
+            task.clarification_question = None
+            task.failure = (
+                "Agentic clarification limit reached; use the structured form"
+            )
+            self._transition(task, TaskState.NEEDS_STRUCTURED_INPUT)
+            self._audit(task, "AGENTIC_CLARIFICATION_EXHAUSTED", None, task.failure)
+            return task
+        task.clarification_question = question or "请确认我对这次出行的理解。"
+        task.messages.append(
+            ConversationMessage(role="assistant", content=task.clarification_question)
+        )
+        self._transition(task, TaskState.NEEDS_CLARIFICATION)
+        self._audit(task, "AGENTIC_CLARIFICATION_REQUESTED", None, task.clarification_question)
+        return task
+
+    def _plan_from_tool_loop(
+        self,
+        task: TripTask,
+        executor: Any,
+        outcome: Any,
+        policy: PolicySnapshot,
+    ) -> TripTask:
+        """把循环真实搜到的库存交给现成的规划器，**不再搜一遍**。
+
+        这里构造的 `TripRequestVersion` 是**事后记录**，不是事前关卡：模型已经决定
+        并且已经搜过了，这个结构体只是把"它实际做了什么"写下来，好让规划器、政策
+        引擎和后续的预订/审批链路照常工作。旧链路那张表的问题从来不是"存在一个结构
+        体"，而是"填不满就不许往下走"。
+        """
+        settled, empty_queries = self._settled_leg_searches(executor)
+        if not settled:
+            task.failure = "the tool loop proposed options without searching any transport leg"
+            self._transition(task, TaskState.NEEDS_STRUCTURED_INPUT)
+            self._audit(task, "AGENTIC_PROPOSAL_WITHOUT_SEARCH", None, task.failure)
+            return task
+
+        leg_snapshots = [snapshot for _, snapshot in settled]
+        hotel_snapshots = [snapshot for _, snapshot in executor.stay_searches]
+        self._transition(task, TaskState.SEARCHING)
+        invalid = self._invalid_snapshot_ids([*leg_snapshots, *hotel_snapshots])
+        if invalid:
+            task.failure = "provider returned expired or invalid inventory snapshots: " + ", ".join(
+                invalid
+            )
+            self._transition(task, TaskState.PROVIDER_FAILED)
+            self._audit(task, "INVENTORY_SNAPSHOT_REJECTED", tuple(invalid), task.failure)
+            return task
+
+        version = task.request.version + 1 if task.request is not None else 1
+        task.request = self._request_from_tool_loop(
+            task, settled, executor.stay_searches, version=version
+        )
+        task.missing_required_fields = ()
+        task.intent_conflicts = ()
+        task.clarification_question = None
+        task.metadata.pop("agentic_open_questions", None)
+        task.failure = None
+        task.selected_option_id = None
+        task.booking_intent = None
+        task.approval = None
+        self._audit(task, "SEARCH_COMMAND_COMPILED", outcome.summary, task.request)
+        self._record_coverage_notices(task, [*leg_snapshots, *hotel_snapshots])
+        self._audit_snapshots(task, [*leg_snapshots, *hotel_snapshots])
+        self._transition(task, TaskState.PLANNING)
+
+        task.options = self.planner.plan(
+            request=task.request,
+            employee=task.employee,
+            policy=policy,
+            leg_offers=[self._transports(item) for item in leg_snapshots],
+            hotel_offers=[self._hotels(item) for item in hotel_snapshots],
+            now=self.clock(),
+        )
+        if not task.options:
+            # **模型说"这几条可以"不算数。** 政策与可行性由确定性代码判，判不过就是没有。
+            reasons = self._no_feasible_reasons(
+                task.request, leg_snapshots, hotel_snapshots, policy=policy
+            )
+            task.metadata["no_feasible_reasons"] = reasons
+            task.failure = "; ".join(reasons)
+            self._transition(task, TaskState.NO_FEASIBLE_OPTION)
+            self._audit(task, "NO_FEASIBLE_OPTION", task.request.version, reasons)
+            return task
+
+        gap_questions = tuple(
+            _empty_corridor_question(query) for query in empty_queries
+        )
+        open_questions = tuple(
+            dict.fromkeys((*outcome.open_questions, *gap_questions))
+        )
+        if gap_questions:
+            # 空段说明写进每张方案的摘要。只放在追问里的话，看方案的人
+            # 会以为北京→上海这几张票就是全程，上海→杭州被静默丢掉了。
+            task.options = [
+                replace(
+                    option,
+                    explanation_facts=(*gap_questions, *option.explanation_facts),
+                )
+                for option in task.options
+            ]
+        task.metadata["agentic_proposal"] = {
+            "summary": outcome.summary,
+            "transport_refs": list(outcome.transport_refs),
+            "hotel_refs": list(outcome.hotel_refs),
+            "open_questions": list(open_questions),
+        }
+        # **方案和未决问题可以同时存在。** 三段行程里两段的日期写在原话里、一段没写，
+        # 正确做法是把能定的两段排出来、只问剩下那一段——不是整轮停住什么都不给。
+        # 任务因此停在 WAITING_FOR_USER：方案可看可选，问题也摆在那里等回答。
+        if open_questions:
+            task.clarification_question = "\n".join(open_questions)
+            task.messages.append(
+                ConversationMessage(role="assistant", content=task.clarification_question)
+            )
+            task.metadata["agentic_open_questions"] = list(open_questions)
+            self._audit(
+                task,
+                "AGENTIC_PARTIAL_ITINERARY",
+                {"legs_settled": len(settled)},
+                list(open_questions),
+            )
+        self._transition(task, TaskState.OPTIONS_READY)
+        self._audit(
+            task,
+            "OPTIONS_VERIFIED",
+            task.request.version,
+            [item.option_id for item in task.options],
+            tuple(ref for item in task.options for ref in item.inventory_refs),
+        )
+        self._transition(task, TaskState.WAITING_FOR_USER)
+        return task
+
+    @staticmethod
+    def _settled_leg_searches(executor: Any) -> tuple[list[Any], list[Any]]:
+        """有货的段拿去规划；没货的段变成未决问题，不让整单一起死。"""
+        collapsed: dict[tuple[str, str], Any] = {}
+        order: list[tuple[str, str]] = []
+        for query, snapshot in executor.leg_searches:
+            key = (query.origin, query.destination)
+            if key not in collapsed:
+                order.append(key)
+                collapsed[key] = (query, snapshot)
+                continue
+            previous_query, previous_snapshot = collapsed[key]
+            previous_count = sum(
+                1 for item in previous_snapshot.items if isinstance(item, TransportOffer)
+            )
+            current_count = sum(
+                1 for item in snapshot.items if isinstance(item, TransportOffer)
+            )
+            if current_count >= previous_count:
+                collapsed[key] = (query, snapshot)
+        settled: list[Any] = []
+        empty: list[Any] = []
+        for key in order:
+            query, snapshot = collapsed[key]
+            if any(isinstance(item, TransportOffer) for item in snapshot.items):
+                settled.append((query, snapshot))
+            else:
+                empty.append(query)
+        return settled, empty
+
+    def _request_from_tool_loop(
+        self,
+        task: TripTask,
+        settled: Sequence[Any],
+        stay_searches: Sequence[Any],
+        *,
+        version: int,
+    ) -> TripRequestVersion:
+        """把循环实际搜到货的段与站写成一个请求版本。
+
+        **段数是数出来的**：数有库存的段，空搜不进规划器。
+        """
+        legs = tuple(
+            TripLeg(
+                # 第一段是去程，其余按顺序算返程/续程；角色只影响文案，不影响搜索。
+                role=TripLegRole.OUTBOUND if index == 0 else TripLegRole.RETURN,
+                origin=query.origin,
+                destination=query.destination,
+                depart_after=query.depart_after,
+                arrive_before=query.arrive_before,
+            )
+            for index, (query, _) in enumerate(settled)
+        )
+        stays = tuple(
+            TripStay(city=query.city, check_in=query.check_in, check_out=query.check_out)
+            for query, _ in stay_searches
+        )
+        first = legs[0]
+        last = legs[-1]
+        return TripRequestVersion(
+            task_id=task.task_id,
+            version=version,
+            traveler_id=task.employee.employee_id,
+            origin=first.origin,
+            destination=first.destination,
+            departure_after=first.depart_after,
+            arrive_by=first.arrive_before,
+            return_after=last.depart_after if len(legs) > 1 else None,
+            return_before=last.arrive_before if len(legs) > 1 else None,
+            hotel_check_in=stays[0].check_in if stays else None,
+            hotel_check_out=stays[0].check_out if stays else None,
+            booking_scope=(
+                BookingScope.ROUND_TRIP if len(legs) > 1 else BookingScope.OUTBOUND_ONLY
+            ),
+            journey=legs,
+            stays=stays,
+            created_at=self.clock(),
+        )
 
     def complete_with_structured_request(
         self, task_id: str, request: TripRequestVersion
@@ -3673,10 +4167,19 @@ class TripWorkflowOrchestrator:
     @staticmethod
     def _trace_evidence_refs(result: object, input_value: object) -> tuple[str, ...]:
         refs: list[str] = []
-        for item in getattr(result, "items", ()):
-            ref_id = getattr(item, "ref_id", None)
-            if isinstance(ref_id, str):
-                refs.append(ref_id)
+        # `items` 这个名字在 InventorySnapshot 上是一串报价，在 dict 上却是个方法。
+        # 工具循环的返回是 dict，直接迭代会炸——只认真正可迭代的那种。
+        items = getattr(result, "items", ())
+        if isinstance(items, (list, tuple)):
+            for item in items:
+                ref_id = getattr(item, "ref_id", None)
+                if isinstance(ref_id, str):
+                    refs.append(ref_id)
+        if isinstance(result, dict):
+            for option in result.get("options", ()) or ():
+                ref_id = option.get("ref_id") if isinstance(option, dict) else None
+                if isinstance(ref_id, str):
+                    refs.append(ref_id)
         current_prices = getattr(result, "current_prices", None)
         if isinstance(current_prices, dict):
             refs.extend(str(key) for key in current_prices)
