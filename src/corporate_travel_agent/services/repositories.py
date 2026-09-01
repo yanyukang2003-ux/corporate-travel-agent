@@ -57,6 +57,16 @@ class TaskRepository(Protocol):
 
     def list_by_state(self, state: str, *, limit: int = 100) -> tuple[TripTask, ...]: ...
 
+    def list_by_states(
+        self,
+        states: Sequence[str],
+        *,
+        updated_before: datetime | None = None,
+        limit: int = 100,
+    ) -> tuple[TripTask, ...]:
+        """按几个状态一起查，可加"最后更新早于某刻"。重启恢复扫描靠它不用全表反序列化。"""
+        ...
+
     def list_due_provider_retries(
         self,
         *,
@@ -179,6 +189,21 @@ class InMemoryTaskRepository:
 
     def list_by_state(self, state: str, *, limit: int = 100) -> tuple[TripTask, ...]:
         return self._filtered(state=state, limit=limit)
+
+    def list_by_states(
+        self,
+        states: Sequence[str],
+        *,
+        updated_before: datetime | None = None,
+        limit: int = 100,
+    ) -> tuple[TripTask, ...]:
+        # 内存版不按 updated_before 过滤：这里的更新时刻是本地墙钟，和调用方的业务时钟
+        # 未必可比；调用方本来就会再核一遍活动时间。语义上是"候选集"，宁多勿漏。
+        del updated_before
+        wanted = set(states)
+        with self._lock:
+            matched = [task for task in self._tasks.values() if task.state.value in wanted]
+        return tuple(matched[:limit])
 
     def list_due_provider_retries(
         self,

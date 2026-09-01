@@ -154,29 +154,44 @@ class ConfirmationMixin:
     # 一趟差旅：规划任务建它，下单确认让它进入观察，变更事件开改期任务
     # ------------------------------------------------------------------
 
-    def _attach_to_trip(self, task: TripTask) -> None:
-        """把任务挂到差旅上：规划任务建一趟新差旅，改期任务追加到已有差旅。
+    def _add_task_with_trip(self, task: TripTask, *, change_event: TripEvent | None = None) -> None:
+        """新任务和它所属的差旅一起落库：规划任务建一趟新差旅，改期任务追加到已有差旅。
 
-        差旅和任务不在同一笔事务里（不同表，先任务后差旅）；这是已知窄缝，
-        文档里写着，没有假装它是原子的。
+        以前是先 `tasks.add` 再 `trips.add/save`——改期任务建成了、差旅没记上，
+        `find_by_task` 就找不到它（HANDOFF §8 那条窄缝）。SQL 仓储现在提供 `add_with_trip`，
+        两张表同一笔事务；没有这个方法的仓储（内存版）退回先任务后差旅，内存里本来就没有
+        "半截"可言。改期事件也在这里一并写进差旅，不再事后补第二次保存。
         """
         assert task.trip_id is not None
         if task.parent_task_id is None:
-            self.trips.add(
-                Trip(
-                    trip_id=task.trip_id,
-                    traveler_id=task.employee.employee_id,
-                    requester_id=task.requested_by,
-                    status=TripStatus.PLANNED,
-                    task_ids=(task.task_id,),
-                    created_at=self.clock(),
-                )
+            trip = Trip(
+                trip_id=task.trip_id,
+                traveler_id=task.employee.employee_id,
+                requester_id=task.requested_by,
+                status=TripStatus.PLANNED,
+                task_ids=(task.task_id,),
+                created_at=self.clock(),
             )
+            trip_is_new = True
+        else:
+            trip = self.trips.get(task.trip_id)
+            trip.task_ids = (*trip.task_ids, task.task_id)
+            trip.status = TripStatus.CHANGE_REQUESTED
+            if change_event is not None:
+                trip.events = (*trip.events, replace(change_event, opened_task_id=task.task_id))
+            trip_is_new = False
+        # 一笔事务的前提是两张表在同一个库里：任务仓储和差旅仓储共用同一个引擎。
+        # 任务在 SQL、差旅在内存（单测常见）时联合写入会把差旅写到编排器看不见的地方。
+        engine = getattr(self.tasks, "engine", None)
+        joint = getattr(self.tasks, "add_with_trip", None)
+        if callable(joint) and engine is not None and getattr(self.trips, "engine", None) is engine:
+            joint(task, trip=trip, trip_is_new=trip_is_new)
             return
-        trip = self.trips.get(task.trip_id)
-        trip.task_ids = (*trip.task_ids, task.task_id)
-        trip.status = TripStatus.CHANGE_REQUESTED
-        self.trips.save(trip)
+        self.tasks.add(task)
+        if trip_is_new:
+            self.trips.add(trip)
+        else:
+            self.trips.save(trip)
 
     def _register_trip_watch(self, task: TripTask, option: TravelOptionVersion) -> None:
         """下单确认之后登记观察对象：盯着确认方案的每一段，盯到最后一段落地后一天。"""
@@ -251,18 +266,14 @@ class ConfirmationMixin:
             note=note,
             opened_task_id=None,
         )
-        change_task = self.create_task(
+        # 改期任务、差旅上的任务列表和这条事件在 `_add_task_with_trip` 里一笔写入。
+        return self.create_task(
             self._change_request(booked_task.request, event, now),
             requester_id=trip.requester_id,
             trip_id=trip.trip_id,
             parent_task_id=booked_task.task_id,
             change_event=event,
         )
-        # `_attach_to_trip` 已经把改期任务追加进去并保存过一次；重读再记事件。
-        trip = self.trips.get(trip_id)
-        trip.events = (*trip.events, replace(event, opened_task_id=change_task.task_id))
-        self.trips.save(trip)
-        return change_task
 
     @staticmethod
     def _change_request(

@@ -364,10 +364,38 @@ class ResilienceMixin:
             return list_by_state(state.value, limit=limit)
         return tuple(task for task in self.tasks.list_tasks() if task.state is state)
 
+    def _interrupted_candidates(self) -> tuple[TripTask, ...]:
+        """重启恢复要看的任务：只查那几个瞬时状态（SEARCHING / PLANNING / REVALIDATING / DRAFT）。
+
+        以前 `list_tasks()` 全表反序列化——十万行的库启动一次要把历史任务全部读一遍。
+        现在按 `state` 索引查：瞬时状态的行本来就少，DRAFT 只有从没离开过草稿的任务。
+        **不按 `updated_at` 预过滤**：那一列是墙钟，陈旧判断用的是业务时钟（评测和单测里
+        常是冻结的），两者混用会在冻结时钟下把真正的候选筛掉。时间判断留在下面按活动时间做。
+        """
+        states = (
+            TaskState.SEARCHING.value,
+            TaskState.PLANNING.value,
+            TaskState.REVALIDATING.value,
+            TaskState.DRAFT.value,
+        )
+        list_by_states = getattr(self.tasks, "list_by_states", None)
+        if callable(list_by_states):
+            return tuple(list_by_states(states, limit=10_000))
+        return tuple(
+            task
+            for state in (
+                TaskState.SEARCHING,
+                TaskState.PLANNING,
+                TaskState.REVALIDATING,
+                TaskState.DRAFT,
+            )
+            for task in self._tasks_by_state(state)
+        )
+
     def recover_interrupted_tasks(self) -> tuple[str, ...]:
         """恢复卡在 STARTED/中断态的任务，返回受影响 task_id。"""
         recovered: list[str] = []
-        candidates = self.tasks.list_tasks()
+        candidates = self._interrupted_candidates()
         for task in candidates:
             interrupted_state = task.state
             started_calls = [

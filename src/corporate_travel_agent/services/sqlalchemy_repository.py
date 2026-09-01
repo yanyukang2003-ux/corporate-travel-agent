@@ -29,7 +29,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column
 
 from corporate_travel_agent.domain.enums import TaskState
-from corporate_travel_agent.domain.models import AuditEvent, InventorySnapshot, TripTask
+from corporate_travel_agent.domain.models import AuditEvent, InventorySnapshot, Trip, TripTask
 from corporate_travel_agent.services.db_engine import (
     create_database_engine,
     engine_pool_snapshot,
@@ -55,6 +55,7 @@ from corporate_travel_agent.services.serialization import (
     serialize_audit_event,
     serialize_snapshot,
     serialize_task,
+    serialize_trip,
 )
 from corporate_travel_agent.services.task_projections import (
     TaskSummary,
@@ -514,6 +515,50 @@ class SQLAlchemyTaskRepository:
         except IntegrityError as exc:
             raise ValueError(f"Task {task.task_id} already exists") from exc
 
+    def add_with_trip(self, task: TripTask, *, trip: Trip, trip_is_new: bool) -> None:
+        """任务和它所属的差旅**同一笔事务**落库。
+
+        以前是先 `add(task)` 再 `trips.add/save(trip)`：改期任务建成了、差旅没记上，
+        `find_by_task` 就找不到它——这是 HANDOFF §8 记着的那条窄缝。现在要么一起成、要么一起回滚。
+        新差旅插一行；已有差旅按乐观锁更新（`revision` 对不上就抛 `ConcurrentUpdateError`）。
+        """
+        task.persistence_revision = 0
+        now = datetime.now(UTC)
+        fields = projection_fields(task)
+        row = TaskRow(
+            task_id=task.task_id,
+            state=task.state.value,
+            revision=0,
+            payload=serialize_task(task),
+            created_at=now,
+            updated_at=now,
+            **fields,
+        )
+        expected = trip.persistence_revision
+        try:
+            with Session(self.engine) as session, session.begin():
+                session.add(row)
+                session.flush()
+                if trip_is_new:
+                    if session.get(TripRow, trip.trip_id) is not None:
+                        raise ValueError(f"Trip {trip.trip_id} already exists")
+                    session.add(trip_row_from(trip))
+                else:
+                    result = session.execute(
+                        trip_update_statement(trip, expected_revision=expected)
+                    )
+                    if result.rowcount != 1:
+                        raise ConcurrentUpdateError(
+                            f"Trip {trip.trip_id} was updated concurrently"
+                        )
+                    trip.persistence_revision = expected + 1
+        except IntegrityError as exc:
+            trip.persistence_revision = expected
+            raise ValueError(f"Task {task.task_id} already exists") from exc
+        except Exception:
+            trip.persistence_revision = expected
+            raise
+
     def get(self, task_id: str) -> TripTask:
         with Session(self.engine) as session:
             row = session.get(TaskRow, task_id)
@@ -568,6 +613,26 @@ class SQLAlchemyTaskRepository:
 
     def list_by_state(self, state: str, *, limit: int = 100) -> tuple[TripTask, ...]:
         return self._list_filtered(state=state, limit=limit)
+
+    def list_by_states(
+        self,
+        states: Sequence[str],
+        *,
+        updated_before: datetime | None = None,
+        limit: int = 100,
+    ) -> tuple[TripTask, ...]:
+        """`WHERE state IN (...) [AND updated_at <= :before]`，走 `state` 索引，只反序列化候选。"""
+        if limit < 0:
+            raise ValueError("limit must be non-negative")
+        if not states:
+            return ()
+        with Session(self.engine) as session:
+            statement = select(TaskRow).where(TaskRow.state.in_(tuple(states)))
+            if updated_before is not None:
+                statement = statement.where(TaskRow.updated_at <= updated_before)
+            statement = statement.order_by(TaskRow.updated_at, TaskRow.task_id).limit(limit)
+            rows = session.scalars(statement)
+            return tuple(deserialize_task(row.payload) for row in rows)
 
     def list_due_provider_retries(
         self,
@@ -971,6 +1036,34 @@ class SQLAlchemyProviderQuoteContextStore:
             for row in rows:
                 session.delete(row)
             return len(rows)
+
+
+def trip_row_from(trip: Trip) -> TripRow:
+    """从聚合造一行；`SQLAlchemyTripRepository.add` 和 `add_with_trip` 共用。"""
+    return TripRow(
+        trip_id=trip.trip_id,
+        traveler_id=trip.traveler_id,
+        requester_id=trip.requester_id,
+        status=trip.status.value,
+        revision=trip.persistence_revision,
+        payload=serialize_trip(trip),
+        created_at=trip.created_at,
+        updated_at=trip.created_at,
+    )
+
+
+def trip_update_statement(trip: Trip, *, expected_revision: int):
+    """乐观锁更新：`revision` 对不上就一行都不动，调用方按 rowcount 判冲突。"""
+    return (
+        update(TripRow)
+        .where(TripRow.trip_id == trip.trip_id, TripRow.revision == expected_revision)
+        .values(
+            status=trip.status.value,
+            revision=expected_revision + 1,
+            payload=serialize_trip(trip),
+            updated_at=datetime.now(tz=trip.created_at.tzinfo),
+        )
+    )
 
 
 def _database_aware(value: datetime) -> datetime:

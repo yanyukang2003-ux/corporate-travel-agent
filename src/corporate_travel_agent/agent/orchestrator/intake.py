@@ -111,8 +111,7 @@ class IntakeMixin:
             parent_task_id=parent_task_id,
             change_event_id=change_event.event_id if change_event is not None else None,
         )
-        self.tasks.add(task)
-        self._attach_to_trip(task)
+        self._add_task_with_trip(task, change_event=change_event)
         outbox: tuple[OutboxEventDraft, ...] = ()
         if change_event is not None:
             outbox = (
@@ -183,8 +182,7 @@ class IntakeMixin:
             },
             trip_id=str(uuid4()),
         )
-        self.tasks.add(task)
-        self._attach_to_trip(task)
+        self._add_task_with_trip(task)
         self._audit(
             task,
             "AGENTIC_TASK_CREATED_FROM_MESSAGE",

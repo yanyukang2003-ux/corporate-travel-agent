@@ -7,18 +7,21 @@
 
 from __future__ import annotations
 
-from datetime import datetime
 from threading import RLock
 from typing import Protocol
 
-from sqlalchemy import or_, select, update
+from sqlalchemy import or_, select
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session
 
 from corporate_travel_agent.domain.models import Trip
 from corporate_travel_agent.services.repositories import ConcurrentUpdateError, NotFoundError
-from corporate_travel_agent.services.serialization import deserialize_trip, serialize_trip
-from corporate_travel_agent.services.sqlalchemy_repository import TripRow
+from corporate_travel_agent.services.serialization import deserialize_trip
+from corporate_travel_agent.services.sqlalchemy_repository import (
+    TripRow,
+    trip_row_from,
+    trip_update_statement,
+)
 
 
 class TripRepository(Protocol):
@@ -93,18 +96,7 @@ class SQLAlchemyTripRepository:
         with Session(self.engine) as session, session.begin():
             if session.get(TripRow, trip.trip_id) is not None:
                 raise ValueError(f"Trip {trip.trip_id} already exists")
-            session.add(
-                TripRow(
-                    trip_id=trip.trip_id,
-                    traveler_id=trip.traveler_id,
-                    requester_id=trip.requester_id,
-                    status=trip.status.value,
-                    revision=trip.persistence_revision,
-                    payload=serialize_trip(trip),
-                    created_at=trip.created_at,
-                    updated_at=trip.created_at,
-                )
-            )
+            session.add(trip_row_from(trip))
 
     def get(self, trip_id: str) -> Trip:
         with Session(self.engine) as session:
@@ -118,16 +110,7 @@ class SQLAlchemyTripRepository:
         trip.persistence_revision = expected + 1
         try:
             with Session(self.engine) as session, session.begin():
-                result = session.execute(
-                    update(TripRow)
-                    .where(TripRow.trip_id == trip.trip_id, TripRow.revision == expected)
-                    .values(
-                        status=trip.status.value,
-                        revision=expected + 1,
-                        payload=serialize_trip(trip),
-                        updated_at=datetime.now(tz=trip.created_at.tzinfo),
-                    )
-                )
+                result = session.execute(trip_update_statement(trip, expected_revision=expected))
                 if result.rowcount != 1:
                     raise ConcurrentUpdateError(f"Trip {trip.trip_id} was updated concurrently")
         except Exception:
