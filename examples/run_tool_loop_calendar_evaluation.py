@@ -48,10 +48,11 @@ set -a && . ./.env && set +a && export DATABASE_URL=
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 from collections.abc import Sequence
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from pathlib import Path
@@ -81,6 +82,10 @@ from corporate_travel_agent.policy.engine import PolicyEngine
 from corporate_travel_agent.providers.base import HotelSearchQuery, TransportSearchQuery
 from corporate_travel_agent.providers.mock import MockProvider
 from corporate_travel_agent.services.evaluation_performance import load_model_price_table
+from corporate_travel_agent.services.evaluation_tool_loop import (
+    LiveCaseRecorder,
+    LiveRunLedger,
+)
 from corporate_travel_agent.services.locations import CityNormalizer
 from corporate_travel_agent.services.policy_config import load_policy_configuration
 
@@ -190,7 +195,6 @@ CASES: tuple[CalendarCase, ...] = (
         expect_return_date="2027-01-02",
     ),
 )
-
 
 #: 旧链路的 `expect_cities`（"城市要留着"）在循环里当场不可观测：还没搜之前，
 #: 城市只存在于对话里，没有任何字段承载它。所以改成真的追问一轮，再看它搜的
@@ -365,12 +369,15 @@ def _evaluate(case: CalendarCase, outcome: LoopOutcome) -> list[dict[str, Any]]:
 
 
 def _run_case(
-    case: CalendarCase, *, model_name: str, max_iterations: int
+    case: CalendarCase,
+    *,
+    model: OpenAIToolCallingLanguageModel,
+    recorder: LiveCaseRecorder,
+    max_iterations: int,
 ) -> dict[str, Any]:
-    model = OpenAIToolCallingLanguageModel(model=model_name)
     executor = _build_executor(case.clock, case.message)
     runner = ToolLoopRunner(
-        model=model, executor=executor, max_iterations=max_iterations
+        model=model, executor=executor, max_iterations=max_iterations, invoke=recorder.invoke
     )
     context = {
         "reference_time": case.clock.isoformat(),
@@ -410,7 +417,7 @@ def _run_case(
         record["checks"] = _evaluate(case, outcome)
         follow_up = FOLLOW_UP.get(case.case_id)
         if follow_up and outcome.kind == "ask_traveler":
-            record.update(_probe_second_turn(case, outcome, model, max_iterations))
+            record.update(_probe_second_turn(case, outcome, model, recorder, max_iterations))
             probe = record.get("follow_up_check")
             if probe is not None:
                 record["checks"] = [*record["checks"], probe]
@@ -425,6 +432,7 @@ def _probe_second_turn(
     case: CalendarCase,
     first: LoopOutcome,
     model: OpenAIToolCallingLanguageModel,
+    recorder: LiveCaseRecorder,
     max_iterations: int,
 ) -> dict[str, Any]:
     """旅行者回答之后再跑一轮：城市有没有活下来，这时候才看得见。
@@ -439,7 +447,9 @@ def _probe_second_turn(
         )
     )
     executor = _build_executor(case.clock, ledger)
-    runner = ToolLoopRunner(model=model, executor=executor, max_iterations=max_iterations)
+    runner = ToolLoopRunner(
+        model=model, executor=executor, max_iterations=max_iterations, invoke=recorder.invoke
+    )
     context = {"reference_time": case.clock.isoformat(), "timezone": "Asia/Shanghai"}
     out: dict[str, Any] = {"follow_up": FOLLOW_UP[case.case_id]}
     try:
@@ -462,6 +472,26 @@ def _probe_second_turn(
         f"routes={sorted(routes)}",
     )
     return out
+
+
+def _cases_sha256(cases) -> str:
+    """用例本身的指纹：改了用例，轨迹指纹就变，旧报告不能冒充新的。"""
+    payload = json.dumps(
+        [asdict(case) for case in cases], ensure_ascii=False, sort_keys=True, default=str
+    )
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
+def _finish_trace(recorder: LiveCaseRecorder, record: dict[str, Any]) -> None:
+    """一条用例跑完，把终态写进它的轨迹；不论过没过、有没有炸。"""
+    recorder.finish(
+        state=record.get("state") or record.get("outcome_kind"),
+        result_refs=tuple(str(ref) for ref in (record.get("option_refs") or ())),
+        user_response=(
+            record.get("user_visible_text") or record.get("question") or record.get("summary")
+        ),
+        failure_reason=record.get("error"),
+    )
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -490,12 +520,30 @@ def main(argv: Sequence[str] | None = None) -> int:
         if not selected:
             parser.error(f"没有匹配的 case_id：{sorted(wanted)}")
 
+    price_table = None
+    price_sha_for_ledger = None
+    if args.price_table:
+        price_table, price_sha_for_ledger = load_model_price_table(args.price_table)
+    ledger = LiveRunLedger(
+        model=args.model,
+        prompt_version=TOOL_LOOP_PROMPT_VERSION,
+        runner_version=RUNNER_VERSION,
+        dataset_id="tool-loop-calendar-cases",
+        dataset_version="1",
+        dataset_sha256=_cases_sha256(selected),
+        price_table=price_table,
+        price_table_sha256=price_sha_for_ledger,
+    )
+
     records: list[dict[str, Any]] = []
     for attempt in range(1, args.repeats + 1):
         for case in selected:
+            model = OpenAIToolCallingLanguageModel(model=args.model)
+            recorder = ledger.open_case(case.case_id, attempt, model)
             record = _run_case(
-                case, model_name=args.model, max_iterations=args.max_iterations
+                case, model=model, recorder=recorder, max_iterations=args.max_iterations
             )
+            _finish_trace(recorder, record)
             record["attempt"] = attempt
             records.append(record)
             status = "PASS" if record.get("passed") else "FAIL"
@@ -548,6 +596,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         "results": records,
     }
     args.output.mkdir(parents=True)
+    report["live_artifacts"] = ledger.write(args.output)
     (args.output / "report.json").write_text(
         json.dumps(report, ensure_ascii=False, indent=2, default=str), encoding="utf-8"
     )

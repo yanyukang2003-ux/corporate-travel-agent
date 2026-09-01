@@ -1,0 +1,21 @@
+{
+  "complete": true,
+  "currency": "USD",
+  "estimated_cost_usd": 0.007141395,
+  "input_tokens": 14871,
+  "llm_calls": 4,
+  "model": "deepseek-v4-pro",
+  "note": "Cached-input discounts are not modelled; the estimate is an upper bound.",
+  "output_tokens": 773,
+  "per_case": {
+    "LM-05": {
+      "cost_usd": 0.007141395,
+      "input_tokens": 14871,
+      "llm_calls": 4,
+      "output_tokens": 773
+    }
+  },
+  "price_table_sha256": "dd2a754fb067cbb147677d6d75ac462f4f327480776696fadc8c6547cbdbbf46",
+  "price_table_version": "model-prices-openai-20260802-v1",
+  "unpriced_calls": 0
+}

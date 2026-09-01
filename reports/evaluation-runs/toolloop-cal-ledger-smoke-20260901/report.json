@@ -1,0 +1,109 @@
+{
+  "runner_version": "tool-loop-calendar-runner-v1",
+  "prompt_version": "tool-loop-v3",
+  "architecture": "tool-loop",
+  "generated_at": "2026-09-01T17:26:43.435607+00:00",
+  "model": "deepseek-v4-pro",
+  "repeats": 1,
+  "max_iterations": 12,
+  "cases_total": 1,
+  "cases_passed": 1,
+  "llm_calls": 2,
+  "input_tokens": 6166,
+  "output_tokens": 538,
+  "estimated_cost_usd": 0.00315027,
+  "price_table_version": "model-prices-openai-20260802-v1",
+  "price_table_sha256": "dd2a754fb067cbb147677d6d75ac462f4f327480776696fadc8c6547cbdbbf46",
+  "results": [
+    {
+      "case_id": "H-01",
+      "title": "下下周三 = 下下个星期的星期三",
+      "message": "下下周三从北京去上海开会",
+      "reference_time": "2026-08-19T15:00:00+08:00",
+      "outcome_kind": "propose_options",
+      "question": null,
+      "summary": "北京→上海 9/2 开会，按 10:00 前到达搜到两个直飞航班。推荐前一晚 21:44 那班（9/1 23:59 到），因为当天早班 10:00 整落地、赶会无缓冲，一旦延误就误事；前一晚到虽需住一晚，但第二天从容。两班均直飞、经济舱、合规。",
+      "assumptions": [
+        "搜索窗口从 2026-09-01 16:00（Beijing 当地）起算，到达时限往前 18 小时，这样前一晚出发也能被搜到；因为你要求 09月02日 10:00 前到达"
+      ],
+      "transcript": [
+        {
+          "tool": "search_transport",
+          "arguments": {
+            "origin": "北京",
+            "destination": "上海",
+            "arrive_by": "2026-09-02T10:00:00+08:00",
+            "date_evidence": "下下周三从北京去上海开会"
+          },
+          "ok": true,
+          "result": {
+            "origin": "Beijing",
+            "destination": "Shanghai",
+            "depart_after": "2026-09-01T16:00:00+08:00",
+            "arrive_by": "2026-09-02T10:00:00+08:00",
+            "assumed": "搜索窗口从 2026-09-01 16:00（Beijing 当地）起算，到达时限往前 18 小时，这样前一晚出发也能被搜到；因为你要求 09月02日 10:00 前到达",
+            "snapshot_id": "mock-transport-76a032dfbf38",
+            "valid_until": "2026-08-19T15:15:00+08:00",
+            "options": [
+              {
+                "ref_id": "SYN-BESH-09012144",
+                "mode": "FLIGHT",
+                "depart_at": "2026-09-01T21:44:59.999999+08:00",
+                "arrive_at": "2026-09-01T23:59:59.999999+08:00",
+                "price": "950 USD",
+                "seat_class": "ECONOMY",
+                "is_direct": true,
+                "policy_outcome": "COMPLIANT",
+                "policy_violations": []
+              },
+              {
+                "ref_id": "SYN-BESH-09020745",
+                "mode": "FLIGHT",
+                "depart_at": "2026-09-02T07:45:00+08:00",
+                "arrive_at": "2026-09-02T10:00:00+08:00",
+                "price": "950 USD",
+                "seat_class": "ECONOMY",
+                "is_direct": true,
+                "policy_outcome": "COMPLIANT",
+                "policy_violations": []
+              }
+            ],
+            "option_count": 2,
+            "next_step": null
+          }
+        }
+      ],
+      "checks": [
+        {
+          "name": "departure_date_read_correctly",
+          "ok": true,
+          "detail": "expected 2026-09-02 among attempted searches, got ['2026-09-02']"
+        },
+        {
+          "name": "departure_date_searched",
+          "ok": true,
+          "detail": "expected 2026-09-02 among executed searches, got ['2026-09-02']"
+        }
+      ],
+      "passed": true,
+      "llm_calls": 2,
+      "input_tokens": 6166,
+      "output_tokens": 538,
+      "attempt": 1
+    }
+  ],
+  "live_artifacts": {
+    "traces_file": "traces.jsonl",
+    "traces_sha256": "06fa039507a5f396908e6a1591cc437b52c4fd2b64ffbb456e3531ac2398bbdd",
+    "trace_count": 1,
+    "cost_ledger_file": "cost-ledger.jsonl",
+    "cost_ledger_sha256": "52cb3581ad8d1e080448a8b06666f1882a87d61c5cbeb7b80f818c72d8d349b3",
+    "cost_summary_file": "cost-summary.json",
+    "cost_summary_sha256": "ed7039a4cff55a969ccba7293cfe91b04d2050918e22213bb618a60560466e21",
+    "retry_cap_check_file": "retry-cap-check.json",
+    "retry_cap_check_sha256": "c5389ae3dd5b2f674e462a8f2750153e8a7987bec99db3b2ffe8527a0b018c5b",
+    "estimated_cost_usd": 0.00315027,
+    "cost_complete": true,
+    "retry_cap_passed": true
+  }
+}

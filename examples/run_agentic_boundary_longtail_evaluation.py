@@ -34,11 +34,12 @@ set -a && . ./.env && set +a && export DATABASE_URL=
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import re
 from collections.abc import Callable, Sequence
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
@@ -53,6 +54,10 @@ from corporate_travel_agent.domain.enums import TaskState
 from corporate_travel_agent.providers.factory import travel_provider_from_environment
 from corporate_travel_agent.services.city_registry import city_registry
 from corporate_travel_agent.services.evaluation_performance import load_model_price_table
+from corporate_travel_agent.services.evaluation_tool_loop import (
+    LiveCaseRecorder,
+    LiveRunLedger,
+)
 from corporate_travel_agent.services.locations import CityNormalizer
 from corporate_travel_agent.services.policy_config import load_policy_configuration
 
@@ -648,8 +653,6 @@ def _no_train_offer_claimed(ctx: CaseContext) -> list[dict[str, Any]]:
     ]
 
 
-
-
 def _no_compliant_claim_without_evidence(ctx: CaseContext) -> list[dict[str, Any]]:
     """证据不足时不许说"符合公司政策"。"""
     if "INSUFFICIENT_EVIDENCE" not in ctx.option_outcomes:
@@ -960,17 +963,18 @@ def _snapshot(turn: int, said: str, task: Any, normalizer: CityNormalizer) -> di
 def _run_case(
     case: BoundaryCase,
     *,
-    model_name: str,
+    model: OpenAIToolCallingLanguageModel,
+    recorder: LiveCaseRecorder,
     provider: RecordingProvider,
     normalizer: CityNormalizer,
 ) -> dict[str, Any]:
-    model = OpenAIToolCallingLanguageModel(model=model_name, request_timeout_seconds=90.0)
     before_refs = set(provider.returned_refs)
     before_calls = len(provider.calls)
     workflow, _ = build_demo_system(
         tool_calling_language_model=model,
         provider=provider,
         clock=lambda: CLOCK,
+        trace_observer=recorder,
     )
     record: dict[str, Any] = {
         "case_id": case.case_id,
@@ -1173,6 +1177,26 @@ def _assert_live_sandbox() -> str:
     return name
 
 
+def _cases_sha256(cases) -> str:
+    """用例本身的指纹：改了用例，轨迹指纹就变，旧报告不能冒充新的。"""
+    payload = json.dumps(
+        [asdict(case) for case in cases], ensure_ascii=False, sort_keys=True, default=str
+    )
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
+def _finish_trace(recorder: LiveCaseRecorder, record: dict[str, Any]) -> None:
+    """一条用例跑完，把终态写进它的轨迹；不论过没过、有没有炸。"""
+    recorder.finish(
+        state=record.get("state") or record.get("outcome_kind"),
+        result_refs=tuple(str(ref) for ref in (record.get("option_refs") or ())),
+        user_response=(
+            record.get("user_visible_text") or record.get("question") or record.get("summary")
+        ),
+        failure_reason=record.get("error"),
+    )
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", required=True, type=Path)
@@ -1220,13 +1244,31 @@ def main(argv: Sequence[str] | None = None) -> int:
     provider = RecordingProvider(inner)
     normalizer = CityNormalizer(policy.city_aliases)
 
+    price_table = None
+    price_sha_for_ledger = None
+    if args.price_table:
+        price_table, price_sha_for_ledger = load_model_price_table(args.price_table)
+    ledger = LiveRunLedger(
+        model=args.model,
+        prompt_version=TOOL_LOOP_PROMPT_VERSION,
+        runner_version=RUNNER_VERSION,
+        dataset_id="agentic-boundary-longtail-cases",
+        dataset_version="1",
+        dataset_sha256=_cases_sha256(selected),
+        price_table=price_table,
+        price_table_sha256=price_sha_for_ledger,
+    )
+
     records: list[dict[str, Any]] = []
     started = datetime.now(UTC)
     try:
         for case in selected:
+            model = OpenAIToolCallingLanguageModel(model=args.model, request_timeout_seconds=90.0)
+            recorder = ledger.open_case(case.case_id, 1, model)
             record = _run_case(
-                case, model_name=args.model, provider=provider, normalizer=normalizer
+                case, model=model, recorder=recorder, provider=provider, normalizer=normalizer
             )
+            _finish_trace(recorder, record)
             records.append(record)
             mark = "PASS" if record.get("passed") else "FAIL"
             word = "" if record.get("wording_ok") else " (wording WARN)"
@@ -1294,6 +1336,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         "cases": records,
     }
     args.output.mkdir(parents=True)
+    payload["live_artifacts"] = ledger.write(args.output)
     (args.output / "report.json").write_text(
         json.dumps(payload, ensure_ascii=False, indent=2, default=str) + "\n", encoding="utf-8"
     )

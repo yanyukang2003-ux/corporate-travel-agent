@@ -54,6 +54,7 @@
 | D14 | 已冻结 | `model-duffel-test-order-e2e-v1` | 1 | DeepSeek + Duffel Test Order 创建、读取、取消、复查 | 仅 Test Mode；一次模型、7 次 Duffel HTTP；写操作不重试；需逐项显式授权；**runner 已随 legacy 入口删除（ADR-0003），报告留档，不再可复跑** |
 | D15 | 已退役 | `derived-v2` 经**语义入口**执行 | 60 + 480 | 语义入口的覆盖与新旧并排（历史） | 语义入口已删除（ADR-0003）；最后一次并排的语义列冻结在 D16 报告里作基线 |
 | D16 | 滚动版本 | `derived-v2` 经**产品入口（工具循环）**执行 | 60 + 480 | 产品入口的离线覆盖，与冻结的语义基线并排 | 替身与原语义替身共用一个解释器；分类、缺失字段、越界标签、偏好四类指标在产品入口无暴露面，记 `not_applicable` |
+| D17 | 滚动版本 | 对抗集（工具循环版），`services/evaluation_adversarial.py` 内置 5 条 | 5 | 库存文本注入、编造引用、写工具调用、身份替换、用户消息注入，外加三条越权路（不批就交接、自批、外人批） | 剧本模型 + 掺了话的 demo 库存，0 计费 0 外部调用；量的是宿主不变量不是模型；供应商文本到模型是设计使然，记录不判失败。CI 门禁：`tests/test_adversarial_tool_loop.py` |
 
 D4 的 60 条建议构成：高频核心 16、历史失败 12、边界极端 16、对抗风险 16。真实模型冒烟集从 D4 固定抽取 24 条，覆盖四类数据与中英文，不允许每轮临时挑选。固定子集为 `evals/subsets/agent-eval-model-smoke-v1.json`（配额 core=7 / historical_failure=5 / boundary=6 / adversarial=6；类内先全部英文再按 `case_id` 补中文；含全部 9 条英文）。连通预检子集为 `evals/subsets/agent-eval-model-preflight-v1.json`（2 条）。确定性 hard-assertion 跑分：
 
@@ -66,6 +67,12 @@ python examples/run_agent_eval_v1.py --mode deterministic_live \
 D4 的 `model_mock` 模式（真实 LLM 走旧的意图抽取入口）已随 legacy 入口删除（ADR-0003）。
 产品入口下的真实模型证据见 `reports/evaluation-runs/toolloop-*` 与 `agentic-boundary-*`，
 由 `examples/run_tool_loop_*` 和 `run_agentic_boundary_longtail_evaluation.py` 产出。
+
+自 2026-09-01 起这四个 runner 都经 `services/evaluation_tool_loop.py` 记账：每个报告目录里除
+`report.json` 外还有 §5 的 `traces.jsonl`（每条用例一条轨迹，每次 LLM 调用带 token 用量）、
+`cost-ledger.jsonl`（逐次调用按价目表计价）、`cost-summary.json`（总量、是否每次都有价）和
+`retry-cap-check.json`（同一工具沿 `retry_of` 的链条不超过 LLM 2 次 / 供应商 3 次，`retryable=False`
+或 HTTP 402 之后不许再有重试）。`report.json` 的 `live_artifacts` 记这四份文件的 SHA-256。
 
 ## 3.1 D15：语义入口覆盖与并排对比（已退役）
 

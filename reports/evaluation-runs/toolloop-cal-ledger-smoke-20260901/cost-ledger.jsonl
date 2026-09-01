@@ -1,0 +1,2 @@
+{"attempt": 1, "case_id": "H-01", "cost_usd": 0.0013289250000000001, "input_tokens": 2819, "model": "deepseek-v4-pro", "name": "llm.next_tool_call", "output_tokens": 118, "run_id": "run-4b9f06bd-ddcd-4156-ae45-e2873604d555", "sequence": 1, "status": "success"}
+{"attempt": 1, "case_id": "H-01", "cost_usd": 0.0018213449999999998, "input_tokens": 3347, "model": "deepseek-v4-pro", "name": "llm.next_tool_call", "output_tokens": 420, "run_id": "run-4b9f06bd-ddcd-4156-ae45-e2873604d555", "sequence": 3, "status": "success"}

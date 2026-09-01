@@ -23,10 +23,11 @@ set -a && . ./.env && set +a && export DATABASE_URL=
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 from collections.abc import Sequence
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -40,6 +41,10 @@ from corporate_travel_agent.demo import SHANGHAI_TZ, build_demo_system
 from corporate_travel_agent.domain.enums import TaskState
 from corporate_travel_agent.providers.factory import travel_provider_from_environment
 from corporate_travel_agent.services.evaluation_performance import load_model_price_table
+from corporate_travel_agent.services.evaluation_tool_loop import (
+    LiveCaseRecorder,
+    LiveRunLedger,
+)
 from corporate_travel_agent.services.locations import CityNormalizer
 from corporate_travel_agent.services.policy_config import load_policy_configuration
 
@@ -458,18 +463,16 @@ def _snapshot_turn(
 def _run_case(
     case: LiveMultiTurnCase,
     *,
-    model_name: str,
+    model: OpenAIToolCallingLanguageModel,
+    recorder: LiveCaseRecorder,
     provider: Any,
     normalizer: CityNormalizer,
 ) -> dict[str, Any]:
-    model = OpenAIToolCallingLanguageModel(
-        model=model_name,
-        request_timeout_seconds=90.0,
-    )
     workflow, _ = build_demo_system(
         tool_calling_language_model=model,
         provider=provider,
         clock=lambda: CLOCK,
+        trace_observer=recorder,
     )
     snapshots: list[dict[str, Any]] = []
     record: dict[str, Any] = {
@@ -625,6 +628,26 @@ def _assert_live_sandbox() -> str:
     return name
 
 
+def _cases_sha256(cases) -> str:
+    """用例本身的指纹：改了用例，轨迹指纹就变，旧报告不能冒充新的。"""
+    payload = json.dumps(
+        [asdict(case) for case in cases], ensure_ascii=False, sort_keys=True, default=str
+    )
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
+def _finish_trace(recorder: LiveCaseRecorder, record: dict[str, Any]) -> None:
+    """一条用例跑完，把终态写进它的轨迹；不论过没过、有没有炸。"""
+    recorder.finish(
+        state=record.get("state") or record.get("outcome_kind"),
+        result_refs=tuple(str(ref) for ref in (record.get("option_refs") or ())),
+        user_response=(
+            record.get("user_visible_text") or record.get("question") or record.get("summary")
+        ),
+        failure_reason=record.get("error"),
+    )
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", required=True, type=Path)
@@ -667,13 +690,31 @@ def main(argv: Sequence[str] | None = None) -> int:
         raise SystemExit("未能从环境装出真实 Provider")
     normalizer = CityNormalizer(policy.city_aliases)
 
+    price_table = None
+    price_sha_for_ledger = None
+    if args.price_table:
+        price_table, price_sha_for_ledger = load_model_price_table(args.price_table)
+    ledger = LiveRunLedger(
+        model=args.model,
+        prompt_version=TOOL_LOOP_PROMPT_VERSION,
+        runner_version=RUNNER_VERSION,
+        dataset_id="tool-loop-live-multiturn-cases",
+        dataset_version="1",
+        dataset_sha256=_cases_sha256(selected),
+        price_table=price_table,
+        price_table_sha256=price_sha_for_ledger,
+    )
+
     records: list[dict[str, Any]] = []
     started = datetime.now(UTC)
     try:
         for case in selected:
+            model = OpenAIToolCallingLanguageModel(model=args.model, request_timeout_seconds=90.0)
+            recorder = ledger.open_case(case.case_id, 1, model)
             record = _run_case(
-                case, model_name=args.model, provider=provider, normalizer=normalizer
+                case, model=model, recorder=recorder, provider=provider, normalizer=normalizer
             )
+            _finish_trace(recorder, record)
             records.append(record)
             status = "PASS" if record.get("passed") else "FAIL"
             print(
@@ -733,6 +774,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         "cases": records,
     }
     args.output.mkdir(parents=True)
+    payload["live_artifacts"] = ledger.write(args.output)
     (args.output / "report.json").write_text(
         json.dumps(payload, ensure_ascii=False, indent=2, default=str) + "\n",
         encoding="utf-8",

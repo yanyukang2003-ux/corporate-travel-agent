@@ -1,0 +1,144 @@
+{
+  "runner_version": "tool-loop-live-multiturn-runner-v1",
+  "prompt_version": "tool-loop-v3",
+  "architecture": "tool-loop",
+  "entrypoint": "agentic",
+  "inventory": "duffel_liteapi",
+  "clock": "2026-08-19T15:00:00+08:00",
+  "started_at": "2026-09-01T17:26:34.832035+00:00",
+  "generated_at": "2026-09-01T17:27:00.541956+00:00",
+  "model": "deepseek-v4-pro",
+  "cases_total": 1,
+  "passed": 1,
+  "total": 1,
+  "llm_calls": 4,
+  "input_tokens": 14871,
+  "output_tokens": 773,
+  "provider_search_calls": 2,
+  "estimated_cost_usd": 0.007141395000000001,
+  "price_table_version": "model-prices-openai-20260802-v1",
+  "price_table_sha256": "dd2a754fb067cbb147677d6d75ac462f4f327480776696fadc8c6547cbdbbf46",
+  "currency": "USD",
+  "limitations": [
+    "Duffel Test Mode sandbox; schedules and prices are not production data.",
+    "No orders, payments, or live booking.",
+    "Clock is frozen at 2026-08-19 so 8月5号 is expired.",
+    "September dates are live Duffel Test Mode searches."
+  ],
+  "cases": [
+    {
+      "case_id": "LM-05",
+      "title": "过期信息：先给已经过去的 8月5号，再改口成 9月15号",
+      "category": "stale",
+      "turns": [
+        "8月5号从北京去上海开会，不住酒店",
+        "搞错了，是9月15号上午10点前到"
+      ],
+      "snapshots": [
+        {
+          "turn": 0,
+          "said": "8月5号从北京去上海开会，不住酒店",
+          "state": "NEEDS_CLARIFICATION",
+          "asked": true,
+          "question": "8月5号已经过去了（现在是8月19号）。您说的开会日期是不是写错了？还是指别的日期？\n\n请确认一下您要出发去上海开会的具体日期，我再帮您查。",
+          "option_count": 0,
+          "searches": [
+            {
+              "origin": "Beijing",
+              "destination": "Shanghai",
+              "arrive_by": "2026-08-05T09:00:00+08:00",
+              "arrive_date": "2026-08-05",
+              "ok": false,
+              "error": ""
+            }
+          ],
+          "executed_routes": [],
+          "refused_routes": [
+            "Beijing->Shanghai ()"
+          ],
+          "provider_calls": 1,
+          "failure": null
+        },
+        {
+          "turn": 1,
+          "said": "搞错了，是9月15号上午10点前到",
+          "state": "WAITING_FOR_USER",
+          "asked": true,
+          "question": "返程日期/时间尚未确定，需要时告诉我再帮您查回程",
+          "option_count": 3,
+          "searches": [
+            {
+              "origin": "Beijing",
+              "destination": "Shanghai",
+              "arrive_by": "2026-09-15T10:00:00",
+              "arrive_date": "2026-09-15",
+              "ok": true,
+              "error": ""
+            }
+          ],
+          "executed_routes": [
+            "Beijing->Shanghai"
+          ],
+          "refused_routes": [],
+          "provider_calls": 2,
+          "failure": null
+        }
+      ],
+      "state": "WAITING_FOR_USER",
+      "question": "返程日期/时间尚未确定，需要时告诉我再帮您查回程",
+      "option_count": 3,
+      "legs": [
+        [
+          "Beijing",
+          "Shanghai"
+        ]
+      ],
+      "provider_search_calls": 2,
+      "checks": [
+        {
+          "name": "asks_on_the_first_gap",
+          "ok": true,
+          "detail": "state=NEEDS_CLARIFICATION question='8月5号已经过去了（现在是8月19号）。您说的开会日期是不是写错了？还是指别的日期？\\n\\n请确认一下您要出发去上海开会的具体日期，我再帮您查。'"
+        },
+        {
+          "name": "question_names_the_gap",
+          "ok": true,
+          "detail": "expected one of ('过', '过去', '改期', '哪天', '日期', '9') in '8月5号已经过去了（现在是8月19号）。您说的开会日期是不是写错了？还是指别的日期？\\n\\n请确认一下您要出发去上海开会的具体日期，我再帮您查。 返程日期/时间尚未确定，需要时告诉我再帮您查回程'"
+        },
+        {
+          "name": "expired_date_was_not_searched",
+          "ok": true,
+          "detail": "executed dates []"
+        },
+        {
+          "name": "corrected_date_was_searched",
+          "ok": true,
+          "detail": "missing []; executed ['2026-09-15']"
+        },
+        {
+          "name": "first_leg_was_actually_handled",
+          "ok": true,
+          "detail": "expected ('Beijing', 'Shanghai') among [('Beijing', 'Shanghai')]"
+        }
+      ],
+      "passed": true,
+      "llm_calls": 4,
+      "input_tokens": 14871,
+      "output_tokens": 773
+    }
+  ],
+  "live_artifacts": {
+    "traces_file": "traces.jsonl",
+    "traces_sha256": "862e741667fccbf8116784e29d702706f4bd71c8032e7c65bb821e951d4c97e3",
+    "trace_count": 1,
+    "cost_ledger_file": "cost-ledger.jsonl",
+    "cost_ledger_sha256": "51ffdea41b35ff2998147efdf6f445f918dfc14a2e5a01b717207507f84ddede",
+    "cost_summary_file": "cost-summary.json",
+    "cost_summary_sha256": "36c18c4e8e5a9cd070f7af271e0f904a6f04b2fab1c24061c9289250b1ae1a5d",
+    "retry_cap_check_file": "retry-cap-check.json",
+    "retry_cap_check_sha256": "c5389ae3dd5b2f674e462a8f2750153e8a7987bec99db3b2ffe8527a0b018c5b",
+    "estimated_cost_usd": 0.007141395,
+    "cost_complete": true,
+    "retry_cap_passed": true
+  }
+}
