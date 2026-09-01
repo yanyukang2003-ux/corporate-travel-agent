@@ -32,8 +32,8 @@
 - **§39 空段说明 + v3 评测** —— ✅ 空段写进方案摘要；日历 6/8、多城 7/8；Judge 60 条均分 4.57
 - **§40 真实多轮** —— ✅ DeepSeek + Duffel 沙箱，缺信息 / 语序颠倒 / 过期改口 **6/6**
 
-**产品入口变了：** 前端新建任务走 `/agentic/trip-tasks`，不是 `/semantic/trip-tasks`。
-语义入口还在，给评测和回滚用。见 §38。
+**产品入口只剩一条：** 前端新建任务走 `/agentic/trip-tasks`。语义入口已删（ADR-0003），
+冻结评测集经工具循环的离线替身执行（D16）。
 
 ### 1.2 现在能做什么 / 不能做什么
 
@@ -58,8 +58,8 @@
 
 ### 1.3 关键路径与入口
 
-- **前端新建任务走 `/agentic/trip-tasks`**（§38 已切换）；语义入口 `/semantic/trip-tasks` 保留给评测和回滚
-- 旧链路 `/legacy/trip-tasks` 仍是 ADR-0002 的回滚保险，**不可从语义/工具循环任务到达**
+- **自然语言入口只有 `/agentic/trip-tasks`**（工具循环）；结构化入口 `/trip-tasks`。语义、legacy 两条已删（ADR-0003）
+- 管控与闭环接口：`/trip-tasks/{id}/booking-confirmation`、`/approvals/inbox`、`/outbox/*`、`/expenses/*`、`/trips/*`、`/metrics/business`、`/duty-of-care`、`/budgets`
 - 真实模型：DeepSeek `deepseek-v4-pro`；Provider：Duffel + LiteAPI **沙箱只读**
 - 工具循环提示词版本：`tool-loop-v3`
 
@@ -122,17 +122,26 @@ Intake 修复已进代码：跳年、条件酒店、闲聊不 OOS、预算后仍
 
 ---
 
-## 2. 本会话主线做了什么
+## 2. 本会话主线做了什么（2026-09-01）
 
-按 §18.3 **I** 做能力边界披露。没有补缺槽闲聊，没有重跑 D14，没有计费 smoke，没有重复 A–H。
+方向由项目所有者定：**不上线，做一个达到可上线标准的演示；交通库存只用国外（Duffel / LiteAPI 沙箱），
+国内供应商拿不到 API 就不装**；直接做管控和数据闭环。计划写在 `docs/product-gap-review.md` §6.8，
+一项一提交，每项的落地都写进 `docs/architecture.md`。
 
-1. 读 HANDOFF，确认 A–H 已完，下一优先是 I / D6  
-2. **I 能力边界**：儿童/婴儿、签证护照、选座/里程卡、开口票/缺口程/多城、已出票改签退票、无障碍/宠物  
-3. 能力边界改分层：模型填 `unsupported_capabilities`，宿主强制披露+禁搜；成功抽取且列表为空则信任模型（如「签证中心」当会面地点）  
-4. 无模型/抽取失败才用用户文本正则兜底，避免 LLM 宕机时装满足  
-5. 验收：`examples/run_capability_boundary_acceptance.py` **8/8**；报告见 §22  
+| 提交 | 做了什么 | 落地文档 |
+|---|---|---|
+| `077a5ef` | 复盘（§六）：企业为什么买、差距在哪；记下演示定位和 §6.8 六项计划 | `docs/product-gap-review.md` §6.0–6.8 |
+| 更早 | 下单确认回流 `BOOKING_CONFIRMED`；工具循环离线替身 + D16 门禁；删除 legacy / semantic 两条入口（ADR-0003，−26,885 行） | `docs/adr/0003`，§3 |
+| `53c4e74` | 政策维度：提前预订天数、淡旺季上限、成本中心预算；预算账本读下单确认，规划时钉成快照 | §5.2 |
+| `fc78cec` | 分级审批（`approval_tiers`）+ 事务性发件箱 + 投递 worker / 通道（日志、webhook HMAC、模拟 OA） | §4.2 |
+| `9d9dfb5` | 代订：发起人 ≠ 旅行者，委托名单单向，差标/审批/预算全看旅行者 | §9 |
+| `ee7c373` | 费控对账：导入报销记录按旅行者 + 订单号匹配；渠道外预订率第一次有真值 | §4.3 |
+| `d6090e8` | `Trip` 聚合 + 观察对象；航变 / 会议改期事件开**新的**改期任务，原任务不动；变更场景人工介入率 | §4.4 |
+| `5f2e642` `079acb6` | 管理端看板：业务指标、谁在哪（只用确认过的行程）、预算消耗（已确认 / 在途分开）；浏览器里实际看过 | §4.5 |
 
-更早会话（A–H、DeepSeek 24/24、Duffel 重验、D14）仍有效。
+验收基线（最后一次全量）：ruff 全绿，pytest **777 passed**，前端 build / 57 个 util 测试 / oxlint 全过，
+alembic 在 SQLite 上 upgrade → downgrade → upgrade 通过（head `0010_trips`）。演示指标报告：
+`reports/evaluation-runs/business-outcomes-demo-20260901-trips`。
 
 ---
 
@@ -358,18 +367,15 @@ export DOCKER_HOST="unix://${HOME}/.colima/default/docker.sock"
 
 | 优先级 | 事项 |
 |---|---|
-| **P0 待拍板** | 前端新建任务切到语义入口（`App.tsx` 一行；D15 并排数据已具备，见 §23.1） |
-| **P0 建议下一步** | §18.3 A–I 九类红队 runner 接语义入口（本轮只接了 D1/D2 主集，见 §23.8） |
-| P0 | §18.3 J：把直播坏案例脱敏后进 D6（目前 D6 仍为 0）；或 D4 24 题计费复测（需 `--confirm-billable`） |
-| P1 | Judge 真实计费跑一次 + 找第二个标注者做人工双评（现为单标注者单轮，见 §23.5） |
-| P1 | `recover_interrupted_tasks()` 仍 `list_tasks()` 全表；10 万行场景启动恢复会反序列化历史行（claim 扫描已走索引） |
-| P2 | 改航/补槽 merge 语义分层 + 槽 provenance 全链路（换目的地、改出发地、改单程/酒店/会议/返程已做） |
-| ~~P2~~ 已完成 | 前端「我的差旅 / 政策 / 审计」演示数据已清除，改接真 API（见 §23.6） |
-| P3 | CLI `--case-id` 单题调试 |
-| 已完成 | DeepSeek 24/24、24×3、Duffel 重验、D14、参数环、多轮 LLM、intake 红队、§18.3 A–I、D15 语义入口评测、LLM Judge 链路、前端去演示数据 |
-| B | 可选人工抽检意图金标 / 输出质量 / 影子幻觉 |
-| D | 系统事件全剧本加深 |
-| E | 02/04–07 盲填大表：**默认不做** |
+| **P0 待拍板** | 仓库里有一批未跟踪的报告目录（`reports/evaluation-runs/agentic-*`、`semantic-live-*`、`step0-*`、`business-outcomes-demo-20260831`），要不要入库 |
+| **P0 建议下一步** | 拆编排器：`agent/orchestrator.py` 已过 3,300 行，`Trip` 逻辑又加了 200 行；先按"创建 / 规划 / 审批 / 确认与改期"拆成模块，行为不变、测试不动 |
+| P1 | ADR-0003 留下的：给工具循环重建真实模型评测 harness；对抗集重接产品入口（删除前的红队 runner 只接过语义入口） |
+| P1 | 差旅与任务不在同一笔事务（先任务后差旅）：改期任务建了而差旅没记上时 `find_by_task` 找不到它——要么合并到一笔事务，要么加修复扫描 |
+| P1 | `recover_interrupted_tasks()` 仍 `list_tasks()` 全表；10 万行场景启动恢复会反序列化历史行 |
+| P2 | 谁在哪只有航段没有酒店段：落地之后到退房之间只知道"在目的地城市"，不知道住哪 |
+| P2 | 预算账本把改期前后两张票都算支出，退款要等费控对账；看板上没有单独标出 |
+| P3 | 航变事件目前由管理员手工报或脚本模拟；接真实航司/供应商推送要加签名校验，和 webhook 通道一样 |
+| 不做 | 自动下单 / 付款（硬边界）；国内交通供应商（拿不到 API，演示只用国外库存） |
 
 ---
 
