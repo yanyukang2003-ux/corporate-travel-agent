@@ -583,3 +583,72 @@ export interface StructuredTripCreate {
 export interface ApiErrorBody {
   detail?: string | { msg: string }[]
 }
+
+/** 一个业务指标：`measured` 才有值；分母为零一律 `unavailable`，不写 0。 */
+export interface MetricResult {
+  status: 'measured' | 'unavailable' | 'not_applicable' | string
+  value: number | null
+  numerator: number | null
+  denominator: number | null
+  unit: string | null
+  exposure_note?: string | null
+  confidence_note?: string | null
+}
+
+/** `GET /metrics/business`：最近任务的业务结果指标。 */
+export interface BusinessMetricsReport {
+  generated_at: string
+  task_count: number
+  expense_records_imported: number
+  metrics: Record<string, MetricResult>
+  labels: Record<string, string>
+}
+
+export type WhereaboutsStatus = 'UPCOMING' | 'IN_TRANSIT' | 'AT_DESTINATION' | 'COMPLETED'
+
+export interface WatchLeg {
+  ref_id: string
+  provider: string
+  origin: string
+  destination: string
+  depart_at: string
+  arrive_at: string
+}
+
+/** 一位旅行者此刻在哪——只来自确认过的行程。 */
+export interface TravelerWhereabouts {
+  trip_id: string
+  task_id: string
+  traveler_id: string
+  requester_id: string
+  status: WhereaboutsStatus
+  location: string
+  current_leg: WatchLeg | null
+  next_leg: WatchLeg | null
+  trip_status: string
+  change_pending: boolean
+  watch_until: string
+}
+
+export interface DutyOfCareResponse {
+  at: string
+  travelers: TravelerWhereabouts[]
+}
+
+/** 一个成本中心的预算行：额度、账本支出、已交接未确认的在途金额。 */
+export interface BudgetLine {
+  cost_center: string
+  currency: string
+  limit: string
+  period_from: string
+  period_to: string
+  spent: string | null
+  committed: string
+  remaining: string | null
+  ledger_available: boolean
+}
+
+export interface BudgetsResponse {
+  policy_snapshot_id: string
+  budgets: BudgetLine[]
+}

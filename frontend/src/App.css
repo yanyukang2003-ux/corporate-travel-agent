@@ -724,3 +724,27 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px
 /* 为谁出差 */
 .traveler-select { display: inline-flex; align-items: center; gap: 6px; font-size: 9px; color: var(--muted); }
 .traveler-select select { height: 26px; padding: 0 6px; border: 1px solid #bdc9c4; background: #fff; color: var(--ink); font-size: 10px; }
+
+/* 管理看板 */
+.dashboard-page { display: flex; flex-direction: column; gap: 24px; }
+.dashboard-section { background: var(--surface, #fff); border: 1px solid var(--line, #e6e8ec); border-radius: 14px; padding: 18px 20px; }
+.dashboard-section .section-head { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 14px; }
+.dashboard-section h2 { margin: 0 0 4px; font-size: 16px; }
+.dashboard-section .muted { color: var(--muted, #6b7280); font-size: 12px; }
+.kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin-bottom: 14px; }
+.kpi-card { display: flex; flex-direction: column; gap: 4px; padding: 14px; border-radius: 12px; background: var(--surface-2, #f6f7f9); border: 1px solid transparent; }
+.kpi-card small { color: var(--muted, #6b7280); font-size: 12px; }
+.kpi-card b { font-size: 24px; font-weight: 600; letter-spacing: -0.01em; }
+.kpi-card.unmeasured b { color: var(--muted, #6b7280); font-size: 16px; }
+.metric-table .table-head, .metric-table .table-row { grid-template-columns: 2fr 1fr 1fr 3fr; }
+.whereabouts-table .table-head, .whereabouts-table .table-row { grid-template-columns: 1.4fr 0.8fr 1fr 2.4fr 0.8fr 1fr; }
+.budget-list { display: flex; flex-direction: column; gap: 14px; }
+.budget-line { display: flex; flex-direction: column; gap: 8px; }
+.budget-head { display: flex; justify-content: space-between; align-items: baseline; }
+.budget-bar { height: 10px; border-radius: 999px; background: var(--surface-2, #eef0f3); overflow: hidden; }
+.budget-bar i { display: block; height: 100%; border-radius: 999px; background: #2f855a; transition: width .3s ease; }
+.budget-bar.warn i { background: #d69e2e; }
+.budget-bar.over i { background: #c53030; }
+.budget-bar.unknown i { background: #a0aec0; width: 0; }
+.budget-facts { display: flex; flex-wrap: wrap; gap: 16px; font-size: 13px; }
+.budget-facts b { font-weight: 600; }

@@ -9,7 +9,7 @@ from __future__ import annotations
 import os
 from contextlib import asynccontextmanager
 from dataclasses import asdict
-from datetime import date, datetime
+from datetime import UTC, date, datetime
 from decimal import Decimal
 from typing import Annotated, Any
 from uuid import uuid4
@@ -49,6 +49,7 @@ from corporate_travel_agent.services.auth import (
     UserIdentity,
 )
 from corporate_travel_agent.services.evaluation_business import (
+    METRIC_LABELS,
     build_business_metrics_report,
 )
 from corporate_travel_agent.services.object_storage import (
@@ -1097,7 +1098,101 @@ def business_metrics(
     report = build_business_metrics_report(
         tasks, events, expense_records=expense_store.list_records(limit=limit)
     )
-    return report.model_dump(mode="json")
+    payload = report.model_dump(mode="json")
+    payload["labels"] = dict(METRIC_LABELS)
+    return payload
+
+
+@app.get("/duty-of-care")
+def duty_of_care(
+    identity: CurrentIdentity,
+    at: datetime | None = None,
+    include_completed: bool = False,
+    limit: int = 500,
+) -> dict[str, Any]:
+    """谁在哪：从已确认行程的航段推出每位旅行者此刻的位置。只对管理员开放。
+
+    只用系统里有的事实——员工回填了下单确认的那份方案。没确认的行程不在这里：
+    系统不知道人到底订没订，就不假装知道人在哪。
+    """
+    if not identity.has_role(Role.ADMIN):
+        raise HTTPException(status_code=403, detail="Admin role required")
+    if not 1 <= limit <= 2000:
+        raise HTTPException(status_code=400, detail="limit must be between 1 and 2000")
+    from corporate_travel_agent.services.duty_of_care import whereabouts
+
+    moment = at or workflow.clock()
+    if moment.tzinfo is None:
+        moment = moment.replace(tzinfo=UTC)
+    rows = whereabouts(
+        workflow.trips.list_all(limit=limit), at=moment, include_completed=include_completed
+    )
+    return {
+        "at": moment,
+        "travelers": [
+            {
+                **asdict(item),
+                "status": item.status.value,
+                "trip_status": item.trip_status.value,
+            }
+            for item in rows
+        ],
+    }
+
+
+@app.get("/budgets")
+def budgets(identity: CurrentIdentity, limit: int = 200) -> dict[str, Any]:
+    """成本中心预算消耗：政策里的额度、账本里确认过的支出、已交接还没确认的在途金额。
+
+    "在途"是选定方案的价格——人拿着链接去订了、还没回来填单号；它没进账本，
+    但看板上要能看见，不然预算会在回填的那一刻突然跳一截。
+    """
+    if not identity.has_role(Role.ADMIN):
+        raise HTTPException(status_code=403, detail="Admin role required")
+    if not 1 <= limit <= 500:
+        raise HTTPException(status_code=400, detail="limit must be between 1 and 500")
+    policy = workflow.policies.current()
+    ledger = workflow.budget_ledger
+    committed: dict[tuple[str, str], Decimal] = {}
+    for summary in workflow.tasks.list_task_summaries(limit=limit):
+        if summary.state not in {"READY_FOR_HANDOFF", "HANDED_OFF"}:
+            continue
+        try:
+            task = workflow.tasks.get(summary.task_id)
+        except NotFoundError:
+            continue
+        option = task.selected_option()
+        if option is None or task.employee.cost_center is None:
+            continue
+        key = (task.employee.cost_center, option.currency)
+        committed[key] = committed.get(key, Decimal("0")) + option.total_cost
+    lines = []
+    for budget in policy.cost_center_budgets.values():
+        spent = (
+            ledger.spent(
+                budget.cost_center,
+                currency=budget.currency,
+                period_from=budget.period_from,
+                period_to=budget.period_to,
+            )
+            if ledger is not None
+            else None
+        )
+        in_flight = committed.get((budget.cost_center, budget.currency), Decimal("0"))
+        lines.append(
+            {
+                "cost_center": budget.cost_center,
+                "currency": budget.currency,
+                "limit": str(budget.amount),
+                "period_from": budget.period_from,
+                "period_to": budget.period_to,
+                "spent": str(spent) if spent is not None else None,
+                "committed": str(in_flight),
+                "remaining": str(budget.amount - spent) if spent is not None else None,
+                "ledger_available": ledger is not None,
+            }
+        )
+    return {"policy_snapshot_id": policy.snapshot_id, "budgets": lines}
 
 
 @app.get("/trip-tasks/{task_id}/audit-events")

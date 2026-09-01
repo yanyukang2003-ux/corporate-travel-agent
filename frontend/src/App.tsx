@@ -21,12 +21,16 @@ import type {
   TravelOption,
   TripTask,
   UserIdentity,
+  BusinessMetricsReport,
+  DutyOfCareResponse,
+  BudgetsResponse,
 } from './api/types'
 import { formatTravelDate, formatTravelTime, getStateMeta, parseIsoWallClock } from './utils/state'
 import { approvalReasonText, factsForOptionCard, openQuestionsFromTask } from './utils/notices'
 import { chatTurns } from './utils/chat'
 import { costNotes, money as moneyText } from './utils/cost'
 import { confirmationSummary, parseOrderReferences, reconciliationText } from './utils/booking'
+import { KPI_KEYS, formatMetric, metricSample, utilisation, utilisationTone, whereaboutsLabel, whereaboutsTone } from './utils/dashboard'
 import type { CostNote } from './utils/cost'
 import { categoriesFromFacts, rankedBreakdowns } from './utils/scoring'
 import type { ChatTurn } from './utils/chat'
@@ -42,7 +46,7 @@ import {
 } from './utils/draft'
 
 /** 工作台主视图枚举。 */
-type View = 'plan' | 'trips' | 'approvals' | 'policy' | 'audit'
+type View = 'dashboard' | 'plan' | 'trips' | 'approvals' | 'policy' | 'audit'
 /** 侧栏/页面文案所用的工作区角色。 */
 type WorkspaceRole = 'employee' | 'approver' | 'admin'
 /** 内联 SVG 图标名称。 */
@@ -54,6 +58,7 @@ type IconName =
   | 'shield'
   | 'plus'
   | 'bell'
+  | 'chart'
   | 'arrow'
   | 'train'
   | 'plane'
@@ -78,7 +83,7 @@ function workspaceRole(user: UserIdentity): WorkspaceRole {
 
 /** 按角色返回可见导航视图列表。 */
 function allowedViews(user: UserIdentity): View[] {
-  if (user.roles.includes('admin')) return ['trips', 'policy', 'audit']
+  if (user.roles.includes('admin')) return ['dashboard', 'trips', 'policy', 'audit']
   const views: View[] = []
   if (user.roles.includes('employee')) views.push('plan', 'trips')
   if (user.roles.includes('approver')) {
@@ -91,7 +96,7 @@ function allowedViews(user: UserIdentity): View[] {
 
 /** 登录后默认落地视图。 */
 function defaultView(user: UserIdentity): View {
-  if (user.roles.includes('admin')) return 'trips'
+  if (user.roles.includes('admin')) return 'dashboard'
   if (user.roles.includes('approver') && !user.roles.includes('employee')) return 'approvals'
   if (user.roles.includes('employee')) return 'plan'
   return 'policy'
@@ -106,9 +111,9 @@ function navigationFor(
   const labels: Record<WorkspaceRole, Partial<Record<View, string>>> = {
     employee: { plan: '智能规划', trips: '我的差旅', approvals: '待我审批', policy: '差旅政策' },
     approver: { approvals: '待我审批', trips: '团队差旅', policy: '差旅政策' },
-    admin: { trips: '任务总览', policy: '政策管理', audit: '审计与系统' },
+    admin: { dashboard: '管理看板', trips: '任务总览', policy: '政策管理', audit: '审计与系统' },
   }
-  const icons: Record<View, IconName> = { plan: 'spark', trips: 'briefcase', approvals: 'check', policy: 'book', audit: 'shield' }
+  const icons: Record<View, IconName> = { dashboard: 'chart', plan: 'spark', trips: 'briefcase', approvals: 'check', policy: 'book', audit: 'shield' }
   return allowedViews(user).map((id) => ({
     id,
     label: labels[role][id] ?? id,
@@ -321,6 +326,7 @@ function Icon({ name, size = 18 }: { name: IconName; size?: number }) {
     shield: <><path d="M12 3 4.5 6v5.2c0 4.2 3 8 7.5 9.8 4.5-1.8 7.5-5.6 7.5-9.8V6L12 3Z"/><path d="m9 12 2 2 4-4"/></>,
     plus: <path d="M12 5v14M5 12h14"/>,
     bell: <><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9ZM10 21h4"/></>,
+    chart: <><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></>,
     arrow: <><path d="M5 12h14M14 7l5 5-5 5"/></>,
     train: <><rect x="5" y="3" width="14" height="15" rx="4"/><path d="M8 7h8M7 12h10M8 21l3-3M16 21l-3-3M9 15h.01M15 15h.01"/></>,
     plane: <path d="m3 11 18-7-6 16-3.5-6L3 11Zm8.5 3L21 4"/>,
@@ -414,7 +420,7 @@ function Sidebar({ activeView, onChange, user, onLogout }: {
                 onClick={() => {
                   switchDevelopmentRole(role)
                   setAccountOpen(false)
-                  onChange(role === 'employee' ? 'plan' : role === 'approver' ? 'approvals' : 'trips')
+                  onChange(role === 'employee' ? 'plan' : role === 'approver' ? 'approvals' : 'dashboard')
                 }}
               >
                 {label}
@@ -489,6 +495,7 @@ function Header({ activeView, onNewTrip, user, onLogout }: {
 }) {
   const role = workspaceRole(user)
   const titles: Record<View, string> = {
+    dashboard: '管理看板',
     plan: '智能规划',
     trips: role === 'admin' ? '任务总览' : role === 'approver' ? '团队差旅' : '我的差旅',
     approvals: '审批中心',
@@ -1805,6 +1812,129 @@ function TimelinePanel({ task }: { task: TripTask }) {
 }
 
 /** 差旅列表视图：全部行来自 `GET /trip-tasks`，不含演示数据。 */
+/** 管理看板：业务指标、谁在哪、预算消耗。三块都只读，都只对管理员开放。 */
+function DashboardView() {
+  const [report, setReport] = useState<BusinessMetricsReport | null>(null)
+  const [dutyOfCare, setDutyOfCare] = useState<DutyOfCareResponse | null>(null)
+  const [budgets, setBudgets] = useState<BudgetsResponse | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+
+  useEffect(() => {
+    let cancelled = false
+    setLoading(true)
+    Promise.all([api.businessMetrics(200), api.dutyOfCare(), api.budgets()])
+      .then(([metrics, whereabouts, budgetLines]) => {
+        if (cancelled) return
+        setReport(metrics)
+        setDutyOfCare(whereabouts)
+        setBudgets(budgetLines)
+        setError('')
+      })
+      .catch((err) => {
+        if (!cancelled) setError(err instanceof Error ? err.message : '读取看板数据失败')
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  const metrics = report?.metrics ?? {}
+  const labels = report?.labels ?? {}
+  const otherKeys = Object.keys(metrics).filter((key) => !(KPI_KEYS as readonly string[]).includes(key))
+
+  return <div className="page dashboard-page">
+    <div className="page-heading compact"><div><div className="eyebrow">管理看板</div><h1>业务结果、谁在哪、预算消耗</h1><p>三块都只读；数据只来自系统里真实发生过的任务和员工回填的确认。</p></div></div>
+    {error && <div className="task-empty-state"><span><Icon name="info" size={22} /></span><div><b>读取看板数据失败</b><p>{error}</p></div></div>}
+    {!error && loading && <div className="task-empty-state"><span><Icon name="spark" size={22} /></span><div><b>正在读取看板数据…</b></div></div>}
+
+    <section className="dashboard-section">
+      <div className="section-head">
+        <div>
+          <h2>业务结果</h2>
+          <p className="muted">最近 {report?.task_count ?? 0} 个任务。测不出来的指标就写测不出来，不写 0。</p>
+        </div>
+      </div>
+      <div className="kpi-grid">
+        {KPI_KEYS.map((key) => {
+          const metric = metrics[key]
+          return <div className={`kpi-card ${metric?.status === 'measured' ? '' : 'unmeasured'}`.trim()} key={key}>
+            <small>{labels[key] ?? key}</small>
+            <b>{formatMetric(metric)}</b>
+            <span className="muted">{metricSample(metric)}</span>
+          </div>
+        })}
+      </div>
+      {otherKeys.length > 0 && <div className="data-table metric-table">
+        <div className="table-head"><span>指标</span><span>值</span><span>样本</span><span>说明</span></div>
+        {otherKeys.map((key) => <div className="table-row readonly" key={key}>
+          <span>{labels[key] ?? key}</span>
+          <span><b>{formatMetric(metrics[key])}</b></span>
+          <span className="muted">{metricSample(metrics[key])}</span>
+          <span className="muted">{metrics[key]?.confidence_note ?? ''}</span>
+        </div>)}
+      </div>}
+    </section>
+
+    <section className="dashboard-section">
+      <div className="section-head">
+        <div>
+          <h2>谁在哪</h2>
+          <p className="muted">只来自员工回填了下单确认的行程；没确认的系统不知道人在哪，就不猜。{dutyOfCare ? ` 截至 ${new Date(dutyOfCare.at).toLocaleString()}。` : ''}</p>
+        </div>
+      </div>
+      {dutyOfCare && dutyOfCare.travelers.length === 0 && <div className="task-empty-state"><span><Icon name="info" size={22} /></span><div><b>当前没有确认过、还在观察期内的行程</b><p>员工回填下单确认后，这里才会出现他的位置。</p></div></div>}
+      {dutyOfCare && dutyOfCare.travelers.length > 0 && <div className="data-table whereabouts-table">
+        <div className="table-head"><span>旅行者</span><span>状态</span><span>位置</span><span>当前 / 下一段</span><span>任务</span><span /></div>
+        {dutyOfCare.travelers.map((row) => {
+          const leg = row.current_leg ?? row.next_leg
+          return <div className="table-row readonly" key={row.trip_id}>
+            <span>{row.traveler_id}{row.requester_id !== row.traveler_id ? <small className="muted"> · {row.requester_id} 代订</small> : null}</span>
+            <span><Badge tone={whereaboutsTone(row.status)}>{whereaboutsLabel(row.status)}</Badge></span>
+            <span>{row.location}</span>
+            <span className="muted">{leg ? `${leg.ref_id} ${leg.origin}→${leg.destination} ${new Date(leg.depart_at).toLocaleString()}` : '—'}</span>
+            <span className="mono">{row.task_id.slice(0, 8)}</span>
+            <span>{row.change_pending ? <Badge tone="orange">改期未订好</Badge> : null}</span>
+          </div>
+        })}
+      </div>}
+    </section>
+
+    <section className="dashboard-section">
+      <div className="section-head">
+        <div>
+          <h2>预算消耗</h2>
+          <p className="muted">额度来自政策 {budgets?.policy_snapshot_id ?? ''}；支出是账本里确认过的，在途是已交接还没回填的。</p>
+        </div>
+      </div>
+      {budgets && budgets.budgets.length === 0 && <div className="task-empty-state"><span><Icon name="info" size={22} /></span><div><b>当前政策没有配成本中心预算</b><p>在政策快照的 <code>cost_center_budgets</code> 里配额度，这里才有东西可看。</p></div></div>}
+      {budgets && budgets.budgets.length > 0 && <div className="budget-list">
+        {budgets.budgets.map((line) => {
+          const ratio = utilisation(line.spent, line.limit)
+          const tone = utilisationTone(ratio)
+          return <div className="budget-line" key={`${line.cost_center}-${line.currency}`}>
+            <div className="budget-head">
+              <b>{line.cost_center}</b>
+              <span className="muted">{line.period_from} – {line.period_to} · {line.currency}</span>
+            </div>
+            <div className={`budget-bar ${tone}`}><i style={{ width: `${Math.round((ratio ?? 0) * 100)}%` }} /></div>
+            <div className="budget-facts">
+              <span>额度 <b>{line.limit}</b></span>
+              <span>已确认 <b>{line.spent ?? '账本未接'}</b></span>
+              <span>在途 <b>{line.committed}</b></span>
+              <span>剩余 <b>{line.remaining ?? '—'}</b></span>
+              <span className="muted">{ratio === null ? '' : `${Math.round(ratio * 100)}%`}</span>
+            </div>
+          </div>
+        })}
+      </div>}
+    </section>
+  </div>
+}
+
 function TripsView({ mode, onOpen }: { mode: WorkspaceRole; onOpen: (() => void) | null }) {
   const [rows, setRows] = useState<TaskSummary[]>([])
   const [loading, setLoading] = useState(true)
@@ -2148,6 +2278,7 @@ function App() {
         <Header activeView={visibleView} onNewTrip={canPlan ? startNewTrip : null} user={user} onLogout={authEnabled ? logout : null} />
         {/* 按可见视图切换主内容区；plan 用 hidden 保活以便新建差旅重置 */}
         {canPlan && <div className="workspace-view" hidden={visibleView !== 'plan'}><PlanView onToast={showToast} composerEpoch={composerEpoch} onNewTrip={startNewTrip} /></div>}
+        {visibleView === 'dashboard' && <DashboardView />}
         {visibleView === 'trips' && <TripsView mode={role} onOpen={canPlan ? startNewTrip : null} />}
         {visibleView === 'approvals' && <ApprovalsView onToast={showToast} />}
         {visibleView === 'policy' && <PolicyView mode={role} />}

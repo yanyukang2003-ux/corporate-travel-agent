@@ -7,6 +7,9 @@ import type {
   ApiErrorBody,
   AuditEvent,
   BookingConfirmationCreate,
+  BudgetsResponse,
+  BusinessMetricsReport,
+  DutyOfCareResponse,
   HealthResponse,
   LoginResponse,
   StructuredTripCreate,
@@ -227,4 +230,20 @@ export const api = {
   /** 读取近期跨任务审计事件（仅管理员）。 */
   recentAuditEvents: (limit = 50) =>
     request<AuditEvent[]>(`/audit-events?limit=${limit}`),
+
+  /** 业务结果指标（仅管理员）。 */
+  businessMetrics: (limit = 200) =>
+    request<BusinessMetricsReport>(`/metrics/business?limit=${limit}`),
+
+  /** 谁在哪：确认过的行程此刻的位置（仅管理员）。 */
+  dutyOfCare: (params?: { at?: string; include_completed?: boolean }) => {
+    const q = new URLSearchParams()
+    if (params?.at) q.set('at', params.at)
+    if (params?.include_completed) q.set('include_completed', 'true')
+    const qs = q.toString()
+    return request<DutyOfCareResponse>(`/duty-of-care${qs ? `?${qs}` : ''}`)
+  },
+
+  /** 成本中心预算消耗（仅管理员）。 */
+  budgets: () => request<BudgetsResponse>('/budgets'),
 }
