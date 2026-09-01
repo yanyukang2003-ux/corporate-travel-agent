@@ -12,8 +12,10 @@
 | 指标 | 这里的口径 |
 |---|---|
 | 交接完成率 | 员工点了"我去官方平台订好了"的比例——**渠道内预订率的上限估计** |
+| 确认预订率 | 员工回填了订单号和实付金额的比例——仍是自述，但比"点了一下"多一个订单号和一个数 |
 | 平均耗时 | 从任务第一条审计事件到交接完成的**墙上时间**，含人等审批、人在想 |
-| 提前预订天数 | 交接时刻 → 首段实际出发时刻 |
+| 提前预订天数 | 员工回填的下单时刻（没回填就用交接时刻）→ 首段实际出发时刻 |
+| 实付偏差 | （实付 − 方案价）÷ 方案价，只算币种一致的确认记录 |
 | 超标发生率 | 方案里带"需审批/禁止"证据的比例，分选中和展示两个口径 |
 
 ## 数据从哪来
@@ -45,6 +47,10 @@
 1. **交接完成率不是真实的渠道内预订率。** 分子是员工自己在本系统里点的"订好了"
    （`HANDOFF_COMPLETED`），不是供应商回执。他可能点了却没订，也可能订了不点。
    接到真实预订回执之前，这个数只能当上限估计看，不能当结论。
+   **确认预订率**（`booking_confirmation_rate`）好一截但仍不是回执：分子是员工回填了
+   订单号和实付金额的任务（`BookingConfirmation.source == SELF_REPORTED`）。订单号
+   系统核不了；它比"点了一下"多的是一个具体的号和一个具体的数，少的是核实。
+   两个数之间的差（`booking_confirmation_rate.of_handed_off`）就是交接完成率高估了多少。
 2. **平均耗时是墙上时间，不是系统耗时。** 它包含员工去开会、经理三小时后才批的时间。
    这是故意的：设计思路里"员工订一次复杂行程平均要花半小时到一小时"量的就是墙上时间。
    要看系统自己快不快，看 `evaluation_performance`，不要看这里。
@@ -65,6 +71,7 @@ from __future__ import annotations
 import math
 from collections.abc import Mapping, Sequence
 from datetime import UTC, datetime
+from decimal import Decimal
 from pathlib import Path
 from typing import Literal
 
@@ -99,6 +106,14 @@ TASK_START_EVENT_TYPES: frozenset[str] = frozenset(
 #: 员工确认"我去官方平台订好了"时写的事件。
 HANDOFF_COMPLETED_EVENT_TYPE = "HANDOFF_COMPLETED"
 
+#: 员工回填订单号和实付金额时写的事件。
+BOOKING_CONFIRMED_EVENT_TYPE = "BOOKING_CONFIRMED"
+
+#: 算作"交接过"的状态：点过"我去订了"，或者回填过订单号（回填会先记交接）。
+HANDED_OFF_STATES: frozenset[TaskState] = frozenset(
+    {TaskState.HANDED_OFF, TaskState.BOOKING_CONFIRMED}
+)
+
 #: 算进"超标"的政策结论。`INSUFFICIENT_EVIDENCE`（判不了）不算超标——它是缺数据，
 #: 不是违规，混进来会把两件完全不同的事搅成一个数。
 VIOLATION_OUTCOMES: frozenset[PolicyOutcome] = frozenset(
@@ -128,11 +143,24 @@ class TaskBusinessRecord(BusinessModel):
     handed_off_at: datetime | None
     #: 墙上时间，秒。含人等审批、人在想的时间。
     seconds_to_handoff: float | None
-    #: 交接时刻 → 首段实际出发时刻，天。负数表示出发早于交接（时间线对不上时才会出现）。
+    #: 员工是否回填了订单号和实付金额。**自述，不是回执**——比"点了一下"多的是
+    #: 一个具体的订单号和一个具体的数，少的是核实。
+    booking_confirmed: bool
+    #: 员工说的下单时刻；没回填时为 `None`。
+    booked_at: datetime | None
+    #: 方案价（确认对应方案的 `total_cost`）与实付（回填的 `total_amount`）。没回填时为 `None`。
+    planned_total: Decimal | None
+    actual_total: Decimal | None
+    #: 实付减方案价。币种对不上时为 `None`，配 `confirmation_currency_mismatch` 说明。
+    cost_variance: Decimal | None
+    cost_variance_currency: str | None
+    #: 下单时刻 → 首段实际出发时刻，天。负数表示出发早于下单（时间线对不上时才会出现）。
     advance_days: float | None
-    #: 提前天数用了哪个时刻做起点：审计里的交接事件，还是调用方传进来的冻住时钟。
-    #: 没算出提前天数时是 `None`。
-    advance_days_reference: Literal["handoff_event", "supplied_clock"] | None
+    #: 提前天数用了哪个时刻做起点：员工回填的下单时刻、审计里的交接事件，
+    #: 还是调用方传进来的冻住时钟。没算出提前天数时是 `None`。
+    advance_days_reference: (
+        Literal["booking_confirmation", "handoff_event", "supplied_clock"] | None
+    )
     #: 员工是否已经选定了一条方案。超标发生率的「选中口径」用它做分母——
     #: 没选过的任务既不算合规也不算超标，进分母会把这个数稀释掉。
     has_selected_option: bool
@@ -177,10 +205,18 @@ def summarize_task(
 
     handed_off_at = _first_event_time(events, {HANDOFF_COMPLETED_EVENT_TYPE})
     handed_off = handed_off_at is not None
-    # 状态到了 HANDED_OFF 但没有那条事件，说明审计轨迹缺了一段——记下来，
+    # 状态到了交接之后但没有那条事件，说明审计轨迹缺了一段——记下来，
     # 不要拿状态当时间戳猜一个出来。
-    if task.state is TaskState.HANDED_OFF and not handed_off:
+    if task.state in HANDED_OFF_STATES and not handed_off:
         notes.append("handed_off_state_without_event")
+
+    confirmation = task.booking_confirmation
+    booking_confirmed = confirmation is not None
+    if (
+        task.state is TaskState.BOOKING_CONFIRMED
+        and _first_event_time(events, {BOOKING_CONFIRMED_EVENT_TYPE}) is None
+    ):
+        notes.append("booking_confirmed_state_without_event")
 
     seconds_to_handoff: float | None = None
     if started_at is not None and handed_off_at is not None:
@@ -192,21 +228,58 @@ def summarize_task(
 
     selected = task.selected_option()
     advance_days: float | None = None
-    advance_days_reference: Literal["handoff_event", "supplied_clock"] | None = None
-    # 只有真的交接过的任务才谈得上"提前多少天订"。传了冻住的时钟也不例外——
-    # 它替换的是这一刻的读数，不是"有没有这一刻"。
-    booked_at = (handoff_reference_time or handed_off_at) if handed_off else None
+    advance_days_reference: (
+        Literal["booking_confirmation", "handoff_event", "supplied_clock"] | None
+    ) = None
+    # 起点按证据强弱选：员工回填的下单时刻 > 交接事件。回填的时刻是他说的"我什么时候
+    # 订的"，和出发时刻在同一条时间线上，所以不受冻住时钟的影响——传了
+    # `handoff_reference_time` 也不替换它。没回填的任务退回交接时刻，只有真的交接过
+    # 才谈得上"提前多少天订"；传了冻住的时钟替换的是这一刻的读数，不是"有没有这一刻"。
+    booked_at: datetime | None
+    if confirmation is not None:
+        booked_at = confirmation.booked_at
+        advance_reference: Literal["booking_confirmation", "handoff_event", "supplied_clock"] = (
+            "booking_confirmation"
+        )
+    elif handed_off:
+        booked_at = handoff_reference_time or handed_off_at
+        advance_reference = (
+            "supplied_clock" if handoff_reference_time is not None else "handoff_event"
+        )
+    else:
+        booked_at = None
+        advance_reference = "handoff_event"
     if booked_at is not None:
         departure = _first_departure(task)
         if departure is None:
             notes.append("no_departure_time")
         else:
             advance_days = (departure - booked_at).total_seconds() / 86400.0
-            advance_days_reference = (
-                "supplied_clock" if handoff_reference_time is not None else "handoff_event"
-            )
+            advance_days_reference = advance_reference
             if advance_days < 0:
-                notes.append("departure_before_handoff")
+                notes.append(
+                    "departure_before_booking"
+                    if advance_reference == "booking_confirmation"
+                    else "departure_before_handoff"
+                )
+
+    planned_total: Decimal | None = None
+    actual_total: Decimal | None = None
+    cost_variance: Decimal | None = None
+    cost_variance_currency: str | None = None
+    if confirmation is not None:
+        actual_total = confirmation.total_amount
+        confirmed_option = task.confirmed_option()
+        if confirmed_option is None:
+            notes.append("confirmed_option_missing_from_task")
+        else:
+            planned_total = confirmed_option.total_cost
+            # 差额只有一个算法，在领域对象上；这里只是读出来，并把"为什么没算出来"说清楚。
+            cost_variance = task.booking_cost_variance()
+            if cost_variance is None:
+                notes.append("confirmation_currency_mismatch")
+            else:
+                cost_variance_currency = confirmation.currency
 
     selected_violations: tuple[str, ...] = ()
     if selected is not None:
@@ -223,6 +296,12 @@ def summarize_task(
         state=task.state.value,
         produced_options=bool(task.options),
         handed_off=handed_off,
+        booking_confirmed=booking_confirmed,
+        booked_at=confirmation.booked_at if confirmation is not None else None,
+        planned_total=planned_total,
+        actual_total=actual_total,
+        cost_variance=cost_variance,
+        cost_variance_currency=cost_variance_currency,
         has_selected_option=selected is not None,
         started_at=started_at,
         handed_off_at=handed_off_at,
@@ -275,6 +354,14 @@ def aggregate_metrics(
     """把每任务一行的事实汇总成指标。分母为零一律 `unavailable`，不写 0。"""
     with_options = [item for item in records if item.produced_options]
     handed_off = [item for item in records if item.handed_off]
+    confirmed = [item for item in records if item.booking_confirmed]
+    variance_ratios = [
+        float(item.cost_variance / item.planned_total)
+        for item in confirmed
+        if item.cost_variance is not None
+        and item.planned_total is not None
+        and item.planned_total != 0
+    ]
     durations = [
         item.seconds_to_handoff
         for item in records
@@ -294,6 +381,35 @@ def aggregate_metrics(
                 "分子是员工在本系统里点的「已在官方平台订好」，不是供应商回执；"
                 "这是渠道内预订率的上限估计，不是渠道内预订率本身。"
                 "分母只算系统真的给出过方案的任务。"
+                "要看更硬一点的数，读 booking_confirmation_rate。"
+            ),
+        ),
+        "booking_confirmation_rate": _rate(
+            len(confirmed),
+            len(with_options),
+            unit="rate",
+            confidence_note=(
+                "分子是员工回填了订单号和实付金额的任务。仍是自述不是回执——"
+                "订单号系统核不了；比「点了一下」多的是一个具体的号和一个具体的数。"
+                "分母只算系统真的给出过方案的任务。"
+            ),
+        ),
+        "booking_confirmation_rate.of_handed_off": _rate(
+            len(confirmed),
+            len(handed_off),
+            unit="rate",
+            confidence_note=(
+                "说了「我去订了」的人里，回来填了订单号的比例。"
+                "1 减它就是交接完成率高估了多少。"
+            ),
+        ),
+        "booked_cost_variance_ratio_mean": _stat(
+            variance_ratios,
+            unit="ratio",
+            statistic="mean",
+            confidence_note=(
+                "（实付 − 方案价）÷ 方案价，正数是多付。只算币种一致的确认记录；"
+                "币种不一致的任务带 confirmation_currency_mismatch 说明，不换算。"
             ),
         ),
         "handoff_completion_rate.all_tasks": _rate(
@@ -327,8 +443,9 @@ def aggregate_metrics(
             unit="days",
             statistic="mean",
             confidence_note=(
-                "从交接完成时刻算到首段实际出发时刻。"
-                "起点用交接而不是任务创建，因为下单发生在交接那一刻。"
+                "起点优先用员工回填的下单时刻（booking_confirmation）；没回填的任务"
+                "用交接完成时刻。终点是首段实际出发时刻。"
+                "起点不用任务创建时刻，因为下单不发生在那一刻。"
             ),
         ),
         "advance_booking_days_p50": _stat(
@@ -497,6 +614,9 @@ def _percentile(values: Sequence[float], quantile: float) -> float:
 METRIC_LABELS: dict[str, str] = {
     "handoff_completion_rate": "系统给出了方案的任务里，员工说「已去官方平台订好」的比例",
     "handoff_completion_rate.all_tasks": "全部任务里说「已订好」的比例（含系统没能给出方案的）",
+    "booking_confirmation_rate": "系统给出了方案的任务里，员工回填了订单号和实付金额的比例（自述）",
+    "booking_confirmation_rate.of_handed_off": "说了「已订好」的任务里，回来填了订单号的比例",
+    "booked_cost_variance_ratio_mean": "实付比方案价多付或少付了几成，平均（只算币种一致的）",
     "seconds_to_handoff_mean": "从任务开始到说「已订好」的平均墙上时间（秒）",
     "seconds_to_handoff_p50": "同上，中位数（秒）",
     "seconds_to_handoff_p95": "同上，95 分位（秒）",
@@ -553,6 +673,8 @@ def render_business_report_markdown(report: BusinessMetricsReport) -> str:
             value = "测不出来"
         elif metric.unit == "rate":
             value = f"{metric.value:.1%}"
+        elif metric.unit == "ratio":
+            value = f"{metric.value:+.1%}"
         else:
             # 用有效数字而不是固定两位小数：秒级统计在演示里可能是 0.001，
             # 写成 "0.00 秒" 会让人以为没测到。

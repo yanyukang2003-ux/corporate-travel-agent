@@ -112,6 +112,104 @@ class BusinessMetricsEndToEndTests(unittest.TestCase):
         self.assertEqual(report.metrics["handoff_completion_rate"].status, "measured")
         self.assertEqual(report.metrics["handoff_completion_rate"].value, 1.0)
 
+    def _confirm(
+        self, task_id: str, *, currency: str | None = None, extra: Decimal = Decimal("30")
+    ):
+        task = self.workflow.create_task(make_demo_request(task_id=task_id))
+        option = next(
+            item
+            for item in task.options
+            if item.policy_decision.outcome is PolicyOutcome.COMPLIANT
+        )
+        self.workflow.select_option(task.task_id, option.option_id)
+        self.workflow.confirm_booking(
+            task.task_id,
+            order_references=["PNR-1"],
+            total_amount=option.total_cost + extra,
+            currency=currency or option.currency,
+            reported_by="E1001",
+            booked_at=DEMO_CLOCK - timedelta(hours=2),
+        )
+        return option
+
+    def test_confirmed_booking_is_measured_with_the_reported_amount(self) -> None:
+        """回填订单号之后：确认预订率有分子，提前天数起点换成下单时刻，实付偏差算得出来。"""
+        option = self._confirm("biz-confirmed")
+
+        report = self._report_for("biz-confirmed")
+        record = report.records[0]
+
+        self.assertEqual(record.state, TaskState.BOOKING_CONFIRMED.value)
+        # 直接从「可交接」回填，交接完成那一笔也补记了。
+        self.assertTrue(record.handed_off)
+        self.assertTrue(record.booking_confirmed)
+        self.assertEqual(record.booked_at, DEMO_CLOCK - timedelta(hours=2))
+        self.assertEqual(record.planned_total, option.total_cost)
+        self.assertEqual(record.actual_total, option.total_cost + Decimal("30"))
+        self.assertEqual(record.cost_variance, Decimal("30"))
+        self.assertEqual(record.cost_variance_currency, option.currency)
+        # 起点是员工说的下单时刻，它和出发时刻在同一条（冻住的）时间线上，
+        # 所以提前天数是正的，不再需要调用方传时钟来修。
+        self.assertEqual(record.advance_days_reference, "booking_confirmation")
+        self.assertGreater(record.advance_days, 0.0)
+        self.assertNotIn("departure_before_booking", record.notes)
+        self.assertNotIn("departure_before_handoff", record.notes)
+
+        metrics = report.metrics
+        self.assertEqual(metrics["booking_confirmation_rate"].value, 1.0)
+        self.assertEqual(metrics["booking_confirmation_rate.of_handed_off"].value, 1.0)
+        self.assertEqual(metrics["booked_cost_variance_ratio_mean"].status, "measured")
+        self.assertAlmostEqual(
+            metrics["booked_cost_variance_ratio_mean"].value,
+            float(Decimal("30") / option.total_cost),
+        )
+
+    def test_reported_booking_time_beats_a_supplied_clock(self) -> None:
+        """传了冻住的时钟也不替换员工说的下单时刻——那是他说的事实，不是这一刻的读数。"""
+        self._confirm("biz-confirmed-clock")
+
+        record = self._report_for(
+            "biz-confirmed-clock", handoff_reference_time=DEMO_CLOCK + timedelta(days=3)
+        ).records[0]
+
+        self.assertEqual(record.advance_days_reference, "booking_confirmation")
+        self.assertEqual(record.booked_at, DEMO_CLOCK - timedelta(hours=2))
+
+    def test_handoff_without_confirmation_shows_the_gap(self) -> None:
+        """点了「我去订了」但没回来填单号：交接完成率算他，确认预订率不算他。"""
+        handed = self.workflow.create_task(make_demo_request(task_id="biz-gap-handed"))
+        option = next(
+            item
+            for item in handed.options
+            if item.policy_decision.outcome is PolicyOutcome.COMPLIANT
+        )
+        self.workflow.select_option(handed.task_id, option.option_id)
+        self.workflow.mark_handed_off(handed.task_id)
+        self._confirm("biz-gap-confirmed")
+
+        metrics = self._report_for("biz-gap-handed", "biz-gap-confirmed").metrics
+
+        self.assertEqual(metrics["handoff_completion_rate"].value, 1.0)
+        self.assertEqual(metrics["booking_confirmation_rate"].value, 0.5)
+        self.assertEqual(metrics["booking_confirmation_rate.of_handed_off"].value, 0.5)
+
+    def test_currency_mismatch_is_flagged_not_converted(self) -> None:
+        option = self._confirm("biz-confirmed-cny", currency="CNY", extra=Decimal("7000"))
+        self.assertNotEqual(option.currency, "CNY")
+
+        report = self._report_for("biz-confirmed-cny")
+        record = report.records[0]
+
+        self.assertTrue(record.booking_confirmed)
+        self.assertEqual(record.actual_total, option.total_cost + Decimal("7000"))
+        self.assertEqual(record.planned_total, option.total_cost)
+        self.assertIsNone(record.cost_variance)
+        self.assertIsNone(record.cost_variance_currency)
+        self.assertIn("confirmation_currency_mismatch", record.notes)
+        self.assertEqual(report.metrics["booked_cost_variance_ratio_mean"].status, "unavailable")
+        # 确认本身照算——币种不同影响的是差额，不是「有没有订」。
+        self.assertEqual(report.metrics["booking_confirmation_rate"].value, 1.0)
+
     def test_options_shown_but_never_taken_is_the_metric_this_layer_exists_for(
         self,
     ) -> None:

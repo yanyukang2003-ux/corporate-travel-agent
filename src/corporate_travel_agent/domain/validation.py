@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping
+import re
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import date, datetime
+from decimal import Decimal
 from typing import Any
 
 from .constraints import (
@@ -430,3 +432,111 @@ def _as_tuple(value: object) -> tuple[object, ...]:
     if isinstance(value, (list, tuple, set, frozenset)):
         return tuple(value)
     return (value,)
+
+
+# ---------------------------------------------------------------------------
+# 下单确认回填
+# ---------------------------------------------------------------------------
+
+ORDER_REFERENCE_MAX_LENGTH = 64
+ORDER_REFERENCE_MAX_COUNT = 10
+CONFIRMATION_NOTE_MAX_LENGTH = 500
+_CURRENCY_CODE = re.compile(r"^[A-Z]{3}$")
+
+
+class BookingConfirmationValidationError(ValueError):
+    """下单确认回填不合法：订单号、金额、币种或时间有问题。"""
+
+
+@dataclass(frozen=True, slots=True)
+class BookingConfirmationValues:
+    """校验并规范化后的回填值。"""
+
+    order_references: tuple[str, ...]
+    total_amount: Decimal
+    currency: str
+    booked_at: datetime
+    note: str | None
+
+
+def validate_booking_confirmation_values(
+    *,
+    order_references: Sequence[str],
+    total_amount: Decimal,
+    currency: str,
+    booked_at: datetime | None,
+    now: datetime,
+    note: str | None = None,
+) -> BookingConfirmationValues:
+    """把员工填的东西规范化，不合法就拒绝。
+
+    **这里只管形状，不管真假**——订单号是不是真的存在、金额是不是真的付了，系统核不了。
+
+    规矩：
+
+    - 订单号去首尾空白、去重、去空串；至少一个，最多 10 个，每个不超过 64 字符，
+      不含换行和控制字符（它会进审计、进报表，一个换行就能把一行表撑坏）；
+    - 金额是有限的十进制数，不为负；**允许 0**——积分票、协议价预付都可能是 0，
+      拒绝它会把真实情况挡在门外；
+    - 币种三个大写字母；**不要求和方案币种一致**（员工用人民币付了美元报价是真事），
+      差额算不算得出来是读的人的事，见 `TripTask.booking_cost_variance`；
+    - 下单时刻必须带时区，且不晚于现在；没填就等于现在。
+    """
+    references: list[str] = []
+    for raw in order_references:
+        value = raw.strip()
+        if not value or value in references:
+            continue
+        if len(value) > ORDER_REFERENCE_MAX_LENGTH:
+            raise BookingConfirmationValidationError(
+                f"order reference exceeds {ORDER_REFERENCE_MAX_LENGTH} characters"
+            )
+        if any(ord(ch) < 32 or ch == "\x7f" for ch in value):
+            raise BookingConfirmationValidationError(
+                "order reference contains control characters"
+            )
+        references.append(value)
+    if not references:
+        raise BookingConfirmationValidationError("at least one order reference is required")
+    if len(references) > ORDER_REFERENCE_MAX_COUNT:
+        raise BookingConfirmationValidationError(
+            f"at most {ORDER_REFERENCE_MAX_COUNT} order references are accepted"
+        )
+
+    if not isinstance(total_amount, Decimal) or not total_amount.is_finite():
+        raise BookingConfirmationValidationError("total amount must be a finite decimal")
+    if total_amount < 0:
+        raise BookingConfirmationValidationError("total amount cannot be negative")
+
+    code = currency.strip()
+    if not _CURRENCY_CODE.match(code):
+        raise BookingConfirmationValidationError(
+            "currency must be a three-letter upper-case code"
+        )
+
+    if not _is_timezone_aware(now):
+        raise BookingConfirmationValidationError("reference time must be timezone-aware")
+    if booked_at is None:
+        booked_at = now
+    elif not _is_timezone_aware(booked_at):
+        raise BookingConfirmationValidationError("booked_at must be timezone-aware")
+    elif booked_at > now:
+        raise BookingConfirmationValidationError("booked_at cannot be in the future")
+
+    cleaned_note = (note or "").strip() or None
+    if cleaned_note is not None and len(cleaned_note) > CONFIRMATION_NOTE_MAX_LENGTH:
+        raise BookingConfirmationValidationError(
+            f"note exceeds {CONFIRMATION_NOTE_MAX_LENGTH} characters"
+        )
+
+    return BookingConfirmationValues(
+        order_references=tuple(references),
+        total_amount=total_amount,
+        currency=code,
+        booked_at=booked_at,
+        note=cleaned_note,
+    )
+
+
+def _is_timezone_aware(value: datetime) -> bool:
+    return value.tzinfo is not None and value.tzinfo.utcoffset(value) is not None

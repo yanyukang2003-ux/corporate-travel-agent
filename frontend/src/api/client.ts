@@ -6,6 +6,7 @@ import type {
   ActivePolicy,
   ApiErrorBody,
   AuditEvent,
+  BookingConfirmationCreate,
   HealthResponse,
   LoginResponse,
   StructuredTripCreate,
@@ -215,6 +216,13 @@ export const api = {
   handoffCompleted: (taskId: string) =>
     request<TripTask>(`/trip-tasks/${taskId}/handoff-completed`, {
       method: 'POST',
+    }),
+
+  /** 员工回填订单号和实付金额（自述，不是回执）。一个任务只能填一次。 */
+  confirmBooking: (taskId: string, payload: BookingConfirmationCreate) =>
+    request<TripTask>(`/trip-tasks/${taskId}/booking-confirmation`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
     }),
 
   /** 审批人对待办任务做出批准或拒绝决定。 */

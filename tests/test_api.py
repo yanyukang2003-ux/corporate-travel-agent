@@ -608,6 +608,88 @@ def test_business_metrics_measure_a_completed_handoff_over_http() -> None:
     assert client.get("/metrics/business?limit=201").status_code == 400
 
 
+def test_booking_confirmation_over_http_feeds_the_business_metrics() -> None:
+    """走完整 HTTP 链路到回填订单号：校验、一次性、公开载荷里的差额、指标端点都要对。"""
+    created = client.post(
+        "/trip-tasks",
+        json={
+            "traveler_id": "E1001",
+            "origin": "Beijing",
+            "destination": "Shanghai",
+            "departure_after": "2026-08-05T05:00:00+08:00",
+            "arrive_by": "2026-08-06T10:00:00+08:00",
+        },
+    ).json()
+    task_id = created["task_id"]
+    compliant = next(
+        item for item in created["options"] if item["policy_outcome"] == "COMPLIANT"
+    )
+    selected = client.post(
+        f"/trip-tasks/{task_id}/select-option", json={"option_id": compliant["option_id"]}
+    )
+    assert selected.status_code == 200
+    assert selected.json()["state"] == "READY_FOR_HANDOFF"
+    assert selected.json()["booking_confirmation"] is None
+
+    path = f"/trip-tasks/{task_id}/booking-confirmation"
+    # 形状在请求体层就挡住：没有订单号、小写币种、负数金额。
+    assert client.post(
+        path, json={"order_references": [], "total_amount": "1", "currency": "USD"}
+    ).status_code == 422
+    assert client.post(
+        path, json={"order_references": ["X"], "total_amount": "1", "currency": "usd"}
+    ).status_code == 422
+    assert client.post(
+        path, json={"order_references": ["X"], "total_amount": "-1", "currency": "USD"}
+    ).status_code == 422
+    # 领域层的形状校验走 409：全是空白的订单号。
+    assert client.post(
+        path, json={"order_references": ["   "], "total_amount": "1", "currency": "USD"}
+    ).status_code == 409
+    assert client.get(f"/trip-tasks/{task_id}").json()["state"] == "READY_FOR_HANDOFF"
+
+    paid = Decimal(str(compliant["total_cost"])) + Decimal("34.50")
+    response = client.post(
+        path,
+        json={
+            "order_references": [" PNR-1 ", "PNR-1", "HTL-9"],
+            "total_amount": str(paid),
+            "currency": compliant["currency"],
+            "note": " 酒店升了一档 ",
+        },
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["state"] == "BOOKING_CONFIRMED"
+    confirmation = body["booking_confirmation"]
+    assert confirmation["order_references"] == ["PNR-1", "HTL-9"]
+    assert confirmation["source"] == "SELF_REPORTED"
+    assert confirmation["option_id"] == compliant["option_id"]
+    assert confirmation["note"] == "酒店升了一档"
+    assert confirmation["reported_by"]
+    assert Decimal(str(confirmation["total_amount"])) == paid
+    assert Decimal(str(confirmation["planned_total"])) == Decimal(str(compliant["total_cost"]))
+    assert confirmation["planned_currency"] == compliant["currency"]
+    assert Decimal(str(confirmation["cost_variance"])) == Decimal("34.50")
+
+    # 一个任务一条。
+    again = client.post(
+        path, json={"order_references": ["PNR-2"], "total_amount": "1", "currency": "USD"}
+    )
+    assert again.status_code == 409
+
+    report = client.get("/metrics/business?limit=200")
+    assert report.status_code == 200
+    record = next(item for item in report.json()["records"] if item["task_id"] == task_id)
+    assert record["booking_confirmed"] is True
+    assert record["handed_off"] is True
+    assert record["advance_days_reference"] == "booking_confirmation"
+    assert Decimal(str(record["cost_variance"])) == Decimal("34.50")
+    rate = report.json()["metrics"]["booking_confirmation_rate"]
+    assert rate["status"] == "measured"
+    assert rate["numerator"] >= 1
+
+
 def test_openapi_exposes_policy_and_global_audit_routes() -> None:
     paths = client.get("/openapi.json").json()["paths"]
 

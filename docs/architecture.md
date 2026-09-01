@@ -104,8 +104,8 @@ ConversationLedger -> ConversationIntentInterpreter -> IntentDecision
 
 ### 3.2 上下文数据层：习惯只改排序
 
-`services/travel_profile.py` 从这位员工**真的去订了的行程**（走到 `HANDED_OFF`
-且选定了方案）里推出习惯偏好，喂给 `planning/preferences.py` 的既有罚分逻辑。
+`services/travel_profile.py` 从这位员工**真的去订了的行程**（走到 `HANDED_OFF` 或
+`BOOKING_CONFIRMED` 且选定了方案）里推出习惯偏好，喂给 `planning/preferences.py` 的既有罚分逻辑。
 推断由确定性代码做，语言模型一个字都不参与。
 
 四档来源，权重递减：`STATED`（这一轮亲口说的，全权重）>
@@ -156,6 +156,8 @@ stateDiagram-v2
     REVALIDATING --> RECONFIRMATION_REQUIRED: 涨价或售罄
     REVALIDATING --> READY_FOR_HANDOFF: 未变化
     READY_FOR_HANDOFF --> HANDED_OFF
+    HANDED_OFF --> BOOKING_CONFIRMED: 员工回填订单号与实付金额
+    BOOKING_CONFIRMED --> [*]
     WAITING_FOR_PROVIDER --> SEARCHING: 到期后重试搜索
     WAITING_FOR_PROVIDER --> REVALIDATING: 到期后重试重验
     WAITING_FOR_PROVIDER --> PROVIDER_FAILED: 三次延迟重试耗尽
@@ -167,6 +169,33 @@ stateDiagram-v2
 ```
 
 状态变化只能经过 `StateMachine.transition`。审批路径不存在到 `READY_FOR_HANDOFF` 的直达边，因此无法绕过重验。
+
+### 4.1 交接之后：下单确认回流
+
+`HANDED_OFF` 此前是终态，系统从那一刻起什么都看不见。现在多了一条出边：员工回填
+订单号和实付金额（`POST /trip-tasks/{id}/booking-confirmation`），任务进入
+`BOOKING_CONFIRMED`。这是交接之后系统能拿到的**第一条**"真的订了"的证据，业务指标层
+（`services/evaluation_business.py`）的确认预订率、真实下单时刻的提前预订天数、实付偏差
+都从它来。
+
+边界，全部有测试：
+
+- **自述，不是回执。** `BookingConfirmation.source` 只有 `SELF_REPORTED` 一档；订单号和
+  金额系统核不了。指标和报表必须把这一点带着走。费控对账接上时再加第二档来源。
+- **一个任务一条，写了不改。** 第二次回填被拒绝；填错了开新任务。改一条已经进了指标的
+  记录等于让历史曲线悄悄变形。
+- **只校验形状。** 订单号去空白去重、最多 10 个、每个 64 字符内、无控制字符；金额有限
+  且不为负（允许 0：积分票、协议价预付都可能是 0）；币种三个大写字母，**不要求和方案币种
+  一致**——员工用人民币付了美元报价是真事，差额算不算得出来是读的人的事；下单时刻带时区
+  且不晚于现在，没填等于现在。
+- **从 `READY_FOR_HANDOFF` 直接回填也行**：先记 `HANDOFF_COMPLETED`，再记 `BOOKING_CONFIRMED`，
+  两条审计事件一条不少。交接链接过没过期不影响回填——链接管的是"能不能去订"，人已经订完回来了。
+- **权限同其他工作流操作**：旅行者本人或管理员；审批人不能替员工填。
+- 差额（实付 − 方案价）只有一个算法，在 `TripTask.booking_cost_variance()` 上；币种不一致
+  返回 `None`，API 和指标都读它，不各算各的。
+
+还没有的：`Trip`（一趟差旅）聚合。现在一个任务对应一次交接、一条确认，抽一个 `Trip` 只会是
+空壳；等出现第二种任务（改期）需要挂在同一趟差旅下时再抽。
 
 ## 5. 证据与版本
 

@@ -11,6 +11,7 @@ import { api, ApiError } from './api/client'
 import type {
   ActivePolicy,
   AuditEvent,
+  BookingConfirmationCreate,
   ClarificationQuestion,
   HealthResponse,
   LodgingRequirement,
@@ -24,7 +25,8 @@ import type {
 import { formatTravelDate, formatTravelTime, getStateMeta, parseIsoWallClock } from './utils/state'
 import { approvalReasonText, factsForOptionCard, openQuestionsFromTask } from './utils/notices'
 import { chatTurns } from './utils/chat'
-import { costNotes } from './utils/cost'
+import { costNotes, money as moneyText } from './utils/cost'
+import { confirmationSummary, parseOrderReferences } from './utils/booking'
 import type { CostNote } from './utils/cost'
 import { categoriesFromFacts, rankedBreakdowns } from './utils/scoring'
 import type { ChatTurn } from './utils/chat'
@@ -1130,6 +1132,110 @@ function StructuredRequestForm({ task, busy, error, onSubmit }: {
 }
 
 /** 单个候选方案卡片（选择 / 对比）。 */
+/**
+ * 交接与下单确认：把官方平台的链接摆出来，把「我订好了」收回来。
+ *
+ * 这一块此前不存在——前端从没调用过 `handoffCompleted`，`booking_intent` 也没显示过，
+ * 员工拿到「可交接」状态后在界面上无路可走。业务指标层的交接完成率和确认预订率，
+ * 分子都从这里来。
+ *
+ * 回填的是**自述**：系统核不了订单号和金额。面板上要把这句话说出来，不能让人以为
+ * 填了就是对账过了。一个任务只能填一次，填错了新建差旅。
+ */
+function HandoffPanel({ task, busy, error, onHandoff, onConfirm }: {
+  task: TripTask
+  busy: boolean
+  error: string
+  onHandoff: () => Promise<void>
+  onConfirm: (payload: BookingConfirmationCreate) => Promise<boolean>
+}) {
+  const intent = task.booking_intent
+  const confirmation = task.booking_confirmation
+  const option = task.options.find((item) => item.option_id === intent?.selected_option_id) ?? null
+  const [references, setReferences] = useState('')
+  const [amount, setAmount] = useState('')
+  const [currency, setCurrency] = useState(option?.currency ?? 'USD')
+  const [note, setNote] = useState('')
+  if (!intent) return null
+
+  const parsedReferences = parseOrderReferences(references)
+  const amountValue = Number(amount.trim())
+  const canSubmit = !busy
+    && parsedReferences.length > 0
+    && amount.trim() !== ''
+    && Number.isFinite(amountValue)
+    && amountValue >= 0
+    && /^[A-Za-z]{3}$/.test(currency.trim())
+
+  const submit = async () => {
+    const ok = await onConfirm({
+      order_references: parsedReferences,
+      total_amount: amount.trim(),
+      currency: currency.trim().toUpperCase(),
+      note: note.trim() || null,
+    })
+    if (ok) {
+      setReferences('')
+      setAmount('')
+      setNote('')
+    }
+  }
+
+  if (confirmation) {
+    return <section className="handoff-panel confirmed" data-testid="booking-confirmation">
+      <div className="handoff-head">
+        <span className="handoff-signal"><Icon name="check" size={20} /></span>
+        <div>
+          <div className="section-kicker">BOOKING CONFIRMED</div>
+          <h2>已回填订单号</h2>
+          <p>{confirmationSummary(confirmation)}</p>
+        </div>
+        <Badge tone="dark">自述 · 未对账</Badge>
+      </div>
+      <dl className="handoff-facts">
+        <div><dt>订单号</dt><dd>{confirmation.order_references.join('、')}</dd></div>
+        <div><dt>实付</dt><dd>{moneyText(String(confirmation.total_amount), confirmation.currency)}</dd></div>
+        <div><dt>方案价</dt><dd>{confirmation.planned_total != null ? moneyText(String(confirmation.planned_total), confirmation.planned_currency ?? confirmation.currency) : '—'}</dd></div>
+        <div><dt>下单时间</dt><dd>{formatTravelDate(confirmation.booked_at)} {formatTravelTime(confirmation.booked_at)}</dd></div>
+        {confirmation.note && <div><dt>备注</dt><dd>{confirmation.note}</dd></div>}
+      </dl>
+      <p className="handoff-help"><Icon name="info" size={14} />订单号和金额是你自己填的，系统核不了；费控对账接上之前，报表里它会标为「自述」。</p>
+    </section>
+  }
+
+  const handedOff = task.state === 'HANDED_OFF'
+  return <section className="handoff-panel" data-testid="handoff-panel">
+    <div className="handoff-head">
+      <span className="handoff-signal"><Icon name="link" size={20} /></span>
+      <div>
+        <div className="section-kicker">{handedOff ? 'HANDED OFF' : 'READY FOR HANDOFF'}</div>
+        <h2>{handedOff ? '你说已经去订了——订单号是多少？' : '去官方平台下单，回来填订单号'}</h2>
+        <p>方案已重新验证。本系统不下单、不付款；{intent.handoff.provider} 的链接在下面，订好后把订单号和实付金额填回来。</p>
+      </div>
+      <Badge tone="dark">BOOKING DISABLED</Badge>
+    </div>
+    <div className="handoff-link">
+      <span>{intent.handoff.provider}</span>
+      <code>{intent.handoff.url_or_instructions}</code>
+      <small>链接有效至 {formatTravelDate(intent.handoff.expires_at)} {formatTravelTime(intent.handoff.expires_at)}</small>
+    </div>
+    {error && <div className="clarification-error"><Icon name="info" size={14} />{error}</div>}
+    <div className="handoff-form">
+      <label><span>订单号 / PNR（多个用逗号或换行分开）</span><input data-testid="order-references" value={references} onChange={(event) => setReferences(event.target.value)} placeholder="例如 PNR-ABC123, HTL-0099" /></label>
+      <div className="handoff-form-row">
+        <label><span>实付金额</span><input data-testid="paid-amount" inputMode="decimal" value={amount} onChange={(event) => setAmount(event.target.value)} placeholder={option ? String(option.total_cost) : ''} /></label>
+        <label><span>币种</span><input data-testid="paid-currency" value={currency} onChange={(event) => setCurrency(event.target.value)} maxLength={3} /></label>
+      </div>
+      <label><span>备注（可选）</span><input value={note} onChange={(event) => setNote(event.target.value)} placeholder="比如：酒店改订了另一家" /></label>
+      <div className="handoff-actions">
+        <button className="primary" data-testid="confirm-booking" disabled={!canSubmit} onClick={() => void submit()}>{busy ? '正在提交…' : '我订好了，提交订单号'}{!busy && <Icon name="check" />}</button>
+        {!handedOff && <button className="handoff-secondary" data-testid="mark-handed-off" disabled={busy} onClick={() => void onHandoff()}>先记一笔「我去订了」，稍后补单号</button>}
+      </div>
+      <p className="handoff-help"><Icon name="info" size={14} />订单号和金额系统核不了，按你填的记；一个任务只能填一次，填错了请新建差旅。</p>
+    </div>
+  </section>
+}
+
 function OptionCard({ option, selected, compared, onSelect, onCompare }: {
   option: DisplayOption
   selected: boolean
@@ -1410,6 +1516,44 @@ function PlanView({ onToast, composerEpoch, onNewTrip }: {
     }
   }
 
+  /** 员工点「先记一笔我去订了」。 */
+  const markHandedOff = async () => {
+    if (!task) return
+    setActionBusy(true)
+    setApiError('')
+    try {
+      const nextTask = await api.handoffCompleted(task.task_id)
+      applyTask(nextTask)
+      onToast(`已记录交接完成 · ${getStateMeta(nextTask.state).label}`)
+    } catch (error) {
+      setApiError(error instanceof Error ? error.message : '记录交接失败')
+    } finally {
+      setActionBusy(false)
+    }
+  }
+
+  /** 员工回填订单号和实付金额。 */
+  const confirmBooking = async (payload: BookingConfirmationCreate): Promise<boolean> => {
+    if (!task) return false
+    setActionBusy(true)
+    setApiError('')
+    try {
+      const nextTask = await api.confirmBooking(task.task_id, payload)
+      applyTask(nextTask)
+      onToast(`订单号已回填 · ${getStateMeta(nextTask.state).label}`)
+      return true
+    } catch (error) {
+      setApiError(error instanceof Error ? error.message : '回填订单号失败')
+      return false
+    } finally {
+      setActionBusy(false)
+    }
+  }
+
+  // 交接阶段：方案已定，选择按钮让位给上方的交接面板。
+  const inHandoffStage = !!task
+    && (task.state === 'READY_FOR_HANDOFF' || task.state === 'HANDED_OFF' || task.state === 'BOOKING_CONFIRMED')
+
   return (
     <div className="plan-workspace">
       {/* 左边聊天，右边行程。对话和行程同时在场——问一句不该把已经查到的方案收走。 */}
@@ -1449,6 +1593,9 @@ function PlanView({ onToast, composerEpoch, onNewTrip }: {
           </div>
           <div className="ticket-meta"><span><Icon name="clock" size={16} />最晚抵达 {arriveBy ? `${dateText(arriveBy)} ${travelTimeText(arriveBy)}` : '待补充'}</span><span><Icon name="briefcase" size={16} />{taskState?.description}</span></div>
         </section>}
+
+        {task && task.booking_intent && inHandoffStage
+          && <HandoffPanel task={task} busy={actionBusy} error={apiError} onHandoff={markHandedOff} onConfirm={confirmBooking} />}
 
         {/* 状态机分支：结构化表单 → 结构化澄清题 → 行程 */}
         {task && task.state === 'NEEDS_STRUCTURED_INPUT'
@@ -1503,7 +1650,7 @@ function PlanView({ onToast, composerEpoch, onNewTrip }: {
                 <li><span>库存引用</span><b>{selectedApiOption?.inventory_refs.length ?? 0} 条</b></li>
               </ul>
               {selected.policyTone !== 'ok' && <label className="business-reason"><span>业务原因（审批必填）</span><textarea data-testid="business-reason" value={businessReason} onChange={(event) => setBusinessReason(event.target.value)} placeholder="说明为什么需要选择该方案" /></label>}
-              <button className="primary full" data-testid="confirm-selection" disabled={actionBusy || (selected.policyTone !== 'ok' && !businessReason.trim())} onClick={() => void confirmSelection()}>{actionBusy ? '正在提交 API…' : selected.policyTone === 'ok' ? '确认并重新验证' : '选择并申请审批'}{!actionBusy && <Icon name="arrow" />}</button>
+              <button className="primary full" data-testid="confirm-selection" disabled={actionBusy || inHandoffStage || (selected.policyTone !== 'ok' && !businessReason.trim())} onClick={() => void confirmSelection()}>{inHandoffStage ? '已进入交接阶段，见上方' : actionBusy ? '正在提交 API…' : selected.policyTone === 'ok' ? '确认并重新验证' : '选择并申请审批'}{!actionBusy && <Icon name="arrow" />}</button>
               <p className="decision-help"><Icon name="info" size={14} />操作会写入真实任务状态，但预订和支付能力仍被后端禁用。</p>
             </aside>
           </div>}
@@ -1669,6 +1816,7 @@ function TripsView({ mode, onOpen }: { mode: WorkspaceRole; onOpen: (() => void)
   const waitingUser = rows.filter((item) => item.state === 'WAITING_FOR_USER').length
   const waitingApproval = rows.filter((item) => item.state === 'WAITING_FOR_APPROVAL').length
   const handedOff = rows.filter((item) => item.state === 'HANDED_OFF').length
+  const confirmed = rows.filter((item) => item.state === 'BOOKING_CONFIRMED').length
 
   return <div className="page">
     <div className="page-heading"><div><div className="eyebrow">{copy.eyebrow}</div><h1>{copy.title}</h1><p>{copy.description}</p></div>{onOpen && <button className="primary" onClick={onOpen}><Icon name="plus" />新建差旅</button>}</div>
@@ -1677,6 +1825,7 @@ function TripsView({ mode, onOpen }: { mode: WorkspaceRole; onOpen: (() => void)
       <div><span>等待你选择</span><b>{waitingUser}</b><small>状态 WAITING_FOR_USER</small></div>
       <div><span>等待审批</span><b>{waitingApproval}</b><small>状态 WAITING_FOR_APPROVAL</small></div>
       <div><span>已交接</span><b>{handedOff}</b><small>状态 HANDED_OFF</small></div>
+      <div><span>已回填订单</span><b>{confirmed}</b><small>状态 BOOKING_CONFIRMED</small></div>
     </div>
     <section className="table-section">
       <div className="table-toolbar"><div><h3>任务列表</h3><p>共 {rows.length} 条</p></div></div>

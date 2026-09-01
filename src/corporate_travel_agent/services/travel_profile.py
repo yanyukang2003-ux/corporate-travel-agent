@@ -11,7 +11,8 @@
 
 ## 数据从哪来
 
-只有一处：**这个系统自己产生的、员工真的去订了的行程**（走到 `HANDED_OFF`，
+只有一处：**这个系统自己产生的、员工真的去订了的行程**（走到 `HANDED_OFF` 或
+回填了订单号的 `BOOKING_CONFIRMED`，
 并且选定了方案）。理由是它是唯一不依赖企业 IT 就能跑通的来源——日历、CRM、HR
 都要先谈接口，而"他上次选了哪一条"现在就在任务仓储里。
 
@@ -112,7 +113,14 @@ class RepositoryTripHistory:
     def peer_completed_trips(
         self, *, level: str, home_city: str, limit: int = 200
     ) -> Sequence[TripTask]:
-        tasks = self._repository.list_by_state(TaskState.HANDED_OFF.value, limit=limit * 4)
+        # 两个状态都算"订了"：回填过订单号的证据更硬，排在前面；只点过"我去订了"的
+        # 排在后面。两组各自按最近优先，组之间不再合并排序——同事默认值看的是
+        # 比例，不是先后。
+        tasks = [
+            item
+            for state in _COMPLETED_STATES
+            for item in self._repository.list_by_state(state.value, limit=limit * 4)
+        ]
         return tuple(
             item
             for item in tasks
@@ -198,8 +206,14 @@ def derive_travel_profile(
     )
 
 
+#: 算作"员工真的去订了"的状态。`BOOKING_CONFIRMED`（回填了订单号）是更硬的证据，
+#: `HANDED_OFF`（点了"我去订了"）是较软的；推习惯时两者都算，证据强弱记在这里，
+#: 不记在画像上——画像只关心"他选了什么"，不关心"他有没有回来填单号"。
+_COMPLETED_STATES: tuple[TaskState, ...] = (TaskState.BOOKING_CONFIRMED, TaskState.HANDED_OFF)
+
+
 def _is_completed(task: TripTask) -> bool:
-    return task.state is TaskState.HANDED_OFF and task.selected_option() is not None
+    return task.state in _COMPLETED_STATES and task.selected_option() is not None
 
 
 def _selected_options(tasks: Sequence[TripTask]) -> tuple[TravelOptionVersion, ...]:

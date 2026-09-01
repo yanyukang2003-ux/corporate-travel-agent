@@ -42,11 +42,14 @@ def _collect(repository, limit: int) -> tuple[list[TripTask], dict[str, tuple[Au
 
 
 def _demo_tasks(limit: int):
-    """跑一小段演示流程：一单订到底、一单看了没订、一单走例外审批。
+    """跑一小段演示流程：一单说了"去订了"没回来填单号、一单回填了订单号、
+    一单看了没订、一单走例外审批。
 
-    三条路径各一个，是为了让报告里的每个分母都非零——全都测不出来的报告
+    四条路径各一个，是为了让报告里的每个分母都非零——全都测不出来的报告
     看不出格式对不对。
     """
+    from decimal import Decimal
+
     from corporate_travel_agent.demo import DEMO_CLOCK, build_demo_system, make_demo_request
     from corporate_travel_agent.domain.enums import PolicyOutcome
 
@@ -60,6 +63,22 @@ def _demo_tasks(limit: int):
     )
     workflow.select_option(handed.task_id, compliant.option_id)
     workflow.mark_handed_off(handed.task_id)
+
+    confirmed = workflow.create_task(make_demo_request(task_id="demo-confirmed"))
+    confirmed_option = next(
+        item
+        for item in confirmed.options
+        if item.policy_decision.outcome is PolicyOutcome.COMPLIANT
+    )
+    workflow.select_option(confirmed.task_id, confirmed_option.option_id)
+    # 直接从「可交接」回填：交接完成那一笔会自动补记。实付比方案价多 20，看差额那一行。
+    workflow.confirm_booking(
+        confirmed.task_id,
+        order_references=["DEMO-PNR-1", "DEMO-HTL-1"],
+        total_amount=confirmed_option.total_cost + Decimal("20"),
+        currency=confirmed_option.currency,
+        reported_by="E1001",
+    )
 
     workflow.create_task(make_demo_request(task_id="demo-abandoned"))
 

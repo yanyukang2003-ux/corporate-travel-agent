@@ -88,6 +88,51 @@ def test_task_events_and_snapshots_survive_repository_restart(tmp_path) -> None:
     final_repository.dispose()
 
 
+def test_booking_confirmation_survives_a_restart(tmp_path) -> None:
+    """回填的订单号、金额（Decimal）、来源和差额，重启之后一个都不能少。"""
+    from corporate_travel_agent.domain.enums import BookingConfirmationSource
+
+    repository = new_repository(tmp_path, "confirmation.db")
+    workflow, _ = build_demo_system(clock=lambda: FIXED_NOW, task_repository=repository)
+    task = workflow.create_task(make_demo_request(task_id="persistent-confirmation"))
+    option = next(
+        item
+        for item in task.options
+        if item.policy_decision.outcome is PolicyOutcome.COMPLIANT
+    )
+    workflow.select_option(task.task_id, option.option_id)
+    workflow.confirm_booking(
+        task.task_id,
+        order_references=["PNR-77", "HTL-3"],
+        total_amount=option.total_cost + Decimal("5.25"),
+        currency=option.currency,
+        reported_by="E1001",
+        note="前台升了房型",
+    )
+    repository.dispose()
+
+    restarted = SQLAlchemyTaskRepository(database_url(tmp_path, "confirmation.db"))
+    restored = restarted.get(task.task_id)
+    assert restored.state is TaskState.BOOKING_CONFIRMED
+    confirmation = restored.booking_confirmation
+    assert confirmation is not None
+    assert confirmation.order_references == ("PNR-77", "HTL-3")
+    assert isinstance(confirmation.total_amount, Decimal)
+    assert confirmation.total_amount == option.total_cost + Decimal("5.25")
+    assert confirmation.source is BookingConfirmationSource.SELF_REPORTED
+    assert isinstance(confirmation.booked_at, datetime)
+    assert confirmation.booked_at.tzinfo is not None
+    assert confirmation.note == "前台升了房型"
+    assert restored.booking_cost_variance() == Decimal("5.25")
+    event_types = [item.event_type for item in restarted.events(task.task_id)]
+    assert event_types.count("HANDOFF_COMPLETED") == 1
+    assert event_types.count("BOOKING_CONFIRMED") == 1
+    assert task.task_id in {
+        item.task_id for item in restarted.list_by_state(TaskState.BOOKING_CONFIRMED.value)
+    }
+    restarted.dispose()
+
+
 def test_intent_any_fields_restore_date_and_datetime_types(tmp_path) -> None:
     repository = new_repository(tmp_path, "intent.db")
     workflow, _ = build_demo_system(

@@ -9,6 +9,7 @@ from typing import Any
 
 from .enums import (
     ApprovalStatus,
+    BookingConfirmationSource,
     BookingScope,
     PolicyOutcome,
     PreferenceOrigin,
@@ -623,6 +624,42 @@ class BookingIntent:
 
 
 @dataclass(frozen=True, slots=True)
+class BookingConfirmation:
+    """员工回填的下单确认：订单号、实付金额，以及这话是谁说的。
+
+    这是交接之后系统能拿到的**第一条**"真的订了"的证据。在它之前，`HANDOFF_COMPLETED`
+    记录的只是员工点了一下"我去订了"；有了它，业务指标层的交接完成率才有一个能对照的
+    分子，提前预订天数才有一个真实的下单时刻，"计划花多少 / 实际花多少"才算得出来。
+
+    **它是自述，不是回执。** `source` 今天只有 `SELF_REPORTED` 一档；订单号系统核不了，
+    金额系统核不了。读它的人（指标、报表）必须把这一点带着走，不能把它当供应商回执用。
+    费控对账接上之后会有第二档来源，那时才能谈"核实过的"。
+
+    不可变、一个任务只有一条：填错了不改，开新任务。改一条已经进了指标的记录，
+    等于让历史曲线悄悄变形。
+    """
+
+    confirmation_id: str
+    #: 它确认的是哪一次交接意图——和 `BookingIntent.intent_id` 对得上。
+    intent_id: str
+    option_id: str
+    option_version: int
+    #: 订单号 / PNR（航空订座记录编号）。一趟行程可能几张票几个号，所以是列表；至少一个。
+    order_references: tuple[str, ...]
+    #: 员工实际付了多少。**只是一个总数**——分到每张票每晚房要等费控对账。
+    total_amount: Decimal
+    currency: str
+    source: BookingConfirmationSource
+    #: 谁填的：员工本人的 ID，或者替他操作的管理员 ID。
+    reported_by: str
+    #: 系统收到这条回填的时刻（编排器时钟）。
+    reported_at: datetime
+    #: 员工说的下单时刻。没说就等于 `reported_at`。提前预订天数用它算。
+    booked_at: datetime
+    note: str | None = None
+
+
+@dataclass(frozen=True, slots=True)
 class AuditEvent:
     """任务审计事件（输入/输出哈希与证据引用）。"""
 
@@ -709,6 +746,8 @@ class TripTask:
     selected_option_id: str | None = None
     approval: ApprovalRequest | None = None
     booking_intent: BookingIntent | None = None
+    #: 员工回填的下单确认。交接之后唯一的新事实；一个任务只有一条，写了不改。
+    booking_confirmation: BookingConfirmation | None = None
     failure: str | None = None
     intent_fields: dict[str, Any] = field(default_factory=dict)
     messages: list[ConversationMessage] = field(default_factory=list)
@@ -740,3 +779,32 @@ class TripTask:
             (item for item in self.options if item.option_id == self.selected_option_id),
             None,
         )
+
+    def confirmed_option(self) -> TravelOptionVersion | None:
+        """下单确认对应的那条方案；没有确认记录时为 None。
+
+        按确认记录上的 `option_id` 找，不按 `selected_option_id`——两者按构造是同一个，
+        但确认记录是不可变的事实，选中 ID 是可变的状态，读事实要跟着事实走。
+        """
+        confirmation = self.booking_confirmation
+        if confirmation is None:
+            return None
+        return next(
+            (item for item in self.options if item.option_id == confirmation.option_id),
+            None,
+        )
+
+    def booking_cost_variance(self) -> Decimal | None:
+        """实付比方案价多付（正）或少付（负）了多少；算不出来就是 None。
+
+        算不出来的两种情况：没有确认记录或找不到对应方案；币种对不上。
+        **币种不一致时不换算**——省的是 800 什么？说不出来就不凑。
+        和 `planning/cost_guidance.py` 是同一条规矩。
+        """
+        confirmation = self.booking_confirmation
+        option = self.confirmed_option()
+        if confirmation is None or option is None:
+            return None
+        if confirmation.currency != option.currency:
+            return None
+        return confirmation.total_amount - option.total_cost

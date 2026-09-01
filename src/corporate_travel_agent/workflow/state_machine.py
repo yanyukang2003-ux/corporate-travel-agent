@@ -70,7 +70,9 @@ _ALLOWED: dict[TaskState, frozenset[TaskState]] = {
     ),
     TaskState.RECONFIRMATION_REQUIRED: frozenset({TaskState.SEARCHING}),
     TaskState.READY_FOR_HANDOFF: frozenset({TaskState.HANDED_OFF}),
-    TaskState.HANDED_OFF: frozenset(),
+    # 交接之后唯一的出边：员工回填订单号。回填是终点——填错了开新任务，不改这条。
+    TaskState.HANDED_OFF: frozenset({TaskState.BOOKING_CONFIRMED}),
+    TaskState.BOOKING_CONFIRMED: frozenset(),
     TaskState.TOOL_BUDGET_EXHAUSTED: frozenset(),
     # 用户显式消息可重开误判或已过时的 OOS 任务
     TaskState.OUT_OF_SCOPE: frozenset({TaskState.DRAFT}),

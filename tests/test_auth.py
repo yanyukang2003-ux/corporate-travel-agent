@@ -233,6 +233,40 @@ def test_enabled_api_requires_login_and_enforces_task_scope(secured_client) -> N
     assert task_id not in outsider_ids
 
 
+def test_booking_confirmation_is_the_travelers_action(secured_client) -> None:
+    """回填订单号和其他工作流操作一样：旅行者本人或管理员；审批人不能替员工填。"""
+    employee = _login(secured_client, "E1001")
+    manager = _login(secured_client, "M2001")
+    other_manager = _login(secured_client, "M9999")
+    admin = _login(secured_client, "A9001")
+    created = _create_trip(secured_client, employee)
+    task_id = created["task_id"]
+    compliant = next(
+        item for item in created["options"] if item["policy_outcome"] == "COMPLIANT"
+    )
+    assert (
+        secured_client.post(
+            f"/trip-tasks/{task_id}/select-option",
+            headers=employee,
+            json={"option_id": compliant["option_id"]},
+        ).status_code
+        == 200
+    )
+    path = f"/trip-tasks/{task_id}/booking-confirmation"
+    payload = {"order_references": ["PNR-1"], "total_amount": "100", "currency": "USD"}
+
+    assert secured_client.post(path, json=payload).status_code == 401
+    assert secured_client.post(path, headers=manager, json=payload).status_code == 403
+    # 看不见的任务不存在。
+    assert secured_client.post(path, headers=other_manager, json=payload).status_code == 404
+
+    confirmed = secured_client.post(path, headers=employee, json=payload)
+    assert confirmed.status_code == 200
+    assert confirmed.json()["booking_confirmation"]["reported_by"] == "E1001"
+    # 管理员本可以替员工填，但这单已经填过了。
+    assert secured_client.post(path, headers=admin, json=payload).status_code == 409
+
+
 def test_approval_identity_comes_from_authenticated_manager(secured_client) -> None:
     employee = _login(secured_client, "E1001")
     manager = _login(secured_client, "M2001")

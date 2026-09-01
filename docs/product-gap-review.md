@@ -355,3 +355,56 @@ P0 的业务指标层已完成，它是后面每一条改进的判断依据—�
 | 6 | 发起人 ≠ 旅行者 | 真实企业第一周就会撞到 |
 | 7 | 画像层接通、Outbox 投递、`TripWatch` | 前面做完了它们才有意义 |
 | — | **冻结评测代码，不再加新 runner** | 边际收益已经很低；现有门禁够用 |
+
+### 6.5 第 1 项落地记录：下单确认回流（2026-09-01）　✅ 第一步已完成
+
+**做了什么。** 交接之后系统第一次能看见"真的订了"：员工回填订单号和实付金额，任务从
+`HANDED_OFF` 进入新的终态 `BOOKING_CONFIRMED`。业务指标层由此多了三个数，并把提前预订天数
+的起点换成了员工说的下单时刻。
+
+**落点**：
+
+- `domain/enums.py` —— `TaskState.BOOKING_CONFIRMED`；`BookingConfirmationSource`，**只有
+  `SELF_REPORTED` 一档**（费控对账接上时再加第二档，没有实现的名字不该存在）；
+- `domain/models.py` —— `BookingConfirmation`（不可变）；`TripTask.booking_confirmation`、
+  `confirmed_option()`、`booking_cost_variance()`——差额只有这一个算法，API 和指标都读它；
+- `domain/validation.py` —— `validate_booking_confirmation_values`：只校验形状；
+- `workflow/state_machine.py` —— `HANDED_OFF → BOOKING_CONFIRMED`，后者无出边；
+- `agent/orchestrator.py` —— `confirm_booking()`：从 `READY_FOR_HANDOFF` 直接回填会先补记
+  `HANDOFF_COMPLETED`；一个任务一条，第二次拒绝；
+- `api/main.py` —— `POST /trip-tasks/{id}/booking-confirmation`；任务载荷多了
+  `booking_confirmation`（含读时现算的 `planned_total` / `cost_variance`）；
+- `services/evaluation_business.py` —— `booking_confirmation_rate`、
+  `booking_confirmation_rate.of_handed_off`（说了"我去订了"的人里回来填单号的比例，
+  1 减它就是交接完成率高估了多少）、`booked_cost_variance_ratio_mean`；
+  `advance_days_reference` 新增 `booking_confirmation`；
+- `services/travel_profile.py` —— 回填过的任务也算"真的订了"，证据更硬的排前面；
+- 前端 —— **补上了此前根本不存在的交接面板**（`HandoffPanel`）：链接、"先记一笔我去订了"、
+  回填表单、回填后的方案价/实付对照；`utils/booking.ts` 把差额写成人话，币种不同时明说
+  "不比较"；任务列表多一格"已回填订单"；
+- 测试 —— `tests/test_booking_confirmation.py`（流程 + 形状边界 15 条）；
+  `test_evaluation_business.py` +4、`test_api.py` +1、`test_auth.py` +1（审批人 403、
+  外人 404、本人 200、管理员遇已填 409）、`test_persistence.py` +1（SQLite 重启后 Decimal /
+  来源 / 差额不丢）、`test_travel_profile.py` +1；`frontend/src/utils/booking.test.ts` 8 条。
+  **全量：pytest 910 通过（此前 887）、ruff 全过、前端 build + test(47) + lint 全过。**
+
+**三条口径限制，写在代码里也写在这里：**
+
+1. **自述，不是回执。** 订单号系统核不了，金额系统核不了。指标名和报表标签都带着"自述"
+   两个字；`booking_confirmation_rate` 比 `handoff_completion_rate` 硬的地方只有一个
+   具体的号和一个具体的数，软的地方是没有核实。
+2. **一个任务一条，写了不改。** 填错了开新任务。改一条已经进了指标的记录等于让历史曲线
+   悄悄变形。
+3. **币种不一致不换算。** 差额为 `None`，报表里记 `confirmation_currency_mismatch`；方案价
+   和实付照给，读的人自己看得出两个币种不同。
+
+**一处和 6.4 原文不同的决定。** 原文写的是"`Trip` 实体 + `BookingConfirmation`"。做的时候
+按仓库自己的规矩（`planning/preferences.py`："词表是承诺，承诺必须兑现"）**没有抽 `Trip`
+聚合**：现在一个任务对应一次交接、一条确认，`Trip` 抽出来只会是套在 `TripTask` 外面的
+空壳，没有任何一处会读它。抽它的时机是出现第二种任务（改期）需要挂在同一趟差旅下的那天，
+那时它才有内容。`BookingConfirmation` 是这一步真正承重的东西，它挂在产生交接的那个任务上，
+将来 `Trip` 出现时引用它即可，不会返工。
+
+**还没做的**：费控对账（第二档来源，把"自述"变成"核实过"）；把回填做进 IM/邮件提醒
+（员工交接后三天没回填，主动问一句——这需要 Outbox 投递进程，见 6.4 第 7 项）；真实数据
+上的第一条基线，现在所有数字都来自演示库存。

@@ -20,6 +20,7 @@ export type TaskState =
   | 'RECONFIRMATION_REQUIRED'
   | 'READY_FOR_HANDOFF'
   | 'HANDED_OFF'
+  | 'BOOKING_CONFIRMED'
   | 'TOOL_BUDGET_EXHAUSTED'
   | 'OUT_OF_SCOPE'
 
@@ -283,6 +284,40 @@ export interface BookingIntent {
   status: string
 }
 
+/** 一条下单确认是谁说的。今天只有员工自述这一档；费控对账接上时再加。 */
+export type BookingConfirmationSource = 'SELF_REPORTED'
+
+/**
+ * 员工回填的下单确认：订单号、实付金额。**自述，不是回执**——系统核不了订单号。
+ * 方案价与差额由后端读时现算；找不到方案时 planned_total 为 null，币种不一致时 cost_variance 为 null。
+ */
+export interface BookingConfirmation {
+  confirmation_id: string
+  intent_id: string
+  option_id: string
+  option_version: number
+  order_references: string[]
+  total_amount: string | number
+  currency: string
+  source: BookingConfirmationSource
+  reported_by: string
+  reported_at: string
+  booked_at: string
+  note: string | null
+  planned_total: string | number | null
+  planned_currency: string | null
+  cost_variance: string | number | null
+}
+
+/** 回填订单号的请求体。金额用字符串传，避免浮点。 */
+export interface BookingConfirmationCreate {
+  order_references: string[]
+  total_amount: string
+  currency: string
+  booked_at?: string | null
+  note?: string | null
+}
+
 /** 供应商重试调度相关字段。 */
 export interface ProviderRetry {
   next_retry_at?: string | null
@@ -379,6 +414,7 @@ export interface TripTask {
   selected_option_id: string | null
   approval: ApprovalInfo | null
   booking_intent: BookingIntent | null
+  booking_confirmation: BookingConfirmation | null
   summary: false
 }
 

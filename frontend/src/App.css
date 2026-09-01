@@ -345,7 +345,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px
 .timeline section b { font-size: 11px; }
 .timeline section p { margin: 4px 0 0; color: var(--muted); font-size: 9px; }
 
-.metric-row { display: grid; grid-template-columns: repeat(4, 1fr); margin-bottom: 24px; border: 1px solid var(--line); background: var(--paper); }
+.metric-row { display: grid; grid-template-columns: repeat(5, 1fr); margin-bottom: 24px; border: 1px solid var(--line); background: var(--paper); }
 .metric-row > div { padding: 18px 20px; border-right: 1px solid var(--line); }
 .metric-row > div:last-child { border: 0; }
 .metric-row span, .metric-row small { display: block; color: var(--muted); font-size: 9px; }
@@ -681,3 +681,33 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px
 .scoring-caveats > b { display: block; margin-bottom: 8px; font-size: 12px; }
 .scoring-caveats ul { margin: 0; padding-left: 18px; color: var(--muted); font-size: 11px; line-height: 1.75; }
 .scoring-caveats b { color: var(--ink); }
+
+/* 交接与下单确认面板 */
+.handoff-panel { margin-bottom: 24px; border: 1px solid #8ea49d; background: var(--paper); box-shadow: 0 16px 40px rgba(32,63,68,.09); }
+.handoff-panel.confirmed { border-color: #9dbba9; }
+.handoff-head { display: grid; grid-template-columns: 54px 1fr auto; gap: 16px; align-items: center; padding: 22px 24px 18px; border-bottom: 1px solid var(--line); background: linear-gradient(115deg, #f7faf6 0%, #fffdf8 70%); }
+.handoff-signal { width: 48px; height: 48px; display: grid; place-items: center; border: 1px solid #8da49d; border-radius: 50%; color: var(--green); background: #fff; }
+.handoff-head h2 { margin: 4px 0 5px; color: var(--ink); font: 22px/1.25 Georgia, "Songti SC", serif; letter-spacing: -.02em; }
+.handoff-head p { margin: 0; color: var(--muted); font-size: 10px; line-height: 1.6; }
+.handoff-link { display: grid; grid-template-columns: auto 1fr auto; gap: 12px; align-items: center; padding: 12px 24px; border-bottom: 1px solid var(--line-soft); background: #fbf6ef; }
+.handoff-link > span { padding: 4px 8px; border: 1px solid #c9a57a; color: #7a5428; background: #fff; font-size: 9px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+.handoff-link code { min-width: 0; overflow-wrap: anywhere; color: var(--ink); font: 11px ui-monospace, monospace; }
+.handoff-link small { color: #8c725d; font-size: 9px; white-space: nowrap; }
+.handoff-form { display: grid; gap: 12px; padding: 18px 24px 20px; }
+.handoff-form label { display: flex; flex-direction: column; gap: 6px; color: var(--green); font-size: 8px; font-weight: 800; letter-spacing: .08em; }
+.handoff-form input { height: 38px; padding: 0 10px; border: 1px solid #bdc9c4; color: var(--ink); background: #fff; font-size: 12px; }
+.handoff-form-row { display: grid; grid-template-columns: 1fr 120px; gap: 12px; }
+.handoff-actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: 4px; }
+.handoff-secondary { min-height: 42px; padding: 0 14px; border: 1px solid #c9a57a; color: #7a5428; background: #fff; font-size: 11px; font-weight: 700; }
+.handoff-secondary:disabled { opacity: .5; cursor: not-allowed; }
+.handoff-help { display: flex; align-items: center; gap: 6px; margin: 0; color: var(--muted); font-size: 9px; }
+.handoff-facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 0; margin: 0; }
+.handoff-facts > div { padding: 14px 24px; border-right: 1px solid var(--line-soft); border-bottom: 1px solid var(--line-soft); }
+.handoff-facts dt { margin-bottom: 4px; color: var(--muted-2); font-size: 8px; font-weight: 800; letter-spacing: .1em; }
+.handoff-facts dd { margin: 0; color: var(--ink); font-size: 12px; font-weight: 700; overflow-wrap: anywhere; }
+.handoff-panel.confirmed .handoff-help { padding: 12px 24px 16px; }
+@media (max-width: 720px) {
+  .handoff-head, .handoff-link { grid-template-columns: 1fr; }
+  .handoff-form-row { grid-template-columns: 1fr; }
+  .metric-row { grid-template-columns: repeat(2, 1fr); }
+}

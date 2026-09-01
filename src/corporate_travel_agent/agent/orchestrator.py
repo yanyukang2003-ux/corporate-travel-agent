@@ -10,6 +10,7 @@ import re
 from collections.abc import Callable, Sequence
 from dataclasses import asdict, replace
 from datetime import UTC, date, datetime, timedelta
+from decimal import Decimal
 from random import random
 from threading import BoundedSemaphore, RLock
 from time import perf_counter_ns, sleep
@@ -34,6 +35,7 @@ from corporate_travel_agent.agent.ports import (
 )
 from corporate_travel_agent.domain.enums import (
     ApprovalStatus,
+    BookingConfirmationSource,
     BookingScope,
     IntentEntrypoint,
     LodgingRequirement,
@@ -46,6 +48,7 @@ from corporate_travel_agent.domain.enums import (
 )
 from corporate_travel_agent.domain.models import (
     ApprovalRequest,
+    BookingConfirmation,
     BookingIntent,
     ConversationMessage,
     EmployeeTravelProfileSnapshot,
@@ -64,6 +67,8 @@ from corporate_travel_agent.domain.models import (
     TripTask,
 )
 from corporate_travel_agent.domain.validation import (
+    BookingConfirmationValidationError,
+    validate_booking_confirmation_values,
     validate_trip_request,
     validate_trip_request_values,
 )
@@ -2929,6 +2934,89 @@ class TripWorkflowOrchestrator:
             raise WorkflowError("No validated handoff is ready")
         self._transition(task, TaskState.HANDED_OFF)
         self._audit(task, "HANDOFF_COMPLETED", task.booking_intent.intent_id, task.state.value)
+        return task
+
+    def confirm_booking(
+        self,
+        task_id: str,
+        *,
+        order_references: Sequence[str],
+        total_amount: Decimal,
+        currency: str,
+        reported_by: str,
+        booked_at: datetime | None = None,
+        note: str | None = None,
+    ) -> TripTask:
+        """员工回填"我订好了，订单号是这个、花了这么多"。
+
+        允许从两个状态进来：`READY_FOR_HANDOFF`（拿着链接去订了，回来直接填单号——
+        这时先按交接完成记一笔，再记确认，`HANDOFF_COMPLETED` 事件不会少）和
+        `HANDED_OFF`（先前点过"我去订了"，现在补单号）。交接链接过没过期在这里不管：
+        链接的有效期管的是"能不能去订"，人已经订完回来了。
+
+        一个任务只有一条确认，第二次进来直接拒绝：这条记录一写进去就进了业务指标，
+        改它等于让历史曲线悄悄变形。填错了开新任务。
+
+        **系统核不了订单号和金额。** 这里只校验形状（见 `validate_booking_confirmation_values`），
+        `source` 固定为 `SELF_REPORTED`，读指标的人必须带着这一点看。
+        """
+        task = self.tasks.get(task_id)
+        if task.booking_confirmation is not None:
+            raise WorkflowError("The booking has already been confirmed for this task")
+        if task.state not in {TaskState.READY_FOR_HANDOFF, TaskState.HANDED_OFF}:
+            raise WorkflowError(f"Cannot confirm a booking in {task.state.value}")
+        intent = task.booking_intent
+        option = task.selected_option()
+        if intent is None or option is None or intent.selected_option_id != option.option_id:
+            raise WorkflowError("No validated handoff to confirm a booking against")
+        if not reported_by or not reported_by.strip():
+            raise WorkflowError("A booking confirmation must name who reported it")
+        try:
+            values = validate_booking_confirmation_values(
+                order_references=order_references,
+                total_amount=total_amount,
+                currency=currency,
+                booked_at=booked_at,
+                now=self.clock(),
+                note=note,
+            )
+        except BookingConfirmationValidationError as exc:
+            raise WorkflowError(str(exc)) from exc
+
+        if task.state is TaskState.READY_FOR_HANDOFF:
+            self._transition(task, TaskState.HANDED_OFF)
+            self._audit(task, "HANDOFF_COMPLETED", intent.intent_id, task.state.value)
+
+        confirmation = BookingConfirmation(
+            confirmation_id=str(uuid4()),
+            intent_id=intent.intent_id,
+            option_id=option.option_id,
+            option_version=option.version,
+            order_references=values.order_references,
+            total_amount=values.total_amount,
+            currency=values.currency,
+            source=BookingConfirmationSource.SELF_REPORTED,
+            reported_by=reported_by.strip(),
+            reported_at=self.clock(),
+            booked_at=values.booked_at,
+            note=values.note,
+        )
+        # 先挂到聚合上再迁移：迁移会写审计并持久化整个聚合，确认记录得在那一笔里。
+        task.booking_confirmation = confirmation
+        self._transition(task, TaskState.BOOKING_CONFIRMED)
+        self._audit(
+            task,
+            "BOOKING_CONFIRMED",
+            {
+                "order_reference_count": len(confirmation.order_references),
+                "total_amount": str(confirmation.total_amount),
+                "currency": confirmation.currency,
+                "source": confirmation.source.value,
+                "reported_by": confirmation.reported_by,
+            },
+            confirmation.confirmation_id,
+            (intent.intent_id, option.option_id),
+        )
         return task
 
     def _search_and_plan(self, task: TripTask, policy: PolicySnapshot) -> TripTask:

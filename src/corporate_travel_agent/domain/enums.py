@@ -21,6 +21,8 @@ class TaskState(StrEnum):
     RECONFIRMATION_REQUIRED = "RECONFIRMATION_REQUIRED"
     READY_FOR_HANDOFF = "READY_FOR_HANDOFF"
     HANDED_OFF = "HANDED_OFF"
+    # 员工回填了订单号和实付金额。交接之后系统唯一能看见的"真的订了"的证据；终态。
+    BOOKING_CONFIRMED = "BOOKING_CONFIRMED"
     TOOL_BUDGET_EXHAUSTED = "TOOL_BUDGET_EXHAUSTED"
     OUT_OF_SCOPE = "OUT_OF_SCOPE"
 
@@ -43,6 +45,18 @@ class PreferenceOrigin(StrEnum):
 
     ORG_DEFAULT = "ORG_DEFAULT"
     """同职级同常驻城市同事的常见选择。冷启动用，**根本不是关于他本人的**，权重最低。"""
+
+
+class BookingConfirmationSource(StrEnum):
+    """一条下单确认是谁说的。**只有一档，因为现在只接了一种来源。**
+
+    费控系统对账、供应商回执接上的那天再加第二个值——按仓库的规矩，没有实现的名字
+    不该存在。读指标的人看到 `SELF_REPORTED` 就该知道：这是员工自己填的，不是回执，
+    订单号和金额系统都核不了。
+    """
+
+    SELF_REPORTED = "SELF_REPORTED"
+    """员工（或替他操作的管理员）在本系统里手填的订单号和金额。"""
 
 
 class ToolCallStatus(StrEnum):

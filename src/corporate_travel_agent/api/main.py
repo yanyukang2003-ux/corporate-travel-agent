@@ -10,6 +10,7 @@ import os
 from contextlib import asynccontextmanager
 from dataclasses import asdict
 from datetime import date, datetime
+from decimal import Decimal
 from typing import Annotated, Any
 from uuid import uuid4
 
@@ -380,6 +381,21 @@ class ApprovalDecision(BaseModel):
     reason: str = Field(min_length=1, max_length=2000)
 
 
+class BookingConfirmationCreate(BaseModel):
+    """员工回填下单确认的请求体：订单号、实付金额、币种，可选下单时刻和备注。
+
+    这里只限形状；订单号是不是真的、金额对不对，系统核不了——见
+    `domain/validation.validate_booking_confirmation_values`。
+    """
+    model_config = ConfigDict(extra="forbid")
+
+    order_references: list[str] = Field(min_length=1, max_length=10)
+    total_amount: Decimal = Field(ge=0, max_digits=14, decimal_places=2)
+    currency: str = Field(pattern=r"^[A-Z]{3}$")
+    booked_at: datetime | None = None
+    note: str | None = Field(default=None, max_length=500)
+
+
 class LoginRequest(BaseModel):
     """登录请求体。"""
     model_config = ConfigDict(extra="forbid")
@@ -733,6 +749,37 @@ def handoff_completed(task_id: str, identity: CurrentIdentity) -> dict[str, Any]
     """标记已完成向 Provider 的交接。"""
     _require_can_operate(identity, _visible_task(task_id, identity))
     return _run(lambda: workflow.mark_handed_off(task_id))
+
+
+@app.post("/trip-tasks/{task_id}/booking-confirmation")
+def confirm_booking(
+    task_id: str,
+    payload: BookingConfirmationCreate,
+    identity: CurrentIdentity,
+) -> dict[str, Any]:
+    """员工回填"我订好了"：订单号、实付金额。
+
+    这是交接之后系统唯一能拿到的"真的订了"的证据，业务指标层靠它把交接完成率变成
+    有分子可对照的数。**只是自述**——系统核不了订单号和金额；`source` 固定为
+    `SELF_REPORTED`。一个任务只能回填一次，填错了开新任务。
+
+    从 `READY_FOR_HANDOFF` 直接回填也行：后端会先记一笔交接完成，再记确认。
+    权限和其他工作流操作一样：旅行者本人或管理员；审批人不能替员工填。
+    """
+    task = _visible_task(task_id, identity)
+    _require_can_operate(identity, task)
+    reported_by = identity.employee_id or identity.user_id
+    return _run(
+        lambda: workflow.confirm_booking(
+            task_id,
+            order_references=payload.order_references,
+            total_amount=payload.total_amount,
+            currency=payload.currency,
+            reported_by=reported_by,
+            booked_at=payload.booked_at,
+            note=payload.note,
+        )
+    )
 
 
 @app.post("/approvals/{task_id}/decision")
@@ -1180,7 +1227,26 @@ def _public_task(task: TripTask) -> dict[str, Any]:
         "selected_option_id": task.selected_option_id,
         "approval": asdict(task.approval) if task.approval else None,
         "booking_intent": asdict(task.booking_intent) if task.booking_intent else None,
+        "booking_confirmation": _public_booking_confirmation(task),
         "summary": False,
+    }
+
+
+def _public_booking_confirmation(task: TripTask) -> dict[str, Any] | None:
+    """回填记录，外加"方案价多少 / 实付多少 / 差多少"。差额读时现算，不进持久化。
+
+    币种对不上时 `cost_variance` 是 null，方案价照给——读的人自己看得出两个币种不同，
+    系统不替他换算。
+    """
+    confirmation = task.booking_confirmation
+    if confirmation is None:
+        return None
+    option = task.confirmed_option()
+    return {
+        **asdict(confirmation),
+        "planned_total": option.total_cost if option is not None else None,
+        "planned_currency": option.currency if option is not None else None,
+        "cost_variance": task.booking_cost_variance(),
     }
 
 

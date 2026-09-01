@@ -535,6 +535,37 @@ class ProfileStaysOutOfTheVerdictTests(unittest.TestCase):
         self.assertNotEqual(plain, shaped)
 
 
+class CompletedStatesTests(unittest.TestCase):
+    """回填了订单号的任务也算「真的订了」，而且排在只点过「我去订了」的前面。"""
+
+    def test_confirmed_bookings_count_as_completed_trips(self) -> None:
+        from corporate_travel_agent.services.repositories import InMemoryTaskRepository
+
+        repository = InMemoryTaskRepository()
+        confirmed = _completed_task(
+            "t-confirmed", legs=(_leg(TransportMode.TRAIN),), state=TaskState.BOOKING_CONFIRMED
+        )
+        handed = _completed_task(
+            "t-handed", legs=(_leg(TransportMode.TRAIN, day=2),), state=TaskState.HANDED_OFF
+        )
+        waiting = _completed_task(
+            "t-waiting", legs=(_leg(TransportMode.TRAIN, day=3),), state=TaskState.WAITING_FOR_USER
+        )
+        for task in (confirmed, handed, waiting):
+            repository.add(task)
+        history = RepositoryTripHistory(repository)
+
+        own = history.completed_trips(_EMPLOYEE.employee_id)
+        self.assertEqual({item.task_id for item in own}, {"t-confirmed", "t-handed"})
+
+        peers = history.peer_completed_trips(
+            level=_EMPLOYEE.level, home_city=_EMPLOYEE.home_city
+        )
+        self.assertEqual({item.task_id for item in peers}, {"t-confirmed", "t-handed"})
+        # 证据更硬的那组排在前面。
+        self.assertEqual(peers[0].task_id, "t-confirmed")
+
+
 class OrchestratorWiringTests(unittest.TestCase):
     """接上和不接上，分别该是什么样。"""
 

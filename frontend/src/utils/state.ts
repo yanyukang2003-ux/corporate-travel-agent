@@ -107,7 +107,13 @@ const STATE_META: Record<TaskState, StateMeta> = {
   },
   HANDED_OFF: {
     label: '已交接',
-    description: '用户已确认前往官方平台办理',
+    description: '用户已确认前往官方平台办理，还没有回填订单号',
+    tone: 'success',
+    phase: 'handoff',
+  },
+  BOOKING_CONFIRMED: {
+    label: '已回填订单',
+    description: '员工已回填订单号与实付金额（自述，未对账）',
     tone: 'success',
     phase: 'terminal',
   },
