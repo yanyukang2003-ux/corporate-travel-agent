@@ -2,15 +2,17 @@
 
 import type { MetricResult, WhereaboutsStatus } from '../api/types'
 
-/** 看板首屏放哪几个指标、按什么顺序。其余指标在下方全表里。 */
-export const KPI_KEYS = [
-  'booking_confirmation_rate',
-  'approval_request_rate',
-  'off_channel_expense_rate',
-  'change_intervention_rate',
-  'advance_booking_days_mean',
-  'time_to_handoff_minutes_p50',
-] as const
+/** 看板首屏放哪几个指标、按什么顺序、叫什么。其余指标在下方全表里用后端的长标签。 */
+export const KPI_CARDS: readonly { key: string; title: string }[] = [
+  { key: 'booking_confirmation_rate', title: '回填了订单号的比例' },
+  { key: 'approval_request_rate', title: '走了例外审批的比例' },
+  { key: 'off_channel_expense_rate', title: '渠道外预订率' },
+  { key: 'change_intervention_rate', title: '变更场景人工介入率' },
+  { key: 'advance_booking_days_mean', title: '提前几天订好（平均）' },
+  { key: 'seconds_to_handoff_p50', title: '从开始到订好（中位）' },
+]
+
+export const KPI_KEYS: readonly string[] = KPI_CARDS.map((card) => card.key)
 
 /** 指标值的显示文本：比例显示百分比，其他按单位；测不出来就说测不出来，不写 0。 */
 export function formatMetric(metric: MetricResult | undefined): string {
@@ -18,11 +20,25 @@ export function formatMetric(metric: MetricResult | undefined): string {
     return '测不出来'
   }
   if (metric.unit === 'rate') return `${(metric.value * 100).toFixed(1)}%`
+  if (metric.unit === 'ratio') {
+    const percent = (metric.value * 100).toFixed(1)
+    return `${metric.value > 0 ? '+' : ''}${percent}%`
+  }
+  if (metric.unit === 'seconds') return formatSeconds(metric.value)
   const rounded = Number.isInteger(metric.value) ? String(metric.value) : metric.value.toFixed(1)
   if (metric.unit === 'days') return `${rounded} 天`
   if (metric.unit === 'minutes') return `${rounded} 分钟`
+  if (metric.unit === 'rounds') return `${rounded} 轮`
+  if (metric.unit === 'calls') return `${rounded} 次`
   if (metric.unit === 'count') return rounded
   return metric.unit ? `${rounded} ${metric.unit}` : rounded
+}
+
+/** 秒数按人看得懂的粒度显示：不到一分钟说秒，不到一小时说分钟，再往上说小时。 */
+export function formatSeconds(seconds: number): string {
+  if (seconds < 60) return `${Math.round(seconds)} 秒`
+  if (seconds < 3600) return `${(seconds / 60).toFixed(1)} 分钟`
+  return `${(seconds / 3600).toFixed(1)} 小时`
 }
 
 /** 分母的说明文本，让人知道这个数是几个样本算出来的。 */

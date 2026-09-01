@@ -4,6 +4,7 @@ import { describe, it } from 'node:test'
 import type { MetricResult } from '../api/types.ts'
 import {
   formatMetric,
+  formatSeconds,
   metricSample,
   utilisation,
   utilisationTone,
@@ -26,6 +27,17 @@ describe('formatMetric', () => {
     assert.equal(formatMetric(measured(3, 'days')), '3 天')
     assert.equal(formatMetric(measured(12.34, 'minutes')), '12.3 分钟')
     assert.equal(formatMetric(measured(7, 'count')), '7')
+    assert.equal(formatMetric(measured(0.02, 'ratio')), '+2.0%')
+    assert.equal(formatMetric(measured(-0.05, 'ratio')), '-5.0%')
+    assert.equal(formatMetric(measured(2.3, 'calls')), '2.3 次')
+    assert.equal(formatMetric(measured(0, 'rounds')), '0 轮')
+    assert.equal(formatMetric(measured(5400, 'seconds')), '1.5 小时')
+  })
+
+  it('shows seconds at a readable granularity', () => {
+    assert.equal(formatSeconds(42), '42 秒')
+    assert.equal(formatSeconds(90), '1.5 分钟')
+    assert.equal(formatSeconds(7200), '2.0 小时')
   })
 
   it('says a metric is unmeasured instead of printing zero', () => {

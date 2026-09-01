@@ -736,6 +736,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px
 .kpi-card small { color: var(--muted, #6b7280); font-size: 12px; }
 .kpi-card b { font-size: 24px; font-weight: 600; letter-spacing: -0.01em; }
 .kpi-card.unmeasured b { color: var(--muted, #6b7280); font-size: 16px; }
+.kpi-card > span { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
 .metric-table .table-head, .metric-table .table-row { grid-template-columns: 2fr 1fr 1fr 3fr; }
 .whereabouts-table .table-head, .whereabouts-table .table-row { grid-template-columns: 1.4fr 0.8fr 1fr 2.4fr 0.8fr 1fr; }
 .budget-list { display: flex; flex-direction: column; gap: 14px; }

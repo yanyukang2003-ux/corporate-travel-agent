@@ -30,7 +30,7 @@ import { approvalReasonText, factsForOptionCard, openQuestionsFromTask } from '.
 import { chatTurns } from './utils/chat'
 import { costNotes, money as moneyText } from './utils/cost'
 import { confirmationSummary, parseOrderReferences, reconciliationText } from './utils/booking'
-import { KPI_KEYS, formatMetric, metricSample, utilisation, utilisationTone, whereaboutsLabel, whereaboutsTone } from './utils/dashboard'
+import { KPI_CARDS, KPI_KEYS, formatMetric, metricSample, utilisation, utilisationTone, whereaboutsLabel, whereaboutsTone } from './utils/dashboard'
 import type { CostNote } from './utils/cost'
 import { categoriesFromFacts, rankedBreakdowns } from './utils/scoring'
 import type { ChatTurn } from './utils/chat'
@@ -602,7 +602,7 @@ function ChatPane({
             </label>
           )}
           {task?.is_delegated && <Badge tone="dark">代订 · {task.requester_id} 为 {task.traveler_id}</Badge>}
-          {task?.is_change_task && <Badge tone="orange">改期 · {task.change_event?.event_type === 'FLIGHT_CHANGED' ? '航班变更' : '会议改期'}{task.change_event?.ref_id ? ` ${task.change_event.ref_id}` : ''}</Badge>}
+          {task?.is_change_task && <span title={`${task.change_event?.event_type === 'FLIGHT_CHANGED' ? '航班变更' : '会议改期'}${task.change_event?.ref_id ? ` · ${task.change_event.ref_id}` : ''}${task.change_event?.note ? ` · ${task.change_event.note}` : ''}`}><Badge tone="orange">改期</Badge></span>}
           <Badge tone={stateBadgeTone(task?.state ?? null)}>{stateMeta?.label ?? '等待指令'}</Badge>
           {task && <button type="button" className="chat-new" onClick={onNewTrip}>新对话</button>}
         </div>
@@ -1844,7 +1844,7 @@ function DashboardView() {
 
   const metrics = report?.metrics ?? {}
   const labels = report?.labels ?? {}
-  const otherKeys = Object.keys(metrics).filter((key) => !(KPI_KEYS as readonly string[]).includes(key))
+  const otherKeys = Object.keys(metrics).filter((key) => !KPI_KEYS.includes(key))
 
   return <div className="page dashboard-page">
     <div className="page-heading compact"><div><div className="eyebrow">管理看板</div><h1>业务结果、谁在哪、预算消耗</h1><p>三块都只读；数据只来自系统里真实发生过的任务和员工回填的确认。</p></div></div>
@@ -1859,10 +1859,10 @@ function DashboardView() {
         </div>
       </div>
       <div className="kpi-grid">
-        {KPI_KEYS.map((key) => {
+        {KPI_CARDS.map(({ key, title }) => {
           const metric = metrics[key]
-          return <div className={`kpi-card ${metric?.status === 'measured' ? '' : 'unmeasured'}`.trim()} key={key}>
-            <small>{labels[key] ?? key}</small>
+          return <div className={`kpi-card ${metric?.status === 'measured' ? '' : 'unmeasured'}`.trim()} key={key} title={labels[key] ?? key}>
+            <small>{title}</small>
             <b>{formatMetric(metric)}</b>
             <span className="muted">{metricSample(metric)}</span>
           </div>
@@ -1873,7 +1873,7 @@ function DashboardView() {
         {otherKeys.map((key) => <div className="table-row readonly" key={key}>
           <span>{labels[key] ?? key}</span>
           <span><b>{formatMetric(metrics[key])}</b></span>
-          <span className="muted">{metricSample(metrics[key])}</span>
+          <span className="muted">{metrics[key]?.status === 'measured' ? metricSample(metrics[key]) : '—'}</span>
           <span className="muted">{metrics[key]?.confidence_note ?? ''}</span>
         </div>)}
       </div>}
