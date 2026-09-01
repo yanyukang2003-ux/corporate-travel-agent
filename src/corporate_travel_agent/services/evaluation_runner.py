@@ -183,12 +183,18 @@ def _run_workflow_evaluation(
                 attempt=attempt,
                 evaluation_mode=evaluation_mode,
                 fingerprint=fingerprint,
-                tool_choice_exposure="orchestrator_controlled",
+                # 结构化请求：编排器决定每一步；产品入口：模型从固定工具表里挑。
+                tool_choice_exposure=(
+                    "orchestrator_controlled"
+                    if language_model is None
+                    else "allowlisted_model_choice"
+                ),
             )
+            # 有模型就走产品入口（工具循环）；没有就用冻结的结构化请求。
             observation = run_workflow_evaluation_case(
                 case,
                 trace_observer=recorder,
-                language_model=language_model,
+                tool_calling_language_model=language_model,
             )
             case_evaluation = evaluate_workflow_case(
                 run_id=run_id,

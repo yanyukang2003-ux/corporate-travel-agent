@@ -4,12 +4,7 @@ from __future__ import annotations
 
 import re
 from datetime import datetime, time, timedelta
-from time import monotonic
-from typing import Any
 from zoneinfo import ZoneInfo
-
-from .ports import IntentExtractionResult, LLMCallMetadata
-from .schemas import IntentExtractionSchema, TripIntentFields
 
 _CITY_NAMES = tuple(
     sorted(
@@ -56,84 +51,6 @@ class DeterministicChineseIntentParser:
     """
 
     prompt_version = "deterministic-zh-intent-v1"
-
-    def extract_trip_intent(
-        self,
-        message: str,
-        *,
-        task_id: str,
-        traveler_id: str,
-        context: dict[str, Any],
-    ) -> IntentExtractionResult:
-        """抽取中文意图；歧义槽保持空。"""
-        _ = (task_id, traveler_id)
-        started = monotonic()
-        classification = self._classification(message)
-        reference_time = datetime.fromisoformat(str(context["reference_time"]))
-        timezone = ZoneInfo(str(context.get("timezone", "Asia/Shanghai")))
-        if reference_time.tzinfo is None:
-            reference_time = reference_time.replace(tzinfo=timezone)
-        else:
-            reference_time = reference_time.astimezone(timezone)
-
-        origin, destination = self._cities(message)
-        departure_after = self._departure_date(message, reference_time, timezone)
-        preferences = (
-            ["compare_train_and_flight"]
-            if classification == "TRANSPORT_COMPARE"
-            else []
-        )
-        fields = TripIntentFields(
-            origin=origin,
-            destination=destination,
-            departure_after=departure_after,
-            arrive_by=None,
-            return_after=None,
-            return_before=None,
-            hotel_check_in=None,
-            hotel_check_out=None,
-            client_location=None,
-            hard_constraints=[],
-            soft_preferences=preferences,
-        )
-        provided_fields = [
-            name
-            for name, value in fields.model_dump().items()
-            if value not in (None, [])
-        ]
-        provided_fields.extend(["hard_constraints", "soft_preferences"])
-        payload = IntentExtractionSchema(
-            classification=classification,
-            fields=fields,
-            provided_fields=list(dict.fromkeys(provided_fields)),
-            missing_required_fields=[],
-            conflicts=[],
-            assumptions=[],
-            confidence=1.0 if classification == "OUT_OF_SCOPE" else 0.75,
-            manipulation_detected=False,
-        )
-        return IntentExtractionResult(
-            payload=payload,
-            metadata=LLMCallMetadata(
-                prompt_version=self.prompt_version,
-                model="deterministic-local-parser",
-                duration_ms=int((monotonic() - started) * 1000),
-            ),
-        )
-
-    def propose_search_adjustment(
-        self, failure_facts: tuple[str, ...], allowed_adjustments: tuple[str, ...]
-    ) -> str | None:
-        """基线不提议搜索调整。"""
-        _ = (failure_facts, allowed_adjustments)
-        return None
-
-    def explain_verified_options(self, options: tuple) -> dict[str, str]:
-        """用已验证事实拼接解释，不新增事实。"""
-        return {
-            item.option_id: "; ".join(item.explanation_facts)
-            for item in options
-        }
 
     @staticmethod
     def _classification(message: str) -> str:

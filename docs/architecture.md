@@ -52,48 +52,26 @@ flowchart LR
 
 语言模型只负责完整对话的语义解释、白名单查询调整和已验证方案解释。生产实现必须使用结构化输出，并在进入领域层前完成 schema 校验。
 
-新的意图 seam 是一个深模块：
+自然语言只有一条入口：工具循环（`POST /agentic/trip-tasks`，`agent/tool_loop.py`）。
+模型每轮从固定工具表里挑零个或多个带类型的工具（查城市、搜交通、搜酒店、交付、提问；
+**没有任何写操作**），宿主执行、校验、计预算、写审计，把结果喂回下一轮。信息够不够往下走，
+由每个工具的签名决定，不再有一张全局必填表。结构化入口 `POST /trip-tasks` 直接接受
+`TripRequestVersion`。曾经并行存在的 legacy（槽位抽取）和 semantic（一次性语义编译）两条入口
+已于 2026-09-01 删除，理由与删除门槛见 [ADR-0003](adr/0003-single-product-entrypoint.md)；
+[ADR-0002](adr/0002-single-owner-semantic-intent.md) 的不变量保留在 `compile_search_command`
+和工具循环的评测替身里。
 
-```text
-ConversationLedger -> ConversationIntentInterpreter -> IntentDecision
-                                                |
-                                                v
-                                   compile_search_command
-                                                |
-                            clarification <-----+-----> TripRequestVersion
-```
+任务创建时固定 `intent_entrypoint`；已持久化的旧入口任务仍可读取，但不能续聊。
 
-`ConversationLedger` 是原始语义事实来源。`SemanticIntent` 可以保留多个候选城市、条件、
-未决信息和后续修正；它不是搜索参数。仅当 `IntentDecision.status == READY` 时，
-`compile_search_command()` 才能生成经过确定性校验的请求。编译器不补城市或日期默认值，
-任何会改变搜索结果的歧义都返回澄清。
-
-新旧链路通过不同入口并行存在，不使用运行时 mode 分支：
-
-- 旧链路：`POST /legacy/trip-tasks` 和
-  `POST /legacy/trip-tasks/{task_id}/messages`；
-- 新链路：`POST /semantic/trip-tasks` 和
-  `POST /semantic/trip-tasks/{task_id}/messages`；
-- 结构化入口：`POST /trip-tasks`。
-
-任务创建时固定 `intent_entrypoint`，后续消息不得跨入口提交。旧入口只调用
-`LanguageModelPort.extract_trip_intent`；新入口只调用
-`SemanticLanguageModelPort.interpret_trip_intent`，不会回退到旧抽取。二者仅在产出经过验证的
-`TripRequestVersion` 后共享搜索、政策、审批和交接流程。删除旧链路的评测门槛见
-[ADR-0002](adr/0002-single-owner-semantic-intent.md)。
-
-旧 `legacy` 自然语言入口使用两层验证：
-
-1. `IntentExtractionSchema` 限定模型只能返回差旅行程字段、字段来源、缺失项、冲突、假设和操纵标记；
-2. Orchestrator 独立重算必填项、时区、时间顺序、返程/酒店成对字段以及互斥硬约束。
-
-模型报告的 `missing_required_fields` 不是状态依据；应用层验证结果才是。`provided_fields` 是跨轮合并白名单，未列出的值即使出现在模型输出中也不会进入任务。
-
-模型输出和结构化入口中的城市先经过 `CityNormalizer` 映射为 Provider 使用的规范名称。映射来自经过校验和版本化的外部城市代码目录；未知别名保持原值交给 Provider 明确返回无库存，不做模型猜测。库存为空时，`NO_FEASIBLE_OPTION` 会区分去程、返程、酒店无匹配与硬约束过滤，不再返回空原因。
+工具循环的参数进入领域层前逐项校验：每一段的日期必须逐字引用对话原话并且那句话真的定下
+那一天（`_quote_fixes_date`）；交付的引用必须来自本轮真实搜到的库存；声明的要求只能用受支持
+的名字（§3.3）。城市名经 `CityNormalizer` 映射为供应商使用的规范名称；未知别名保持原值交给
+Provider 明确返回无库存，不做模型猜测。库存为空时，`NO_FEASIBLE_OPTION` 会区分去程、返程、
+酒店无匹配与硬约束过滤。
 
 ### 3.1 统一工具预算
 
-每个任务最多调用 12 次受控工具。计数范围包括意图抽取 LLM、去返程/酒店查询、库存重验和交接链接创建；员工/政策内存读取、确定性规划与规则计算不计数。
+每个任务最多调用 12 次受控工具（工具循环入口 20 次——一轮要花两次：选工具一次、执行一次）。计数范围包括每轮选工具的模型调用、去返程/酒店查询、库存重验和交接链接创建；员工/政策内存读取、确定性规划与规则计算不计数。
 
 - 每次调用前在任务聚合上原子预留一个序号；
 - 成功和失败调用都消耗预算并保存 `ToolCallRecord`；

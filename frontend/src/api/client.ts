@@ -135,20 +135,6 @@ export const api = {
   /** 按任务 ID 获取完整差旅任务详情。 */
   getTask: (taskId: string) => request<TripTask>(`/trip-tasks/${taskId}`),
 
-  /** 用保留的旧字段链路创建自然语言任务。 */
-  createLegacyNaturalLanguage: (message: string, traveler_id: string) =>
-    request<TripTask>('/legacy/trip-tasks', {
-      method: 'POST',
-      body: JSON.stringify({ message, traveler_id }),
-    }),
-
-  /** 用完整对话语义链路创建自然语言任务。 */
-  createSemanticNaturalLanguage: (message: string, traveler_id: string) =>
-    request<TripTask>('/semantic/trip-tasks', {
-      method: 'POST',
-      body: JSON.stringify({ message, traveler_id }),
-    }),
-
   /** 用工具循环入口创建自然语言任务：模型决定下一查，没有填表编译。 */
   createAgenticNaturalLanguage: (message: string, traveler_id: string) =>
     request<TripTask>('/agentic/trip-tasks', {
@@ -161,20 +147,6 @@ export const api = {
     request<TripTask>('/trip-tasks', {
       method: 'POST',
       body: JSON.stringify(payload),
-    }),
-
-  /** 仅向旧链路任务追加消息。 */
-  submitLegacyMessage: (taskId: string, message: string) =>
-    request<TripTask>(`/legacy/trip-tasks/${taskId}/messages`, {
-      method: 'POST',
-      body: JSON.stringify({ message }),
-    }),
-
-  /** 仅向新语义任务追加消息。 */
-  submitSemanticMessage: (taskId: string, message: string) =>
-    request<TripTask>(`/semantic/trip-tasks/${taskId}/messages`, {
-      method: 'POST',
-      body: JSON.stringify({ message }),
     }),
 
   /** 仅向工具循环任务追加消息。 */

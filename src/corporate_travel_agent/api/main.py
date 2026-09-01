@@ -19,10 +19,6 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-from corporate_travel_agent.agent.openai_adapter import (
-    OpenAIResponsesLanguageModel,
-    OpenAISemanticIntentLanguageModel,
-)
 from corporate_travel_agent.agent.orchestrator import (
     PARTIAL_COVERAGE_METADATA_KEY,
     LanguageModelUnavailable,
@@ -123,34 +119,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-
-def _configured_language_model() -> OpenAIResponsesLanguageModel | None:
-    """按环境变量装配 LLM；无 API Key 则返回 None。"""
-    if not os.getenv("OPENAI_API_KEY"):
-        return None
-    try:
-        return OpenAIResponsesLanguageModel(
-            model=os.getenv("OPENAI_MODEL", "gpt-5.6"),
-            fallback_model=os.getenv("OPENAI_FALLBACK_MODEL") or None,
-            request_timeout_seconds=float(os.getenv("OPENAI_TIMEOUT_SECONDS", "60")),
-        )
-    except LanguageModelError:
-        return None
-
-
-def _configured_semantic_language_model() -> OpenAISemanticIntentLanguageModel | None:
-    """独立装配新语义模型端口；不向调用方暴露旧抽取接口。"""
-    if not os.getenv("OPENAI_API_KEY"):
-        return None
-    try:
-        return OpenAISemanticIntentLanguageModel(
-            model=os.getenv("OPENAI_MODEL", "gpt-5.6"),
-            fallback_model=os.getenv("OPENAI_FALLBACK_MODEL") or None,
-            request_timeout_seconds=float(os.getenv("OPENAI_TIMEOUT_SECONDS", "60")),
-        )
-    except LanguageModelError:
-        return None
 
 
 def _configured_tool_calling_language_model() -> OpenAIToolCallingLanguageModel | None:
@@ -296,8 +264,6 @@ configured_travel_provider = travel_provider_from_environment(
     provider_retry_poll_seconds,
 ) = _configured_provider_resilience()
 workflow, _provider = build_demo_system(
-    language_model=_configured_language_model(),
-    semantic_language_model=_configured_semantic_language_model(),
     tool_calling_language_model=_configured_tool_calling_language_model(),
     task_repository=task_repository,
     raw_response_store=raw_response_store,
@@ -446,32 +412,28 @@ def health() -> dict[str, Any]:
     return {
         "status": status,
         "booking_capability": "disabled",
-        "language_model": "configured" if workflow.language_model else "not_configured",
-        "semantic_language_model": (
-            "configured" if workflow.semantic_language_model else "not_configured"
+        # 只剩一条自然语言入口（工具循环）；`language_model` 这个键保留给前端和旧脚本读。
+        "language_model": (
+            "configured" if workflow.tool_calling_language_model else "not_configured"
         ),
         "tool_calling_language_model": (
             "configured" if workflow.tool_calling_language_model else "not_configured"
         ),
         "intent_entrypoints": {
             "structured": "/trip-tasks",
-            "legacy": "/legacy/trip-tasks",
-            "semantic": "/semantic/trip-tasks",
             "agentic": "/agentic/trip-tasks",
         },
         "language_model_status": (
             getattr(workflow, "llm_runtime_status", "unknown")
-            if workflow.language_model
+            if workflow.tool_calling_language_model
             else "not_configured"
         ),
         "language_model_ready": bool(
-            workflow.language_model
+            workflow.tool_calling_language_model
             and getattr(workflow, "llm_runtime_status", "unknown")
             not in {"billing_blocked", "auth_failed"}
         ),
-        "language_model_fallback": getattr(workflow.language_model, "fallback_model", None)
-        if workflow.language_model
-        else None,
+        "language_model_fallback": getattr(workflow, "fallback_model", None),
         "travel_provider": workflow.provider.name,
         "travel_provider_mode": getattr(workflow.provider, "provider_mode", "deterministic"),
         "persistence": workflow.tasks.backend_name,
@@ -544,34 +506,6 @@ def create_trip(
     return _run(lambda: workflow.create_task(request))
 
 
-@app.post("/legacy/trip-tasks")
-def create_legacy_trip(
-    payload: NaturalLanguageTripCreate,
-    identity: CurrentIdentity,
-) -> dict[str, Any]:
-    """用保留的旧字段抽取链路创建自然语言任务。"""
-    _require_can_create(identity, payload.traveler_id)
-    return _run(
-        lambda: workflow.create_task_from_message(
-            payload.message, traveler_id=payload.traveler_id
-        )
-    )
-
-
-@app.post("/semantic/trip-tasks")
-def create_semantic_trip(
-    payload: NaturalLanguageTripCreate,
-    identity: CurrentIdentity,
-) -> dict[str, Any]:
-    """用完整对话语义链路创建自然语言任务。"""
-    _require_can_create(identity, payload.traveler_id)
-    return _run(
-        lambda: workflow.create_task_from_semantic_message(
-            payload.message, traveler_id=payload.traveler_id
-        )
-    )
-
-
 @app.post("/agentic/trip-tasks")
 def create_agentic_trip(
     payload: NaturalLanguageTripCreate,
@@ -642,28 +576,6 @@ def approval_inbox(
         for item in summaries
         if item.manager_id == identity.user_id or identity.has_role(Role.ADMIN)
     ]
-
-
-@app.post("/legacy/trip-tasks/{task_id}/messages")
-def submit_legacy_message(
-    task_id: str,
-    payload: MessageCreate,
-    identity: CurrentIdentity,
-) -> dict[str, Any]:
-    """仅向旧链路任务提交跟进消息。"""
-    _require_can_operate(identity, _visible_task(task_id, identity))
-    return _run(lambda: workflow.submit_message(task_id, payload.message))
-
-
-@app.post("/semantic/trip-tasks/{task_id}/messages")
-def submit_semantic_message(
-    task_id: str,
-    payload: MessageCreate,
-    identity: CurrentIdentity,
-) -> dict[str, Any]:
-    """仅向新语义任务提交跟进消息。"""
-    _require_can_operate(identity, _visible_task(task_id, identity))
-    return _run(lambda: workflow.submit_semantic_message(task_id, payload.message))
 
 
 @app.post("/agentic/trip-tasks/{task_id}/messages")

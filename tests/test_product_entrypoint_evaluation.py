@@ -10,9 +10,6 @@ from __future__ import annotations
 
 import pytest
 
-from corporate_travel_agent.agent.deterministic_semantic_interpreter import (
-    DeterministicSemanticInterpreter,
-)
 from corporate_travel_agent.agent.deterministic_tool_model import (
     DeterministicToolCallingModel,
 )
@@ -26,6 +23,11 @@ from corporate_travel_agent.services.evaluation_dataset import (
 )
 
 DATASET = load_evaluation_dataset("data/evaluation/derived-v2")
+
+#: 语义入口删除前的最后一次并排（2026-09-01，两个替身共用一个解释器）。
+#: 480 条里 345 条"该问就问、该查就查"判对；产品入口不许低于它。
+SEMANTIC_BASELINE_CLARIFICATION_ACCURACY = 345 / 480
+SEMANTIC_BASELINE_REPORT = "reports/evaluation-runs/product-entrypoint-20260901/run-summary.json"
 
 
 @pytest.mark.parametrize("case", DATASET.workflow_cases, ids=lambda item: item.case_id)
@@ -44,15 +46,6 @@ def test_every_workflow_case_matches_expected_state_through_the_product_entrypoi
         assert expected.selected_inventory_ref in observation.selected_inventory_refs
 
 
-def test_a_workflow_case_runs_through_exactly_one_entrypoint() -> None:
-    with pytest.raises(EvaluationDatasetError):
-        run_workflow_evaluation_case(
-            DATASET.workflow_cases[0],
-            semantic_language_model=DeterministicSemanticInterpreter(),
-            tool_calling_language_model=DeterministicToolCallingModel(),
-        )
-
-
 def test_intent_cases_never_search_on_unresolved_meaning() -> None:
     metrics = run_intent_evaluation(DATASET.intent_cases[:60], entrypoint="agentic")
 
@@ -61,18 +54,29 @@ def test_intent_cases_never_search_on_unresolved_meaning() -> None:
     assert metrics.inventory_hallucination_rate == 0.0
 
 
-def test_the_full_intent_suite_is_as_safe_and_as_decisive_as_the_semantic_entrypoint() -> None:
-    """同一个解释器、两种架构：该问就问的判断率必须一样，安全门必须都是 0。"""
-    agentic = run_intent_evaluation(DATASET.intent_cases, entrypoint="agentic")
-    semantic = run_intent_evaluation(DATASET.intent_cases, entrypoint="semantic")
+def test_the_full_intent_suite_is_as_safe_and_as_decisive_as_the_last_semantic_baseline() -> None:
+    """安全门必须是 0；"该问就问"的判断率不许低于语义入口删除前的最后一次并排。"""
+    import json
+    from pathlib import Path
 
-    assert agentic.total_cases == semantic.total_cases == 480
+    agentic = run_intent_evaluation(DATASET.intent_cases, entrypoint="agentic")
+
+    assert agentic.total_cases == 480
     assert agentic.premature_provider_call_rate == 0.0
     assert agentic.inventory_hallucination_rate == 0.0
-    assert agentic.clarification_accuracy == semantic.clarification_accuracy
-    assert agentic.unsupported_constraint_rejection_rate == (
-        semantic.unsupported_constraint_rejection_rate
+    assert agentic.clarification_accuracy >= SEMANTIC_BASELINE_CLARIFICATION_ACCURACY
+    # 基线数字来自仓库里留档的那份报告，不是凭记忆写的。
+    report = json.loads(Path(SEMANTIC_BASELINE_REPORT).read_text(encoding="utf-8"))
+    assert report["intent_metrics_semantic"]["clarification_accuracy"] == (
+        SEMANTIC_BASELINE_CLARIFICATION_ACCURACY
     )
+
+
+def test_the_old_entrypoints_are_gone_from_the_runner() -> None:
+    with pytest.raises(EvaluationDatasetError):
+        run_intent_evaluation(DATASET.intent_cases[:1], entrypoint="semantic")
+    with pytest.raises(EvaluationDatasetError):
+        run_intent_evaluation(DATASET.intent_cases[:1], entrypoint="legacy")
 
 
 def test_out_of_scope_requests_land_in_out_of_scope_without_a_provider_call() -> None:
@@ -97,19 +101,18 @@ def test_out_of_scope_requests_land_in_out_of_scope_without_a_provider_call() ->
 
 def test_metrics_without_an_exposure_are_not_applicable_not_zero() -> None:
     agentic = run_intent_evaluation(DATASET.intent_cases[:20], entrypoint="agentic")
-    semantic = run_intent_evaluation(DATASET.intent_cases[:20], entrypoint="semantic")
 
     assert agentic.classification_status == "not_applicable"
     assert agentic.missing_field_status == "not_applicable"
     assert agentic.missing_field_exact_match_rate is None
     assert agentic.missing_field_recall is None
     assert agentic.out_of_scope_accuracy is None
-    assert semantic.missing_field_status == "measured"
-    assert semantic.missing_field_exact_match_rate is not None
 
 
 def test_observations_from_different_entrypoints_are_never_merged() -> None:
+    from dataclasses import replace
+
     agentic = run_intent_evaluation(DATASET.intent_cases[:5], entrypoint="agentic")
-    semantic = run_intent_evaluation(DATASET.intent_cases[:5], entrypoint="semantic")
+    foreign = tuple(replace(item, entrypoint="structured") for item in agentic.observations)
     with pytest.raises(EvaluationDatasetError):
-        summarize_intent_observations((*agentic.observations, *semantic.observations))
+        summarize_intent_observations((*agentic.observations, *foreign))

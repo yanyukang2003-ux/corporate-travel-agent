@@ -1,6 +1,6 @@
 """OpenAI/DeepSeek 输出质量 Judge 适配器（评测专用，不参与产品运行时）。
 
-刻意与 ``agent/openai_adapter.py`` 分开：Judge 只服务评测，不是产品链路上的端口，
+刻意与产品链路的模型适配器（``agent/tool_loop_adapter.py``）分开：Judge 只服务评测，
 应用构造拿不到它。它也不接收候选模型名、实验分组等盲字段。
 """
 
@@ -10,7 +10,7 @@ import json
 from time import monotonic
 from typing import Any
 
-from corporate_travel_agent.agent.openai_adapter import _classified_openai_error
+from corporate_travel_agent.agent.openai_errors import _classified_openai_error
 from corporate_travel_agent.agent.ports import LanguageModelError, LLMCallMetadata
 from corporate_travel_agent.services.evaluation_judge import (
     JudgeError,

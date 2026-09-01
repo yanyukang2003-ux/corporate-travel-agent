@@ -2,7 +2,10 @@
 
 ## Status
 
-Accepted, running beside the retained legacy entrypoint.
+Superseded by [ADR-0003](0003-single-product-entrypoint.md) on 2026-09-01: both the legacy
+entrypoint this ADR retained and the semantic entrypoint it introduced were removed once the
+frozen datasets gated the product entrypoint (the tool loop). The invariants below survive in
+`compile_search_command` and in the tool-loop stand-in.
 
 ## Context
 

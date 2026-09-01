@@ -7,7 +7,6 @@ Callers must not patch individual semantic fields after an interpretation.
 
 from __future__ import annotations
 
-from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from datetime import date, datetime
 from enum import StrEnum
@@ -19,9 +18,7 @@ from corporate_travel_agent.domain.enums import BookingScope, LodgingRequirement
 from corporate_travel_agent.domain.models import ConversationMessage
 
 from .ports import (
-    IntentInterpretationResult,
     LanguageModelError,
-    SemanticLanguageModelPort,
 )
 
 
@@ -192,64 +189,6 @@ class ConversationLedger:
         return [{"role": turn.role, "content": turn.content} for turn in self.turns]
 
 
-class ConversationIntentInterpreter:
-    """Deep module: one complete conversation in, one semantic decision out."""
-
-    def __init__(self, language_model: SemanticLanguageModelPort) -> None:
-        self._language_model = language_model
-
-    def interpret(
-        self,
-        ledger: ConversationLedger,
-        *,
-        task_id: str,
-        traveler_id: str,
-        context: dict[str, Any],
-    ) -> IntentInterpretationResult:
-        semantic_context = {
-            **context,
-            "conversation_ledger": ledger.render(),
-            "conversation_turns": ledger.as_prompt_messages(),
-        }
-        result = self._language_model.interpret_trip_intent(
-            ledger.render(),
-            task_id=task_id,
-            traveler_id=traveler_id,
-            context=semantic_context,
-        )
-        _require_grounded_evidence(result.decision, ledger)
-        return result
-
-
-def semantic_fields(decision: IntentDecision) -> dict[str, Any]:
-    """Single compatibility projection from semantic state to the legacy task view."""
-    intent = decision.intent
-    hard = list(intent.hard_constraints)
-    if intent.lodging_requirement is LodgingRequirement.REQUIRED:
-        hard = list(dict.fromkeys([*hard, "hotel_required"]))
-    elif intent.lodging_requirement is LodgingRequirement.NOT_REQUIRED:
-        hard = [item for item in hard if item != "hotel_required"]
-    return {
-        "origin": intent.origin_candidates[0] if len(intent.origin_candidates) == 1 else None,
-        "destination": (
-            intent.destination_candidates[0]
-            if len(intent.destination_candidates) == 1
-            else None
-        ),
-        "departure_after": intent.departure_after,
-        "arrive_by": intent.arrive_by,
-        "return_after": intent.return_after,
-        "return_before": intent.return_before,
-        "hotel_check_in": intent.hotel_check_in,
-        "hotel_check_out": intent.hotel_check_out,
-        "client_location": intent.client_location,
-        "booking_scope": intent.booking_scope.value,
-        "lodging_requirement": intent.lodging_requirement.value,
-        "hard_constraints": hard,
-        "soft_preferences": list(intent.soft_preferences),
-    }
-
-
 def _require_grounded_evidence(
     decision: IntentDecision, ledger: ConversationLedger
 ) -> None:
@@ -319,31 +258,3 @@ def _grounding_value(intent: SemanticIntent, field: str) -> Any:
     return getattr(intent, field, None)
 
 
-def carried_grounding(
-    history: Iterable[Mapping[str, Any]], intent: SemanticIntent
-) -> frozenset[str]:
-    """先前轮次已经落实、且取值至今没变的必填字段。
-
-    证据规则防的是"模型编了一个用户没说过的城市或日期"。但对话一长，出发地和目的地
-    往往是第 0、1 轮说的，模型到第 5 轮只会引用最新那句——于是宿主会回头去问一件用户
-    早就说清、系统也早就读对的事。
-
-    账本是累积的，证据也应当累积：某个字段只要**在本任务的某一轮被原话落实过**，
-    **并且取值至今没变**，就仍然算落实。取值一旦变了，就必须重新拿出原话。
-    """
-    carried: set[str] = set()
-    for record in history:
-        payload = record.get("decision") if isinstance(record, Mapping) else None
-        if not isinstance(payload, Mapping):
-            continue
-        try:
-            past = IntentDecision.model_validate(payload)
-        except Exception:  # noqa: BLE001 - 历史留痕坏了不该阻断当前这轮
-            continue
-        grounded = _grounded_fields(past)
-        for field in REQUIRED_EVIDENCE_FIELDS:
-            if field not in grounded:
-                continue
-            if _grounding_value(past.intent, field) == _grounding_value(intent, field):
-                carried.add(field)
-    return frozenset(carried)

@@ -1,7 +1,8 @@
-"""确定性语义解释器：评测 harness 用的离线 ``SemanticLanguageModelPort`` 替身。
+"""确定性语义解释器：离线的"读懂整段对话"组件，产品入口的评测替身用它理解对话。
 
-它存在的唯一理由是让**新语义入口**可以在不计费、不联网的前提下逐条跑冻结评测集，
-并与旧链路的确定性基线做同输入并排对比。
+它原本是语义入口（已删除，见 ADR-0003）的评测替身。现在它是
+``DeterministicToolCallingModel`` 的理解部件：替身先用它把对话解释成语义决策，再由
+``compile_search_command`` 编译成搜索命令，最后翻成工具调用。
 
 对齐原则（与 ADR-0002 的 removal gate 对应）：
 
@@ -83,7 +84,7 @@ class _Grounded:
 
 
 class DeterministicSemanticInterpreter:
-    """离线语义解释替身；实现 ``SemanticLanguageModelPort``，不含旧字段抽取能力。"""
+    """离线语义解释器；只有 ``interpret_trip_intent`` 一个入口，不含旧字段抽取能力。"""
 
     semantic_prompt_version = SEMANTIC_PROMPT_VERSION
     prompt_version = SEMANTIC_PROMPT_VERSION

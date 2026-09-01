@@ -15,8 +15,8 @@
 - Mock Provider 的超时、涨价、售罄与重验失败注入；
 - Replay Provider 的不可变快照回放；
 - Booking Intent 幂等键和全流程审计事件；
-- OpenAI Responses API + Pydantic Structured Outputs 可选适配器；
-- 自然语言创建、跨轮字段合并、最多三轮澄清和结构化表单降级；
+- OpenAI function-calling 工具循环适配器（`agent/tool_loop_adapter.py`）：模型每轮从固定工具表里挑带类型的工具，没有任何写操作；
+- 自然语言创建、多轮对话重跑整段循环、提问不丢已搜到的方案、结构化表单降级；
 - 中英文城市别名确定性标准化，以及无可行方案的具体库存诊断；
 - 库存快照与交接链接有效期校验，过期数据不得进入安全交接；
 - 可选 PostgreSQL 任务仓储、Alembic 迁移、乐观锁和重启恢复；
@@ -108,7 +108,8 @@ curl -X POST http://127.0.0.1:8000/agentic/trip-tasks/TASK_ID/messages \
 
 自然语言产品入口是工具循环：新任务使用 `POST /agentic/trip-tasks`，后续消息使用
 `POST /agentic/trip-tasks/{task_id}/messages`。模型每轮决定查什么，没有一张必填表挡在
-搜索前面。完整对话语义链路仍在 `/semantic/trip-tasks`，旧抽取在 `/legacy/trip-tasks`，
+搜索前面。曾经并行的 `/semantic/trip-tasks` 和 `/legacy/trip-tasks` 已于 2026-09-01 删除
+（ADR-0003），
 结构化创建仍用 `POST /trip-tasks`。每个任务固定返回 `intent_entrypoint`，不同入口之间不能
 交叉继续。
 
@@ -194,102 +195,14 @@ Duffel 报价币种必须与企业政策币种一致，否则政策引擎会因�
 组合报价。可用 `DUFFEL_EXPECTED_CURRENCY` 在 Provider 边界提前拒绝不一致币种。
 `GET /health` 会公开 `travel_provider` 与 `travel_provider_mode`，但不会公开令牌。
 
-首次执行真实模型评测前，应先运行冻结的两案例资格预检。该命令最多发起两次模型
-调用，关闭 SDK 自动重试，且继续使用 Mock 差旅 Provider；还必须传入包含目标模型
-官方价格条目的版本化价格表：
-
-```bash
-.venv/bin/python examples/run_real_model_preflight.py \
-  --model "$OPENAI_MODEL" \
-  --price-table evals/pricing/<configured-price-table>.json \
-  --confirm-billable \
-  --output reports/evaluation-runs/<preflight-run-id>
-```
-
-真实模型与真实 Duffel 必须使用单独的组合评测，不能把两条各自通过的结果拼成
-“端到端通过”。冻结集 `model-duffel-workflow-smoke-v1` 使用同一个 LHR→JFK
-自然语言请求运行三次；每次最多 1 次 OpenAI 调用和 1 次 Duffel Test Mode 搜索，
-总上限分别为 3。执行器检查实际返回模型、显式 reasoning effort、详细 Token、费用、
-工具顺序、参数来源、供应商快照、原始响应归档、三次稳定性和禁止预订边界：
-
-```bash
-.venv/bin/python examples/run_real_model_duffel_workflow.py \
-  --dataset evals/subsets/model-duffel-workflow-smoke-v1.json \
-  --model gpt-5.6 \
-  --reasoning-effort medium \
-  --confirm-billable-model-calls \
-  --confirm-external-test-calls \
-  --output reports/evaluation-runs/<model-duffel-run-id>
-```
-
-该命令需要分别确认计费模型调用和外部 Test Mode 调用。它不会调用 Duffel Order、
-Payment、生产库存或真实出票；也不测试报价重验和酒店覆盖。
-
-如果真实运行中存在连接错误，可直接从已保存轨迹重新评分，不再次调用任何 API：
-
-```bash
-.venv/bin/python examples/regrade_real_model_duffel_workflow.py \
-  --dataset evals/subsets/model-duffel-workflow-smoke-v1.json \
-  --output reports/evaluation-runs/<existing-model-duffel-run-id>
-```
-
-重评分会保留原始报告，另写 `run-summary.regraded.json` 与
-`evaluation-report.regraded.md`。基础设施失败单独统计；没有取得模型结果的尝试不计为
-参数幻觉，没有向用户呈现库存的安全停止也不计为影子幻觉。资源记账仍采用严格门禁：
-任何尝试缺少 usage 时均不通过，并把可计算费用标为下界。
-
-连接故障恢复回归使用独立冻结集，避免修改 D9 历史基线：
-
-```bash
-.venv/bin/python examples/run_real_model_duffel_workflow.py \
-  --dataset evals/subsets/model-duffel-workflow-recovery-v1.json \
-  --model gpt-5.6 \
-  --reasoning-effort medium \
-  --confirm-billable-model-calls \
-  --confirm-external-test-calls \
-  --output reports/evaluation-runs/<recovery-regression-run-id>
-```
-
-该回归运行 3 个逻辑任务。OpenAI SDK 自动重试关闭；编排器只对连接和超时错误允许
-一次显式、可追踪的重试，因此最多产生 6 次模型请求和 3 次 Duffel Test Mode 搜索。
-
-若要同时覆盖 OpenAI 与 Duffel 两侧瞬时连接故障，使用 D11 完整恢复集；它允许两侧
-各一次显式重试，因此三个逻辑任务的最坏上限为 6 次模型请求和 6 次 Duffel Test Mode
-搜索：
-
-```bash
-.venv/bin/python examples/run_real_model_duffel_workflow.py \
-  --dataset evals/subsets/model-duffel-workflow-full-recovery-v1.json \
-  --model gpt-5.6 \
-  --reasoning-effort medium \
-  --confirm-billable-model-calls \
-  --confirm-external-test-calls \
-  --output reports/evaluation-runs/<full-recovery-run-id>
-```
-
-2026-08-03 的 D11 真实运行完成 3 轮并通过 2 轮。OpenAI 与 Duffel 的 5 个响应前
-失败均收敛到 `SSLEOFError`；4 次实际重试全部具有 `retry_of` 证据，其中 OpenAI
-恢复 1 次、Duffel 恢复 2 次。grader v3 将“重试策略合规”和“最终恢复成功”分开，
-并把授权重试与无理由重复调用分别统计。该批次仍因 `pass^3 = 0`、资源费用为 lower
-bound 而严格失败；修复本机代理/TLS 出口并通过无 Key 连通性预检前，不应增加重试
-次数掩盖基础设施问题。
-
-同日随后执行的 `D11-network-preflight-v1` 无鉴权网络预检为 6/6：OpenAI 与 Duffel
-分别连续 3 次完成 TLS 并收到 HTTP 响应，证明本机代理路径已恢复到供应商 HTTP 层。
-该结果只解除网络前置条件，不等同于 D11 质量通过；下一次 3 轮真实回归仍需新的计费授权。
-
-网络恢复后的 D11 Phase 15 真实回归严格通过：3/3 任务成功，`pass^3 = 1.0`，意图与
-轨迹一致率均为 100%。实际只发生 3 次 GPT-5.6 请求和 3 次 Duffel Test Mode 搜索，
-没有故障、重试、未知工具、参数偏差、无理由重复调用或预订行为；3825 total tokens，
-总时延均值/P95 为 8671.274/10052.299 ms，完整估算费用为 USD 0.03907125。该案例的
-工具选择仍由编排器控制，模型工具幻觉未直接暴露；本轮也没有故障触发，因此异常恢复率
-仍需结合故障注入和历史失败轨迹解释。
-
-2026-08-09 新增 D12 DeepSeek 组合基线：`deepseek-v4-pro` + Duffel Test Mode 三轮
-3/3 通过，模型与 Provider 各调用 3 次且无重试；每轮得到 42 个标准化 Offer、3 个最终
-方案，全部安全与资源门禁通过，估算模型费用 USD 0.003035865。结果位于
-`reports/evaluation-runs/deepseek-duffel-full-recovery-v102-20260809/`。该结果仍只代表
-Test Mode 航班搜索，不代表生产库存、酒店、Order、Payment 或出票能力。
+**真实模型 × 真实 Duffel 的旧评测线路（D9–D12：资格预检、组合冒烟、连接故障恢复回归、
+重评分）已于 2026-09-01 随 legacy 入口一起删除**（`docs/adr/0003-single-product-entrypoint.md`）。
+它们驱动的是旧的意图抽取入口；历史报告仍在 `reports/evaluation-runs/`（`d4-model-*`、
+`phase10-duffel-real-workflow-*` 等）留档，但不再可复跑。产品入口（工具循环）下的真实模型
+评测由 `examples/run_tool_loop_calendar_evaluation.py`、`run_tool_loop_multicity_evaluation.py`、
+`run_tool_loop_live_multiturn_evaluation.py` 和 `run_agentic_boundary_longtail_evaluation.py`
+产出（`reports/evaluation-runs/toolloop-*`、`agentic-boundary-*`）；它们还没有旧线路那套
+协议 §5 轨迹 JSONL、价目表成本记账和显式重试上限回归，这是 ADR-0003 列出的第一个后续项。
 
 D13 继续覆盖真实 Provider 的选择与报价重验路径。它固定执行一次 Duffel Test Mode
 搜索，再对一个合规方案执行一次 `GET /air/offers/{offer_id}`；允许报价保持不变，或在
@@ -326,45 +239,10 @@ Test Mode 且未创建订单；Duffel Order 与 Payment 调用均为 0。搜索�
 价格均未变化。结果位于
 `reports/evaluation-runs/duffel-revalidation-stability-20260809/`。
 
-D14 是首个会产生外部写入的完整 Test Mode 冒烟：真实模型抽取意图，Duffel 搜索并重验
-Duffel Airways 报价，然后用固定合成旅客和 sandbox balance 创建一个 Test Order，读取、
-创建并确认取消，最后再次读取订单。它要求环境开关和四个独立 CLI 确认；写操作遇到不确定
-结果时不会自动重试：
-
-```bash
-DUFFEL_TEST_ORDER_WRITES_ENABLED=true \
-.venv/bin/python examples/run_real_model_duffel_test_order.py \
-  --dataset evals/subsets/model-duffel-test-order-e2e-v1.json \
-  --model "$OPENAI_MODEL" \
-  --confirm-billable-model-call \
-  --confirm-external-test-calls \
-  --confirm-test-order-write \
-  --confirm-test-order-cancellation \
-  --output reports/evaluation-runs/<new-test-order-run-id>
-```
-
-2026-08-09 的首次 D14 外部交易链路成功：共 7 次 Duffel Test Mode HTTP，创建 1 个
-`live_mode=false` 订单，以 sandbox balance 完成测试付款，读取后成功取消，USD 231.37
-退回 Test Mode balance，最终读取确认取消；15/15 项归档证据检查通过，恢复过程没有任何
-外部调用。但 runner 在全部交易完成后构造评测 trace 时因新 evaluation mode 尚未注册而
-报错，导致模型 usage 与工作流 trace 未持久化。因此该目录明确标记为
-`external transaction PASS / formal evaluation INVALID`，不能作为正式评测通过。代码已补齐
-新 mode 和落盘容错；若要取得正式 PASS，必须再次获得创建新 Test Order 的明确授权，不能
-复用本次授权。证据位于
-`reports/evaluation-runs/deepseek-duffel-test-order-e2e-20260809/`。
-
-取得新授权后，同日执行的 D14 正式重跑严格通过全部 28 项门禁：1 次
-`deepseek-v4-pro` 调用，1909/204/2113 input/output/total tokens，估算费用
-USD 0.001007895；2 次搜索/重验请求和 5 次 Order/取消请求均符合冻结序列且没有写重试。
-新建订单仍为 `live_mode=false`，成功读取、取消并最终复查，USD 221.85 已退回 Test Mode
-balance。正式 trace 共 21 步，7 份原始响应完整归档且无密钥标记。本次结果为正式 PASS，
-位于 `reports/evaluation-runs/deepseek-duffel-test-order-e2e-formal-20260809-rerun-1/`；首次
-INVALID 目录继续保留作故障审计，不覆盖或追认。
-
-本轮随后的全量离线验证触发了已有 D6 待审核认证坏案例：非规范 Base64URL 签名文本
-可能解码为相同 HMAC 字节。认证解码现要求规范编码唯一，测试改为确定性构造别名；定向
-测试、修改文件 Ruff 检查与全量 245 项测试均通过。该候选仍等待项目所有者人工确认，
-确认前不纳入新版 D6 发布门禁。
+D14（真实模型 + Duffel Test Order 创建/读取/取消/复查的端到端冒烟）的 runner 同样随 legacy
+入口删除。Test Order 那一层的能力和门禁仍在 `providers/duffel_test_order.py`，由
+`tests/test_duffel_test_order.py` 守着：拒绝 Live token、真实旅客邮箱和写操作重试。要再做一次
+带真实模型的 Test Order 冒烟，得先给工具循环写一个等价 runner。
 
 ## Provider 熔断与延迟重试
 

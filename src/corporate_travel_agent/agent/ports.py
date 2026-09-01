@@ -6,10 +6,6 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import TYPE_CHECKING, Any, Protocol
 
-from corporate_travel_agent.domain.models import TravelOptionVersion
-
-from .schemas import IntentExtractionSchema
-
 if TYPE_CHECKING:
     from .semantic_intent import IntentDecision
 
@@ -33,14 +29,6 @@ class LLMCallMetadata:
     service_tier: str | None = None
     evidence_contract_version: str | None = None
     envelope_repaired: bool = False
-
-
-@dataclass(frozen=True, slots=True)
-class IntentExtractionResult:
-    """意图抽取结果：结构化 payload + 调用元数据。"""
-
-    payload: IntentExtractionSchema
-    metadata: LLMCallMetadata
 
 
 @dataclass(frozen=True, slots=True)
@@ -134,48 +122,3 @@ class LanguageModelError(RuntimeError):
         }
 
 
-class LanguageModelPort(Protocol):
-    """受 Schema 约束的 LLM 能力；实现不得做政策裁决。"""
-
-    prompt_version: str
-
-    def extract_trip_intent(
-        self, message: str, *, task_id: str, traveler_id: str, context: dict[str, Any]
-    ) -> IntentExtractionResult: ...
-
-    def propose_search_adjustment(
-        self, failure_facts: tuple[str, ...], allowed_adjustments: tuple[str, ...]
-    ) -> str | None: ...
-
-    def explain_verified_options(
-        self, options: tuple[TravelOptionVersion, ...]
-    ) -> dict[str, str]: ...
-
-
-class SemanticLanguageModelPort(Protocol):
-    """完整对话语义解释端口；不暴露旧字段抽取能力。"""
-
-    semantic_prompt_version: str
-
-    def interpret_trip_intent(
-        self,
-        conversation: str,
-        *,
-        task_id: str,
-        traveler_id: str,
-        context: dict[str, Any],
-    ) -> IntentInterpretationResult: ...
-
-
-class FactsOnlyExplanationAdapter:
-    """离线回退：只用已验证事实拼解释，不编造，便于测试。"""
-
-    prompt_version = "facts-only-v1"
-
-    def explain_verified_options(
-        self, options: tuple[TravelOptionVersion, ...]
-    ) -> dict[str, str]:
-        return {
-            item.option_id: "; ".join(item.explanation_facts)
-            for item in options
-        }

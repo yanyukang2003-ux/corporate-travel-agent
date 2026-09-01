@@ -113,52 +113,5 @@ class CityRegistryTests(unittest.TestCase):
             )
 
 
-class IataCodesInProseTests(unittest.TestCase):
-    """三字母 IATA 码有一半是常用英文词，扫自由文本时**只认大写**。
-
-    这条是加城市时真炸出来的：广州的城市码是 ``CAN``，加进登记表之后
-    "The CEO said I **can** use first class" 被读成了"去广州"——
-    不报错，只是悄悄改了路线，一条冻结用例因此从 NO_FEASIBLE_OPTION 变成了追问。
-
-    地雷本来就在（``was`` 是华盛顿、``sin`` 是新加坡、``sea`` 是西雅图、
-    ``den`` 是丹佛），只是此前表里没有哪个码正好是高频英文词。
-    """
-
-    def _cities(self, message: str) -> tuple[str | None, str | None]:
-        from corporate_travel_agent.agent.local_intent import GroundedLocalIntentParser
-        from corporate_travel_agent.services.locations import CityNormalizer
-        from corporate_travel_agent.services.policy_config import (
-            load_policy_configuration,
-        )
-
-        parser = GroundedLocalIntentParser(
-            CityNormalizer(load_policy_configuration().city_aliases)
-        )
-        return parser._cities(message)
-
-    def test_common_english_words_are_not_cities(self) -> None:
-        for message in (
-            "The CEO said I can use first class.",
-            "The trip was approved last week.",
-            "There is no sin in asking for an upgrade.",
-            "I want to sea the client tomorrow.",
-        ):
-            with self.subTest(message=message):
-                origin, destination = self._cities(message)
-                self.assertIsNone(origin, message)
-                self.assertIsNone(destination, message)
-
-    def test_an_uppercase_airport_code_still_reads_as_a_place(self) -> None:
-        """用户真写机场码时是大写的，这条不该被上一条误伤。
-
-        两边写法不同是**有意的**：``PEK`` 是登记在册的机场，不折叠成城市——
-        "从首都机场走"和"从北京任一机场走"要的不是同一批航班；``SHA`` 是上海
-        自己的城市码，折叠成城市名才对。
-        """
-        origin, destination = self._cities("Book PEK to SHA on Friday")
-        self.assertEqual(origin, "PEK")
-        self.assertEqual(destination, "Shanghai")
-
-
 if __name__ == "__main__":
     unittest.main()

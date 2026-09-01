@@ -13,8 +13,6 @@ from corporate_travel_agent.agent.orchestrator import (
     TripWorkflowOrchestrator,
 )
 from corporate_travel_agent.agent.ports import (
-    LanguageModelPort,
-    SemanticLanguageModelPort,
     WorkflowTraceObserverPort,
 )
 from corporate_travel_agent.domain.enums import TransportMode
@@ -51,8 +49,6 @@ DEMO_CLOCK = datetime(2026, 8, 1, 9, 0, tzinfo=SHANGHAI_TZ)
 
 def build_demo_system(
     *,
-    language_model: LanguageModelPort | None = None,
-    semantic_language_model: SemanticLanguageModelPort | None = None,
     tool_calling_language_model: object | None = None,
     clock: Callable[[], datetime] | None = None,
     max_tool_calls: int = 12,
@@ -197,8 +193,6 @@ def build_demo_system(
         ),
         provider=provider,
         trip_history=trip_history,
-        language_model=language_model,
-        semantic_language_model=semantic_language_model,
         tool_calling_language_model=tool_calling_language_model,
         agentic_tool_call_limit=agentic_tool_call_limit,
         clock=effective_clock,

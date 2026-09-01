@@ -36,8 +36,14 @@ from corporate_travel_agent.services.evaluation_dataset import (
     run_workflow_evaluation_case,
 )
 
-RUNNER_VERSION = "product-entrypoint-runner-v1"
+RUNNER_VERSION = "product-entrypoint-runner-v2"
 GATE_ID = "D16"
+
+#: 语义入口删除前的最后一次并排报告（ADR-0003）。它的语义列现在是冻结基线：
+#: 两个替身当时共用一个解释器，所以这一列仍然是"同样的理解、不同的架构"能给出的数。
+SEMANTIC_BASELINE_REPORT = Path(
+    "reports/evaluation-runs/product-entrypoint-20260901/run-summary.json"
+)
 
 #: 产品入口上一律不可接受的安全违规。
 SAFETY_GATES = ("premature_provider_call_rate", "inventory_hallucination_rate")
@@ -152,7 +158,7 @@ def main() -> None:
     parser.add_argument(
         "--skip-semantic-baseline",
         action="store_true",
-        help="Only run the product entrypoint; skip the side-by-side semantic baseline.",
+        help="Skip the side-by-side against the frozen semantic baseline report.",
     )
     args = parser.parse_args()
 
@@ -168,9 +174,9 @@ def main() -> None:
     semantic_values: dict[str, Any] | None = None
     semantic_states: dict[str, int] | None = None
     if not args.skip_semantic_baseline:
-        semantic_metrics = run_intent_evaluation(dataset.intent_cases, entrypoint="semantic")
-        semantic_values = _metric_values(semantic_metrics)
-        semantic_states = _state_distribution(semantic_metrics)
+        baseline = json.loads(SEMANTIC_BASELINE_REPORT.read_text(encoding="utf-8"))
+        semantic_values = baseline["intent_metrics_semantic"]
+        semantic_states = baseline.get("intent_final_states_semantic")
 
     gate_failures: list[str] = []
     for gate in SAFETY_GATES:
@@ -210,6 +216,9 @@ def main() -> None:
         "intent_final_states_agentic": _state_distribution(agentic_metrics),
         "intent_metrics_semantic": semantic_values,
         "intent_final_states_semantic": semantic_states,
+        "semantic_baseline_source": (
+            str(SEMANTIC_BASELINE_REPORT) if semantic_values is not None else None
+        ),
         "side_by_side": (
             _compare(semantic_values, agentic_values) if semantic_values is not None else None
         ),
@@ -217,8 +226,10 @@ def main() -> None:
         "gate_failures": gate_failures,
         "limitations": [
             "All inventory is deterministic MOCK data.",
-            "Both entrypoints run deterministic stand-ins that share one interpreter; "
-            "this measures the architecture, not a model.",
+            "The product entrypoint runs a deterministic stand-in; the semantic column is "
+            "frozen from the last side-by-side before that entrypoint was deleted "
+            "(ADR-0003). Both stand-ins shared one interpreter, so the comparison still "
+            "measures architecture, not a model.",
             "The stand-in never retries or widens a search; a real model may.",
             "D1 case messages come from a frozen template, so intent parsing is easier "
             "than free-form production text.",
@@ -266,9 +277,9 @@ def _render_report(summary: dict[str, Any]) -> str:
         )
     lines += [
         "",
-        "## D2 意图用例并排对比",
+        "## D2 意图用例并排对比（语义列为删除前的冻结基线）",
         "",
-        "| 指标 | 语义入口 | 产品入口 | 差值 | 状态 |",
+        "| 指标 | 语义入口（冻结） | 产品入口 | 差值 | 状态 |",
         "|---|---:|---:|---:|---|",
     ]
     for key, row in (summary.get("side_by_side") or {}).items():

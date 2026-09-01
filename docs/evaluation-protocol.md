@@ -29,7 +29,7 @@
 
 因此：
 
-- 工具幻觉仍需检查“是否出现注册表之外的调用”，但结果必须同时报告 `tool_choice_exposure=orchestrator_controlled`；观测到 0 次不能解释为模型在开放式工具选择下也会是 0。
+- 工具幻觉检查“是否出现注册表之外的调用”。结构化入口的运行报告 `tool_choice_exposure=orchestrator_controlled`；经工具循环的运行报告 `allowlisted_model_choice`——模型能选，但只能从固定工具表里选。观测到 0 次不能解释为模型在开放式工具选择下也会是 0。
 - 参数幻觉必须检查参数的 Schema 合法性，以及参数值是否能由用户输入、政策、任务状态或已有证据推导。
 - 影子幻觉必须按最终答复中的可核验事实声明逐条检查证据引用，不能只检查“是否返回了选项”。
 - 异常恢复分为自主恢复和安全降级。当前重新规划主要由用户或 API 触发，两类指标必须分开。
@@ -46,14 +46,14 @@
 | D6 | 滚动版本 | `bad-case-regression` | 初始 0 | 线上/人工坏案例回流 | 必须脱敏、去重、人工确认 |
 | D7 | 持续采样 | `production-observations` | 不固定 | 线上趋势与切片 | 仅保存脱敏字段和哈希 |
 | D8 | 已冻结 | `duffel-provider-contract-v1` | 4 | Duffel 字段映射、空结果、涨价、超时 | HTTP Mock，不访问外网 |
-| D9 | 已冻结 | `model-duffel-workflow-smoke-v1` | 1 × 3 | 真实模型与 Duffel Test Mode 组合线路 | 单程航班搜索；无重验、酒店、下单 |
-| D10 | 已冻结 | `model-duffel-workflow-recovery-v1` | 1 × 3 | D9 连接故障修复后的真实恢复回归 | 每轮最多一次 LLM transport 重试；最多 6 次模型请求 |
-| D11 | 已冻结 | `model-duffel-workflow-full-recovery-v1` | 1 × 3 | OpenAI 与 Duffel 双侧完整恢复回归 | 两侧各最多一次显式重试；模型与 Duffel 各最多 6 次请求 |
-| D12 | 已冻结 | `model-duffel-workflow-deepseek-full-recovery-v1` | 1 × 3 | DeepSeek 与 Duffel Test Mode 当前组合回归 | 两侧各最多一次显式重试；不下单；基础 Token 记账 |
+| D9 | 已冻结 | `model-duffel-workflow-smoke-v1` | 1 × 3 | 真实模型与 Duffel Test Mode 组合线路 | 单程航班搜索；无重验、酒店、下单；**runner 已随 legacy 入口删除（ADR-0003），报告留档，不再可复跑** |
+| D10 | 已冻结 | `model-duffel-workflow-recovery-v1` | 1 × 3 | D9 连接故障修复后的真实恢复回归 | 每轮最多一次 LLM transport 重试；最多 6 次模型请求；**runner 已随 legacy 入口删除（ADR-0003），报告留档，不再可复跑** |
+| D11 | 已冻结 | `model-duffel-workflow-full-recovery-v1` | 1 × 3 | OpenAI 与 Duffel 双侧完整恢复回归 | 两侧各最多一次显式重试；模型与 Duffel 各最多 6 次请求；**runner 已随 legacy 入口删除（ADR-0003），报告留档，不再可复跑** |
+| D12 | 已冻结 | `model-duffel-workflow-deepseek-full-recovery-v1` | 1 × 3 | DeepSeek 与 Duffel Test Mode 当前组合回归 | 两侧各最多一次显式重试；不下单；基础 Token 记账；**runner 已随 legacy 入口删除（ADR-0003），报告留档，不再可复跑** |
 | D13 | 已冻结 | `duffel-real-revalidation-smoke-v1` | 1 / 1 × 3 | Duffel Test Mode 搜索、选择与 Offer 重验 | 每轮 2 次只读外部请求；不调用模型、Order 或 Payment |
-| D14 | 已冻结 | `model-duffel-test-order-e2e-v1` | 1 | DeepSeek + Duffel Test Order 创建、读取、取消、复查 | 仅 Test Mode；一次模型、7 次 Duffel HTTP；写操作不重试；需逐项显式授权 |
-| D15 | 滚动版本 | `derived-v2` 经**语义入口**执行 | 60 + 480 | 新语义意图入口的覆盖与新旧并排对比 | 两条链路都用确定性替身；不计费、不联网；`classification_accuracy` 在语义侧为 `not_applicable` |
-| D16 | 滚动版本 | `derived-v2` 经**产品入口（工具循环）**执行 | 60 + 480 | 产品入口的离线覆盖，与语义入口并排 | 两个替身共用一个解释器；分类、缺失字段、越界标签、偏好四类指标在产品入口无暴露面，记 `not_applicable` |
+| D14 | 已冻结 | `model-duffel-test-order-e2e-v1` | 1 | DeepSeek + Duffel Test Order 创建、读取、取消、复查 | 仅 Test Mode；一次模型、7 次 Duffel HTTP；写操作不重试；需逐项显式授权；**runner 已随 legacy 入口删除（ADR-0003），报告留档，不再可复跑** |
+| D15 | 已退役 | `derived-v2` 经**语义入口**执行 | 60 + 480 | 语义入口的覆盖与新旧并排（历史） | 语义入口已删除（ADR-0003）；最后一次并排的语义列冻结在 D16 报告里作基线 |
+| D16 | 滚动版本 | `derived-v2` 经**产品入口（工具循环）**执行 | 60 + 480 | 产品入口的离线覆盖，与冻结的语义基线并排 | 替身与原语义替身共用一个解释器；分类、缺失字段、越界标签、偏好四类指标在产品入口无暴露面，记 `not_applicable` |
 
 D4 的 60 条建议构成：高频核心 16、历史失败 12、边界极端 16、对抗风险 16。真实模型冒烟集从 D4 固定抽取 24 条，覆盖四类数据与中英文，不允许每轮临时挑选。固定子集为 `evals/subsets/agent-eval-model-smoke-v1.json`（配额 core=7 / historical_failure=5 / boundary=6 / adversarial=6；类内先全部英文再按 `case_id` 补中文；含全部 9 条英文）。连通预检子集为 `evals/subsets/agent-eval-model-preflight-v1.json`（2 条）。确定性 hard-assertion 跑分：
 
@@ -63,48 +63,16 @@ python examples/run_agent_eval_v1.py --mode deterministic_live \
   --output reports/evaluation-runs/d4-smoke-live
 ```
 
-D4 真实模型冒烟（`model_mock`：真实 LLM 意图抽取 + Mock Provider + 硬断言；需显式计费确认）：
+D4 的 `model_mock` 模式（真实 LLM 走旧的意图抽取入口）已随 legacy 入口删除（ADR-0003）。
+产品入口下的真实模型证据见 `reports/evaluation-runs/toolloop-*` 与 `agentic-boundary-*`，
+由 `examples/run_tool_loop_*` 和 `run_agentic_boundary_longtail_evaluation.py` 产出。
 
-```bash
-python examples/run_agent_eval_model_smoke.py \
-  --subset evals/subsets/agent-eval-model-preflight-v1.json \
-  --price-table evals/pricing/model-prices-openai-20260802-v1.json \
-  --model "$OPENAI_MODEL" \
-  --confirm-billable \
-  --output reports/evaluation-runs/d4-model-preflight
-```
+## 3.1 D15：语义入口覆盖与并排对比（已退役）
 
-## 3.1 D15：语义入口覆盖与并排对比
-
-ADR-0002 引入了新的语义意图入口后，冻结评测集必须同时经过两条入口执行，否则无法回答
-removal gate 的前两条。D15 用同一份 `derived-v2` 分别跑：
-
-- 旧链路：`DeterministicChineseIntentParser` → `create_task_from_message()`
-- 新链路：`DeterministicSemanticInterpreter` → `create_task_from_semantic_message()`
-
-两个替身的解析能力刻意对齐（共用同一套中文城市表与中文日期规则），因此观测差异归因于
-架构而不是解析器强弱。
-
-```bash
-.venv/bin/python examples/run_semantic_entrypoint_evaluation.py \
-  --output reports/evaluation-runs/<semantic-entrypoint-run-id>
-```
-
-安全门禁（任一不满足即整轮 FAIL）：
-
-| 门禁 | 阈值 |
-|---|---|
-| `intent.premature_provider_call_rate` | `== 0` |
-| `intent.inventory_hallucination_rate` | `== 0` |
-| `workflow.silent_wrong_search` | `== 0`（期望澄清却已产出方案） |
-| `workflow.hard_assertion_failures` | `== 0` |
-
-`classification_accuracy` 在语义侧记为 `not_applicable`：语义链路按设计没有旧的场景
-分类器，强行反推该标签等于把 ADR-0002 删掉的分类器重新引进来。唯一可比的分类结论是
-`OUT_OF_SCOPE`，它通过 `out_of_scope_accuracy` 单独报告。
-
-D15 仍是确定性替身运行，**不代表**语义入口在真实模型下的表现；真实模型下的语义入口
-需要单独的计费冒烟集。
+语义入口和它替换的旧入口都已于 2026-09-01 删除（ADR-0003）。D15 的最后一次运行是
+`reports/evaluation-runs/product-entrypoint-20260901/`（与 D16 同一份报告），其语义列
+被 D16 冻结为基线：两个替身当时共用一个解释器，所以这一列仍然是"同样的理解、不同的架构"
+能给出的数。runner `run_semantic_entrypoint_evaluation.py` 已删除。
 
 ## 3.2 D16：产品入口（工具循环）的离线覆盖与并排对比
 

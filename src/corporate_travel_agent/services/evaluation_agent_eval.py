@@ -26,15 +26,13 @@ from corporate_travel_agent.domain.models import (
 from corporate_travel_agent.planning.feasibility import FeasibilityValidator
 from corporate_travel_agent.policy.engine import PolicyEngine
 from corporate_travel_agent.providers.mock import MockProvider
-from corporate_travel_agent.services.locations import CityNormalizer
-from corporate_travel_agent.services.policy_config import load_policy_configuration
 from corporate_travel_agent.services.repositories import (
     InMemoryEmployeeDirectory,
     InMemoryPolicyRepository,
     InMemoryTaskRepository,
 )
 
-RunnerMode = Literal["deterministic_live", "oracle_label", "model_mock"]
+RunnerMode = Literal["deterministic_live", "oracle_label"]
 MODEL_MOCK_RUNNER_VERSION = "d4-agent-eval-model-mock-v2-sequential-turns"
 
 _EXTERNAL_MUTATION_TOOLS = frozenset(
@@ -930,35 +928,6 @@ def _apply_fixture_approval_expiry(task: Any, world: dict[str, Any]) -> None:
 
 # States where a non-selection user turn re-enters extract via submit_message.
 # NEEDS_STRUCTURED_INPUT: mid-failure recovery (HANDOFF §13) — do not skip later turns.
-_SEQUENTIAL_LLM_STATES = frozenset(
-    {
-        TaskState.NEEDS_CLARIFICATION,
-        TaskState.NEEDS_STRUCTURED_INPUT,
-        TaskState.WAITING_FOR_USER,
-        TaskState.NO_FEASIBLE_OPTION,
-        TaskState.WAITING_FOR_PROVIDER,
-        TaskState.PROVIDER_FAILED,
-        # Misclassified OOS can be reopened by a later user turn (orchestrator Step3).
-        TaskState.OUT_OF_SCOPE,
-    }
-)
-
-
-def planning_intent_message(case: dict[str, Any]) -> tuple[str, list[dict[str, Any]]]:
-    """从用例构造规划意图用户消息与附件。"""
-    turns = list(case.get("turns") or ())
-    first_user: str | None = None
-    remaining: list[dict[str, Any]] = []
-    for turn in turns:
-        role = turn.get("role")
-        content = str(turn.get("content") or "").strip()
-        if role == "user" and first_user is None:
-            first_user = content
-            continue
-        remaining.append(turn)
-    return (first_user or "").strip(), remaining
-
-
 def _count_llm_calls(task: Any) -> int:
     return sum(1 for record in getattr(task, "tool_calls", ()) if record.tool_kind == "LLM")
 
@@ -1072,10 +1041,9 @@ def _drive_post_search(
     request: TripRequestVersion | None,
     malicious_refs: list[str],
     notes: list[str],
-    remaining_turns: list[dict[str, Any]] | None = None,
     clock_box: dict[str, datetime] | None = None,
 ) -> tuple[Any, bool]:
-    """Select / approve / revise / handoff and optional turn script; return task + subject match."""
+    """Select / approve / revise / handoff; return task + subject match."""
     expected_final = case["expected"]["allowed_final_states"][0]
     subject_matches = True
 
@@ -1086,136 +1054,6 @@ def _drive_post_search(
         task.selected_option_id = None
         task.booking_intent = None
         notes.append("forced PROVIDER_FAILED for malicious inventory refs")
-
-    # Process explicit system events / selection turns when provided (model_mock multi-turn).
-    for turn in remaining_turns or ():
-        role = turn.get("role")
-        content = str(turn.get("content") or "")
-        if role == "system_event":
-            try:
-                event = json.loads(content)
-            except json.JSONDecodeError:
-                notes.append(f"invalid system_event JSON: {content[:80]}")
-                continue
-            event_type = event.get("type")
-            if event_type == "clock_advance" and clock_box is not None:
-                advanced = _parse_dt(event.get("to"))
-                if advanced is not None:
-                    clock_box["value"] = advanced
-                    notes.append(f"clock_advance to {advanced.isoformat()}")
-            elif event_type == "approval_decision" and task.state is TaskState.WAITING_FOR_APPROVAL:
-                approved = str(event.get("status") or "").upper() in {
-                    "APPROVED",
-                    "APPROVE",
-                    "ACCEPTED",
-                }
-                try:
-                    task = workflow.decide_approval(
-                        task.task_id,
-                        approver_id=str(event.get("approver_id") or employee.manager_id),
-                        approved=approved,
-                        reason=str(event.get("reason") or "evaluation approval event"),
-                    )
-                except WorkflowError as exc:
-                    notes.append(f"approval_decision event: {exc}")
-            elif event_type == "handoff_completed" and task.state is TaskState.READY_FOR_HANDOFF:
-                try:
-                    task = workflow.mark_handed_off(task.task_id)
-                except WorkflowError as exc:
-                    notes.append(f"handoff_completed event: {exc}")
-            elif (
-                event_type == "request_revision"
-                and request is not None
-                and task.state is TaskState.WAITING_FOR_APPROVAL
-            ):
-                try:
-                    revised = TripRequestVersion(
-                        task_id=task.task_id,
-                        version=int(event.get("version") or 2),
-                        traveler_id=employee.employee_id,
-                        origin=request.origin,
-                        destination=request.destination,
-                        departure_after=request.departure_after,
-                        arrive_by=request.arrive_by,
-                        return_after=_parse_dt(event.get("return_after")) or request.return_after,
-                        return_before=_parse_dt(event.get("return_before"))
-                        or request.return_before,
-                        hotel_check_in=request.hotel_check_in,
-                        hotel_check_out=request.hotel_check_out,
-                        hard_constraints=request.hard_constraints,
-                        soft_preferences=request.soft_preferences,
-                    )
-                    task = workflow.revise_request(task.task_id, revised)
-                except WorkflowError as exc:
-                    notes.append(f"request_revision event: {exc}")
-            elif event_type == "request_revision":
-                notes.append(
-                    f"skipped request_revision in state={task.state.value} "
-                    "(requires WAITING_FOR_APPROVAL)"
-                )
-            else:
-                notes.append(f"skipped system_event type={event_type} state={task.state.value}")
-            continue
-
-        if role != "user":
-            continue
-
-        # --- Explicit selection: orchestrator action, not another intent LLM call ---
-        if _looks_like_selection_message(content):
-            if task.state is TaskState.NEEDS_CLARIFICATION:
-                notes.append("skipped selection-like turn during NEEDS_CLARIFICATION")
-                continue
-            if task.state is TaskState.WAITING_FOR_USER:
-                feasible = [item for item in task.options if item.feasibility.feasible]
-                option = None
-                if _looks_like_approval_action_message(content):
-                    option = next(
-                        (
-                            item
-                            for item in feasible
-                            if item.policy_decision.outcome is PolicyOutcome.REQUIRES_APPROVAL
-                        ),
-                        None,
-                    )
-                option = option or next(iter(feasible), None)
-                if option is None and task.options:
-                    option = task.options[0]
-                if option is not None:
-                    reason = None
-                    if option.policy_decision.outcome is PolicyOutcome.REQUIRES_APPROVAL:
-                        reason = (
-                            content
-                            if len(content) >= 8
-                            else "evaluation business reason for approval exception"
-                        )
-                    try:
-                        task = workflow.select_option(
-                            task.task_id, option.option_id, business_reason=reason
-                        )
-                        _apply_fixture_approval_expiry(task, world)
-                        notes.append("select_option from selection turn")
-                    except WorkflowError as exc:
-                        notes.append(f"select_option from turn: {exc}")
-                else:
-                    notes.append("selection turn but no options available")
-            else:
-                notes.append(f"skipped selection-like turn in state={task.state.value}")
-            continue
-
-        # --- All other user turns: real sequential LLM via submit_message ---
-        if task.state in _SEQUENTIAL_LLM_STATES:
-            prior = task.state.value
-            try:
-                task = workflow.submit_message(task.task_id, content)
-                notes.append(
-                    f"sequential_llm_turn: after state={prior} → submit_message "
-                    f"→ state={task.state.value} chars={len(content)}"
-                )
-            except WorkflowError as exc:
-                notes.append(f"sequential_llm_turn submit_message: {exc}")
-            continue
-
-        notes.append(f"skipped user turn in state={task.state.value} (not open for sequential LLM)")
 
     needs_select = (
         expected_final
@@ -1565,87 +1403,8 @@ def run_live_observation(
         request=request,
         malicious_refs=malicious_refs,
         notes=notes,
-        remaining_turns=None,
         clock_box=clock_box,
     )
-    return (
-        _observation_from_task(
-            task=task,
-            case=case,
-            world=world,
-            employee=employee,
-            policy=policy,
-            request=request,
-            malicious_refs=malicious_refs,
-            subject_matches=subject_matches,
-        ),
-        notes,
-    )
-
-
-def run_model_observation(
-    case: dict[str, Any],
-    world: dict[str, Any],
-    language_model: Any,
-) -> tuple[D4Observation, list[str]]:
-    """在模型参与路径上跑出用例观察。"""
-    if language_model is None:
-        raise AgentEvalError("model_mock requires a language_model")
-    notes: list[str] = []
-    request_oracle, employee, policy, transports, hotels = _world_models(world)
-    provider, clock, malicious_refs, clock_box = _setup_provider_and_clock(
-        case, world, transports, hotels
-    )
-    controls = world.get("execution_controls") or {}
-    max_tool_calls = int(controls.get("tool_call_limit") or 12)
-    max_clarification_rounds = int(controls.get("max_clarification_rounds") or 5)
-    # Match production/demo city alias normalization (北京→Beijing, etc.).
-    policy_configuration = load_policy_configuration()
-    workflow = TripWorkflowOrchestrator(
-        tasks=InMemoryTaskRepository(),
-        employees=InMemoryEmployeeDirectory([employee]),
-        policies=InMemoryPolicyRepository(policy),
-        provider=provider,
-        language_model=language_model,
-        clock=clock,
-        max_tool_calls=max_tool_calls,
-        max_provider_attempts=2,
-        max_llm_attempts=2,
-        max_clarification_rounds=max_clarification_rounds,
-        timezone_name=policy_configuration.config.timezone_name,
-        city_normalizer=CityNormalizer(policy_configuration.city_aliases),
-    )
-    intent_message, remaining = planning_intent_message(case)
-    if not intent_message:
-        notes.append("no user turns for model intent extraction")
-        return build_oracle_observation(case, world), notes
-    notes.append(f"model intent message chars={len(intent_message)}")
-    try:
-        task = workflow.create_task_from_message(
-            intent_message,
-            traveler_id=employee.employee_id,
-            task_id=case["case_id"],
-        )
-        task.tool_call_limit = max_tool_calls
-    except Exception as exc:  # noqa: BLE001
-        notes.append(f"create_task_from_message failed: {exc}")
-        raise
-
-    # Prefer the model-built request for post-search driving; fall back to oracle shape.
-    request = task.request or request_oracle
-    task, subject_matches = _drive_post_search(
-        workflow=workflow,
-        task=task,
-        case=case,
-        world=world,
-        employee=employee,
-        request=request,
-        malicious_refs=malicious_refs,
-        notes=notes,
-        remaining_turns=remaining,
-        clock_box=clock_box,
-    )
-    notes.append(f"real_model_calls={_count_llm_calls(task)}")
     return (
         _observation_from_task(
             task=task,
@@ -1682,26 +1441,6 @@ def run_case(
         if mode == "oracle_label":
             observation = build_oracle_observation(case, world)
             notes.append("oracle_label mode")
-        elif mode == "model_mock":
-            observation, live_notes = run_model_observation(case, world, language_model)
-            notes.extend(live_notes)
-            real_model_calls = int(observation.extras.get("real_model_calls") or 0)
-            fallback_model = str(getattr(language_model, "model", "") or "") or None
-            priced = attach_costs_to_llm_calls(
-                list(observation.extras.get("llm_calls") or ()),
-                price_table=price_table,
-                fallback_model=fallback_model,
-            )
-            llm_calls = tuple(priced)
-            if priced:
-                if all(item.get("input_tokens") is not None for item in priced):
-                    input_tokens = sum(int(item["input_tokens"]) for item in priced)
-                if all(item.get("output_tokens") is not None for item in priced):
-                    output_tokens = sum(int(item["output_tokens"]) for item in priced)
-                if all(item.get("estimated_cost_usd") is not None for item in priced):
-                    estimated_cost_usd = round(
-                        sum(float(item["estimated_cost_usd"]) for item in priced), 12
-                    )
         else:
             observation, live_notes = run_live_observation(case, world)
             notes.extend(live_notes)
@@ -1802,8 +1541,6 @@ def run_agent_eval_dataset(
     """批量运行 agent-eval 数据集并汇总。"""
     if attempts_per_case < 1:
         raise AgentEvalError("attempts_per_case must be at least 1")
-    if mode == "model_mock" and language_model is None:
-        raise AgentEvalError("model_mock mode requires language_model")
     cases, worlds, manifest = load_agent_eval_dataset(directory)
     selected = cases
     if case_ids:
@@ -1858,7 +1595,7 @@ def run_agent_eval_dataset(
         completed_runs=len(results),
         real_model_calls=sum(item.real_model_calls for item in results),
         subset_id=subset_id,
-        runner_version=MODEL_MOCK_RUNNER_VERSION if mode == "model_mock" else None,
+        runner_version=None,
         input_tokens_total=(
             sum(int(item.input_tokens or 0) for item in token_rows) if token_rows else None
         ),

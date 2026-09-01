@@ -16,7 +16,6 @@ from __future__ import annotations
 import unittest
 from datetime import date, datetime
 from decimal import Decimal
-from pathlib import Path
 from zoneinfo import ZoneInfo
 
 from corporate_travel_agent.agent.search_command import compile_search_command
@@ -31,7 +30,6 @@ from corporate_travel_agent.agent.semantic_intent import (
 from corporate_travel_agent.domain.enums import (
     BookingScope,
     LodgingRequirement,
-    TaskState,
     TransportMode,
 )
 from corporate_travel_agent.domain.models import TransportOffer
@@ -278,93 +276,6 @@ class MultiCitySemanticsTests(unittest.TestCase):
         self.assertEqual(compiled.command.request.stays, ())
         # 三段航段不受影响——被按住的是住宿，不是行程。
         self.assertEqual(len(compiled.command.request.journey), 3)
-
-
-class MultiCityEndToEndTests(unittest.TestCase):
-    """整条链路：一句多城原话 → 三段方案。
-
-    `test_multi_city_search.py` 的闸门是**手工构造请求**，因为那时语义层还出不来
-    三段。这一条把最后一截接上：脚本化模型给 legs，任务真的规划出三段方案。
-    """
-
-    def _system(self):
-        import sys
-
-        sys.path.insert(0, str(Path(__file__).resolve().parent))
-        from semantic_fixtures import ScriptedSemanticModel
-
-        from corporate_travel_agent.agent.ports import LLMCallMetadata
-        from corporate_travel_agent.demo import build_demo_system
-
-        del LLMCallMetadata
-        decision = IntentDecision(
-            status=IntentDecisionStatus.READY,
-            intent=_intent(),
-            clarification_question=None,
-            conflicts=[],
-            unsupported_reasons=[],
-            assumptions=[],
-            evidence=[
-                EvidenceRef(turn_index=0, field="origin_candidates", quote="北京"),
-                EvidenceRef(turn_index=0, field="destination_candidates", quote="上海"),
-                EvidenceRef(turn_index=0, field="departure_after", quote="9月15号"),
-                EvidenceRef(turn_index=0, field="arrive_by", quote="9月15号"),
-            ],
-            confidence=0.95,
-            manipulation_detected=False,
-        )
-        provider = _provider()
-        workflow, _ = build_demo_system(
-            semantic_language_model=ScriptedSemanticModel([decision]),
-            clock=lambda: CREATED,
-            provider=provider,
-        )
-        return workflow
-
-    def test_a_multi_city_message_plans_three_legs_end_to_end(self) -> None:
-        workflow = self._system()
-
-        task = workflow.create_task_from_semantic_message(
-            "9月15号从北京去上海开会，9月18号去杭州见客户，9月19号回北京",
-            traveler_id="E1001",
-            task_id="mc-e2e",
-        )
-
-        self.assertEqual(task.state, TaskState.WAITING_FOR_USER, task.failure)
-        self.assertTrue(task.options, "三段行程没有出任何方案")
-        for option in task.options:
-            self.assertEqual(
-                [(leg.origin, leg.destination) for leg in option.legs],
-                [
-                    ("Beijing", "Shanghai"),
-                    ("Shanghai", "Hangzhou"),
-                    ("Hangzhou", "Beijing"),
-                ],
-            )
-
-    def test_every_leg_was_actually_searched(self) -> None:
-        """三段各搜一次，外加一次整票——第 03、05、06 三步接在一起的那一环。"""
-        workflow = self._system()
-        task = workflow.create_task_from_semantic_message(
-            "9月15号从北京去上海开会，9月18号去杭州见客户，9月19号回北京",
-            traveler_id="E1001",
-            task_id="mc-e2e-tools",
-        )
-
-        searches = [
-            item.tool_name
-            for item in task.tool_calls
-            if item.tool_name.startswith("provider.search_transport")
-        ]
-        self.assertEqual(
-            searches,
-            [
-                "provider.search_transport.outbound",
-                "provider.search_transport.inbound",
-                "provider.search_transport.leg2",
-                "provider.search_transport.journey",
-            ],
-        )
 
 
 if __name__ == "__main__":

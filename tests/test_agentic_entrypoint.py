@@ -323,15 +323,24 @@ def test_a_follow_up_message_replays_the_whole_conversation() -> None:
 
 
 def test_agentic_tasks_refuse_the_other_entrypoints() -> None:
-    """三条入口互不串门：串了就等于让一个任务同时活在两套语义下。"""
-    workflow, _ = _workflow([("ask_traveler", {"question": "哪天到？"})])
-    task = workflow.create_task_from_agentic_message("从北京去上海", traveler_id="E1001")
+    """入口互不串门：结构化建的任务不能用工具循环续聊，反之亦然。
 
+    旧的 legacy / semantic 入口已删除（ADR-0003）；已持久化的旧任务仍带着那两个
+    `intent_entrypoint` 值，同样会被这道检查拒绝。
+    """
+    from corporate_travel_agent.demo import make_demo_request
+
+    workflow, _ = _workflow([("ask_traveler", {"question": "哪天到？"})])
+    structured = workflow.create_task(make_demo_request(task_id="structured-task"))
+    assert structured.metadata["intent_entrypoint"] == IntentEntrypoint.STRUCTURED.value
+    with pytest.raises(WorkflowError, match="agentic"):
+        workflow.submit_agentic_message(structured.task_id, "8月5日到")
+
+    task = workflow.create_task_from_agentic_message("从北京去上海", traveler_id="E1001")
     assert task.metadata["intent_entrypoint"] == IntentEntrypoint.AGENTIC.value
+    task.metadata["intent_entrypoint"] = IntentEntrypoint.SEMANTIC.value
     with pytest.raises(WorkflowError, match="agentic"):
-        workflow.submit_semantic_message(task.task_id, "8月5日到")
-    with pytest.raises(WorkflowError, match="agentic"):
-        workflow.submit_message(task.task_id, "8月5日到")
+        workflow.submit_agentic_message(task.task_id, "8月5日到")
 
 
 def test_the_agentic_entrypoint_gets_its_own_budget() -> None:

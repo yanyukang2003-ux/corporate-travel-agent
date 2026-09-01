@@ -9,7 +9,6 @@ import pytest
 from corporate_travel_agent.services.evaluation_dataset import (
     EvaluationDatasetError,
     load_evaluation_dataset,
-    run_intent_evaluation,
     run_workflow_evaluation_case,
 )
 
@@ -112,23 +111,6 @@ def test_intent_cases_preserve_queries_and_use_dimension_specific_gold() -> None
         case.expected.must_reject_unsupported_constraints
         for case in DATASET.intent_cases
     ) == 305
-
-
-def test_full_intent_suite_exposes_legacy_selection_bias_without_safety_regression() -> None:
-    metrics = run_intent_evaluation(DATASET.intent_cases)
-
-    assert metrics.total_cases == 480
-    assert metrics.classification_accuracy < 0.2
-    assert metrics.missing_field_exact_match_rate is not None
-    assert metrics.missing_field_exact_match_rate < 0.1
-    assert metrics.missing_field_recall is not None
-    assert metrics.missing_field_recall < 0.5
-    assert metrics.clarification_accuracy < 0.8
-    assert metrics.out_of_scope_accuracy is not None
-    assert metrics.out_of_scope_accuracy < 0.2
-    assert metrics.unsupported_constraint_rejection_rate == 0.0
-    assert metrics.premature_provider_call_rate == 0.0
-    assert metrics.inventory_hallucination_rate == 0.0
 
 
 def test_case_file_tampering_is_rejected(tmp_path: Path) -> None:

@@ -6,14 +6,9 @@
 
 from __future__ import annotations
 
-from collections import deque
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
-from corporate_travel_agent.agent.ports import (
-    IntentInterpretationResult,
-    LLMCallMetadata,
-)
 from corporate_travel_agent.agent.semantic_intent import (
     EvidenceRef,
     IntentDecision,
@@ -25,61 +20,6 @@ from corporate_travel_agent.domain.enums import BookingScope, LodgingRequirement
 SHANGHAI = ZoneInfo("Asia/Shanghai")
 
 READY_MESSAGE = "8月5日从北京去上海，8月6日上午10点前到，不住酒店"
-
-
-class ScriptedSemanticModel:
-    """按剧本返回语义判定；剧本用完后重复最后一条。"""
-
-    prompt_version = "semantic-reliability-v1"
-
-    def __init__(
-        self,
-        decisions: list[IntentDecision] | None = None,
-        *,
-        raises: Exception | None = None,
-    ) -> None:
-        self.decisions = deque(decisions or [])
-        self._last: IntentDecision | None = None
-        self.raises = raises
-        self.calls = 0
-        self.extract_calls = 0
-
-    def interpret_trip_intent(
-        self,
-        conversation: str,
-        *,
-        task_id: str,
-        traveler_id: str,
-        context: dict[str, object],
-    ) -> IntentInterpretationResult:
-        del conversation, task_id, traveler_id, context
-        self.calls += 1
-        if self.raises is not None:
-            raise self.raises
-        if self.decisions:
-            self._last = self.decisions.popleft()
-        if self._last is None:
-            raise AssertionError("scripted semantic model has no decision to return")
-        return IntentInterpretationResult(
-            decision=self._last,
-            metadata=LLMCallMetadata(
-                prompt_version=self.prompt_version,
-                model="semantic-scripted",
-                duration_ms=1,
-                evidence_contract_version="conversation-turn-v1",
-            ),
-        )
-
-    def extract_trip_intent(self, *args: object, **kwargs: object) -> object:
-        del args, kwargs
-        self.extract_calls += 1
-        raise AssertionError("semantic entrypoint must not call legacy extraction")
-
-    def propose_search_adjustment(self, *_: object) -> None:
-        return None
-
-    def explain_verified_options(self, *_: object) -> dict[str, str]:
-        return {}
 
 
 def semantic_intent(**overrides: object) -> SemanticIntent:

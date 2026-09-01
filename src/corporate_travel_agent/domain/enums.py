@@ -110,6 +110,8 @@ class IntentEntrypoint(StrEnum):
     """创建并继续自然语言任务时固定使用的意图流程。"""
 
     STRUCTURED = "structured"
+    # legacy 和 semantic 两条入口已删除（ADR-0003）。枚举值留着是给**已经持久化的旧任务**
+    # 读的：它们还能被查看，但不能再续聊——`_require_intent_entrypoint` 会拒绝。
     LEGACY = "legacy"
     SEMANTIC = "semantic"
     #: 工具循环：模型每轮挑一个带类型的工具，校验在工具签名上，没有全局必填表。

@@ -1419,13 +1419,11 @@ function PlanView({ onToast, composerEpoch, onNewTrip }: {
           || task.state === 'WAITING_FOR_USER'
           || task.state === 'NO_FEASIBLE_OPTION'
         )
+      // 旧入口（legacy / semantic）已删除（ADR-0003）：还停在澄清态的旧任务不能续聊，
+      // 只能新建；这里把它当成新任务处理，不再按 intent_entrypoint 分流。
       const nextTask = continueAgentic
         ? await api.submitAgenticMessage(task.task_id, message)
-        : isClarification
-          ? task.intent_entrypoint === 'legacy'
-            ? await api.submitLegacyMessage(task.task_id, message)
-            : await api.submitSemanticMessage(task.task_id, message)
-          : await api.createAgenticNaturalLanguage(message, user.employee_id ?? user.user_id)
+        : await api.createAgenticNaturalLanguage(message, user.employee_id ?? user.user_id)
       setInstruction(message)
       composingNewRef.current = false
       setComposingNew(false)

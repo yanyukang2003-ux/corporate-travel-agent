@@ -55,6 +55,7 @@ from pathlib import Path
 from typing import Any
 
 from corporate_travel_agent.agent.openai_adapter import OpenAISemanticIntentLanguageModel
+
 from corporate_travel_agent.demo import SHANGHAI_TZ
 from corporate_travel_agent.services.evaluation_performance import load_model_price_table
 

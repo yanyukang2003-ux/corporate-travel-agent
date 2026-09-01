@@ -671,25 +671,13 @@ def run_workflow_evaluation_case(
     case: WorkflowEvaluationCase,
     *,
     trace_observer: WorkflowTraceObserverPort | None = None,
-    language_model: object | None = None,
-    semantic_language_model: object | None = None,
     tool_calling_language_model: object | None = None,
 ) -> WorkflowEvaluationObservation:
     """确定性执行单条工作流评测用例。
 
-    四种入口互斥：都不传则用结构化请求；``language_model`` 走旧字段抽取入口；
-    ``semantic_language_model`` 走完整对话语义入口；``tool_calling_language_model``
-    走产品入口（工具循环）。
+    不传模型就用结构化请求；传 ``tool_calling_language_model`` 就走产品入口（工具循环），
+    冻结的结构化请求不进循环，只用来事后打分。
     """
-    supplied = [
-        item
-        for item in (language_model, semantic_language_model, tool_calling_language_model)
-        if item is not None
-    ]
-    if len(supplied) > 1:
-        raise EvaluationDatasetError(
-            "A workflow case runs through exactly one intent entrypoint"
-        )
     def clock() -> datetime:
         return case.inventory.captured_at
 
@@ -778,31 +766,13 @@ def run_workflow_evaluation_case(
         provider=provider,
         clock=clock,
         trace_observer=trace_observer,
-        language_model=language_model,
-        semantic_language_model=semantic_language_model,
         tool_calling_language_model=tool_calling_language_model,
     )
-    if not supplied:
+    if tool_calling_language_model is None:
         task = workflow.create_task(request)
-    elif tool_calling_language_model is not None:
-        # 产品入口：模型每轮决定查什么，冻结的结构化请求同样不进循环。
-        task = workflow.create_task_from_agentic_message(
-            render_workflow_case_message(case),
-            traveler_id=case.employee.employee_id,
-            task_id=case.case_id,
-        )
-    elif semantic_language_model is not None:
-        # The semantic entrypoint interprets the whole conversation; the frozen
-        # structured request never enters the loop.
-        task = workflow.create_task_from_semantic_message(
-            render_workflow_case_message(case),
-            traveler_id=case.employee.employee_id,
-            task_id=case.case_id,
-        )
     else:
-        # The model owns intent extraction; the frozen structured request stays
-        # out of the loop and is only used later to score what it produced.
-        task = workflow.create_task_from_message(
+        # 产品入口：模型每轮决定查什么，冻结的结构化请求不进循环。
+        task = workflow.create_task_from_agentic_message(
             render_workflow_case_message(case),
             traveler_id=case.employee.employee_id,
             task_id=case.case_id,
@@ -857,88 +827,55 @@ def run_intent_evaluation(
     *,
     language_model=None,
     reference_time: datetime | None = None,
-    entrypoint: str = "legacy",
+    entrypoint: str = "agentic",
 ) -> IntentEvaluationMetrics:
-    """对意图用例执行模型/抽取并产出观察。
+    """对意图用例执行产品入口（工具循环）并产出观察。
 
-    ``entrypoint`` 决定用哪条意图链路：``legacy`` 走旧字段抽取，``semantic`` 走
-    完整对话解释，``agentic`` 走产品入口（工具循环）。三者不共享实现，也不互相回退；
-    同一份用例可分别运行做并排对比。
+    只剩一条自然语言入口。``entrypoint`` 参数保留是为了让报告里的 ``entrypoint``
+    字段和历史报告可对照；传别的值直接报错。``language_model`` 不传就用
+    ``DeterministicToolCallingModel`` 替身。
     """
-    from corporate_travel_agent.agent.deterministic_parser import (
-        DeterministicChineseIntentParser,
-    )
-    from corporate_travel_agent.agent.deterministic_semantic_interpreter import (
-        DeterministicSemanticInterpreter,
-    )
     from corporate_travel_agent.agent.deterministic_tool_model import (
         DeterministicToolCallingModel,
     )
     from corporate_travel_agent.demo import build_demo_system
 
-    if entrypoint not in {"legacy", "semantic", "agentic"}:
+    if entrypoint != "agentic":
         raise EvaluationDatasetError(f"Unsupported intent entrypoint: {entrypoint}")
-    semantic = entrypoint == "semantic"
-    agentic = entrypoint == "agentic"
-    if agentic:
-        parser = language_model or DeterministicToolCallingModel()
-    elif semantic:
-        parser = language_model or DeterministicSemanticInterpreter()
-    else:
-        parser = language_model or DeterministicChineseIntentParser()
+    parser = language_model or DeterministicToolCallingModel()
     observed_at = reference_time or datetime(2026, 7, 20, 9, 0, tzinfo=UTC)
     observations: list[IntentEvaluationObservation] = []
 
     for case in cases:
         workflow, _ = build_demo_system(
-            language_model=parser if entrypoint == "legacy" else None,
-            semantic_language_model=parser if semantic else None,
-            tool_calling_language_model=parser if agentic else None,
+            tool_calling_language_model=parser,
             clock=lambda observed_at=observed_at: observed_at,
         )
-        if agentic:
-            task = workflow.create_task_from_agentic_message(
-                case.message,
-                traveler_id="E1001",
-                task_id=f"intent-eval-{case.case_id}",
-            )
-        elif semantic:
-            task = workflow.create_task_from_semantic_message(
-                case.message,
-                traveler_id="E1001",
-                task_id=f"intent-eval-{case.case_id}",
-            )
-        else:
-            task = workflow.create_task_from_message(
-                case.message,
-                traveler_id="E1001",
-                task_id=f"intent-eval-{case.case_id}",
-            )
+        task = workflow.create_task_from_agentic_message(
+            case.message,
+            traveler_id="E1001",
+            task_id=f"intent-eval-{case.case_id}",
+        )
         actual_missing = tuple(task.missing_required_fields)
         provider_calls = sum(
             record.tool_kind == "PROVIDER" for record in task.tool_calls
         )
-        if agentic:
-            # 工具循环没有意图字段表；偏好只有在真的交付了方案之后才落在请求上。
-            preferences = tuple(
-                task.request.soft_preferences if task.request is not None else ()
-            )
-        else:
-            preferences = tuple(task.intent_fields.get("soft_preferences") or ())
-        # 不支持的要求：旧链路记在冲突里；工具循环里它只能出现在给旅行者的那句话里。
+        # 工具循环没有意图字段表；偏好只有在真的交付了方案之后才落在请求上。
+        preferences = tuple(
+            task.request.soft_preferences if task.request is not None else ()
+        )
+        # 不支持的要求在工具循环里只能出现在给旅行者的那句话里。
         rejection_texts = [
             *task.intent_conflicts,
-            *([task.clarification_question] if agentic and task.clarification_question else []),
+            *([task.clarification_question] if task.clarification_question else []),
         ]
         observations.append(
             IntentEvaluationObservation(
                 case_id=case.case_id,
                 entrypoint=entrypoint,
                 expected_classification=case.expected.classification,
-                actual_classification=(
-                    _semantic_classification(task) if semantic
-                    else str(task.metadata.get("intent_classification", "UNCLASSIFIED"))
-                ),
+                # 工具循环没有分类器；这一格永远是 UNCLASSIFIED，对应指标记 not_applicable。
+                actual_classification="UNCLASSIFIED",
                 expected_missing_fields=case.expected.missing_fields,
                 actual_missing_fields=actual_missing,
                 clarification_expected=case.expected.must_clarify_before_search,
@@ -963,22 +900,6 @@ def run_intent_evaluation(
         )
 
     return summarize_intent_observations(tuple(observations))
-
-
-def _semantic_classification(task) -> str:
-    """把语义决策状态投影成可比较的标签。
-
-    语义链路没有旧的场景分类器，只有 ``IntentDecisionStatus``。这里只做状态到标签的
-    直译，不去反推 ``TRANSPORT_COMPARE`` 之类的旧标签——那会把 ADR-0002 删掉的分类器
-    重新引进来。唯一真正可比的是 ``OUT_OF_SCOPE``。
-    """
-    record = task.metadata.get("semantic_intent")
-    if not isinstance(record, dict):
-        return "UNCLASSIFIED"
-    decision = record.get("decision")
-    if not isinstance(decision, dict):
-        return "UNCLASSIFIED"
-    return str(decision.get("status", "UNCLASSIFIED"))
 
 
 def summarize_intent_observations(
@@ -1030,11 +951,9 @@ def summarize_intent_observations(
     slots_exposed = entrypoint != "agentic"
     return IntentEvaluationMetrics(
         entrypoint=entrypoint,
-        # 旧链路的 classification 取自旧抽取器的分类标签；语义链路刻意没有这个
-        # 分类器（ADR-0002），因此该指标按协议 §1.5 记为 not_applicable，而不是记 0。
-        classification_status=(
-            "measured" if entrypoint == "legacy" else "not_applicable"
-        ),
+        # 产品入口没有场景分类器（ADR-0002 删了旧分类器，ADR-0003 删了旧入口），
+        # 该指标按协议 §1.5 记为 not_applicable，而不是记 0。
+        classification_status="not_applicable",
         missing_field_status="measured" if slots_exposed else "not_applicable",
         transport_preference_status=(
             "measured" if scored_transport_preferences else "not_applicable"
