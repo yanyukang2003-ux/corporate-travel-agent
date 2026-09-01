@@ -20,6 +20,8 @@ import type {
   TaskSummary,
   TravelOption,
   TripTask,
+  TaskStep,
+  ProvenanceRecord,
   UserIdentity,
   BusinessMetricsReport,
   DutyOfCareResponse,
@@ -28,6 +30,7 @@ import type {
 import { formatTravelDate, formatTravelTime, getStateMeta, parseIsoWallClock } from './utils/state'
 import { approvalReasonText, factsForOptionCard, openQuestionsFromTask } from './utils/notices'
 import { chatTurns } from './utils/chat'
+import { stepViews } from './utils/steps'
 import { costNotes, money as moneyText } from './utils/cost'
 import { confirmationSummary, parseOrderReferences, reconciliationText } from './utils/booking'
 import { KPI_CARDS, KPI_KEYS, formatMetric, metricSample, utilisation, utilisationTone, whereaboutsLabel, whereaboutsTone } from './utils/dashboard'
@@ -1646,7 +1649,7 @@ function PlanView({ onToast, composerEpoch, onNewTrip }: {
             <button className={tab === 'options' ? 'active' : ''} onClick={() => setTab('options')}>推荐方案 <em>{displayOptions.length}</em></button>
             <button className={tab === 'request' ? 'active' : ''} onClick={() => setTab('request')}>需求与偏好</button>
             <button className={tab === 'scoring' ? 'active' : ''} onClick={() => setTab('scoring')}>评分过程</button>
-            <button className={tab === 'timeline' ? 'active' : ''} onClick={() => setTab('timeline')}>工具记录</button>
+            <button className={tab === 'timeline' ? 'active' : ''} onClick={() => setTab('timeline')}>过程记录</button>
           </div>
 
           {tab === 'options' && selected && <div className="itinerary-body">
@@ -1688,7 +1691,7 @@ function PlanView({ onToast, composerEpoch, onNewTrip }: {
 
           {tab === 'request' && <RequestPanel task={task} rawMessage={originalInstruction(task, instruction)} />}
           {tab === 'scoring' && <ScoringPanel task={task} />}
-          {tab === 'timeline' && <TimelinePanel task={task} />}
+          {tab === 'timeline' && <TimelinePanel task={task} selectedOptionId={selected?.id ?? null} />}
 
           {compared.length > 1 && <div className="compare-dock"><span>已选择 <b>{compared.length}</b> 个方案</span><div>{compared.map((id) => <Badge key={id} tone="dark">{displayOptions.find((item) => item.id === id)?.number}</Badge>)}</div><button className="primary small" onClick={() => onToast('已选方案来自当前 API 响应')}>确认对比</button><button className="dock-close" onClick={() => setCompared([])}><Icon name="close" /></button></div>}
         </>}
@@ -1805,10 +1808,113 @@ function RequestPanel({ task, rawMessage }: { task: TripTask; rawMessage: string
   </section>
 }
 
-/** 「工具记录」页签：展示工具调用预算与调用时间线。 */
-function TimelinePanel({ task }: { task: TripTask }) {
+/**
+ * 「过程记录」页签：任务从建到现在的每一步输出，按先后整理。
+ *
+ * 数据来自 `GET /trip-tasks/{id}/steps`（对话、工具调用、带出处和样例的搜索、方案、
+ * 审批、确认……后端只收集不重算）。接口失败时退回本地的工具调用列表——少一点内容，
+ * 但不至于整页空白。下方的「依据链」按选中方案拉取：每一段凭什么，以及说不出依据的
+ * 地方（gaps）——后端不许它静默省略。
+ */
+function TimelinePanel({ task, selectedOptionId }: { task: TripTask; selectedOptionId: string | null }) {
   const calls = task.tool_budget.calls
-  return <section className="detail-panel"><div className="timeline-head"><div><div className="section-kicker">真实工具调用记录</div><h2>本次任务使用 {task.tool_budget.used} / {task.tool_budget.limit} 次工具调用</h2></div><Badge tone={task.tool_budget.blocked ? 'warn' : 'green'}>{task.tool_budget.blocked ? '预算耗尽' : `剩余 ${task.tool_budget.remaining}`}</Badge></div>{calls.length > 0 ? <div className="timeline">{calls.map((call, index) => <div key={`${call.sequence}-${call.tool_name}`}><time>{timeText(call.started_at)}</time><i className={index === calls.length - 1 ? 'current' : ''} /><section><b>{call.tool_name}</b><p>{call.status}{call.reason_code ? ` · ${call.reason_code}` : ''}{call.error_code ? ` · ${call.error_code}` : ''}</p></section></div>)}</div> : <div className="timeline-empty">该任务暂时没有工具调用记录。</div>}</section>
+  const [steps, setSteps] = useState<TaskStep[] | null>(null)
+  const [stepsError, setStepsError] = useState('')
+  const [chain, setChain] = useState<ProvenanceRecord | null>(null)
+  const [chainBusy, setChainBusy] = useState(false)
+  const [chainError, setChainError] = useState('')
+
+  useEffect(() => {
+    let cancelled = false
+    setChain(null)
+    setChainError('')
+    api.taskSteps(task.task_id)
+      .then((payload) => {
+        if (cancelled) return
+        setSteps(payload.steps)
+        setStepsError('')
+      })
+      .catch((error: unknown) => {
+        if (!cancelled) setStepsError(error instanceof Error ? error.message : '读取过程记录失败')
+      })
+    return () => { cancelled = true }
+  }, [task.task_id, task.state, task.tool_budget.used])
+
+  const views = useMemo(() => stepViews(steps ?? []), [steps])
+
+  const loadChain = async () => {
+    if (!selectedOptionId) return
+    setChainBusy(true)
+    setChainError('')
+    try {
+      setChain(await api.optionProvenance(task.task_id, selectedOptionId))
+    } catch (error) {
+      setChainError(error instanceof Error ? error.message : '读取依据链失败')
+    } finally {
+      setChainBusy(false)
+    }
+  }
+
+  const chainItems = Array.isArray(chain?.items) ? (chain.items as Record<string, unknown>[]) : []
+  const chainGaps = Array.isArray(chain?.gaps) ? (chain.gaps as string[]).map(String) : []
+
+  return <section className="detail-panel">
+    <div className="timeline-head">
+      <div>
+        <div className="section-kicker">过程记录 · 每一步的输出</div>
+        <h2>本次任务使用 {task.tool_budget.used} / {task.tool_budget.limit} 次工具调用</h2>
+      </div>
+      <Badge tone={task.tool_budget.blocked ? 'warn' : 'green'}>{task.tool_budget.blocked ? '预算耗尽' : `剩余 ${task.tool_budget.remaining}`}</Badge>
+    </div>
+
+    {stepsError && <>
+      <p className="chat-note">过程记录接口不可用（{stepsError}），以下是本地的工具调用列表。</p>
+      {calls.length > 0
+        ? <div className="timeline">{calls.map((call, index) => <div key={`${call.sequence}-${call.tool_name}`}><time>{timeText(call.started_at)}</time><i className={index === calls.length - 1 ? 'current' : ''} /><section><b>{call.tool_name}</b><p>{call.status}{call.reason_code ? ` · ${call.reason_code}` : ''}{call.error_code ? ` · ${call.error_code}` : ''}</p></section></div>)}</div>
+        : <div className="timeline-empty">该任务暂时没有工具调用记录。</div>}
+    </>}
+    {!stepsError && steps === null && <div className="timeline-empty">正在读取过程记录…</div>}
+    {!stepsError && steps !== null && views.length === 0 && <div className="timeline-empty">该任务暂时没有过程记录。</div>}
+    {!stepsError && views.length > 0 && <div className="timeline">
+      {views.map((view, index) => <div key={view.key}>
+        <time>{view.time}</time>
+        <i className={`${index === views.length - 1 ? 'current ' : ''}${view.tone}`.trim()} />
+        <section>
+          <b>{view.title}</b>
+          {view.lines.map((line, lineIndex) => <p className="step-line" key={`${view.key}-${lineIndex}`}>{line}</p>)}
+        </section>
+      </div>)}
+    </div>}
+
+    <div className="provenance-block">
+      <h3>依据链</h3>
+      <p className="muted-copy">从选中方案一路走回你说过的那句话：每一段凭什么被搜出来、来自哪个快照。说不出的地方列在 gaps 里，不会被省略。</p>
+      {!chain && <button className="replan-button" disabled={chainBusy || !selectedOptionId} onClick={() => void loadChain()}>
+        <Icon name="link" />{chainBusy ? '正在读取…' : selectedOptionId ? '读取选中方案的依据链' : '先在「推荐方案」里选中一条'}
+      </button>}
+      {chainError && <p className="chat-note">{chainError}</p>}
+      {chain && <>
+        {chainGaps.length > 0 && <div className="gap-strip provenance-gaps"><Icon name="info" size={15} /><div><b>说不出依据的地方</b>{chainGaps.map((gap) => <p key={gap}>{gap}</p>)}</div></div>}
+        {chainGaps.length === 0 && <p className="green-text">这条方案的每一步都说得出依据（gaps 为空）。</p>}
+        <div className="provenance-items">
+          {chainItems.map((item, index) => {
+            const what = (item.what ?? {}) as Record<string, unknown>
+            const because = (item.because ?? {}) as Record<string, unknown>
+            const search = (because.search ?? null) as Record<string, unknown> | null
+            const title = item.role === 'stay'
+              ? `住宿 · ${String(what.name ?? '')}`
+              : `第 ${Number(item.index ?? index) + 1} 段 · ${String(what.origin ?? '')} → ${String(what.destination ?? '')}`
+            return <div key={`${String(item.ref_id)}-${index}`}>
+              <b>{title}</b>
+              <p>引用 {String(item.ref_id)} · 快照 {String(because.snapshot_id ?? '—')}</p>
+              {search?.date_evidence ? <p>日期出处：「{String(search.date_evidence)}」</p> : null}
+              {search?.assumption ? <p>假设：{String(search.assumption)}</p> : null}
+            </div>
+          })}
+        </div>
+      </>}
+    </div>
+  </section>
 }
 
 /** 差旅列表视图：全部行来自 `GET /trip-tasks`，不含演示数据。 */

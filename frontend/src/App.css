@@ -749,3 +749,16 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px
 .budget-bar.unknown i { background: #a0aec0; width: 0; }
 .budget-facts { display: flex; flex-wrap: wrap; gap: 16px; font-size: 13px; }
 .budget-facts b { font-weight: 600; }
+
+/* 过程记录：步骤色调与依据链 */
+.timeline > div > i.warn { border-color: #c9764a; }
+.timeline > div > i.info { border-color: #6c7fb3; }
+.timeline > div > i.muted { border-color: #b9c4c0; }
+.timeline section p.step-line { white-space: pre-wrap; }
+.provenance-block { margin-top: 28px; border-top: 1px solid var(--line); padding-top: 16px; max-width: 780px; }
+.provenance-block h3 { margin: 0 0 4px; font-size: 12px; }
+.provenance-items { display: grid; gap: 8px; margin-top: 12px; }
+.provenance-items > div { border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; }
+.provenance-items b { font-size: 10.5px; }
+.provenance-items p { margin: 3px 0 0; color: var(--muted); font-size: 9.5px; }
+.provenance-gaps { margin-top: 10px; }

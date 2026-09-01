@@ -73,6 +73,7 @@ from corporate_travel_agent.services.repositories import (
 )
 from corporate_travel_agent.services.runtime_config import validate_deployment_environment
 from corporate_travel_agent.services.task_projections import pending_approver_id
+from corporate_travel_agent.services.task_steps import collect_task_steps
 
 provider_retry_scheduler: ProviderRetryScheduler | None = None
 
@@ -1216,6 +1217,23 @@ def audit_events(task_id: str, identity: CurrentIdentity) -> list[dict[str, Any]
         return [asdict(item) for item in workflow.tasks.events(task_id)]
     except NotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@app.get("/trip-tasks/{task_id}/steps")
+def task_steps(task_id: str, identity: CurrentIdentity) -> dict[str, Any]:
+    """任务从建到现在的每一步，按先后整理：说了什么、调了什么工具、搜到什么、判了什么。
+
+    内容全部来自已落库的记录（对话、工具调用、搜索出处、快照、方案、审批、确认），
+    这里只做收集和排序，不改任务、不重新计算任何结论。
+    """
+    task = _visible_task(task_id, identity)
+    try:
+        events = workflow.tasks.events(task_id)
+        snapshots = workflow.tasks.snapshots(task_id)
+    except NotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    steps = collect_task_steps(task, events=events, snapshots=snapshots)
+    return {"task_id": task_id, "count": len(steps), "steps": steps}
 
 
 @app.get("/trip-tasks/{task_id}/options/{option_id}/provenance")

@@ -652,3 +652,27 @@ export interface BudgetsResponse {
   policy_snapshot_id: string
   budgets: BudgetLine[]
 }
+
+/** 过程记录中的一步：后端已按先后排好，内容全部来自落库记录。 */
+export interface TaskStep {
+  sequence: number
+  at: string | null
+  kind: string
+  title: string
+  status: string | null
+  detail: Record<string, unknown>
+}
+
+/** `GET /trip-tasks/{id}/steps` 的返回。 */
+export interface TaskStepsResponse {
+  task_id: string
+  count: number
+  steps: TaskStep[]
+}
+
+/** 一条方案的依据链；`gaps` 是说不出依据的地方，后端不许它静默省略。 */
+export interface ProvenanceRecord {
+  option_id?: string
+  gaps?: string[]
+  [key: string]: unknown
+}

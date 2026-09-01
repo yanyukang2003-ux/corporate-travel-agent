@@ -13,7 +13,9 @@ import type {
   HealthResponse,
   LoginResponse,
   StructuredTripCreate,
+  TaskStepsResponse,
   TaskSummary,
+  ProvenanceRecord,
   TripTask,
   UserIdentity,
 } from './types'
@@ -246,4 +248,16 @@ export const api = {
 
   /** 成本中心预算消耗（仅管理员）。 */
   budgets: () => request<BudgetsResponse>('/budgets'),
+
+  /** 任务从建到现在的每一步，后端按先后整理好。 */
+  taskSteps: (taskId: string) =>
+    request<TaskStepsResponse>(`/trip-tasks/${taskId}/steps`),
+
+  /** 一条方案的依据链：每一步凭什么，以及哪些地方说不出来（gaps）。 */
+  optionProvenance: (taskId: string, optionId: string) =>
+    request<ProvenanceRecord>(`/trip-tasks/${taskId}/options/${optionId}/provenance`),
+
+  /** 重算依据链并和交接时钉住的指纹比对。 */
+  provenanceCheck: (taskId: string) =>
+    request<Record<string, unknown>>(`/trip-tasks/${taskId}/provenance-check`),
 }

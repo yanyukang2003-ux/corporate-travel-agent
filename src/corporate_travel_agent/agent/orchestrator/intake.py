@@ -174,7 +174,9 @@ class IntakeMixin:
             requester_id=requester,
             policy_snapshot_id=policy.snapshot_id,
             intent_fields=self._empty_intent_fields(),
-            messages=[ConversationMessage(role="user", content=message)],
+            # 用任务时钟盖戳：其余每条记录（工具调用、搜索、审计）都用它，
+            # 对话不能例外，否则冻结时钟的评测里"过程记录"会把原话排到动作后面。
+            messages=[ConversationMessage(role="user", content=message, created_at=self.clock())],
             tool_call_limit=self.agentic_tool_call_limit,
             metadata={
                 "policy_content_hash": policy.content_hash,
@@ -226,7 +228,9 @@ class IntakeMixin:
                 {"from_state": prior_state.value},
             )
         self._transition(task, TaskState.DRAFT)
-        task.messages.append(ConversationMessage(role="user", content=message))
+        task.messages.append(
+            ConversationMessage(role="user", content=message, created_at=self.clock())
+        )
         return self._run_tool_loop(task)
 
     def _run_tool_loop(self, task: TripTask) -> TripTask:
