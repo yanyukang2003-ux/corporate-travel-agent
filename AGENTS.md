@@ -57,8 +57,9 @@
 # 代码检查
 .venv/bin/ruff check src tests examples migrations
 
-# 前端
+# 前端（连本机 API；8000 被占时换端口）
 cd frontend && npm run build && npm test && npm run lint
+cd frontend && VITE_API_TARGET=http://127.0.0.1:8001 npm run dev
 
 # 启动 API（本机没开 Postgres 时必须清空 DATABASE_URL）
 set -a && . ./.env && set +a && export DATABASE_URL= && \
@@ -71,3 +72,4 @@ set -a && . ./.env && set +a && export DATABASE_URL= && \
 - `HANDOFF.md` —— 历次开发的详细交接记录（很长，按章节查）
 - `docs/evaluation-protocol.md` —— 评测怎么做、门禁是什么
 - `docs/adr/` —— 重要架构决策及其理由
+- `docs/product-gap-review.md` —— 对照产品设计思路的缺口盘点与改进优先级

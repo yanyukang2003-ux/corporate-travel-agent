@@ -1,4 +1,5 @@
 from datetime import datetime
+from decimal import Decimal
 from zoneinfo import ZoneInfo
 
 import pytest
@@ -157,6 +158,87 @@ def test_health_reports_disabled_booking_and_llm_configuration() -> None:
     assert response.json()["tool_calling_language_model"] in {"configured", "not_configured"}
 
 
+class _ScriptedToolModel:
+    """假的工具循环模型：先搜一段，再把搜到的交出去。不联网、不花钱。"""
+
+    prompt_version = "tool-loop-api-scripted-v1"
+
+    def __init__(self) -> None:
+        self._turn = 0
+        self._found: list[str] = []
+
+    def next_turn(self, *, conversation, transcript, tools, context):
+        from corporate_travel_agent.agent.tool_loop import ModelTurn, ToolInvocation
+
+        del conversation, tools, context
+        for exchange in transcript:
+            if exchange.ok:
+                for option in exchange.result.get("options", ()):
+                    ref = option.get("ref_id")
+                    if ref and ref not in self._found:
+                        self._found.append(str(ref))
+        self._turn += 1
+        if self._turn == 1:
+            return ModelTurn(
+                calls=(
+                    ToolInvocation(
+                        "search_transport",
+                        {
+                            "origin": "北京",
+                            "destination": "上海",
+                            "arrive_by": "2026-08-05T10:00:00+08:00",
+                            "date_evidence": "8月5日上午10点前到",
+                        },
+                    ),
+                )
+            )
+        return ModelTurn(
+            calls=(
+                ToolInvocation(
+                    "propose_options",
+                    {
+                        "transport_refs": self._found[:1],
+                        "summary": "推荐前一晚 21:50 到的那班，第二天早上从容。",
+                        "open_questions": ["回程哪天走？"],
+                    },
+                ),
+            )
+        )
+
+
+def test_the_assistant_own_words_reach_the_client() -> None:
+    """聊天视图要有"助手说了什么"可读。
+
+    全都定下来时对话里一条助手消息都不会有——推荐理由只存在任务元数据里。
+    它不进 `messages`，所以不会进下一轮喂给模型的对话；但客户端读得到。
+    """
+    from corporate_travel_agent.api import main as api_main
+
+    previous = api_main.workflow.tool_calling_language_model
+    api_main.workflow.tool_calling_language_model = _ScriptedToolModel()
+    try:
+        response = client.post(
+            "/agentic/trip-tasks",
+            json={
+                "traveler_id": "E1001",
+                "message": "8月5号从北京去上海，8月5日上午10点前到，不住酒店",
+            },
+        )
+    finally:
+        api_main.workflow.tool_calling_language_model = previous
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["intent_entrypoint"] == "agentic"
+    proposal = body["agentic_proposal"]
+    assert proposal["summary"] == "推荐前一晚 21:50 到的那班，第二天早上从容。"
+    assert proposal["open_questions"] == ["回程哪天走？"]
+    # 推荐理由**不在**对话里：进了对话就等于改了下一轮喂给模型的输入。
+    assert all(
+        proposal["summary"] not in item["content"] for item in body["messages"]
+    )
+
+
 def test_structured_task_creation_remains_available_without_llm() -> None:
     response = client.post(
         "/trip-tasks",
@@ -208,6 +290,67 @@ def test_structured_task_creation_remains_available_without_llm() -> None:
         "provider.search_transport.inbound",
         "provider.search_hotels",
     ]
+
+
+def test_provenance_endpoint_returns_the_chain_and_its_gaps() -> None:
+    """一条方案的依据链要能从 API 取出来，连同它说不出的地方。"""
+    created = client.post(
+        "/trip-tasks",
+        json={
+            "traveler_id": "E1001",
+            "origin": "Beijing",
+            "destination": "Shanghai",
+            "departure_after": "2026-08-05T05:00:00+08:00",
+            "arrive_by": "2026-08-06T10:00:00+08:00",
+            "return_after": "2026-08-06T17:00:00+08:00",
+            "return_before": "2026-08-06T23:00:00+08:00",
+            "hotel_check_in": "2026-08-05",
+            "hotel_check_out": "2026-08-06",
+            "hard_constraints": ["arrive_before_meeting"],
+            "soft_preferences": [],
+        },
+    ).json()
+    task_id = created["task_id"]
+    option_id = created["options"][0]["option_id"]
+
+    response = client.get(f"/trip-tasks/{task_id}/options/{option_id}/provenance")
+
+    assert response.status_code == 200
+    record = response.json()
+    assert record["option_id"] == option_id
+    first = record["items"][0]["because"]
+    assert first["snapshot"]["raw_payload_hash"]
+    assert first["snapshot"]["raw_response"]["sha256"]
+    assert first["search"]["parameters"]
+    # 结构化入口没有对话原话可抄，这件事写在 gaps 里，不是悄悄留空。
+    assert record["gaps"]
+
+    unknown = client.get(f"/trip-tasks/{task_id}/options/opt-nope/provenance")
+    assert unknown.status_code == 404
+
+
+def test_provenance_check_reports_not_pinned_before_handoff() -> None:
+    created = client.post(
+        "/trip-tasks",
+        json={
+            "traveler_id": "E1001",
+            "origin": "Beijing",
+            "destination": "Shanghai",
+            "departure_after": "2026-08-05T05:00:00+08:00",
+            "arrive_by": "2026-08-06T10:00:00+08:00",
+            "return_after": "2026-08-06T17:00:00+08:00",
+            "return_before": "2026-08-06T23:00:00+08:00",
+            "hotel_check_in": "2026-08-05",
+            "hotel_check_out": "2026-08-06",
+            "hard_constraints": ["arrive_before_meeting"],
+            "soft_preferences": [],
+        },
+    ).json()
+
+    response = client.get(f"/trip-tasks/{created['task_id']}/provenance-check")
+
+    assert response.status_code == 200
+    assert response.json()["status"] == "NOT_PINNED"
 
 
 def test_natural_language_entry_returns_503_when_model_is_not_configured() -> None:
@@ -333,11 +476,144 @@ def test_recent_audit_events_are_admin_scoped_and_bounded() -> None:
     assert client.get("/audit-events?limit=501").status_code == 400
 
 
+def test_travel_profile_is_null_until_a_history_source_is_wired() -> None:
+    """画像这一层默认关着，所以字段在但是空的。
+
+    字段一直在，是为了客户端不用先判断"这个版本有没有这个字段"；
+    值是 null，是因为这一层还没打开——两件事分得开。
+    """
+    created = client.post(
+        "/trip-tasks",
+        json={
+            "traveler_id": "E1001",
+            "origin": "Beijing",
+            "destination": "Shanghai",
+            "departure_after": "2026-08-05T05:00:00+08:00",
+            "arrive_by": "2026-08-06T10:00:00+08:00",
+        },
+    ).json()
+
+    assert "travel_profile" in created
+    assert created["travel_profile"] is None
+
+
+def test_options_carry_the_cost_of_choosing_them() -> None:
+    """选项卡片要拿到"贵多少、超标多少、该谁批、换哪条能省"，而不只是一个结论。"""
+    created = client.post(
+        "/trip-tasks",
+        json={
+            "traveler_id": "E1001",
+            "origin": "Beijing",
+            "destination": "Shanghai",
+            "departure_after": "2026-08-05T05:00:00+08:00",
+            "arrive_by": "2026-08-06T10:00:00+08:00",
+            "return_after": "2026-08-06T17:00:00+08:00",
+            "return_before": "2026-08-06T23:00:00+08:00",
+            "hotel_check_in": "2026-08-05",
+            "hotel_check_out": "2026-08-06",
+        },
+    )
+    assert created.status_code == 200
+    options = created.json()["options"]
+    assert options
+
+    for option in options:
+        guidance = option["cost_guidance"]
+        assert guidance["option_id"] == option["option_id"]
+        # 需审批的方案必须说得出该谁批；合规的方案不该凭空写一个审批人。
+        if option["policy_outcome"] == "REQUIRES_APPROVAL":
+            assert guidance["approver_id"]
+        else:
+            assert guidance["approver_id"] is None
+
+    over_cap = next(
+        item
+        for item in options
+        if item["hotel"] and item["hotel"]["ref_id"] == "HT-NEAR"
+    )
+    overages = over_cap["cost_guidance"]["policy_overages"]
+    assert overages, "超出夜费上限的方案要给出超了多少"
+    assert overages[0]["rule_id"] == "hotel.city.nightly_cap"
+    assert Decimal(overages[0]["amount"]) == Decimal("120")
+    assert overages[0]["unit"] == "per_night"
+    # 换一条能省多少，以及代价是什么，必须一起给出来。
+    tradeoffs = over_cap["cost_guidance"]["tradeoffs"]
+    assert tradeoffs
+    assert Decimal(tradeoffs[0]["saves"]) > 0
+    assert "departure_delta_minutes" in tradeoffs[0]
+    assert "duration_delta_minutes" in tradeoffs[0]
+
+    # 超出差标多少是个算出来的数，不能让客户端去 parse 展示字符串。
+    cap_rule = next(
+        item
+        for item in over_cap["rule_evidence"]
+        if item["rule_id"] == "hotel.city.nightly_cap"
+    )
+    assert Decimal(cap_rule["overage_amount"]) == Decimal("120")
+    # 差额是算出来的，不是另存的一个数：三个字段必须自洽。
+    assert Decimal(cap_rule["actual_amount"]) - Decimal(
+        cap_rule["threshold_amount"]
+    ) == Decimal(cap_rule["overage_amount"])
+    assert cap_rule["amount_currency"] == "USD"
+
+
+def test_business_metrics_measure_a_completed_handoff_over_http() -> None:
+    """走完整 HTTP 链路到"我订好了"，业务指标端点要能把这一单算出来。
+
+    这里同时盯住时钟口径：API 的时钟被冻在 DEMO_CLOCK，审计时间戳走真实墙上时间，
+    所以提前预订天数是负的，并且要带上 ``departure_before_handoff`` 这条说明——
+    端点不传冻住的时钟是有意的（线上两条时间线本来就是同一条）。
+    """
+    created = client.post(
+        "/trip-tasks",
+        json={
+            "traveler_id": "E1001",
+            "origin": "Beijing",
+            "destination": "Shanghai",
+            "departure_after": "2026-08-05T05:00:00+08:00",
+            "arrive_by": "2026-08-06T10:00:00+08:00",
+        },
+    ).json()
+    task_id = created["task_id"]
+    compliant = next(
+        item
+        for item in created["options"]
+        if item["policy_outcome"] == "COMPLIANT"
+    )
+    assert (
+        client.post(
+            f"/trip-tasks/{task_id}/select-option",
+            json={"option_id": compliant["option_id"]},
+        ).status_code
+        == 200
+    )
+    assert client.post(f"/trip-tasks/{task_id}/handoff-completed").status_code == 200
+
+    report = client.get("/metrics/business?limit=200")
+
+    assert report.status_code == 200
+    body = report.json()
+    assert body["protocol_id"] == "business-outcome-v1"
+    record = next(item for item in body["records"] if item["task_id"] == task_id)
+    assert record["handed_off"] is True
+    assert record["produced_options"] is True
+    assert record["seconds_to_handoff"] >= 0
+    assert record["advance_days_reference"] == "handoff_event"
+    assert "departure_before_handoff" in record["notes"]
+    handoff_rate = body["metrics"]["handoff_completion_rate"]
+    assert handoff_rate["status"] == "measured"
+    assert handoff_rate["numerator"] >= 1
+
+    assert client.get("/metrics/business?limit=0").status_code == 400
+    assert client.get("/metrics/business?limit=201").status_code == 400
+
+
 def test_openapi_exposes_policy_and_global_audit_routes() -> None:
     paths = client.get("/openapi.json").json()["paths"]
 
     assert "/policy" in paths
     assert "/audit-events" in paths
+    assert "/metrics/business" in paths
     assert "/trip-tasks/{task_id}/audit-events" in paths
 
 

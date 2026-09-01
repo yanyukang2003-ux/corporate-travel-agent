@@ -11,6 +11,7 @@ from .enums import (
     ApprovalStatus,
     BookingScope,
     PolicyOutcome,
+    PreferenceOrigin,
     RawResponseAccessPolicy,
     RevalidationStatus,
     SourceType,
@@ -35,6 +36,60 @@ class EmployeeProfileSnapshot:
     home_city: str
     manager_id: str
     profile_version: int = 1
+
+
+@dataclass(frozen=True, slots=True)
+class ProfilePreference:
+    """一条习惯偏好，以及它凭什么成立。
+
+    `evidence` 是**一句给员工看的人话**，不是日志。员工问"你凭什么觉得我要坐高铁"，
+    答案就是这句：「最近 5 次里有 4 次选了高铁」。说不出这句话的推断不该存在——
+    一个解释不了的排序，员工用两次就不信了。
+    """
+
+    name: str
+    origin: PreferenceOrigin
+    evidence: str
+
+
+@dataclass(frozen=True, slots=True)
+class EmployeeTravelProfileSnapshot:
+    """员工的差旅习惯快照：他一般怎么走，以及这个"一般"是怎么来的。
+
+    **这份东西只改排序，不改能不能走。** 它不参与可行性过滤，不参与政策判定，
+    也不改变哪些方案够格进入候选池——那三件事全部由确定性代码按请求和政策决定。
+    习惯是"同样合规的几条里先看哪一条"，不是"哪一条可以走"。
+    这条边界有测试盯着（`tests/test_travel_profile.py`）。
+
+    和 `PolicySnapshot` 一样是**快照**：绑进任务后不再变。员工的习惯下个月变了，
+    历史任务的排序理由仍然是当时那一份，否则"为什么当初这么排"就永远答不上来。
+
+    没有的东西也说清楚：
+    - **没有常旅客号。** 它只在真正下单时有用，而这个系统不下单。现在存进来
+      只是白白多一块个人敏感数据。
+    - **没有偏好航司。** `TransportOffer` 里根本没有承运人字段，只有 `provider`
+      和 `ref_id`。没有字段就推不出偏好——那是供应商映射要先补的东西，
+      不该在这一层假装有。
+    """
+
+    snapshot_id: str
+    employee_id: str
+    profile_version: int = 1
+    #: 习惯偏好。名字取自 `SUPPORTED_SOFT_PREFERENCES` 同一份词表，
+    #: 所以它们进的是既有那套罚分逻辑，不另开一套评分。
+    preferences: tuple[ProfilePreference, ...] = ()
+    #: 住过并且还会再住的酒店名。空元组表示看不出来。
+    preferred_hotels: tuple[str, ...] = ()
+    #: 成本中心。**这一版只是带着走**，报销匹配用得上，排序里一个字都不参与。
+    cost_center: str | None = None
+    #: 这份画像是从几趟已完成的行程里看出来的。0 表示纯冷启动。
+    derived_from_trips: int = 0
+
+    def names_by_origin(self, origin: PreferenceOrigin) -> frozenset[str]:
+        """某一档来源下的偏好名。"""
+        return frozenset(
+            item.name for item in self.preferences if item.origin is origin
+        )
 
 
 @dataclass(frozen=True, slots=True)
@@ -347,7 +402,19 @@ class InventorySnapshot:
 
 @dataclass(frozen=True, slots=True)
 class RuleEvidence:
-    """单条政策规则判定证据。"""
+    """单条政策规则判定证据。
+
+    ``actual`` 和 ``threshold`` 是**给人读的字符串**，什么规则都放得下：舱位是
+    "BUSINESS" 对 "ECONOMY, PREMIUM_ECONOMY"，生效窗口是一串日期。它们不参与计算。
+
+    有些规则的阈值本来就是一个数（今天只有酒店夜费上限）。这种规则额外填三个
+    带类型的字段，好让"超出差标多少钱"由确定性代码算出来，而不是让前端或模型
+    去 parse 上面那两个字符串——**parse 展示文本是错误的来源**：一处改了措辞，
+    另一处的数字就悄悄变了。
+
+    规则没有数值阈值时三个字段都是 ``None``，`overage_amount` 也就是 ``None``。
+    这是"这条规则谈不上差额"，不是"差额为零"。
+    """
 
     rule_id: str
     actual: str
@@ -356,6 +423,23 @@ class RuleEvidence:
     outcome: PolicyOutcome
     message: str
     exception_allowed: bool
+    #: 实测值。只有数值型规则才有。
+    actual_amount: Decimal | None = None
+    #: 该规则的数值上限。
+    threshold_amount: Decimal | None = None
+    #: 上面两个数的币种；和政策快照的币种一致。
+    amount_currency: str | None = None
+
+    @property
+    def overage_amount(self) -> Decimal | None:
+        """超出阈值多少。
+
+        没有数值阈值时是 ``None``；没超时是 ``0``——**这两者不一样**，
+        "谈不上差额"和"差额为零"不能混成同一个值。
+        """
+        if self.actual_amount is None or self.threshold_amount is None:
+            return None
+        return max(self.actual_amount - self.threshold_amount, Decimal("0"))
 
 
 @dataclass(frozen=True, slots=True)
@@ -372,6 +456,35 @@ class PolicyDecision:
             item.rule_id
             for item in self.evidence
             if item.outcome in {PolicyOutcome.REQUIRES_APPROVAL, PolicyOutcome.FORBIDDEN}
+        )
+
+    @property
+    def forbidden_rule_ids(self) -> tuple[str, ...]:
+        """明确判为"禁止"的规则。
+
+        **要问"这条方案能不能走"，问这个，不要问 ``outcome``。** ``_aggregate``
+        把"证据不足"排在"禁止"之上（缺数据比违规更该先说），于是一条**既违规
+        又缺数据**的方案聚合出来是 `INSUFFICIENT_EVIDENCE`。证据不足这一档现在
+        是可选的（走人工审批），只看聚合结论的话，被禁的方案会从"判不了"这道门
+        溜出去。逐条看证据就没有这个洞。
+        """
+        return tuple(
+            item.rule_id
+            for item in self.evidence
+            if item.outcome is PolicyOutcome.FORBIDDEN
+        )
+
+    @property
+    def unjudged_rule_ids(self) -> tuple[str, ...]:
+        """系统判不了的规则——**缺的是数据，不是许可**。
+
+        "公司不许"和"我查不到公司的规定"是两件事。前者是结论，后者是缺口，
+        而缺口是可以被补上的：这串 ID 就是要补什么的清单。
+        """
+        return tuple(
+            item.rule_id
+            for item in self.evidence
+            if item.outcome is PolicyOutcome.INSUFFICIENT_EVIDENCE
         )
 
 
@@ -553,6 +666,36 @@ class ToolCallRecord:
     counts_toward_budget: bool = True
 
 
+@dataclass(frozen=True, slots=True)
+class SearchProvenance:
+    """一次库存搜索的**出处**：为什么搜了这一次，以及它产出了哪个快照。
+
+    这条记录补的是溯源链上唯一断掉的一环。此前从方案倒推，能一路走到
+    "这张票来自快照 X、原始响应的 sha256 是 Y"——**但走不回"为什么搜的是
+    9 月 15 日"**。工具循环里那道日期出处关卡
+    （`ToolExecutor._require_quoted_evidence`）本来就逼模型逐字抄一句用户原话
+    来证明这一天不是它自己想的，可那句话验完就被丢掉了。
+
+    现在它被留下来：`date_evidence` 是用户原话，`assumption` 是系统自己推的那
+    一步（比如"到达时限往前 18 小时"）。两者分开存，因为它们的性质不同——
+    一个是人说的，一个是机器算的，**混在一起就分不清哪句话是谁的责任**。
+    """
+
+    #: `transport` 或 `hotel`。
+    kind: str
+    #: 这次搜索真正用的参数，有序。存成字符串对，是为了两类搜索共用一种形状，
+    #: 也为了这条记录在 JSON 里读起来就是人能看懂的样子。
+    parameters: tuple[tuple[str, str], ...]
+    snapshot_id: str
+    query_hash: str
+    captured_at: datetime
+    valid_until: datetime
+    #: 支撑这次搜索日期的**用户原话**，逐字。结构化入口没有对话，因此为 None。
+    date_evidence: str | None = None
+    #: 系统自己补的那一步推导，写给用户看过的那句话。
+    assumption: str | None = None
+
+
 @dataclass(slots=True)
 class TripTask:
     """差旅任务聚合根：状态、请求、方案、审批与工具预算。"""
@@ -576,6 +719,8 @@ class TripTask:
     clarification_rounds: int = 0
     tool_call_limit: int = 12
     tool_calls: list[ToolCallRecord] = field(default_factory=list)
+    #: 每次库存搜索的出处，按发生顺序。旧任务反序列化时为空列表。
+    searches: list[SearchProvenance] = field(default_factory=list)
     persistence_revision: int = 0
     metadata: dict[str, Any] = field(default_factory=dict)
 

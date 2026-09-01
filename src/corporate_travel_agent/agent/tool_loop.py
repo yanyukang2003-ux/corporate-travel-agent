@@ -39,6 +39,7 @@ from corporate_travel_agent.domain.models import (
     HotelOffer,
     InventorySnapshot,
     PolicySnapshot,
+    SearchProvenance,
     TransportOffer,
 )
 from corporate_travel_agent.policy.engine import PolicyEngine
@@ -374,6 +375,10 @@ class ToolExecutor:
         #: 行程有几段是数出来的——数模型实际搜了几段，不是让它先声明。
         self.leg_searches: list[tuple[TransportSearchQuery, InventorySnapshot]] = []
         self.stay_searches: list[tuple[HotelSearchQuery, InventorySnapshot]] = []
+        #: 每次搜索的出处，按发生顺序。宿主搜完会把它抄到任务上。
+        self.searches: list[SearchProvenance] = []
+        #: **每一次真实的**供应商搜索结果，未经合并——存档和溯源认这个。
+        self.captured_snapshots: list[InventorySnapshot] = []
         #: 已经问过的搜索签名。**同样的问题问第二遍不会有新答案**，只会烧预算。
         #: 真模型实测就是这么烧光的：一条航线当天没货，它原样重搜六次，
         #: 直到工具预算耗尽——用户最后什么解释都没拿到。
@@ -419,7 +424,9 @@ class ToolExecutor:
         # 拒掉的那次搜索，假设还留在任务上——旅行者看到的是"因为你要求 23:59 前
         # 到达"，而他从没这么要求过。**幻觉穿着推导的外衣**，比直接报错难发现得多。
         # ————————————————————————————————————————————————————————
-        self._require_quoted_evidence(args, "date_evidence", resolved=arrive_by)
+        date_evidence = self._require_quoted_evidence(
+            args, "date_evidence", resolved=arrive_by
+        )
         if arrive_by <= self.now:
             raise ToolInputError(
                 f"到达时限 {arrive_by.isoformat()} 已经过去了（现在是 {self.now.isoformat()}）",
@@ -475,17 +482,45 @@ class ToolExecutor:
                 field_name="destination",
             )
         # Duffel 一次只按一个出发日搜。窗口跨日时拆开再合并，模型仍只调一次工具。
+        #
+        # **合并只对模型和规划器成立，对审计不成立。** 合并出来的那个快照沿用第一天
+        # 那次的 `snapshot_id` 和 `raw_payload_hash`，却装着第二天的报价——它会
+        # *声称*自己是那些报价的证据，而它的原始响应里根本没有它们。事后按哈希去核，
+        # 核不上。所以留下来存档的是**每一次真实搜索**，不是合并结果：每条报价
+        # 指向真正产出它的那一次，那一次的原始响应里确实有它。
         parts = _window_day_queries(query)
-        if len(parts) == 1:
-            snapshot = self.provider.search_transport(query)
-        else:
-            snapshot = _merge_transport_snapshots(
-                [self.provider.search_transport(part) for part in parts]
-            )
+        captured = [self.provider.search_transport(part) for part in parts]
+        snapshot = captured[0] if len(captured) == 1 else _merge_transport_snapshots(captured)
         offers = [item for item in snapshot.items if isinstance(item, TransportOffer)]
         for offer in offers:
             self.seen_transport[offer.ref_id] = offer
         self.leg_searches.append((query, snapshot))
+        self.captured_snapshots.extend(captured)
+        # 出处和快照一起留下来。此前 `date_evidence` 验完就扔，于是事后能证明
+        # "这张票来自哪个快照"，却证明不了"为什么搜的是这一天"——而后者才是
+        # 用户会追问的那一句。见 `SearchProvenance`。
+        #
+        # 拆成几天搜的，就记几条：同一句原话、同一个窗口，但每一天各有自己的
+        # 快照和原始响应，各自对得上。
+        for part, part_snapshot in zip(parts, captured, strict=True):
+            self.searches.append(
+                SearchProvenance(
+                    kind="transport",
+                    parameters=(
+                        ("origin", origin),
+                        ("destination", destination),
+                        ("depart_after", part.depart_after.isoformat()),
+                        ("arrive_by", part.arrive_before.isoformat()),
+                        ("requested_window_arrive_by", arrive_by.isoformat()),
+                    ),
+                    snapshot_id=part_snapshot.snapshot_id,
+                    query_hash=part_snapshot.query_hash,
+                    captured_at=part_snapshot.captured_at,
+                    valid_until=part_snapshot.valid_until,
+                    date_evidence=date_evidence,
+                    assumption=note,
+                )
+            )
         if offers:
             self._empty_routes.pop(route, None)
         else:
@@ -520,6 +555,23 @@ class ToolExecutor:
         for offer in offers:
             self.seen_hotels[offer.ref_id] = offer
         self.stay_searches.append((query, snapshot))
+        self.captured_snapshots.append(snapshot)
+        # 住宿日期没有单独的出处关卡——它跟着行程走。`date_evidence` 因此为 None，
+        # **这是如实记录，不是漏了**：说不出出处的时候就不要假装说得出。
+        self.searches.append(
+            SearchProvenance(
+                kind="hotel",
+                parameters=(
+                    ("city", city),
+                    ("check_in", check_in.isoformat()),
+                    ("check_out", check_out.isoformat()),
+                ),
+                snapshot_id=snapshot.snapshot_id,
+                query_hash=snapshot.query_hash,
+                captured_at=snapshot.captured_at,
+                valid_until=snapshot.valid_until,
+            )
+        )
         return {
             "city": city,
             "check_in": check_in.isoformat(),

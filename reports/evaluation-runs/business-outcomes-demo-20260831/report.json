@@ -1,0 +1,177 @@
+{
+  "schema_version": 1,
+  "protocol_id": "business-outcome-v1",
+  "generated_at": "2026-09-01T03:18:00.302126Z",
+  "task_count": 3,
+  "records": [
+    {
+      "task_id": "demo-approval",
+      "state": "WAITING_FOR_APPROVAL",
+      "produced_options": true,
+      "handed_off": false,
+      "started_at": "2026-09-01T03:18:00.301511Z",
+      "handed_off_at": null,
+      "seconds_to_handoff": null,
+      "advance_days": null,
+      "advance_days_reference": null,
+      "has_selected_option": true,
+      "selected_violation_rule_ids": [
+        "hotel.city.nightly_cap"
+      ],
+      "offered_option_count": 3,
+      "offered_options_with_violation": 2,
+      "clarification_rounds": 0,
+      "tool_calls_used": 3,
+      "approval_requested": true,
+      "notes": []
+    },
+    {
+      "task_id": "demo-abandoned",
+      "state": "WAITING_FOR_USER",
+      "produced_options": true,
+      "handed_off": false,
+      "started_at": "2026-09-01T03:18:00.300912Z",
+      "handed_off_at": null,
+      "seconds_to_handoff": null,
+      "advance_days": null,
+      "advance_days_reference": null,
+      "has_selected_option": false,
+      "selected_violation_rule_ids": [],
+      "offered_option_count": 3,
+      "offered_options_with_violation": 2,
+      "clarification_rounds": 0,
+      "tool_calls_used": 3,
+      "approval_requested": false,
+      "notes": []
+    },
+    {
+      "task_id": "demo-handed-off",
+      "state": "HANDED_OFF",
+      "produced_options": true,
+      "handed_off": true,
+      "started_at": "2026-09-01T03:18:00.299843Z",
+      "handed_off_at": "2026-09-01T03:18:00.300839Z",
+      "seconds_to_handoff": 0.000996,
+      "advance_days": 3.888888888888889,
+      "advance_days_reference": "supplied_clock",
+      "has_selected_option": true,
+      "selected_violation_rule_ids": [],
+      "offered_option_count": 3,
+      "offered_options_with_violation": 2,
+      "clarification_rounds": 0,
+      "tool_calls_used": 5,
+      "approval_requested": false,
+      "notes": []
+    }
+  ],
+  "metrics": {
+    "handoff_completion_rate": {
+      "status": "measured",
+      "value": 0.3333333333333333,
+      "numerator": 1.0,
+      "denominator": 3.0,
+      "unit": "rate",
+      "exposure_note": null,
+      "confidence_note": "分子是员工在本系统里点的「已在官方平台订好」，不是供应商回执；这是渠道内预订率的上限估计，不是渠道内预订率本身。分母只算系统真的给出过方案的任务。"
+    },
+    "handoff_completion_rate.all_tasks": {
+      "status": "measured",
+      "value": 0.3333333333333333,
+      "numerator": 1.0,
+      "denominator": 3.0,
+      "unit": "rate",
+      "exposure_note": null,
+      "confidence_note": "分母是全部任务，含系统没能给出方案的那些。和上一条的差值是「系统没干成活」而不是「员工不愿用」。"
+    },
+    "seconds_to_handoff_mean": {
+      "status": "measured",
+      "value": 0.000996,
+      "numerator": 0.000996,
+      "denominator": 1.0,
+      "unit": "seconds",
+      "exposure_note": null,
+      "confidence_note": "墙上时间，含员工离开去开会、经理隔天才批的等待。系统自身耗时见 evaluation_performance。"
+    },
+    "seconds_to_handoff_p50": {
+      "status": "measured",
+      "value": 0.000996,
+      "numerator": null,
+      "denominator": 1.0,
+      "unit": "seconds",
+      "exposure_note": null,
+      "confidence_note": "线性 type-7 分位数，口径同 mean。"
+    },
+    "seconds_to_handoff_p95": {
+      "status": "measured",
+      "value": 0.000996,
+      "numerator": null,
+      "denominator": 1.0,
+      "unit": "seconds",
+      "exposure_note": null,
+      "confidence_note": "线性 type-7 分位数，口径同 mean。"
+    },
+    "advance_booking_days_mean": {
+      "status": "measured",
+      "value": 3.888888888888889,
+      "numerator": 3.888888888888889,
+      "denominator": 1.0,
+      "unit": "days",
+      "exposure_note": null,
+      "confidence_note": "从交接完成时刻算到首段实际出发时刻。起点用交接而不是任务创建，因为下单发生在交接那一刻。"
+    },
+    "advance_booking_days_p50": {
+      "status": "measured",
+      "value": 3.888888888888889,
+      "numerator": null,
+      "denominator": 1.0,
+      "unit": "days",
+      "exposure_note": null,
+      "confidence_note": "线性 type-7 分位数，口径同 mean。"
+    },
+    "policy_violation_rate.selected": {
+      "status": "measured",
+      "value": 0.5,
+      "numerator": 1.0,
+      "denominator": 2.0,
+      "unit": "rate",
+      "exposure_note": null,
+      "confidence_note": "员工最后选中的方案里带「需审批/禁止」证据的比例。「判不了」（证据不足）不计入——那是缺数据，不是超标。"
+    },
+    "policy_violation_rate.offered": {
+      "status": "measured",
+      "value": 0.6666666666666666,
+      "numerator": 6.0,
+      "denominator": 9.0,
+      "unit": "rate",
+      "exposure_note": null,
+      "confidence_note": "展示给员工的方案里带「需审批/禁止」证据的比例。按已编码不变量，FORBIDDEN 方案在规划阶段已被硬过滤，所以这个数实际上量的是「需要审批」的比例。"
+    },
+    "approval_request_rate": {
+      "status": "measured",
+      "value": 0.3333333333333333,
+      "numerator": 1.0,
+      "denominator": 3.0,
+      "unit": "rate",
+      "exposure_note": null,
+      "confidence_note": "走了例外审批的任务比例。"
+    },
+    "clarification_rounds_mean": {
+      "status": "measured",
+      "value": 0.0,
+      "numerator": 0.0,
+      "denominator": 3.0,
+      "unit": "rounds",
+      "exposure_note": null,
+      "confidence_note": "每个任务追问了几轮；口径为全部任务。"
+    },
+    "tool_calls_per_task_mean": {
+      "status": "measured",
+      "value": 3.6666666666666665,
+      "numerator": 11.0,
+      "denominator": 3.0,
+      "unit": "calls",
+      "exposure_note": null,
+      "confidence_note": "计入预算的工具调用次数；口径为全部任务。"
+    }
+  }
+}

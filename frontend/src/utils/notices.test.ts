@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
-import { factsForOptionCard, openQuestionsFromTask } from './notices.ts'
+import { approvalReasonText, factsForOptionCard, openQuestionsFromTask } from './notices.ts'
 
 describe('open questions next to options', () => {
   it('splits the host question into one notice per line', () => {
@@ -41,5 +41,33 @@ describe('option-card facts', () => {
       factsForOptionCard(['total_cost=950', 'currency=CNY', 'outbound=MU-EARLY', 'policy=COMPLIANT']),
       ['total_cost=950', 'currency=CNY', 'outbound=MU-EARLY'],
     )
+  })
+})
+
+describe('what the approver reads first', () => {
+  it('says the system could not judge, in Chinese, not the English log line', () => {
+    const text = approvalReasonText({
+      policy_outcome: 'INSUFFICIENT_EVIDENCE',
+      facts: [
+        'total_cost=2350',
+        'unjudged_rules=hotel.city.nightly_cap',
+        '公司政策里还没有 Chengdu 的酒店夜费上限，这几晚是否超标我判不了。',
+      ],
+      rule_evidence: [
+        { outcome: 'INSUFFICIENT_EVIDENCE', message: 'No hotel cap is configured for Chengdu.' },
+      ],
+    })
+    assert.equal(text, '公司政策里还没有 Chengdu 的酒店夜费上限，这几晚是否超标我判不了。')
+  })
+
+  it('still shows the violated rule when the option is a real policy exception', () => {
+    const text = approvalReasonText({
+      policy_outcome: 'REQUIRES_APPROVAL',
+      facts: ['total_cost=2750'],
+      rule_evidence: [
+        { outcome: 'REQUIRES_APPROVAL', message: 'HT-NEAR: nightly price 900 exceeds cap 800.' },
+      ],
+    })
+    assert.equal(text, 'HT-NEAR: nightly price 900 exceeds cap 800.')
   })
 })

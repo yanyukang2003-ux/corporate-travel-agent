@@ -32,14 +32,27 @@ from corporate_travel_agent.agent.tool_loop_adapter import OpenAIToolCallingLang
 from corporate_travel_agent.demo import build_demo_system
 from corporate_travel_agent.domain.constraints import HardConstraint, SoftPreference
 from corporate_travel_agent.domain.enums import BookingScope
-from corporate_travel_agent.domain.models import InventorySnapshot, TripRequestVersion, TripTask
+from corporate_travel_agent.domain.models import (
+    AuditEvent,
+    InventorySnapshot,
+    TripRequestVersion,
+    TripTask,
+)
 from corporate_travel_agent.domain.validation import validate_trip_request_values
+from corporate_travel_agent.planning.cost_guidance import (
+    CostGuidance,
+    build_cost_guidance,
+)
+from corporate_travel_agent.planning.preferences import duration_minutes_per_unit
 from corporate_travel_agent.providers.factory import travel_provider_from_environment
 from corporate_travel_agent.services.auth import (
     AuthenticationFailed,
     AuthService,
     Role,
     UserIdentity,
+)
+from corporate_travel_agent.services.evaluation_business import (
+    build_business_metrics_report,
 )
 from corporate_travel_agent.services.object_storage import (
     InMemoryRawResponseObjectStore,
@@ -814,12 +827,71 @@ def recent_audit_events(
     return events[:limit]
 
 
+@app.get("/metrics/business")
+def business_metrics(
+    identity: CurrentIdentity,
+    limit: int = 200,
+) -> dict[str, Any]:
+    """业务结果指标：用了多久、提前多少天订、多少单超标、员工有没有真去下单。
+
+    和 ``/audit-events`` 一样跨员工聚合，所以只对管理员开放。
+
+    这里读的是最近 ``limit`` 个任务的完整聚合和它们的审计事件，因此 ``limit`` 上限
+    比审计视图低。它是运营看板用的近期视图，不是评测产物；要留证据请用
+    ``examples/run_business_metrics_report.py`` 写进新的报告目录。
+
+    时钟：线上编排器用真实时间，审计时间戳和出发时间在同一条时间线上，所以这里
+    不传 ``handoff_reference_time``。冻了时钟的离线跑法必须自己传，理由见
+    ``services/evaluation_business`` 模块开头。
+    """
+    if not 1 <= limit <= 200:
+        raise HTTPException(status_code=400, detail="limit must be between 1 and 200")
+    if not identity.has_role(Role.ADMIN):
+        raise HTTPException(status_code=403, detail="Admin role required")
+    tasks: list[TripTask] = []
+    events: dict[str, tuple[AuditEvent, ...]] = {}
+    for summary in workflow.tasks.list_task_summaries(limit=limit):
+        try:
+            tasks.append(workflow.tasks.get(summary.task_id))
+            events[summary.task_id] = workflow.tasks.events(summary.task_id)
+        except NotFoundError:
+            continue
+    report = build_business_metrics_report(tasks, events)
+    return report.model_dump(mode="json")
+
+
 @app.get("/trip-tasks/{task_id}/audit-events")
 def audit_events(task_id: str, identity: CurrentIdentity) -> list[dict[str, Any]]:
     """列出任务审计事件。"""
     _visible_task(task_id, identity)
     try:
         return [asdict(item) for item in workflow.tasks.events(task_id)]
+    except NotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@app.get("/trip-tasks/{task_id}/options/{option_id}/provenance")
+def option_provenance(
+    task_id: str,
+    option_id: str,
+    identity: CurrentIdentity,
+) -> dict[str, Any]:
+    """一条方案的依据链：每一步凭什么，以及哪些地方说不出来（`gaps`）。"""
+    _visible_task(task_id, identity)
+    try:
+        return workflow.option_provenance_record(task_id, option_id)
+    except NotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except WorkflowError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@app.get("/trip-tasks/{task_id}/provenance-check")
+def provenance_check(task_id: str, identity: CurrentIdentity) -> dict[str, Any]:
+    """重算依据链，和交接时钉住的指纹比对。对不上就是有东西被改过。"""
+    _visible_task(task_id, identity)
+    try:
+        return workflow.verify_provenance(task_id)
     except NotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 
@@ -1029,6 +1101,33 @@ def _public_task(task: TripTask) -> dict[str, Any]:
             (item.content for item in task.messages if item.role == "user"),
             None,
         ),
+        # 排序是怎么算出来的：把价格和时长折算到同一个分数上的那个比例，
+        # 以及此刻真正生效的整程偏好。
+        #
+        # **分数本身每条方案上已经有了（`score`），缺的是"分数怎么来的"。**
+        # 少了这个比例，客户端只能拿 score - cost - penalty 反推，除零就崩——
+        # 与其让每个客户端各猜一遍，不如把这个数说出口：它是一个写明的选择，
+        # 不是自然常数（见 planning/preferences.py 的注释）。
+        "scoring": (
+            {
+                "minutes_per_unit": duration_minutes_per_unit(task.request),
+                "journey_preferences": sorted(task.request.journey_wide_preferences()),
+            }
+            if task.request is not None
+            else None
+        ),
+        # 工具循环写给旅行者的那段话：推荐理由 + 还没定的事。
+        #
+        # **这里只是把已经存在的东西读出来。** 它不进 `task.messages`，所以不会进
+        # 下一轮喂给模型的对话，模型行为逐字不变——但聊天视图要靠它，助手才有话说：
+        # 全都定下来时（没有未决问题）对话里一条助手消息都不会有，用户只看得到
+        # 自己说过的话和一堆卡片。
+        # 这趟任务用的习惯画像，以及每条习惯凭什么成立。
+        #
+        # 摆出来是必须的：画像会改排序，改了排序就得说得出理由。员工问"你凭什么
+        # 觉得我要坐高铁"，答案就在每条的 `evidence` 里。没接历史来源时是 null。
+        "travel_profile": task.metadata.get("travel_profile"),
+        "agentic_proposal": task.metadata.get("agentic_proposal"),
         "extract_failure": task.metadata.get("extract_failure"),
         "model_fallback": task.metadata.get("model_fallback"),
         "options": [
@@ -1061,16 +1160,38 @@ def _public_task(task: TripTask) -> dict[str, Any]:
                 "preference_penalty": item.preference_penalty,
                 "score": item.score,
                 "policy_outcome": item.policy_decision.outcome,
-                "rule_evidence": [asdict(rule) for rule in item.policy_decision.evidence],
+                "rule_evidence": [
+                    {
+                        **asdict(rule),
+                        # `overage_amount` 是属性不是字段，`asdict` 带不出来。
+                        # 前端要的正是这个数——超出差标多少——所以显式补上。
+                        "overage_amount": rule.overage_amount,
+                    }
+                    for rule in item.policy_decision.evidence
+                ],
+                # 选它要付出什么：贵多少、超标多少、该谁批、换哪条能省。
+                # 从已经存在的方案里算，不查库存、不花工具预算，所以不进持久化——
+                # 每次读的时候按当时的方案列表现算。
+                "cost_guidance": asdict(guidance),
                 "facts": item.explanation_facts,
             }
-            for item in task.options
+            for item, guidance in zip(task.options, _option_cost_guidance(task), strict=True)
         ],
         "selected_option_id": task.selected_option_id,
         "approval": asdict(task.approval) if task.approval else None,
         "booking_intent": asdict(task.booking_intent) if task.booking_intent else None,
         "summary": False,
     }
+
+
+def _option_cost_guidance(task: TripTask) -> tuple[CostGuidance, ...]:
+    """算这批方案各自的代价说明。
+
+    审批人取员工快照上的直属经理——和真正创建 `ApprovalRequest` 时用的是同一个来源
+    （`task.employee.manager_id`），所以卡片上写的"该谁批"和后面真正落到谁头上
+    不会是两个人。
+    """
+    return build_cost_guidance(task.options, approver_id=task.employee.manager_id)
 
 
 def _public_transport_offer(offer: Any) -> dict[str, Any]:

@@ -1,0 +1,60 @@
+{
+  "state": "NEEDS_CLARIFICATION",
+  "failure": null,
+  "intent_fields": {
+    "origin": "Beijing",
+    "destination": "Shanghai",
+    "arrive_by": "2026-08-05 10:00:00+08:00",
+    "booking_scope": "OUTBOUND_ONLY",
+    "lodging_requirement": "NOT_REQUIRED"
+  },
+  "journey_legs": [],
+  "options_count": 0,
+  "options": [],
+  "tool_calls": [
+    "llm.interpret_trip_intent:FAILED",
+    "llm.interpret_trip_intent:SUCCEEDED"
+  ],
+  "llm": [
+    {
+      "prompt_version": "semantic-trip-intent-v13d",
+      "model": "deepseek-v4-pro",
+      "duration_ms": 5031,
+      "requested_model": "deepseek-v4-pro",
+      "reasoning_effort": "medium",
+      "response_id": "9f209ec1-202c-4afc-b63b-932601f20fec",
+      "input_tokens": 3746,
+      "output_tokens": 451,
+      "cached_input_tokens": 3712,
+      "cache_write_input_tokens": null,
+      "reasoning_output_tokens": null,
+      "total_tokens": 4197,
+      "service_tier": null,
+      "evidence_contract_version": "conversation-turn-v1",
+      "envelope_repaired": true
+    }
+  ],
+  "semantic_status": "READY",
+  "evidence": [
+    {
+      "turn_index": 0,
+      "field": "origin_candidates",
+      "quote": "从北京去上海"
+    },
+    {
+      "turn_index": 0,
+      "field": "destination_candidates",
+      "quote": "从北京去上海"
+    },
+    {
+      "turn_index": 0,
+      "field": "arrive_by",
+      "quote": "8月5日上午10点前到"
+    },
+    {
+      "turn_index": 0,
+      "field": "lodging_requirement",
+      "quote": "不住酒店"
+    }
+  ]
+}

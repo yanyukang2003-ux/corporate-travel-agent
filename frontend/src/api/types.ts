@@ -89,6 +89,52 @@ export interface RuleEvidence {
   outcome: PolicyOutcome
   message: string
   exception_allowed: boolean
+  /**
+   * 阈值本来就是数字的规则（今天只有酒店夜费上限）才有这三个字段和 overage_amount。
+   * 其余规则全是 null——那是"这条规则谈不上差额"，不是"差额为零"。
+   *
+   * **不要去 parse actual / threshold 那两个字符串。** 它们是展示文本，
+   * 措辞一改这里的数字就悄悄变了。
+   */
+  actual_amount: string | null
+  threshold_amount: string | null
+  amount_currency: string | null
+  /** 超出阈值多少。没有数值阈值时为 null。 */
+  overage_amount: string | null
+}
+
+/** 一条规则超出了多少。单位见 unit——夜费上限是每晚，不是整趟。 */
+export interface PolicyOverage {
+  rule_id: string
+  amount: string
+  unit: string
+  currency: string
+  exception_allowed: boolean
+}
+
+/** 换成另一条方案会省多少、代价是什么。省钱和代价永远一起出现。 */
+export interface Tradeoff {
+  option_id: string
+  /** 省多少钱，恒为正。 */
+  saves: string
+  /** 出发晚多少分钟；负数是更早走。 */
+  departure_delta_minutes: number
+  /** 路上多花多少分钟；负数是更快。 */
+  duration_delta_minutes: number
+  currency: string
+}
+
+/** 选这条方案要付出什么。由后端确定性计算，不查库存、不调模型。 */
+export interface CostGuidance {
+  option_id: string
+  currency: string
+  /** 比这批里最便宜的合规方案贵多少。没有合规基准或币种不一致时为 null。 */
+  premium_over_cheapest_compliant: string | null
+  cheapest_compliant_option_id: string | null
+  policy_overages: PolicyOverage[]
+  /** 选它要谁批；只有需审批时才有值。 */
+  approver_id: string | null
+  tradeoffs: Tradeoff[]
 }
 
 /** 航班或高铁等交通报价。 */
@@ -172,6 +218,7 @@ export interface TravelOption {
   score: string | number
   policy_outcome: PolicyOutcome
   rule_evidence: RuleEvidence[]
+  cost_guidance: CostGuidance
   facts: string[]
 }
 
@@ -278,6 +325,28 @@ export interface ClarificationQuestion {
   input_kind?: 'date' | 'time_range' | ''
 }
 
+/**
+ * 工具循环写给旅行者的那段话：推荐理由 + 还没定的事。
+ * 它不在 `messages` 里（进了对话就等于改了下一轮喂给模型的输入），
+ * 聊天视图要靠它，助手才有话说。
+ */
+export interface AgenticProposal {
+  summary: string
+  transport_refs: string[]
+  hotel_refs: string[]
+  open_questions: string[]
+}
+
+/**
+ * 排序是怎么算的：把时长折算成价格的那个比例，以及此刻生效的整程偏好。
+ * 分数本身在每条方案的 `score` 上，这里给的是"分数怎么来的"。
+ */
+export interface ScoringModel {
+  /** 多少分钟折 1 个货币单位。默认 10；"怎么便宜怎么来"=60，"越快越好"=1。 */
+  minutes_per_unit: string | number
+  journey_preferences: string[]
+}
+
 /** 完整差旅任务详情（summary=false）。 */
 export interface TripTask {
   task_id: string
@@ -301,6 +370,8 @@ export interface TripTask {
   manipulation_detected: boolean
   tool_budget: ToolBudget
   messages?: ConversationMessage[]
+  agentic_proposal?: AgenticProposal | null
+  scoring?: ScoringModel | null
   original_instruction?: string | null
   extract_failure?: ExtractFailure | null
   model_fallback?: ModelFallback | null

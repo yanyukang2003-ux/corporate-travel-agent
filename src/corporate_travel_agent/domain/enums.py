@@ -25,6 +25,26 @@ class TaskState(StrEnum):
     OUT_OF_SCOPE = "OUT_OF_SCOPE"
 
 
+class PreferenceOrigin(StrEnum):
+    """一条偏好是怎么来的。**证据强度从上到下递减，排序权重也跟着递减。**
+
+    分这四档不是为了好看：员工问"你凭什么觉得我要坐高铁"时，答案必须说得出口。
+    "你刚才说的"和"你同级同事一般这么选"是两种完全不同的理由。
+    """
+
+    STATED = "STATED"
+    """这一轮对话里亲口说的。最强，全权重。"""
+
+    DECLARED = "DECLARED"
+    """员工自己在档案里填的。是他本人的意思，但不是针对这一趟。"""
+
+    OBSERVED = "OBSERVED"
+    """从他自己已完成的行程里看出来的。是推断，不是他说的。"""
+
+    ORG_DEFAULT = "ORG_DEFAULT"
+    """同职级同常驻城市同事的常见选择。冷启动用，**根本不是关于他本人的**，权重最低。"""
+
+
 class ToolCallStatus(StrEnum):
     """单次工具调用生命周期状态。"""
 

@@ -1,0 +1,10 @@
+=== 配置 ===
+model: deepseek-v4-pro
+semantic_prompt: semantic-trip-intent-v13c
+reference_clock: 2026-08-01T09:00:00+08:00 (demo frozen inventory)
+user_message: 8月5号从北京去上海，8月5日上午10点前到，不住酒店
+
+Traceback (most recent call last):
+  File "<stdin>", line 82, in <module>
+  File "<stdin>", line 62, in summarize_task
+AttributeError: 'TravelOptionVersion' object has no attribute 'total_price'

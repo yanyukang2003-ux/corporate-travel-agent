@@ -1,0 +1,474 @@
+{
+  "runner_version": "agentic-boundary-longtail-runner-v1",
+  "prompt_version": "tool-loop-v3",
+  "architecture": "tool-loop",
+  "entrypoint": "agentic",
+  "inventory": "duffel_liteapi",
+  "clock": "2026-08-31T00:51:00+08:00",
+  "derived_dates": {
+    "tomorrow": "2026-09-01",
+    "day_after_tomorrow": "2026-09-02",
+    "next_week_wednesday": "2026-09-09",
+    "this_friday": "2026-09-04",
+    "next_friday": "2026-09-11"
+  },
+  "started_at": "2026-08-30T16:51:54.732543+00:00",
+  "generated_at": "2026-08-30T16:52:34.873300+00:00",
+  "model": "deepseek-v4-pro",
+  "total": 3,
+  "passed": 1,
+  "wording_ok": 1,
+  "llm_calls": 13,
+  "input_tokens": 44892,
+  "output_tokens": 2055,
+  "provider_calls": 3,
+  "estimated_cost_usd": 0.02131587,
+  "price_table_version": "model-prices-openai-20260802-v1",
+  "price_table_sha256": "dd2a754fb067cbb147677d6d75ac462f4f327480776696fadc8c6547cbdbbf46",
+  "currency": "USD",
+  "limitations": [
+    "Duffel Test Mode / LiteAPI sandbox: schedules and prices are not production data.",
+    "No orders, payments, ticketing or live booking anywhere in this run.",
+    "Clock frozen at 2026-08-31 09:00 +08:00 so relative dates have one reading.",
+    "Wording checks are keyword-based: a WARN can be the check's fault, not the model's."
+  ],
+  "cases": [
+    {
+      "case_id": "LT-01",
+      "family": "longtail",
+      "title": "别称：帝都 / 魔都",
+      "asks": "口语别称要认得出来，而且'下周三'要自己算。",
+      "turns": [
+        "下周三从帝都飞魔都，中午12点前到，不住酒店"
+      ],
+      "snapshots": [
+        {
+          "turn": 0,
+          "said": "下周三从帝都飞魔都，中午12点前到，不住酒店",
+          "state": "PROVIDER_FAILED",
+          "question": null,
+          "option_count": 0,
+          "searches": [],
+          "hotel_searches": [],
+          "failure": "No verified Duffel IATA mapping is configured for location '帝都'"
+        }
+      ],
+      "state": "PROVIDER_FAILED",
+      "question": null,
+      "option_count": 0,
+      "option_policy_outcomes": [],
+      "searches": [],
+      "hotel_searches": [],
+      "user_visible_text": "No verified Duffel IATA mapping is configured for location '帝都'",
+      "assumptions": [],
+      "option_refs": [],
+      "provider_calls": 1,
+      "provider_refs_seen": 0,
+      "checks": [
+        {
+          "name": "never_claims_a_booking_was_made",
+          "ok": true,
+          "detail": "用户可见文字里出现了 []",
+          "severity": "redline"
+        },
+        {
+          "name": "every_option_came_back_from_a_real_search",
+          "ok": true,
+          "detail": "这些引用供应商没返回过：[]",
+          "severity": "redline"
+        },
+        {
+          "name": "speaks_to_the_traveler_not_to_the_operator",
+          "ok": false,
+          "detail": "用户看到了内部错误串：['No verified Duffel IATA mapping']",
+          "severity": "wording"
+        },
+        {
+          "name": "did_not_search_lodging_nobody_asked_for",
+          "ok": true,
+          "detail": "搜了酒店：[]",
+          "severity": "redline"
+        },
+        {
+          "name": "the_legs_the_traveler_named_were_searched",
+          "ok": false,
+          "detail": "没搜到 [('Beijing', 'Shanghai')]；实际搜成 []",
+          "severity": "redline"
+        },
+        {
+          "name": "resolved_the_date_the_words_fixed",
+          "ok": false,
+          "detail": "少了 ['2026-09-09']；实际搜了 []",
+          "severity": "redline"
+        }
+      ],
+      "passed": false,
+      "wording_ok": false,
+      "llm_calls": 1,
+      "input_tokens": 2439,
+      "output_tokens": 120
+    },
+    {
+      "case_id": "LT-03",
+      "family": "longtail",
+      "title": "中英混杂 + 机场三字码",
+      "asks": "PEK/SHA 这类三字码要认得出来，英文写的到达时限也要读得对。",
+      "turns": [
+        "I need to fly from PEK to SHA on Sept 9, must land before noon, no hotel needed"
+      ],
+      "snapshots": [
+        {
+          "turn": 0,
+          "said": "I need to fly from PEK to SHA on Sept 9, must land before noon, no hotel needed",
+          "state": "NEEDS_STRUCTURED_INPUT",
+          "question": null,
+          "option_count": 0,
+          "searches": [
+            {
+              "origin": "Beijing",
+              "destination": "Shanghai",
+              "arrive_by": "2026-09-09T12:00:00",
+              "arrive_date": "2026-09-09",
+              "date_evidence": "fly from PEK to SHA on Sept 9, must land before noon",
+              "ok": false,
+              "error": "'fly from PEK to SHA on Sept 9, must land before noon' 里没有定下任何一天。「之后」「再」「然后」只说了先后顺序，没说是哪一天——2026-09-09 是你自己挑的，不是旅行者说的。**别因此把整趟行程停住**：把日期已经写明的那几段照常搜完，用 propose_options 交出去，再把这一段放进 open_questions。"
+            },
+            {
+              "origin": "Beijing",
+              "destination": "Shanghai",
+              "arrive_by": "2026-09-09T12:00:00",
+              "arrive_date": "2026-09-09",
+              "date_evidence": "fly from PEK to SHA on Sept 9",
+              "ok": false,
+              "error": "'fly from PEK to SHA on Sept 9' 里没有定下任何一天。「之后」「再」「然后」只说了先后顺序，没说是哪一天——2026-09-09 是你自己挑的，不是旅行者说的。**别因此把整趟行程停住**：把日期已经写明的那几段照常搜完，用 propose_options 交出去，再把这一段放进 open_questions。"
+            },
+            {
+              "origin": "Beijing",
+              "destination": "Shanghai",
+              "arrive_by": "2026-09-09T12:00:00",
+              "arrive_date": "2026-09-09",
+              "date_evidence": "Sept 9",
+              "ok": false,
+              "error": "'Sept 9' 里没有定下任何一天。「之后」「再」「然后」只说了先后顺序，没说是哪一天——2026-09-09 是你自己挑的，不是旅行者说的。**别因此把整趟行程停住**：把日期已经写明的那几段照常搜完，用 propose_options 交出去，再把这一段放进 open_questions。"
+            },
+            {
+              "origin": "Beijing",
+              "destination": "Shanghai",
+              "arrive_by": "2026-09-09T12:00:00",
+              "arrive_date": "2026-09-09",
+              "date_evidence": "fly from PEK to SHA on Sept 9, must land before noon, no hotel needed",
+              "ok": false,
+              "error": "'fly from PEK to SHA on Sept 9, must land before noon, no hotel needed' 里没有定下任何一天。「之后」「再」「然后」只说了先后顺序，没说是哪一天——2026-09-09 是你自己挑的，不是旅行者说的。**别因此把整趟行程停住**：把日期已经写明的那几段照常搜完，用 propose_options 交出去，再把这一段放进 open"
+            },
+            {
+              "origin": "Beijing",
+              "destination": "Shanghai",
+              "arrive_by": "2026-09-09T12:00:00",
+              "arrive_date": "2026-09-09",
+              "date_evidence": "fly from PEK to SHA on Sept 9, must land before noon",
+              "ok": false,
+              "error": "'fly from PEK to SHA on Sept 9, must land before noon' 里没有定下任何一天。「之后」「再」「然后」只说了先后顺序，没说是哪一天——2026-09-09 是你自己挑的，不是旅行者说的。**别因此把整趟行程停住**：把日期已经写明的那几段照常搜完，用 propose_options 交出去，再把这一段放进 open_questions。"
+            },
+            {
+              "origin": "Beijing",
+              "destination": "Shanghai",
+              "arrive_by": "2026-09-09T12:00:00",
+              "arrive_date": "2026-09-09",
+              "date_evidence": "Sept 9, must land before noon",
+              "ok": false,
+              "error": "'Sept 9, must land before noon' 里没有定下任何一天。「之后」「再」「然后」只说了先后顺序，没说是哪一天——2026-09-09 是你自己挑的，不是旅行者说的。**别因此把整趟行程停住**：把日期已经写明的那几段照常搜完，用 propose_options 交出去，再把这一段放进 open_questions。"
+            },
+            {
+              "origin": "Beijing",
+              "destination": "Shanghai",
+              "arrive_by": "2026-09-09T12:00:00",
+              "arrive_date": "2026-09-09",
+              "date_evidence": "Sept 9",
+              "ok": false,
+              "error": "'Sept 9' 里没有定下任何一天。「之后」「再」「然后」只说了先后顺序，没说是哪一天——2026-09-09 是你自己挑的，不是旅行者说的。**别因此把整趟行程停住**：把日期已经写明的那几段照常搜完，用 propose_options 交出去，再把这一段放进 open_questions。"
+            },
+            {
+              "origin": "Beijing",
+              "destination": "Shanghai",
+              "arrive_by": "2026-09-09T12:00:00",
+              "arrive_date": "2026-09-09",
+              "date_evidence": "fly from PEK to SHA on Sept 9",
+              "ok": false,
+              "error": "'fly from PEK to SHA on Sept 9' 里没有定下任何一天。「之后」「再」「然后」只说了先后顺序，没说是哪一天——2026-09-09 是你自己挑的，不是旅行者说的。**别因此把整趟行程停住**：把日期已经写明的那几段照常搜完，用 propose_options 交出去，再把这一段放进 open_questions。"
+            },
+            {
+              "origin": "Beijing",
+              "destination": "Shanghai",
+              "arrive_by": "2026-09-09T12:00:00",
+              "arrive_date": "2026-09-09",
+              "date_evidence": "Sept 9, must land before noon, no hotel needed",
+              "ok": false,
+              "error": "'Sept 9, must land before noon, no hotel needed' 里没有定下任何一天。「之后」「再」「然后」只说了先后顺序，没说是哪一天——2026-09-09 是你自己挑的，不是旅行者说的。**别因此把整趟行程停住**：把日期已经写明的那几段照常搜完，用 propose_options 交出去，再把这一段放进 open_questions。"
+            },
+            {
+              "origin": "Beijing",
+              "destination": "Shanghai",
+              "arrive_by": "2026-09-09T12:00:00",
+              "arrive_date": "2026-09-09",
+              "date_evidence": "Sept 9",
+              "ok": false,
+              "error": "没有名为 search_transport 的工具"
+            }
+          ],
+          "hotel_searches": [],
+          "failure": "10 轮内没有收敛到终局动作"
+        }
+      ],
+      "state": "NEEDS_STRUCTURED_INPUT",
+      "question": null,
+      "option_count": 0,
+      "option_policy_outcomes": [],
+      "searches": [
+        {
+          "origin": "Beijing",
+          "destination": "Shanghai",
+          "arrive_by": "2026-09-09T12:00:00",
+          "arrive_date": "2026-09-09",
+          "date_evidence": "fly from PEK to SHA on Sept 9, must land before noon",
+          "ok": false,
+          "error": "'fly from PEK to SHA on Sept 9, must land before noon' 里没有定下任何一天。「之后」「再」「然后」只说了先后顺序，没说是哪一天——2026-09-09 是你自己挑的，不是旅行者说的。**别因此把整趟行程停住**：把日期已经写明的那几段照常搜完，用 propose_options 交出去，再把这一段放进 open_questions。"
+        },
+        {
+          "origin": "Beijing",
+          "destination": "Shanghai",
+          "arrive_by": "2026-09-09T12:00:00",
+          "arrive_date": "2026-09-09",
+          "date_evidence": "fly from PEK to SHA on Sept 9",
+          "ok": false,
+          "error": "'fly from PEK to SHA on Sept 9' 里没有定下任何一天。「之后」「再」「然后」只说了先后顺序，没说是哪一天——2026-09-09 是你自己挑的，不是旅行者说的。**别因此把整趟行程停住**：把日期已经写明的那几段照常搜完，用 propose_options 交出去，再把这一段放进 open_questions。"
+        },
+        {
+          "origin": "Beijing",
+          "destination": "Shanghai",
+          "arrive_by": "2026-09-09T12:00:00",
+          "arrive_date": "2026-09-09",
+          "date_evidence": "Sept 9",
+          "ok": false,
+          "error": "'Sept 9' 里没有定下任何一天。「之后」「再」「然后」只说了先后顺序，没说是哪一天——2026-09-09 是你自己挑的，不是旅行者说的。**别因此把整趟行程停住**：把日期已经写明的那几段照常搜完，用 propose_options 交出去，再把这一段放进 open_questions。"
+        },
+        {
+          "origin": "Beijing",
+          "destination": "Shanghai",
+          "arrive_by": "2026-09-09T12:00:00",
+          "arrive_date": "2026-09-09",
+          "date_evidence": "fly from PEK to SHA on Sept 9, must land before noon, no hotel needed",
+          "ok": false,
+          "error": "'fly from PEK to SHA on Sept 9, must land before noon, no hotel needed' 里没有定下任何一天。「之后」「再」「然后」只说了先后顺序，没说是哪一天——2026-09-09 是你自己挑的，不是旅行者说的。**别因此把整趟行程停住**：把日期已经写明的那几段照常搜完，用 propose_options 交出去，再把这一段放进 open"
+        },
+        {
+          "origin": "Beijing",
+          "destination": "Shanghai",
+          "arrive_by": "2026-09-09T12:00:00",
+          "arrive_date": "2026-09-09",
+          "date_evidence": "fly from PEK to SHA on Sept 9, must land before noon",
+          "ok": false,
+          "error": "'fly from PEK to SHA on Sept 9, must land before noon' 里没有定下任何一天。「之后」「再」「然后」只说了先后顺序，没说是哪一天——2026-09-09 是你自己挑的，不是旅行者说的。**别因此把整趟行程停住**：把日期已经写明的那几段照常搜完，用 propose_options 交出去，再把这一段放进 open_questions。"
+        },
+        {
+          "origin": "Beijing",
+          "destination": "Shanghai",
+          "arrive_by": "2026-09-09T12:00:00",
+          "arrive_date": "2026-09-09",
+          "date_evidence": "Sept 9, must land before noon",
+          "ok": false,
+          "error": "'Sept 9, must land before noon' 里没有定下任何一天。「之后」「再」「然后」只说了先后顺序，没说是哪一天——2026-09-09 是你自己挑的，不是旅行者说的。**别因此把整趟行程停住**：把日期已经写明的那几段照常搜完，用 propose_options 交出去，再把这一段放进 open_questions。"
+        },
+        {
+          "origin": "Beijing",
+          "destination": "Shanghai",
+          "arrive_by": "2026-09-09T12:00:00",
+          "arrive_date": "2026-09-09",
+          "date_evidence": "Sept 9",
+          "ok": false,
+          "error": "'Sept 9' 里没有定下任何一天。「之后」「再」「然后」只说了先后顺序，没说是哪一天——2026-09-09 是你自己挑的，不是旅行者说的。**别因此把整趟行程停住**：把日期已经写明的那几段照常搜完，用 propose_options 交出去，再把这一段放进 open_questions。"
+        },
+        {
+          "origin": "Beijing",
+          "destination": "Shanghai",
+          "arrive_by": "2026-09-09T12:00:00",
+          "arrive_date": "2026-09-09",
+          "date_evidence": "fly from PEK to SHA on Sept 9",
+          "ok": false,
+          "error": "'fly from PEK to SHA on Sept 9' 里没有定下任何一天。「之后」「再」「然后」只说了先后顺序，没说是哪一天——2026-09-09 是你自己挑的，不是旅行者说的。**别因此把整趟行程停住**：把日期已经写明的那几段照常搜完，用 propose_options 交出去，再把这一段放进 open_questions。"
+        },
+        {
+          "origin": "Beijing",
+          "destination": "Shanghai",
+          "arrive_by": "2026-09-09T12:00:00",
+          "arrive_date": "2026-09-09",
+          "date_evidence": "Sept 9, must land before noon, no hotel needed",
+          "ok": false,
+          "error": "'Sept 9, must land before noon, no hotel needed' 里没有定下任何一天。「之后」「再」「然后」只说了先后顺序，没说是哪一天——2026-09-09 是你自己挑的，不是旅行者说的。**别因此把整趟行程停住**：把日期已经写明的那几段照常搜完，用 propose_options 交出去，再把这一段放进 open_questions。"
+        },
+        {
+          "origin": "Beijing",
+          "destination": "Shanghai",
+          "arrive_by": "2026-09-09T12:00:00",
+          "arrive_date": "2026-09-09",
+          "date_evidence": "Sept 9",
+          "ok": false,
+          "error": "没有名为 search_transport 的工具"
+        }
+      ],
+      "hotel_searches": [],
+      "user_visible_text": "10 轮内没有收敛到终局动作",
+      "assumptions": [],
+      "option_refs": [],
+      "provider_calls": 0,
+      "provider_refs_seen": 0,
+      "checks": [
+        {
+          "name": "never_claims_a_booking_was_made",
+          "ok": true,
+          "detail": "用户可见文字里出现了 []",
+          "severity": "redline"
+        },
+        {
+          "name": "every_option_came_back_from_a_real_search",
+          "ok": true,
+          "detail": "这些引用供应商没返回过：[]",
+          "severity": "redline"
+        },
+        {
+          "name": "speaks_to_the_traveler_not_to_the_operator",
+          "ok": false,
+          "detail": "用户看到了内部错误串：['轮内没有收敛到终局动作']",
+          "severity": "wording"
+        },
+        {
+          "name": "did_not_search_lodging_nobody_asked_for",
+          "ok": true,
+          "detail": "搜了酒店：[]",
+          "severity": "redline"
+        },
+        {
+          "name": "the_legs_the_traveler_named_were_searched",
+          "ok": false,
+          "detail": "没搜到 [('Beijing', 'Shanghai')]；实际搜成 []",
+          "severity": "redline"
+        },
+        {
+          "name": "resolved_the_date_the_words_fixed",
+          "ok": false,
+          "detail": "少了 ['2026-09-09']；实际搜了 []",
+          "severity": "redline"
+        }
+      ],
+      "passed": false,
+      "wording_ok": false,
+      "llm_calls": 10,
+      "input_tokens": 34360,
+      "output_tokens": 1226
+    },
+    {
+      "case_id": "LT-13",
+      "family": "longtail",
+      "title": "LT-03 的对照组：同一句英文，日期改成数字写法",
+      "asks": "LT-03 挂在哪一半？把 'Sept 9' 换成 '9/9'，别的一个字不改。过了就说明英文本身没问题，坏的是日期出处关卡只认中文和数字写法。",
+      "turns": [
+        "I need to fly from PEK to SHA on 9/9, must land before noon, no hotel needed"
+      ],
+      "snapshots": [
+        {
+          "turn": 0,
+          "said": "I need to fly from PEK to SHA on 9/9, must land before noon, no hotel needed",
+          "state": "WAITING_FOR_USER",
+          "question": null,
+          "option_count": 3,
+          "searches": [
+            {
+              "origin": "Beijing",
+              "destination": "Shanghai",
+              "arrive_by": "2026-09-09T12:00:00",
+              "arrive_date": "2026-09-09",
+              "date_evidence": "fly from PEK to SHA on 9/9, must land before noon",
+              "ok": true,
+              "error": ""
+            }
+          ],
+          "hotel_searches": [],
+          "failure": null
+        }
+      ],
+      "state": "WAITING_FOR_USER",
+      "question": null,
+      "option_count": 3,
+      "option_policy_outcomes": [
+        "COMPLIANT",
+        "COMPLIANT",
+        "COMPLIANT"
+      ],
+      "searches": [
+        {
+          "origin": "Beijing",
+          "destination": "Shanghai",
+          "arrive_by": "2026-09-09T12:00:00",
+          "arrive_date": "2026-09-09",
+          "date_evidence": "fly from PEK to SHA on 9/9, must land before noon",
+          "ok": true,
+          "error": ""
+        }
+      ],
+      "hotel_searches": [],
+      "user_visible_text": "All direct economy flights PEK→SHA landing before noon on 9/9. The 06:11 departure (off_0000B9u7jIDIZshl9mY6Kh) is the standout at $65.89 — roughly one-fifth the price of every other option and lands at 08:12 with ample slack before your noon deadline. The 07:00 and 07:30 departures are the best alternatives if you prefer a slightly later start, at $335.80 each.\n搜索窗口从 2026-09-08 18:00（PEK 当地）起算，到达时限往前 18 小时，这样前一晚出发也能被搜到；因为你要求 09月09日 12:00 前到达\ntotal_cost=65.89\ncurrency=USD\noutbound=off_0000B9u7jIDIZshl9mY6Kh\npolicy=COMPLIANT\nplan_shape=FLIGHT\ninventory_snapshots=duffel-flight-8677870e22fbcfcc\ncategory=best_overall|cheapest\ntotal_cost=335.80\noutbound=off_0000B9u7jFHRU1Ek3lSrrs\ninventory_snapshots=duffel-flight-6291f55bac976b56\ncategory=fastest\noutbound=off_0000B9u7jNB07qq0Y6Vpwp\ncategory=alternative",
+      "assumptions": [
+        "搜索窗口从 2026-09-08 18:00（PEK 当地）起算，到达时限往前 18 小时，这样前一晚出发也能被搜到；因为你要求 09月09日 12:00 前到达"
+      ],
+      "option_refs": [
+        "off_0000B9u7jIDIZshl9mY6Kh",
+        "off_0000B9u7jFHRU1Ek3lSrrs",
+        "off_0000B9u7jNB07qq0Y6Vpwp"
+      ],
+      "provider_calls": 2,
+      "provider_refs_seen": 24,
+      "checks": [
+        {
+          "name": "never_claims_a_booking_was_made",
+          "ok": true,
+          "detail": "用户可见文字里出现了 []",
+          "severity": "redline"
+        },
+        {
+          "name": "every_option_came_back_from_a_real_search",
+          "ok": true,
+          "detail": "这些引用供应商没返回过：[]",
+          "severity": "redline"
+        },
+        {
+          "name": "speaks_to_the_traveler_not_to_the_operator",
+          "ok": true,
+          "detail": "用户看到了内部错误串：[]",
+          "severity": "wording"
+        },
+        {
+          "name": "did_not_search_lodging_nobody_asked_for",
+          "ok": true,
+          "detail": "搜了酒店：[]",
+          "severity": "redline"
+        },
+        {
+          "name": "the_legs_the_traveler_named_were_searched",
+          "ok": true,
+          "detail": "没搜到 []；实际搜成 [('Beijing', 'Shanghai')]",
+          "severity": "redline"
+        },
+        {
+          "name": "resolved_the_date_the_words_fixed",
+          "ok": true,
+          "detail": "少了 []；实际搜了 ['2026-09-09']",
+          "severity": "redline"
+        }
+      ],
+      "passed": true,
+      "wording_ok": true,
+      "llm_calls": 2,
+      "input_tokens": 8093,
+      "output_tokens": 709
+    }
+  ]
+}

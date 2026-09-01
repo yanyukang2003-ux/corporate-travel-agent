@@ -1,0 +1,176 @@
+{
+  "config": {
+    "model": "deepseek-v4-pro",
+    "semantic_prompt": "semantic-trip-intent-v13d",
+    "reference_clock": "2026-08-01T09:00:00+08:00",
+    "inventory": "MockProvider (frozen 2026-08-05)",
+    "entrypoint": "semantic"
+  },
+  "final_state": "WAITING_FOR_USER",
+  "final_failure": null,
+  "total_llm_calls": 2,
+  "llm_usage": [
+    {
+      "prompt_version": "semantic-trip-intent-v13d",
+      "model": "deepseek-v4-pro",
+      "duration_ms": 5204,
+      "requested_model": "deepseek-v4-pro",
+      "reasoning_effort": "medium",
+      "response_id": "0af12195-f2e6-4643-9e99-22ff4f49cc8e",
+      "input_tokens": 3746,
+      "output_tokens": 455,
+      "cached_input_tokens": 3712,
+      "cache_write_input_tokens": null,
+      "reasoning_output_tokens": null,
+      "total_tokens": 4201,
+      "service_tier": null,
+      "evidence_contract_version": "conversation-turn-v1",
+      "envelope_repaired": false
+    },
+    {
+      "prompt_version": "semantic-trip-intent-v13d",
+      "model": "deepseek-v4-pro",
+      "duration_ms": 5114,
+      "requested_model": "deepseek-v4-pro",
+      "reasoning_effort": "medium",
+      "response_id": "2dec3ab4-6c30-43f9-a93d-661cf77c4a50",
+      "input_tokens": 3786,
+      "output_tokens": 520,
+      "cached_input_tokens": 3712,
+      "cache_write_input_tokens": null,
+      "reasoning_output_tokens": null,
+      "total_tokens": 4306,
+      "service_tier": null,
+      "evidence_contract_version": "conversation-turn-v1",
+      "envelope_repaired": false
+    }
+  ],
+  "all_tool_calls": [
+    "llm.interpret_trip_intent:FAILED",
+    "llm.interpret_trip_intent:SUCCEEDED",
+    "llm.interpret_trip_intent:SUCCEEDED",
+    "provider.search_transport.outbound:SUCCEEDED"
+  ],
+  "stages": [
+    {
+      "step": "1_create",
+      "user_message": "8月5号从北京去上海，8月5日上午10点前到，不住酒店",
+      "state": "NEEDS_CLARIFICATION",
+      "clarification_question": "另外我还需要知道：哪天出发。",
+      "clarification_rounds": 1,
+      "missing_required_fields": [
+        "departure_after"
+      ],
+      "intent_conflicts": [],
+      "failure": null,
+      "semantic_status": "READY",
+      "intent_fields": {
+        "origin": "Beijing",
+        "destination": "Shanghai",
+        "arrive_by": "2026-08-05 10:00:00+08:00",
+        "booking_scope": "OUTBOUND_ONLY",
+        "lodging_requirement": "NOT_REQUIRED"
+      },
+      "assumptions": [
+        "日期按当前年份2026年解析，8月5日尚未到来，无需澄清年份。"
+      ],
+      "evidence": [
+        {
+          "turn_index": 0,
+          "field": "origin_candidates",
+          "quote": "从北京去上海"
+        },
+        {
+          "turn_index": 0,
+          "field": "destination_candidates",
+          "quote": "从北京去上海"
+        },
+        {
+          "turn_index": 0,
+          "field": "arrive_by",
+          "quote": "8月5日上午10点前到"
+        },
+        {
+          "turn_index": 0,
+          "field": "lodging_requirement",
+          "quote": "不住酒店"
+        }
+      ],
+      "tool_calls_so_far": [
+        "llm.interpret_trip_intent:FAILED",
+        "llm.interpret_trip_intent:SUCCEEDED"
+      ],
+      "request_built": false,
+      "journey": null,
+      "options_count": 0
+    },
+    {
+      "step": "2_followup",
+      "user_message": "出发日期就是8月5号，确认按这个查",
+      "state": "WAITING_FOR_USER",
+      "clarification_question": null,
+      "clarification_rounds": 1,
+      "missing_required_fields": [],
+      "intent_conflicts": [],
+      "failure": null,
+      "semantic_status": "READY",
+      "intent_fields": {
+        "origin": "Beijing",
+        "destination": "Shanghai",
+        "departure_after": "2026-08-05 00:00:00+08:00",
+        "arrive_by": "2026-08-05 10:00:00+08:00",
+        "booking_scope": "OUTBOUND_ONLY",
+        "lodging_requirement": "NOT_REQUIRED"
+      },
+      "assumptions": [
+        "出发日期按用户明确确认的8月5号，年份按当前年2026年解析。"
+      ],
+      "evidence": [
+        {
+          "turn_index": 0,
+          "field": "origin_candidates",
+          "quote": "8月5号从北京去上海"
+        },
+        {
+          "turn_index": 0,
+          "field": "destination_candidates",
+          "quote": "8月5号从北京去上海"
+        },
+        {
+          "turn_index": 0,
+          "field": "departure_after",
+          "quote": "8月5号从北京去上海"
+        },
+        {
+          "turn_index": 0,
+          "field": "arrive_by",
+          "quote": "8月5日上午10点前到"
+        },
+        {
+          "turn_index": 2,
+          "field": "departure_after",
+          "quote": "出发日期就是8月5号，确认按这个查"
+        }
+      ],
+      "tool_calls_so_far": [
+        "llm.interpret_trip_intent:FAILED",
+        "llm.interpret_trip_intent:SUCCEEDED",
+        "llm.interpret_trip_intent:SUCCEEDED",
+        "provider.search_transport.outbound:SUCCEEDED"
+      ],
+      "request_built": true,
+      "journey": [
+        [
+          "Beijing",
+          "Shanghai"
+        ]
+      ],
+      "options_count": 1,
+      "top_option": {
+        "option_id": "opt-MU-EARLY",
+        "total_cost": "950",
+        "policy_outcome": "COMPLIANT"
+      }
+    }
+  ]
+}

@@ -1,0 +1,575 @@
+"""评测什么：**业务结果**——用了多久、提前多少天订、多少单超标、员工最后有没有真去下单。
+
+## 这个模块为什么存在
+
+在它之前，仓库里所有评测指标都在模型层：任务通过率、硬断言通过率、规则输出完整率、
+裁判打分、工具调用效率。这些数字回答的是"模型答得像不像话"，**没有一个回答
+"这东西对企业有没有用"**。
+
+产品设计思路里那句批评说得很直白：模型回答得像模像样但员工还是绕开去用携程，
+说明产品是失败的。要看见这件事，只能量四个业务侧的数：
+
+| 指标 | 这里的口径 |
+|---|---|
+| 交接完成率 | 员工点了"我去官方平台订好了"的比例——**渠道内预订率的上限估计** |
+| 平均耗时 | 从任务第一条审计事件到交接完成的**墙上时间**，含人等审批、人在想 |
+| 提前预订天数 | 交接时刻 → 首段实际出发时刻 |
+| 超标发生率 | 方案里带"需审批/禁止"证据的比例，分选中和展示两个口径 |
+
+## 数据从哪来
+
+只有两样输入：`TripTask` 聚合和它的 `AuditEvent` 序列。**不调模型、不调供应商、
+不读任何评测数据集**，所以它既能算离线评测跑出来的任务，也能算线上真实任务，
+两边口径完全一样。
+
+`AuditEvent` 只存输入/输出的哈希，不存明文，所以这里只用它的两个明文字段：
+`event_type` 和 `created_at`。任何需要值本身的东西（政策证据、航段时间、澄清轮数）
+一律从 `TripTask` 聚合上读。
+
+## 时钟：离线评测必须显式传进来
+
+审计事件的时间戳走的是真实墙上时间（`new_audit_event` 里的 `datetime.now(UTC)`），
+**不是编排器的时钟**。线上这两者是同一个，没有区别；但离线评测通常把编排器时钟
+冻在某一天，于是"交接时刻"在今天、"出发时刻"在冻住的那条时间线上，两者相减出来的
+提前预订天数是一个没有意义的数。
+
+所以 `build_business_metrics_report` 收一个可选的 `handoff_reference_time`：冻了时钟的
+跑法把冻住的那个时刻传进来，提前天数就用它算；线上不传，用审计里的交接时刻。
+用了哪一个记在 `TaskBusinessRecord.advance_days_reference` 上，不靠读代码猜。
+
+耗时（`seconds_to_handoff`）**没有**这个开关，因为它本来就该量墙上时间。但要注意：
+离线评测里它量的是**跑批脚本有多快**，不是员工花了多久，跨跑次比较没有意义。
+
+## 三处必须说在前面的口径限制
+
+1. **交接完成率不是真实的渠道内预订率。** 分子是员工自己在本系统里点的"订好了"
+   （`HANDOFF_COMPLETED`），不是供应商回执。他可能点了却没订，也可能订了不点。
+   接到真实预订回执之前，这个数只能当上限估计看，不能当结论。
+2. **平均耗时是墙上时间，不是系统耗时。** 它包含员工去开会、经理三小时后才批的时间。
+   这是故意的：设计思路里"员工订一次复杂行程平均要花半小时到一小时"量的就是墙上时间。
+   要看系统自己快不快，看 `evaluation_performance`，不要看这里。
+3. **超标发生率实际上量的是"需要审批"的比例。** 按已编码不变量，`FORBIDDEN` 方案
+   在规划阶段就被硬过滤，根本不会出现在给员工看的列表里。所以"展示口径"这个数里
+   几乎只有 `REQUIRES_APPROVAL`。
+
+## 分母为零时不写零
+
+一次跑里没有任何任务走到交接，交接完成率的正确答案是"**测不出来**"，不是 0。
+所有指标沿用 `MetricResult` 的 `status` 字段：`measured` / `unavailable`，
+`unavailable` 时 `value` 是 `None`。把测不出来记成 0 会让一条平的曲线看起来像
+"一直很差"，而事实是"一直没数据"。
+"""
+
+from __future__ import annotations
+
+import math
+from collections.abc import Mapping, Sequence
+from datetime import UTC, datetime
+from pathlib import Path
+from typing import Literal
+
+from pydantic import BaseModel, ConfigDict, Field
+
+from corporate_travel_agent.domain.enums import PolicyOutcome, TaskState
+from corporate_travel_agent.domain.models import (
+    AuditEvent,
+    TravelOptionVersion,
+    TripTask,
+)
+from corporate_travel_agent.services.evaluation_quality import MetricResult
+
+BUSINESS_PROTOCOL_ID = "business-outcome-v1"
+
+
+class BusinessMetricsError(RuntimeError):
+    """业务指标报告写盘失败。"""
+
+
+#: 任务开始的那条审计事件。四个入口（结构化、旧自然语言、语义、工具循环）各有一个名字，
+#: 都是任务建立后写的第一条事件。少写一个入口，那个入口的耗时就会静默变成"测不出来"。
+TASK_START_EVENT_TYPES: frozenset[str] = frozenset(
+    {
+        "TASK_CREATED",
+        "TASK_CREATED_FROM_MESSAGE",
+        "SEMANTIC_TASK_CREATED_FROM_MESSAGE",
+        "AGENTIC_TASK_CREATED_FROM_MESSAGE",
+    }
+)
+
+#: 员工确认"我去官方平台订好了"时写的事件。
+HANDOFF_COMPLETED_EVENT_TYPE = "HANDOFF_COMPLETED"
+
+#: 算进"超标"的政策结论。`INSUFFICIENT_EVIDENCE`（判不了）不算超标——它是缺数据，
+#: 不是违规，混进来会把两件完全不同的事搅成一个数。
+VIOLATION_OUTCOMES: frozenset[PolicyOutcome] = frozenset(
+    {PolicyOutcome.REQUIRES_APPROVAL, PolicyOutcome.FORBIDDEN}
+)
+
+
+class BusinessModel(BaseModel):
+    """业务指标模型基类。"""
+
+    model_config = ConfigDict(extra="forbid", strict=True)
+
+
+class TaskBusinessRecord(BusinessModel):
+    """一个任务在业务口径上留下的全部可测量事实。
+
+    每个可能测不出来的字段都是 `None` 而不是 0，配套的原因写进 `notes`。
+    """
+
+    task_id: str
+    state: str
+    #: 系统是否真的给出过方案。没给出过的任务不该进"交接完成率"的分母——
+    #: 那是系统没干活，不是员工不用。
+    produced_options: bool
+    handed_off: bool
+    started_at: datetime | None
+    handed_off_at: datetime | None
+    #: 墙上时间，秒。含人等审批、人在想的时间。
+    seconds_to_handoff: float | None
+    #: 交接时刻 → 首段实际出发时刻，天。负数表示出发早于交接（时间线对不上时才会出现）。
+    advance_days: float | None
+    #: 提前天数用了哪个时刻做起点：审计里的交接事件，还是调用方传进来的冻住时钟。
+    #: 没算出提前天数时是 `None`。
+    advance_days_reference: Literal["handoff_event", "supplied_clock"] | None
+    #: 员工是否已经选定了一条方案。超标发生率的「选中口径」用它做分母——
+    #: 没选过的任务既不算合规也不算超标，进分母会把这个数稀释掉。
+    has_selected_option: bool
+    #: 选中方案里判为"需审批/禁止"的规则 ID。
+    selected_violation_rule_ids: tuple[str, ...]
+    offered_option_count: int = Field(ge=0)
+    offered_options_with_violation: int = Field(ge=0)
+    clarification_rounds: int = Field(ge=0)
+    tool_calls_used: int = Field(ge=0)
+    #: 这一单是否走了例外审批。
+    approval_requested: bool
+    #: 为什么某个字段没算出来。空元组表示这个任务上的每个字段都有确定答案。
+    notes: tuple[str, ...] = ()
+
+
+class BusinessMetricsReport(BusinessModel):
+    """一批任务的业务指标汇总。"""
+
+    schema_version: Literal[1] = 1
+    protocol_id: Literal["business-outcome-v1"] = BUSINESS_PROTOCOL_ID
+    generated_at: datetime
+    task_count: int = Field(ge=0)
+    records: tuple[TaskBusinessRecord, ...]
+    metrics: dict[str, MetricResult]
+
+
+def summarize_task(
+    task: TripTask,
+    events: Sequence[AuditEvent],
+    *,
+    handoff_reference_time: datetime | None = None,
+) -> TaskBusinessRecord:
+    """把一个任务压成业务口径的一行事实。纯函数，不读外部状态、不读当前时间。
+
+    `handoff_reference_time` 只影响提前预订天数的起点，见模块开头「时钟」一节。
+    """
+    notes: list[str] = []
+
+    started_at = _task_started_at(events)
+    if started_at is None:
+        notes.append("no_start_event")
+
+    handed_off_at = _first_event_time(events, {HANDOFF_COMPLETED_EVENT_TYPE})
+    handed_off = handed_off_at is not None
+    # 状态到了 HANDED_OFF 但没有那条事件，说明审计轨迹缺了一段——记下来，
+    # 不要拿状态当时间戳猜一个出来。
+    if task.state is TaskState.HANDED_OFF and not handed_off:
+        notes.append("handed_off_state_without_event")
+
+    seconds_to_handoff: float | None = None
+    if started_at is not None and handed_off_at is not None:
+        seconds_to_handoff = (handed_off_at - started_at).total_seconds()
+        if seconds_to_handoff < 0:
+            # 时钟倒流。宁可测不出来，也不要报一个负的耗时。
+            seconds_to_handoff = None
+            notes.append("handoff_before_start")
+
+    selected = task.selected_option()
+    advance_days: float | None = None
+    advance_days_reference: Literal["handoff_event", "supplied_clock"] | None = None
+    # 只有真的交接过的任务才谈得上"提前多少天订"。传了冻住的时钟也不例外——
+    # 它替换的是这一刻的读数，不是"有没有这一刻"。
+    booked_at = (handoff_reference_time or handed_off_at) if handed_off else None
+    if booked_at is not None:
+        departure = _first_departure(task)
+        if departure is None:
+            notes.append("no_departure_time")
+        else:
+            advance_days = (departure - booked_at).total_seconds() / 86400.0
+            advance_days_reference = (
+                "supplied_clock" if handoff_reference_time is not None else "handoff_event"
+            )
+            if advance_days < 0:
+                notes.append("departure_before_handoff")
+
+    selected_violations: tuple[str, ...] = ()
+    if selected is not None:
+        selected_violations = _violation_rule_ids(selected)
+    elif task.selected_option_id is not None:
+        notes.append("selected_option_missing_from_task")
+
+    offered_with_violation = sum(
+        1 for option in task.options if _violation_rule_ids(option)
+    )
+
+    return TaskBusinessRecord(
+        task_id=task.task_id,
+        state=task.state.value,
+        produced_options=bool(task.options),
+        handed_off=handed_off,
+        has_selected_option=selected is not None,
+        started_at=started_at,
+        handed_off_at=handed_off_at,
+        seconds_to_handoff=seconds_to_handoff,
+        advance_days=advance_days,
+        advance_days_reference=advance_days_reference,
+        selected_violation_rule_ids=selected_violations,
+        offered_option_count=len(task.options),
+        offered_options_with_violation=offered_with_violation,
+        clarification_rounds=task.clarification_rounds,
+        tool_calls_used=task.tool_calls_used,
+        approval_requested=task.approval is not None,
+        notes=tuple(notes),
+    )
+
+
+def build_business_metrics_report(
+    tasks: Sequence[TripTask],
+    events_by_task: Mapping[str, Sequence[AuditEvent]],
+    *,
+    generated_at: datetime | None = None,
+    handoff_reference_time: datetime | None = None,
+) -> BusinessMetricsReport:
+    """把一批任务汇总成业务指标报告。
+
+    `events_by_task` 少了某个任务的条目按"没有审计事件"处理：耗时和提前天数测不出来，
+    但方案数、超标、澄清轮数这些从聚合上读的字段照常可用。
+
+    `handoff_reference_time` 给冻了时钟的离线评测用，见模块开头「时钟」一节。
+    """
+    records = tuple(
+        summarize_task(
+            task,
+            tuple(events_by_task.get(task.task_id, ())),
+            handoff_reference_time=handoff_reference_time,
+        )
+        for task in tasks
+    )
+    return BusinessMetricsReport(
+        generated_at=generated_at or datetime.now(UTC),
+        task_count=len(records),
+        records=records,
+        metrics=aggregate_metrics(records),
+    )
+
+
+def aggregate_metrics(
+    records: Sequence[TaskBusinessRecord],
+) -> dict[str, MetricResult]:
+    """把每任务一行的事实汇总成指标。分母为零一律 `unavailable`，不写 0。"""
+    with_options = [item for item in records if item.produced_options]
+    handed_off = [item for item in records if item.handed_off]
+    durations = [
+        item.seconds_to_handoff
+        for item in records
+        if item.seconds_to_handoff is not None
+    ]
+    advances = [item.advance_days for item in records if item.advance_days is not None]
+    with_selection = [item for item in records if item.has_selected_option]
+    offered_total = sum(item.offered_option_count for item in records)
+    offered_violating = sum(item.offered_options_with_violation for item in records)
+
+    return {
+        "handoff_completion_rate": _rate(
+            len(handed_off),
+            len(with_options),
+            unit="rate",
+            confidence_note=(
+                "分子是员工在本系统里点的「已在官方平台订好」，不是供应商回执；"
+                "这是渠道内预订率的上限估计，不是渠道内预订率本身。"
+                "分母只算系统真的给出过方案的任务。"
+            ),
+        ),
+        "handoff_completion_rate.all_tasks": _rate(
+            len(handed_off),
+            len(records),
+            unit="rate",
+            confidence_note=(
+                "分母是全部任务，含系统没能给出方案的那些。"
+                "和上一条的差值是「系统没干成活」而不是「员工不愿用」。"
+            ),
+        ),
+        "seconds_to_handoff_mean": _stat(
+            durations,
+            unit="seconds",
+            statistic="mean",
+            confidence_note=(
+                "墙上时间，含员工离开去开会、经理隔天才批的等待。"
+                "系统自身耗时见 evaluation_performance。"
+            ),
+        ),
+        "seconds_to_handoff_p50": _stat(
+            durations, unit="seconds", statistic="p50",
+            confidence_note="线性 type-7 分位数，口径同 mean。",
+        ),
+        "seconds_to_handoff_p95": _stat(
+            durations, unit="seconds", statistic="p95",
+            confidence_note="线性 type-7 分位数，口径同 mean。",
+        ),
+        "advance_booking_days_mean": _stat(
+            advances,
+            unit="days",
+            statistic="mean",
+            confidence_note=(
+                "从交接完成时刻算到首段实际出发时刻。"
+                "起点用交接而不是任务创建，因为下单发生在交接那一刻。"
+            ),
+        ),
+        "advance_booking_days_p50": _stat(
+            advances, unit="days", statistic="p50",
+            confidence_note="线性 type-7 分位数，口径同 mean。",
+        ),
+        "policy_violation_rate.selected": _rate(
+            sum(1 for item in with_selection if item.selected_violation_rule_ids),
+            len(with_selection),
+            unit="rate",
+            confidence_note=(
+                "员工最后选中的方案里带「需审批/禁止」证据的比例。"
+                "「判不了」（证据不足）不计入——那是缺数据，不是超标。"
+            ),
+        ),
+        "policy_violation_rate.offered": _rate(
+            offered_violating,
+            offered_total,
+            unit="rate",
+            confidence_note=(
+                "展示给员工的方案里带「需审批/禁止」证据的比例。"
+                "按已编码不变量，FORBIDDEN 方案在规划阶段已被硬过滤，"
+                "所以这个数实际上量的是「需要审批」的比例。"
+            ),
+        ),
+        "approval_request_rate": _rate(
+            sum(1 for item in records if item.approval_requested),
+            len(records),
+            unit="rate",
+            confidence_note="走了例外审批的任务比例。",
+        ),
+        "clarification_rounds_mean": _stat(
+            [float(item.clarification_rounds) for item in records],
+            unit="rounds",
+            statistic="mean",
+            confidence_note="每个任务追问了几轮；口径为全部任务。",
+        ),
+        "tool_calls_per_task_mean": _stat(
+            [float(item.tool_calls_used) for item in records],
+            unit="calls",
+            statistic="mean",
+            confidence_note="计入预算的工具调用次数；口径为全部任务。",
+        ),
+    }
+
+
+def _task_started_at(events: Sequence[AuditEvent]) -> datetime | None:
+    """任务开始时刻：优先用四个入口的创建事件，没有就退到最早的一条事件。"""
+    explicit = _first_event_time(events, TASK_START_EVENT_TYPES)
+    if explicit is not None:
+        return explicit
+    times = [item.created_at for item in events]
+    return min(times) if times else None
+
+
+def _first_event_time(
+    events: Sequence[AuditEvent], event_types: frozenset[str] | set[str]
+) -> datetime | None:
+    times = [item.created_at for item in events if item.event_type in event_types]
+    return min(times) if times else None
+
+
+def _first_departure(task: TripTask) -> datetime | None:
+    """首段实际出发时刻。
+
+    优先读选中方案的第一段——那是员工真要坐的那班车。没有选中方案时退到请求里
+    第一段的最早允许出发时间，并且**只在没有更好来源时才用**：请求里的是时间窗
+    下沿，不是航班时刻。
+    """
+    selected = task.selected_option()
+    if selected is not None and selected.legs:
+        return selected.legs[0].depart_at
+    if task.request is not None and task.request.journey:
+        return task.request.journey[0].depart_after
+    return None
+
+
+def _violation_rule_ids(option: TravelOptionVersion) -> tuple[str, ...]:
+    """一条方案里判为「需审批/禁止」的规则 ID。
+
+    逐条读证据，不读聚合结论——聚合把「证据不足」排在「禁止」之上，
+    一条既违规又缺数据的方案聚合出来是 `INSUFFICIENT_EVIDENCE`，
+    只看聚合会把它的违规漏掉。
+    """
+    return tuple(
+        item.rule_id
+        for item in option.policy_decision.evidence
+        if item.outcome in VIOLATION_OUTCOMES
+    )
+
+
+def _rate(
+    numerator: int,
+    denominator: int,
+    *,
+    unit: str,
+    confidence_note: str,
+) -> MetricResult:
+    if denominator == 0:
+        return MetricResult(
+            status="unavailable",
+            value=None,
+            numerator=float(numerator),
+            denominator=0.0,
+            unit=unit,
+            confidence_note=confidence_note,
+            exposure_note="分母为零：这个指标测不出来，不是 0。",
+        )
+    return MetricResult(
+        status="measured",
+        value=numerator / denominator,
+        numerator=float(numerator),
+        denominator=float(denominator),
+        unit=unit,
+        confidence_note=confidence_note,
+    )
+
+
+def _stat(
+    values: Sequence[float],
+    *,
+    unit: str,
+    statistic: Literal["mean", "p50", "p95"],
+    confidence_note: str,
+) -> MetricResult:
+    if not values:
+        return MetricResult(
+            status="unavailable",
+            value=None,
+            numerator=None,
+            denominator=0.0,
+            unit=unit,
+            confidence_note=confidence_note,
+            exposure_note="没有任何任务能提供这个统计量的输入。",
+        )
+    if statistic == "mean":
+        value = sum(values) / len(values)
+        numerator: float | None = float(sum(values))
+    else:
+        quantile = 0.50 if statistic == "p50" else 0.95
+        value = _percentile(values, quantile)
+        numerator = None
+    return MetricResult(
+        status="measured",
+        value=value,
+        numerator=numerator,
+        denominator=float(len(values)),
+        unit=unit,
+        confidence_note=confidence_note,
+    )
+
+
+def _percentile(values: Sequence[float], quantile: float) -> float:
+    ordered = sorted(values)
+    rank = (len(ordered) - 1) * quantile
+    lower = math.floor(rank)
+    upper = math.ceil(rank)
+    if lower == upper:
+        return float(ordered[lower])
+    weight = rank - lower
+    return ordered[lower] * (1 - weight) + ordered[upper] * weight
+
+
+#: 指标名 → 用大白话说这个数是什么。给 REPORT.md 用。
+#: 没解释的指标不该出现在给人看的报告里——数字本身不会告诉人它的口径。
+METRIC_LABELS: dict[str, str] = {
+    "handoff_completion_rate": "系统给出了方案的任务里，员工说「已去官方平台订好」的比例",
+    "handoff_completion_rate.all_tasks": "全部任务里说「已订好」的比例（含系统没能给出方案的）",
+    "seconds_to_handoff_mean": "从任务开始到说「已订好」的平均墙上时间（秒）",
+    "seconds_to_handoff_p50": "同上，中位数（秒）",
+    "seconds_to_handoff_p95": "同上，95 分位（秒）",
+    "advance_booking_days_mean": "订好那一刻距离出发还有几天，平均",
+    "advance_booking_days_p50": "订好那一刻距离出发还有几天，中位数",
+    "policy_violation_rate.selected": "员工选中的方案里，需要审批或被禁的比例",
+    "policy_violation_rate.offered": "展示出去的方案里，需要审批或被禁的比例",
+    "approval_request_rate": "走了例外审批的任务比例",
+    "clarification_rounds_mean": "平均追问了几轮",
+    "tool_calls_per_task_mean": "平均用掉几次工具调用（含模型和供应商）",
+}
+
+
+def write_business_metrics_report(
+    report: BusinessMetricsReport,
+    output_directory: str | Path,
+) -> Path:
+    """把报告写进一个**事先不存在**的目录，返回该目录。
+
+    沿用仓库既有约定：输出目录必须是新的。这不是洁癖——评测目录是证据，
+    覆盖一次就没有第二份可比。
+
+    产出两个文件：机器读的 `report.json` 和人读的 `REPORT.md`。
+    """
+    output_root = Path(output_directory).expanduser().resolve()
+    if output_root.exists():
+        raise BusinessMetricsError(f"Output directory already exists: {output_root}")
+    output_root.mkdir(parents=True)
+    (output_root / "report.json").write_bytes(
+        report.model_dump_json(indent=2).encode("utf-8")
+    )
+    (output_root / "REPORT.md").write_bytes(render_business_report_markdown(report).encode("utf-8"))
+    return output_root
+
+
+def render_business_report_markdown(report: BusinessMetricsReport) -> str:
+    """把报告渲染成给人读的 Markdown：每个数字都带着它的口径一起出现。"""
+    lines = [
+        "# 业务结果指标",
+        "",
+        f"协议：`{report.protocol_id}`　生成时间：{report.generated_at.isoformat()}　"
+        f"任务数：{report.task_count}",
+        "",
+        "**这一层量的不是模型答得好不好，是这东西对企业有没有用。**",
+        "分母为零的指标写「测不出来」，不写 0——一条平的曲线和一条没有数据的曲线",
+        "是两回事。",
+        "",
+        "| 指标 | 这个数是什么 | 值 | 分子/分母 |",
+        "|---|---|---|---|",
+    ]
+    for name, metric in report.metrics.items():
+        label = METRIC_LABELS.get(name, "（这个指标还没写口径说明）")
+        if metric.status != "measured" or metric.value is None:
+            value = "测不出来"
+        elif metric.unit == "rate":
+            value = f"{metric.value:.1%}"
+        else:
+            # 用有效数字而不是固定两位小数：秒级统计在演示里可能是 0.001，
+            # 写成 "0.00 秒" 会让人以为没测到。
+            value = f"{metric.value:.4g} {metric.unit or ''}".strip()
+        numerator = "—" if metric.numerator is None else f"{metric.numerator:g}"
+        denominator = "—" if metric.denominator is None else f"{metric.denominator:g}"
+        lines.append(f"| `{name}` | {label} | {value} | {numerator} / {denominator} |")
+
+    notes = sorted({note for item in report.records for note in item.notes})
+    lines.extend(["", "## 口径说明", ""])
+    for name, metric in report.metrics.items():
+        if metric.confidence_note:
+            lines.append(f"- **`{name}`**：{metric.confidence_note}")
+
+    if notes:
+        lines.extend(["", "## 这批任务上出现过的测不准原因", ""])
+        for note in notes:
+            count = sum(1 for item in report.records if note in item.notes)
+            lines.append(f"- `{note}`：{count} 个任务")
+    return "\n".join(lines) + "\n"

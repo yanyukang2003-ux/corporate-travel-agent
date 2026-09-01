@@ -1,0 +1,42 @@
+{
+  "status": "READY",
+  "confidence": 1.0,
+  "summary": "9月15号从北京去上海，9月16号中午12点前到，不住酒店",
+  "origin_candidates": [
+    "北京"
+  ],
+  "destination_candidates": [
+    "上海"
+  ],
+  "departure_after": "2026-09-15T00:00:00+08:00",
+  "arrive_by": "2026-09-16T12:00:00+08:00",
+  "booking_scope": "OUTBOUND_ONLY",
+  "lodging_requirement": "NOT_REQUIRED",
+  "evidence": [
+    {
+      "turn_index": 0,
+      "field": "origin_candidates",
+      "quote": "9月15号从北京去上海"
+    },
+    {
+      "turn_index": 0,
+      "field": "destination_candidates",
+      "quote": "9月15号从北京去上海"
+    },
+    {
+      "turn_index": 0,
+      "field": "departure_after",
+      "quote": "9月15号从北京去上海"
+    },
+    {
+      "turn_index": 0,
+      "field": "arrive_by",
+      "quote": "9月16号中午12点前到"
+    }
+  ],
+  "conflicts": [],
+  "assumptions": [
+    "出发日期为2026年9月15日，到达截止时间为2026年9月16日中午12点。"
+  ],
+  "clarification_question": null
+}

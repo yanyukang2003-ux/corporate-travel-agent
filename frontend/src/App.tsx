@@ -22,7 +22,12 @@ import type {
   UserIdentity,
 } from './api/types'
 import { formatTravelDate, formatTravelTime, getStateMeta, parseIsoWallClock } from './utils/state'
-import { factsForOptionCard, openQuestionsFromTask } from './utils/notices'
+import { approvalReasonText, factsForOptionCard, openQuestionsFromTask } from './utils/notices'
+import { chatTurns } from './utils/chat'
+import { costNotes } from './utils/cost'
+import type { CostNote } from './utils/cost'
+import { categoriesFromFacts, rankedBreakdowns } from './utils/scoring'
+import type { ChatTurn } from './utils/chat'
 import {
   EXAMPLE_TRIP_MESSAGE,
   clarificationRetry,
@@ -133,7 +138,16 @@ interface DisplayOption {
   policyTone: string
   carbon: string
   facts: string[]
+  /** 选这条要付出什么：超出差标多少、该谁批、换哪条能省。空数组表示没什么代价可说。 */
+  costNotes: CostNote[]
   live: true
+}
+
+/** 卡片上的方案名。索引决定，和后端无关——纯展示顺序。 */
+function optionTag(index: number): string {
+  if (index === 0) return '综合推荐'
+  if (index === 1) return '备选方案'
+  return `方案 ${index + 1}`
 }
 
 /** 货币代码到展示符号。 */
@@ -230,6 +244,7 @@ function displayOptionFromApi(
   option: TravelOption,
   index: number,
   lodgingRequirement: LodgingRequirement,
+  labelFor: (optionId: string) => string,
 ): DisplayOption {
   const total = Number(option.total_cost)
   const hotelTotal = Number(option.hotel?.total_price ?? 0)
@@ -244,7 +259,7 @@ function displayOptionFromApi(
     : option.outbound.ref_id
   return {
     id: option.option_id,
-    tag: index === 0 ? '综合推荐' : index === 1 ? '备选方案' : `方案 ${index + 1}`,
+    tag: optionTag(index),
     tagTone: index === 0 ? 'best' : 'neutral',
     mode: option.outbound.mode === 'TRAIN' ? 'train' : 'plane',
     number: reference,
@@ -270,6 +285,7 @@ function displayOptionFromApi(
     facts: option.facts.length
       ? factsForOptionCard(option.facts)
       : option.rule_evidence.slice(0, 3).map((rule) => rule.message),
+    costNotes: costNotes(option.cost_guidance, labelFor),
     live: true,
   }
 }
@@ -491,24 +507,55 @@ function Header({ activeView, onNewTrip, user, onLogout }: {
 }
 
 /** 智能规划页的自然语言指令输入区与对话摘要。 */
-function InlineAgentComposer({ task, busy, error, message, onMessageChange, onSubmit }: {
+/** 聊天气泡：助手说的话、助手的提问、用户说的话，三种样式。 */
+function ChatBubble({ turn }: { turn: ChatTurn }) {
+  if (turn.role === 'user') {
+    return (
+      <div className="chat-turn user">
+        <div className="chat-bubble">{turn.content}</div>
+      </div>
+    )
+  }
+  return (
+    <div className="chat-turn assistant">
+      <span className="chat-avatar">澄</span>
+      <div className={turn.kind === 'question' ? 'chat-bubble question' : 'chat-bubble'}>
+        {turn.kind === 'question' && <b className="chat-bubble-label">还没定的事</b>}
+        {turn.content.split('\n').map((line, index) => <p key={index}>{line}</p>)}
+      </div>
+    </div>
+  )
+}
+
+/**
+ * 左侧聊天栏：对话在这里发生，行程在右边。
+ *
+ * 对话内容来自后端 `messages`，推荐理由来自 `agentic_proposal`——
+ * **助手的话不是前端编的**（拼接规则见 utils/chat.ts）。
+ */
+function ChatPane({
+  task, turns, pending, busy, error, message, onMessageChange, onSubmit, onNewTrip,
+}: {
   task: TripTask | null
+  turns: ChatTurn[]
+  /** 刚发出去、后端还没答的那句话。 */
+  pending: string
   busy: boolean
   error: string
   message: string
   onMessageChange: (value: string) => void
   onSubmit: (message: string) => Promise<boolean>
+  onNewTrip: () => void
 }) {
   const suggestions = ['14:00 前抵达', '优先高铁', '酒店靠近客户', '避免早班']
   const stateMeta = task ? getStateMeta(task.state) : null
-  const userTurns = (task?.messages ?? []).filter((item) => item.role === 'user')
-  const assistantMessage = error
-    ? '刚才的请求没有完成。请检查提示后重试，已输入的内容不会丢失。'
-    : busy
-      ? '正在理解你的指令，并调用政策与库存服务生成结果……'
-      : task
-          ? stateMeta?.description ?? '任务已更新。'
-          : '你好，需要我规划哪段行程？请直接补充目的地、时间、交通、酒店或预算要求。'
+  const threadRef = useRef<HTMLDivElement | null>(null)
+
+  // 新消息进来就滚到底：聊天栏里最新那条必须自己出现在眼前。
+  useEffect(() => {
+    const node = threadRef.current
+    if (node) node.scrollTop = node.scrollHeight
+  }, [turns.length, busy, error, pending])
 
   const appendSuggestion = (suggestion: string) => {
     if (message.includes(suggestion)) return
@@ -522,48 +569,80 @@ function InlineAgentComposer({ task, busy, error, message, onMessageChange, onSu
   }
 
   return (
-    <section className="agent-command-center" aria-labelledby="agent-command-title">
-      <div className="agent-command-rail">
-        <div className="eyebrow"><Icon name="spark" />TRAVEL AGENT</div>
-        <h2 id="agent-command-title">直接告诉我<br />你的差旅安排</h2>
-        <p>一句话描述目的地、日期和偏好，我会补齐信息并校验政策。</p>
-        <span className="agent-live"><i />{busy ? 'Agent 工作中' : task ? `任务 ${task.task_id.slice(0, 8)}` : 'API 已就绪'}</span>
-      </div>
-      <div className="agent-conversation">
-        <div className="assistant-turn">
-          <span className="assistant-avatar">澄</span>
-          <div><b>澄行差旅助理 {stateMeta && <em>· {stateMeta.label}</em>}</b><p>{assistantMessage}</p></div>
-        </div>
-        {userTurns.map((turn, index) => (
-          <div className="user-turn" key={`${turn.created_at}-${index}`}>
-            <span className="user-avatar">我</span>
-            <div><b>{index === 0 ? '你的原始指令' : `补充说明 ${index}`}</b><p>{turn.content}</p></div>
+    <section className="chat-pane" aria-label="与差旅助理的对话">
+      <header className="chat-pane-head">
+        <div className="chat-pane-title">
+          <span className="chat-avatar">澄</span>
+          <div>
+            <b>澄行差旅助理</b>
+            <small>{task ? `任务 ${task.task_id.slice(0, 8)}` : 'API 已就绪'}</small>
           </div>
-        ))}
-        {error && <div className="agent-api-error" role="alert"><Icon name="info" size={15} />{error}</div>}
-        <div className="inline-composer-input">
-          <label htmlFor="inline-trip-request">你的指令</label>
-          <button type="button" onClick={() => onMessageChange('')}>清空</button>
+        </div>
+        <div className="chat-pane-status">
+          <Badge tone={stateBadgeTone(task?.state ?? null)}>{stateMeta?.label ?? '等待指令'}</Badge>
+          {task && <button type="button" className="chat-new" onClick={onNewTrip}>新对话</button>}
+        </div>
+      </header>
+
+      <div className="chat-thread" ref={threadRef}>
+        <div className="chat-turn assistant">
+          <span className="chat-avatar">澄</span>
+          <div className="chat-bubble">
+            <p>你好，需要我规划哪段行程？</p>
+            <p>一句话说清目的地、时间和偏好就行。我去查真实库存，政策由规则引擎校验。</p>
+          </div>
+        </div>
+        {turns.map((turn) => <ChatBubble key={turn.key} turn={turn} />)}
+        {pending && !turns.some((turn) => turn.content === pending) && (
+          <div className="chat-turn user"><div className="chat-bubble">{pending}</div></div>
+        )}
+        {task && task.assumptions.length > 0 && (
+          <div className="chat-note">
+            <Icon name="info" size={14} />
+            <div>{task.assumptions.map((item) => <p key={item}>{item}</p>)}</div>
+          </div>
+        )}
+        {busy && (
+          <div className="chat-turn assistant">
+            <span className="chat-avatar">澄</span>
+            <div className="chat-bubble typing"><i /><i /><i /></div>
+          </div>
+        )}
+        {error && <div className="chat-error" role="alert"><Icon name="info" size={15} />{error}</div>}
+      </div>
+
+      <div className="chat-composer">
+        <div className="chat-suggestions" aria-label="常用补充">
+          {!message.trim() && <button type="button" onClick={() => onMessageChange(EXAMPLE_TRIP_MESSAGE)}>填入示例</button>}
+          {suggestions.map((item) => <button type="button" key={item} onClick={() => appendSuggestion(item)}>+ {item}</button>)}
+        </div>
+        <div className="chat-input">
           <textarea
             id="inline-trip-request"
             name="inline-trip-request"
             value={message}
+            rows={3}
+            disabled={busy}
             onChange={(event) => onMessageChange(event.target.value)}
             onKeyDown={(event) => {
               if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') void submit()
             }}
-            placeholder="例如：下周二从北京去上海见客户，优先高铁，酒店离客户近一点……"
+            placeholder={task ? '继续补充，或者直接改主意……' : '例如：下周二从北京去上海见客户，优先高铁，酒店离客户近一点……'}
           />
+          <button
+            className="primary chat-send"
+            type="button"
+            data-testid="chat-send"
+            disabled={!message.trim() || busy}
+            onClick={() => void submit()}
+          >
+            {busy ? '连接中…' : '发送'}{!busy && <Icon name="arrow" />}
+          </button>
         </div>
-        <div className="agent-command-actions">
-          <div className="command-suggestions" aria-label="常用指令">
-            {!message.trim() && <button type="button" onClick={() => onMessageChange(EXAMPLE_TRIP_MESSAGE)}>填入示例</button>}
-            {suggestions.map((suggestion) => <button type="button" key={suggestion} onClick={() => appendSuggestion(suggestion)}>+ {suggestion}</button>)}
-          </div>
-          <span className="command-shortcut">⌘ Enter 发送</span>
-          <button className="primary command-submit" type="button" disabled={!message.trim() || busy} onClick={() => void submit()}>{busy ? '正在连接 API…' : task && (task.state === 'NEEDS_CLARIFICATION' || task.state === 'NEEDS_STRUCTURED_INPUT') ? '补充并继续' : '发送并规划'} {!busy && <Icon name="arrow" />}</button>
+        <div className="chat-boundary">
+          <span>⌘ Enter 发送</span>
+          <span><Icon name="shield" size={13} />不会自动预订或支付</span>
         </div>
-        <div className="agent-boundary"><Icon name="shield" size={14} />AI 负责理解与规划，政策结论由规则引擎校验；不会自动预订或支付。</div>
       </div>
     </section>
   )
@@ -1079,6 +1158,16 @@ function OptionCard({ option, selected, compared, onSelect, onCompare }: {
           <button className={selected ? 'selected-button' : 'outline-button'} data-testid={`select-option-${option.id}`} onClick={onSelect}>{selected ? '已选择' : '选择方案'}</button>
         </div>
       </div>
+      {option.costNotes.length > 0 && (
+        <div className="option-cost-notes">
+          {option.costNotes.map((note) => (
+            <p key={note.text} className={`cost-note ${note.tone}`}>
+              <Icon name={note.tone === 'warn' ? 'info' : 'leaf'} size={15} />
+              {note.text}
+            </p>
+          ))}
+        </div>
+      )}
       <div className="option-foot">
         <span><Icon name={option.live ? 'link' : 'leaf'} size={15} />{option.carbon}</span>
         {option.facts.map((fact) => <span key={fact}><i />{fact}</span>)}
@@ -1089,15 +1178,24 @@ function OptionCard({ option, selected, compared, onSelect, onCompare }: {
 }
 
 /**
- * 智能规划主视图：驱动任务状态机对应的 UI 分支。
- * NEEDS_STRUCTURED_INPUT → 表单；NEEDS_CLARIFICATION → 澄清；否则自然语言作曲器；有方案后展示选择区。
+ * 智能规划主视图：**左边聊天，右边行程**。
+ *
+ * 两边同时在场是有原因的：工具循环提问时不会把已经搜到的方案收走（HANDOFF §38），
+ * 所以"问一句"和"已经查到三个方案"必须能一起显示。旧版把二者做成互斥的两屏，
+ * 用户看到追问就以为什么都没查到。
+ *
+ * 右栏的分支顺序：结构化表单 → 结构化澄清题 → 方案；自由问答一律走左栏。
  */
-function PlanView({ onToast, composerEpoch }: { onToast: (text: string) => void; composerEpoch: number }) {
+function PlanView({ onToast, composerEpoch, onNewTrip }: {
+  onToast: (text: string) => void
+  composerEpoch: number
+  onNewTrip: () => void
+}) {
   const { user } = useAuth()
   const [task, setTask] = useState<TripTask | null>(null)
   const [selectedId, setSelectedId] = useState('')
   const [compared, setCompared] = useState<string[]>([])
-  const [tab, setTab] = useState<'options' | 'request' | 'timeline'>('options')
+  const [tab, setTab] = useState<'options' | 'request' | 'scoring' | 'timeline'>('options')
   const [instruction, setInstruction] = useState('')
   const [draftMessage, setDraftMessage] = useState(() => initialComposerMessage())
   const [composingNew, setComposingNew] = useState(false)
@@ -1105,6 +1203,9 @@ function PlanView({ onToast, composerEpoch }: { onToast: (text: string) => void;
   const [actionBusy, setActionBusy] = useState(false)
   const [apiError, setApiError] = useState('')
   const [businessReason, setBusinessReason] = useState('')
+  // 刚发出去、后端还没答的那句话。聊天栏必须立刻显示它——
+  // 等真实任务回来才显示的话，用户会以为自己没发出去。
+  const [pendingMessage, setPendingMessage] = useState('')
   const composingNewRef = useRef(false)
 
   const updateDraft = (value: string) => {
@@ -1144,20 +1245,41 @@ function PlanView({ onToast, composerEpoch }: { onToast: (text: string) => void;
 
   const displayOptions = useMemo(() => {
     const lodgingRequirement = lodgingRequirementFromTask(task)
-    return task?.options.map((option, index) => displayOptionFromApi(option, index, lodgingRequirement)) ?? []
+    // 建议里指向的是别的方案，卡片上要写它的名字而不是内部 ID。
+    // 名字由展示顺序决定，所以先把整张表建好，再逐条映射。
+    const labels = new Map((task?.options ?? []).map((option, index) => [option.option_id, optionTag(index)]))
+    const labelFor = (optionId: string) => labels.get(optionId) ?? optionId
+    return task?.options.map((option, index) => displayOptionFromApi(option, index, lodgingRequirement, labelFor)) ?? []
   }, [task])
   const selected = displayOptions.find((option) => option.id === selectedId) ?? displayOptions[0]
   const selectedApiOption = task?.options.find((option) => option.option_id === selected?.id) ?? null
   const taskState = task ? getStateMeta(task.state) : null
-  // 任务处于澄清/结构化输入态且非「新建中」时，切换到澄清相关 UI
-  const needsClarification = Boolean(
+  const turns = useMemo(() => (composingNew ? [] : chatTurns(task)), [task, composingNew])
+  // 只有后端真的给了**结构化**澄清题（语义/旧链路）才在右栏摆表单。
+  // 工具循环的追问是一句自由文本，它属于左边的对话，摆成表单反而挡住了直接回话。
+  const showClarificationForm = Boolean(
     !composingNew
     && task
-    && (task.state === 'NEEDS_CLARIFICATION' || task.state === 'NEEDS_STRUCTURED_INPUT'),
+    && task.state === 'NEEDS_CLARIFICATION'
+    && validClarificationQuestions(task).length > 0,
   )
-  const origin = intentText(task, 'origin', '')
-  const destination = intentText(task, 'destination', '')
-  const departureAfter = intentText(task, 'departure_after', '')
+  // 工具循环不填 intent_fields.origin/destination——它按段搜，段记在 transport_legs 里。
+  // 标题先读意图字段，读不到就读真实搜过的航段，两边都空才算"还没有行程"。
+  const legs = task?.transport_legs ?? []
+  const routeLabel = legs.length > 1
+    ? [legs[0].origin, ...legs.map((leg) => leg.destination)].join(' → ')
+    : legs.length === 1
+      ? `${legs[0].origin} → ${legs[0].destination}`
+      : intentText(task, 'origin', '') && intentText(task, 'destination', '')
+        ? `${intentText(task, 'origin', '')} → ${intentText(task, 'destination', '')}`
+        : ''
+  // 票根条只画**第一段**。多段行程里"出发地→目的地"取首尾会画成
+  // "上海 → 上海"（往返），那不是一段行程，是一句废话；整条链路在大标题上。
+  const origin = legs[0]?.origin ?? intentText(task, 'origin', '')
+  const destination = legs[0]?.destination ?? intentText(task, 'destination', '')
+  const departureAfter = legs[0]?.depart_after ?? intentText(task, 'departure_after', '')
+  // 和票根条同一段：第一段的到达时限，不是最后一段的。
+  const arriveBy = legs[0]?.arrive_before ?? intentText(task, 'arrive_by', '')
   const departureWall = departureAfter ? parseIsoWallClock(departureAfter) : null
   const validDepartureDate = departureWall
     ? new Date(Date.UTC(departureWall.year, departureWall.month - 1, departureWall.day))
@@ -1176,6 +1298,7 @@ function PlanView({ onToast, composerEpoch }: { onToast: (text: string) => void;
   const submitInstruction = async (message: string): Promise<boolean> => {
     if (!user) return false
     writeComposerDraft(message)
+    setPendingMessage(message)
     setApiBusy(true)
     setApiError('')
     try {
@@ -1226,6 +1349,7 @@ function PlanView({ onToast, composerEpoch }: { onToast: (text: string) => void;
       return false
     } finally {
       setApiBusy(false)
+      setPendingMessage('')
     }
   }
 
@@ -1287,94 +1411,200 @@ function PlanView({ onToast, composerEpoch }: { onToast: (text: string) => void;
   }
 
   return (
-    <div className="page plan-page">
-      <div className="page-heading compact">
-        <div><div className="breadcrumb">智能规划 {task && <><span>/</span> {task.task_id}</>}</div><h1>{origin && destination ? `${origin}到${destination}差旅` : '创建新的差旅行程'}</h1><p>{task ? `${taskState?.description} · 行程申请 v${task.request_version ?? 1}` : '输入自然语言指令，结果将直接来自本地 FastAPI 服务。'}</p></div>
-        <div className="heading-status"><Badge tone={stateBadgeTone(task?.state ?? null)}>{task && <span className="pulse" />}{taskState?.label ?? '等待指令'}</Badge><button className="more-button" aria-label="更多任务操作">•••</button></div>
-      </div>
+    <div className="plan-workspace">
+      {/* 左边聊天，右边行程。对话和行程同时在场——问一句不该把已经查到的方案收走。 */}
+      <ChatPane
+        task={task}
+        turns={turns}
+        pending={pendingMessage}
+        busy={apiBusy}
+        error={apiError}
+        message={draftMessage}
+        onMessageChange={updateDraft}
+        onSubmit={submitInstruction}
+        onNewTrip={onNewTrip}
+      />
 
-      {/* 状态机分支：结构化表单 → 澄清面板 → 自然语言作曲器 */}
-      {task && task.state === 'NEEDS_STRUCTURED_INPUT'
-        ? <StructuredRequestForm task={task} busy={apiBusy} error={apiError} onSubmit={submitStructured} />
-        : needsClarification && task
-          ? <ClarificationPanel task={task} busy={apiBusy} error={apiError} onSubmit={submitInstruction} />
-          : <InlineAgentComposer task={task} busy={apiBusy} error={apiError} message={draftMessage} onMessageChange={updateDraft} onSubmit={submitInstruction} />}
+      <section className="itinerary-pane" aria-label="行程">
+        <header className="itinerary-head">
+          <div>
+            <div className="breadcrumb">行程 {task && <><span>/</span> {task.task_id.slice(0, 8)}</>}</div>
+            <h1>{routeLabel || '还没有行程'}</h1>
+            <p>{task ? `${taskState?.description} · 需求第 ${task.request_version ?? 1} 版` : '左边说一句话，这里会出现真实库存查出来的方案。'}</p>
+          </div>
+          {task && displayOptions.length > 0 && (
+            <div className="itinerary-head-meta">
+              <span className="live-data-label"><i />LIVE DATA</span>
+              <small>{displayOptions.length} 个方案</small>
+            </div>
+          )}
+        </header>
 
-      {task && origin && destination && <section className="ticket-strip">
-        <div className="ticket-date"><span>{validDepartureDate ? new Intl.DateTimeFormat('en-US', { month: 'short', timeZone: 'UTC' }).format(validDepartureDate).toUpperCase() : 'DATE'}</span><strong>{validDepartureDate ? validDepartureDate.getUTCDate() : '—'}</strong><small>{validDepartureDate ? new Intl.DateTimeFormat('zh-CN', { weekday: 'short', timeZone: 'UTC' }).format(validDepartureDate) : '日期待补充'}</small></div>
-        <div className="ticket-route">
-          <div><small>出发地</small><strong>{origin}</strong><span>ORIGIN</span></div>
-          <div className="ticket-track"><i /><span><Icon name="arrow" size={17} /></span><i /></div>
-          <div><small>目的地</small><strong>{destination}</strong><span>DESTINATION</span></div>
-        </div>
-        <div className="ticket-meta"><span><Icon name="clock" size={16} />最晚抵达 {intentText(task, 'arrive_by')}</span><span><Icon name="briefcase" size={16} />{taskState?.description}</span></div>
-        <div className="ticket-seal"><Icon name="shield" size={20} /><b>LIVE API</b><span>{task.task_id.slice(0, 8)}</span><small>已同步</small></div>
-      </section>}
+        {task && origin && destination && <section className="ticket-strip">
+          <div className="ticket-date"><span>{validDepartureDate ? new Intl.DateTimeFormat('en-US', { month: 'short', timeZone: 'UTC' }).format(validDepartureDate).toUpperCase() : 'DATE'}</span><strong>{validDepartureDate ? validDepartureDate.getUTCDate() : '—'}</strong><small>{validDepartureDate ? new Intl.DateTimeFormat('zh-CN', { weekday: 'short', timeZone: 'UTC' }).format(validDepartureDate) : '日期待补充'}</small></div>
+          <div className="ticket-route">
+            <div><small>{legs.length > 1 ? `第 1 段 / 共 ${legs.length} 段` : '出发地'}</small><strong>{origin}</strong><span>ORIGIN</span></div>
+            <div className="ticket-track"><i /><span><Icon name="arrow" size={17} /></span><i /></div>
+            <div><small>目的地</small><strong>{destination}</strong><span>DESTINATION</span></div>
+          </div>
+          <div className="ticket-meta"><span><Icon name="clock" size={16} />最晚抵达 {arriveBy ? `${dateText(arriveBy)} ${travelTimeText(arriveBy)}` : '待补充'}</span><span><Icon name="briefcase" size={16} />{taskState?.description}</span></div>
+        </section>}
 
-      {!task && <section className="task-empty-state"><span><Icon name="spark" size={22} /></span><div><b>还没有真实差旅任务</b><p>在上方输入指令后，前端会调用 <code>POST /trip-tasks</code>，并用 API 返回内容替换这里。</p></div></section>}
+        {/* 状态机分支：结构化表单 → 结构化澄清题 → 行程 */}
+        {task && task.state === 'NEEDS_STRUCTURED_INPUT'
+          && <StructuredRequestForm task={task} busy={apiBusy} error={apiError} onSubmit={submitStructured} />}
+        {showClarificationForm && task
+          && <ClarificationPanel task={task} busy={apiBusy} error={apiError} onSubmit={submitInstruction} />}
 
-      {task && displayOptions.length === 0 && !needsClarification && <section className="task-progress-panel">
-        <span className={apiBusy ? 'progress-orbit spinning' : 'progress-orbit'}><Icon name={task.failure ? 'info' : 'spark'} /></span>
-        <div><div className="section-kicker">{task.state}</div><h2>{taskState?.label}</h2><p>{searchOutcomeCopy(task, taskState?.description)}</p>{task.missing_required_fields.length > 0 && <div className="missing-fields">待补充：{task.missing_required_fields.join('、')}</div>}</div>
-      </section>}
+        {!task && <section className="task-empty-state"><span><Icon name="spark" size={22} /></span><div><b>还没有真实差旅任务</b><p>在左边发出第一句话后，前端会调用 <code>POST /agentic/trip-tasks</code>，这里换成 API 返回的方案。</p></div></section>}
 
-      {task && displayOptions.length > 0 && <>
-        <div className="content-tabs" role="tablist">
-          <button className={tab === 'options' ? 'active' : ''} onClick={() => setTab('options')}>推荐方案 <em>{displayOptions.length}</em></button>
-          <button className={tab === 'request' ? 'active' : ''} onClick={() => setTab('request')}>需求与偏好</button>
-          <button className={tab === 'timeline' ? 'active' : ''} onClick={() => setTab('timeline')}>工具记录</button>
-        </div>
+        {task && displayOptions.length === 0 && !showClarificationForm && task.state !== 'NEEDS_STRUCTURED_INPUT' && <section className="task-progress-panel">
+          <span className={apiBusy ? 'progress-orbit spinning' : 'progress-orbit'}><Icon name={task.failure ? 'info' : 'spark'} /></span>
+          <div><div className="section-kicker">{task.state}</div><h2>{taskState?.label}</h2><p>{searchOutcomeCopy(task, taskState?.description)}</p>{task.missing_required_fields.length > 0 && <div className="missing-fields">待补充：{task.missing_required_fields.join('、')}</div>}</div>
+        </section>}
 
-        {tab === 'options' && selected && <div className="plan-layout">
-          <main className="option-list">
-            {originalInstruction(task, instruction) && <div className="instruction-quote">
-              <span>原始指令</span>
-              <blockquote>“{originalInstruction(task, instruction)}”</blockquote>
-            </div>}
-            <div className="assistant-note">
-              <span className="assistant-mark"><Icon name="spark" /></span>
-              <div>
-                <b>API 返回 {displayOptions.length} 个可行方案</b>
-                <p>结果来自 <strong>{selectedApiOption?.outbound.provider}</strong> 库存，并已通过后端政策引擎评估。</p>
-                {openQuestionsFromTask(task).map((question) => (
-                  <p key={question} className="gap-notice">{question}</p>
-                ))}
-                {Array.isArray(task.intent_fields.soft_preferences) && task.intent_fields.soft_preferences.includes('hotel_near_client') && selectedApiOption?.hotel && (selectedApiOption.hotel.commute_known === false || selectedApiOption.hotel.commute_minutes >= 1440) && (
-                  <p>你提到希望酒店靠近客户公司，但未提供客户地址。当前酒店是目的地城市报价，<strong>不能按通勤距离筛选</strong>。</p>
-                )}
+        {task && displayOptions.length > 0 && <>
+          <div className="content-tabs" role="tablist">
+            <button className={tab === 'options' ? 'active' : ''} onClick={() => setTab('options')}>推荐方案 <em>{displayOptions.length}</em></button>
+            <button className={tab === 'request' ? 'active' : ''} onClick={() => setTab('request')}>需求与偏好</button>
+            <button className={tab === 'scoring' ? 'active' : ''} onClick={() => setTab('scoring')}>评分过程</button>
+            <button className={tab === 'timeline' ? 'active' : ''} onClick={() => setTab('timeline')}>工具记录</button>
+          </div>
+
+          {tab === 'options' && selected && <div className="itinerary-body">
+            <div className="option-list">
+              {openQuestionsFromTask(task).length > 0 && <div className="gap-strip">
+                <Icon name="info" size={15} />
+                <div>
+                  <b>这些还没定，方案先给你</b>
+                  {openQuestionsFromTask(task).map((question) => <p key={question}>{question}</p>)}
+                </div>
+              </div>}
+              {Array.isArray(task.intent_fields.soft_preferences) && task.intent_fields.soft_preferences.includes('hotel_near_client') && selectedApiOption?.hotel && (selectedApiOption.hotel.commute_known === false || selectedApiOption.hotel.commute_minutes >= 1440) && (
+                <div className="gap-strip"><Icon name="info" size={15} /><div><b>酒店没法按通勤距离筛</b><p>你提到希望酒店靠近客户公司，但没有给客户地址，这里是目的地城市的报价。</p></div></div>
+              )}
+              <div className="list-toolbar"><p>按后端综合评分排序 · 库存来自 {selectedApiOption?.outbound.provider}</p></div>
+              {displayOptions.map((option) => <OptionCard key={option.id} option={option} selected={selected.id === option.id} compared={compared.includes(option.id)} onSelect={() => setSelectedId(option.id)} onCompare={() => toggleCompare(option.id)} />)}
+              <button className="replan-button" disabled={actionBusy} onClick={() => void replan()}><Icon name="spark" />{actionBusy ? '正在调用 API…' : '这些都不合适？调用 API 重新规划'}</button>
+            </div>
+
+            <aside className="decision-panel">
+              <div className="decision-title"><span>当前选择</span><Badge tone={selected.policyTone}>{selected.policy}</Badge></div>
+              {/* 供应商没给航班号，就别拿一串报价编号当标题——按航线和时刻说人话，编号放小字。 */}
+              <h3>{selected.origin} → {selected.destination} · {selected.depart} 出发</h3>
+              <p className="decision-ref">{selected.number} · {selected.hotel}</p>
+              <div className="price-breakdown"><div><span>往返交通</span><b>{selected.transportPrice}</b></div><div><span>酒店</span><b>{selected.hotelPrice}</b></div><div className="total"><span>预估总计</span><strong>{selected.currencySymbol}{selected.price}</strong></div></div>
+              <div className={`policy-callout ${selected.policyTone}`}>
+                <span><Icon name={selected.policyTone === 'ok' ? 'shield' : 'info'} size={18} /></span>
+                <div><b>{selected.policyTone === 'ok' ? '后端政策校验通过' : '选择后需要审批或补充证据'}</b><p>{selected.policyTone === 'ok' ? '以下结论来自当前任务固定的政策证据。' : '请填写业务原因，后端将创建审批请求。'}</p></div>
               </div>
-              <button onClick={() => setTab('timeline')}>查看工具记录</button>
-            </div>
-            <div className="list-toolbar"><p>按后端综合评分排序</p><span className="live-data-label"><i />LIVE DATA</span></div>
-            {displayOptions.map((option) => <OptionCard key={option.id} option={option} selected={selected.id === option.id} compared={compared.includes(option.id)} onSelect={() => setSelectedId(option.id)} onCompare={() => toggleCompare(option.id)} />)}
-            <button className="replan-button" disabled={actionBusy} onClick={() => void replan()}><Icon name="spark" />{actionBusy ? '正在调用 API…' : '这些都不合适？调用 API 重新规划'}</button>
-          </main>
+              <ul className="evidence-list">
+                {(selectedApiOption?.rule_evidence ?? []).slice(0, 5).map((rule) => <li key={rule.rule_id}><span>{rule.message || rule.rule_id}</span><b className={rule.outcome === 'COMPLIANT' ? 'pass' : ''}>{rule.outcome === 'COMPLIANT' ? '通过' : rule.outcome === 'REQUIRES_APPROVAL' ? '需审批' : rule.outcome === 'INSUFFICIENT_EVIDENCE' ? '判不了' : '未通过'}</b></li>)}
+                <li><span>库存引用</span><b>{selectedApiOption?.inventory_refs.length ?? 0} 条</b></li>
+              </ul>
+              {selected.policyTone !== 'ok' && <label className="business-reason"><span>业务原因（审批必填）</span><textarea data-testid="business-reason" value={businessReason} onChange={(event) => setBusinessReason(event.target.value)} placeholder="说明为什么需要选择该方案" /></label>}
+              <button className="primary full" data-testid="confirm-selection" disabled={actionBusy || (selected.policyTone !== 'ok' && !businessReason.trim())} onClick={() => void confirmSelection()}>{actionBusy ? '正在提交 API…' : selected.policyTone === 'ok' ? '确认并重新验证' : '选择并申请审批'}{!actionBusy && <Icon name="arrow" />}</button>
+              <p className="decision-help"><Icon name="info" size={14} />操作会写入真实任务状态，但预订和支付能力仍被后端禁用。</p>
+            </aside>
+          </div>}
 
-          <aside className="decision-panel">
-            <div className="decision-title"><span>当前选择</span><Badge tone={selected.policyTone}>{selected.policy}</Badge></div>
-            <h3>{selected.number} + {selected.hotel}</h3>
-            <div className="price-breakdown"><div><span>往返交通</span><b>{selected.transportPrice}</b></div><div><span>酒店</span><b>{selected.hotelPrice}</b></div><div className="total"><span>预估总计</span><strong>{selected.currencySymbol}{selected.price}</strong></div></div>
-            <div className={`policy-callout ${selected.policyTone}`}>
-              <span><Icon name={selected.policyTone === 'ok' ? 'shield' : 'info'} size={18} /></span>
-              <div><b>{selected.policyTone === 'ok' ? '后端政策校验通过' : '选择后需要审批或补充证据'}</b><p>{selected.policyTone === 'ok' ? '以下结论来自当前任务固定的政策证据。' : '请填写业务原因，后端将创建审批请求。'}</p></div>
-            </div>
-            <ul className="evidence-list">
-              {(selectedApiOption?.rule_evidence ?? []).slice(0, 5).map((rule) => <li key={rule.rule_id}><span>{rule.message || rule.rule_id}</span><b className={rule.outcome === 'COMPLIANT' ? 'pass' : ''}>{rule.outcome === 'COMPLIANT' ? '通过' : rule.outcome === 'REQUIRES_APPROVAL' ? '需审批' : '未通过'}</b></li>)}
-              <li><span>库存引用</span><b>{selectedApiOption?.inventory_refs.length ?? 0} 条</b></li>
-            </ul>
-            {selected.policyTone !== 'ok' && <label className="business-reason"><span>业务原因（审批必填）</span><textarea data-testid="business-reason" value={businessReason} onChange={(event) => setBusinessReason(event.target.value)} placeholder="说明为什么需要选择该方案" /></label>}
-            <button className="primary full" data-testid="confirm-selection" disabled={actionBusy || (selected.policyTone !== 'ok' && !businessReason.trim())} onClick={() => void confirmSelection()}>{actionBusy ? '正在提交 API…' : selected.policyTone === 'ok' ? '确认并重新验证' : '选择并申请审批'}{!actionBusy && <Icon name="arrow" />}</button>
-            <p className="decision-help"><Icon name="info" size={14} />操作会写入真实任务状态，但预订和支付能力仍被后端禁用。</p>
-          </aside>
-        </div>}
+          {tab === 'request' && <RequestPanel task={task} rawMessage={originalInstruction(task, instruction)} />}
+          {tab === 'scoring' && <ScoringPanel task={task} />}
+          {tab === 'timeline' && <TimelinePanel task={task} />}
 
-        {tab === 'request' && <RequestPanel task={task} rawMessage={originalInstruction(task, instruction)} />}
-        {tab === 'timeline' && <TimelinePanel task={task} />}
-
-        {compared.length > 1 && <div className="compare-dock"><span>已选择 <b>{compared.length}</b> 个方案</span><div>{compared.map((id) => <Badge key={id} tone="dark">{displayOptions.find((item) => item.id === id)?.number}</Badge>)}</div><button className="primary small" onClick={() => onToast('已选方案来自当前 API 响应')}>确认对比</button><button className="dock-close" onClick={() => setCompared([])}><Icon name="close" /></button></div>}
-      </>}
+          {compared.length > 1 && <div className="compare-dock"><span>已选择 <b>{compared.length}</b> 个方案</span><div>{compared.map((id) => <Badge key={id} tone="dark">{displayOptions.find((item) => item.id === id)?.number}</Badge>)}</div><button className="primary small" onClick={() => onToast('已选方案来自当前 API 响应')}>确认对比</button><button className="dock-close" onClick={() => setCompared([])}><Icon name="close" /></button></div>}
+        </>}
+      </section>
     </div>
   )
+}
+
+
+/**
+ * 「评分过程」页签：把排序算给人看。
+ *
+ * 差旅没有唯一的"最好"，所以这一页要说清三件事：分数怎么算的、这几条各得多少、
+ * 以及**这个分数管不到什么**——没搜过的时间窗不在比较范围内，没说过的偏好不会扣分。
+ */
+function ScoringPanel({ task }: { task: TripTask }) {
+  const minutesPerUnit = Number(task.scoring?.minutes_per_unit ?? 10)
+  const rows = rankedBreakdowns(task.options, minutesPerUnit)
+  const currency = task.options[0]?.currency ?? 'USD'
+  const symbol = currencySymbol(currency)
+  const preferences = task.scoring?.journey_preferences ?? []
+  const rate = minutesPerUnit === 60
+    ? '你说了「怎么便宜怎么来」，所以时长基本不参与竞争'
+    : minutesPerUnit === 1
+      ? '你说了「越快越好」，所以多花的路上时间要贵得很明显才划得来'
+      : '默认档：你没说「怎么便宜怎么来」也没说「越快越好」，两边平等参与'
+  const money = (value: number) => `${symbol}${value.toFixed(2)}`
+  const mismatched = rows.filter((row) => !row.reconciles)
+
+  return <section className="detail-panel scoring-panel">
+    <div className="section-kicker">排序规则</div>
+    <h2>总分 = 票价合计 + 时长 ÷ {minutesPerUnit} + 偏好罚分，<em>分低者胜</em></h2>
+    <p className="scoring-lede">
+      价格和时长本来没有共同单位，把它们加成一个分数就必须先定一个换算比例。
+      现在是 <b>{minutesPerUnit} 分钟折 {symbol}1</b>——{rate}。
+      生效的整程偏好：{preferences.length > 0 ? preferences.join('、') : '无'}。
+    </p>
+
+    <div className="scoring-table-wrap">
+      <table className="scoring-table">
+        <thead>
+          <tr>
+            <th>排名</th><th>类别</th><th>票价合计</th><th>总时长</th>
+            <th>时长折算</th><th>偏好罚分</th><th>总分</th><th>政策</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row, index) => {
+            const option = task.options.find((item) => item.option_id === row.optionId)
+            return <tr key={row.optionId} className={index === 0 ? 'winner' : ''}>
+              <td>{index + 1}</td>
+              <td>{row.categories.length > 0 ? row.categories.join(' · ') : '备选'}</td>
+              <td>{money(row.cost)}</td>
+              <td>{Math.floor(row.minutes / 60)}时{row.minutes % 60}分</td>
+              <td>+{row.durationScore.toFixed(2)}</td>
+              <td>{row.penalty > 0 ? `+${row.penalty.toFixed(2)}` : '0'}</td>
+              <td><b>{row.total.toFixed(2)}</b></td>
+              <td>{option?.policy_outcome === 'COMPLIANT' ? '合规' : option?.policy_outcome === 'REQUIRES_APPROVAL' ? '需审批' : option?.policy_outcome === 'FORBIDDEN' ? '禁止' : '证据不足'}</td>
+            </tr>
+          })}
+        </tbody>
+      </table>
+    </div>
+
+    {mismatched.length > 0 && <p className="scoring-warning">
+      有 {mismatched.length} 条重算对不上后端给的分数，这一页只如实显示后端的 score，不要按这里的拆解推断。
+    </p>}
+
+    <div className="scoring-legs">
+      <h3>每一段各贡献了多少</h3>
+      {task.options.map((option) => <div key={option.option_id} className="scoring-leg-block">
+        <b>{categoriesFromFacts(option.facts).join(' · ') || '备选'}</b>
+        <ul>
+          {option.legs.map((leg, index) => <li key={`${leg.ref_id}-${index}`}>
+            <span>{leg.origin} → {leg.destination} · {travelTimeText(leg.depart_at)}–{travelTimeText(leg.arrive_at)}</span>
+            <b>{amountText(leg.price, option.currency)}</b>
+          </li>)}
+          {option.stays.map((stay) => <li key={stay.ref_id}>
+            <span>{stay.name} · {stay.nights} 晚</span>
+            <b>{amountText(stay.total_price, option.currency)}</b>
+          </li>)}
+        </ul>
+      </div>)}
+    </div>
+
+    <div className="scoring-caveats">
+      <b>这个分数管不到的事</b>
+      <ul>
+        <li><b>只在搜到的候选之间比。</b> 模型搜了哪几个时间窗，就只有那几个进比较；没搜过的班次不在其中。工具记录里能看到实际搜了什么。</li>
+        <li><b>没说过的偏好不会扣分。</b> 凌晨出发、中转多这些只有在你说了「避免早班」这类要求时才会进罚分——否则便宜就是赢。</li>
+        <li><b>政策档优先于分数。</b> 先按合规档排，再按分数排：需审批的方案不会因为分数低就排到合规方案前面。</li>
+      </ul>
+    </div>
+  </section>
 }
 
 /** 「需求与偏好」页签：展示解析出的意图字段。 */
@@ -1539,7 +1769,7 @@ function ApprovalsView({ onToast }: { onToast: (text: string) => void }) {
           <div className="approval-title"><div><div className="section-kicker">{detail.task_id}</div><h2>{selected.outbound.origin} → {selected.outbound.destination}</h2><p>{detail.approval?.employee_snapshot_id ?? '申请人'} · 直属经理 {detail.approval?.approver_id}</p></div><Badge tone="orange">{getStateMeta(detail.state).label}</Badge></div>
           <div className="approval-route"><div><small>出发</small><b>{selected.outbound.origin}</b><span>{travelTimeText(selected.outbound.depart_at)}</span></div><span><Icon name={selected.outbound.mode === 'TRAIN' ? 'train' : 'plane'} /><i /></span><div><small>到达</small><b>{selected.outbound.destination}</b><span>{travelTimeText(selected.outbound.arrive_at)}</span></div><div className="approval-cost"><small>申请总额</small><b>{amountText(selected.total_cost, selected.currency)}</b></div></div>
           <div className="approval-grid"><div><span>业务目的</span><b>{detail.approval?.business_reason || '未填写'}</b></div><div><span>政策结论</span><b>{selected.policy_outcome}</b></div><div><span>库存引用</span><b>{selected.inventory_refs.length} 条</b></div><div><span>审批过期</span><b>{detail.approval?.expires_at ? dateText(detail.approval.expires_at) : '—'}</b></div></div>
-          <div className="exception-box"><span><Icon name="info" /></span><div><b>政策例外需要你判断</b><p>{(selected.rule_evidence.find((rule) => rule.outcome === 'REQUIRES_APPROVAL')?.message) || '该方案超过自动通过阈值。'}</p><div className="reason-quote"><span>申请人说明</span>“{detail.approval?.business_reason || '无'}”</div></div></div>
+          <div className="exception-box"><span><Icon name="info" /></span><div><b>{selected.policy_outcome === 'INSUFFICIENT_EVIDENCE' ? '系统判不了这条，需要你确认' : '政策例外需要你判断'}</b><p>{approvalReasonText(selected)}</p><div className="reason-quote"><span>申请人说明</span>“{detail.approval?.business_reason || '无'}”</div></div></div>
           <label className="decision-reason"><span>审批意见</span><textarea data-testid="approval-reason" value={reason} onChange={(event) => setReason(event.target.value)} placeholder="请填写通过或拒绝的原因（必填）" /></label>
           <div className="approval-actions"><button className="danger-outline" data-testid="approval-reject" disabled={busy || !reason.trim()} onClick={() => void decide(false)}>拒绝申请</button><button className="primary" data-testid="approval-approve" disabled={busy || !reason.trim()} onClick={() => void decide(true)}><Icon name="check" />批准例外</button></div>
         </> : <div className="task-empty-state"><span><Icon name="info" size={22} /></span><div><b>正在读取任务详情</b></div></div>}
@@ -1737,7 +1967,7 @@ function App() {
       <div className="workspace">
         <Header activeView={visibleView} onNewTrip={canPlan ? startNewTrip : null} user={user} onLogout={authEnabled ? logout : null} />
         {/* 按可见视图切换主内容区；plan 用 hidden 保活以便新建差旅重置 */}
-        {canPlan && <div className="workspace-view" hidden={visibleView !== 'plan'}><PlanView onToast={showToast} composerEpoch={composerEpoch} /></div>}
+        {canPlan && <div className="workspace-view" hidden={visibleView !== 'plan'}><PlanView onToast={showToast} composerEpoch={composerEpoch} onNewTrip={startNewTrip} /></div>}
         {visibleView === 'trips' && <TripsView mode={role} onOpen={canPlan ? startNewTrip : null} />}
         {visibleView === 'approvals' && <ApprovalsView onToast={showToast} />}
         {visibleView === 'policy' && <PolicyView mode={role} />}

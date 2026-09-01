@@ -1,0 +1,291 @@
+{
+  "runner_version": "tool-loop-multicity-runner-v1",
+  "prompt_version": "tool-loop-v1",
+  "architecture": "tool-loop",
+  "generated_at": "2026-08-30T02:37:32.706743+00:00",
+  "model": "deepseek-v4-pro",
+  "repeats": 1,
+  "max_iterations": 10,
+  "reference_time": "2026-08-01T09:00:00+08:00",
+  "routes_with_inventory": [
+    "Beijing->Hangzhou",
+    "Beijing->Shanghai",
+    "Chengdu->Beijing",
+    "Hangzhou->Beijing",
+    "Hangzhou->Shanghai",
+    "Shanghai->Beijing",
+    "Shanghai->Hangzhou"
+  ],
+  "cases_total": 2,
+  "cases_passed": 2,
+  "llm_calls": 8,
+  "input_tokens": 19369,
+  "output_tokens": 1183,
+  "estimated_cost_usd": 0.009454725,
+  "price_table_version": "model-prices-openai-20260802-v1",
+  "price_table_sha256": "dd2a754fb067cbb147677d6d75ac462f4f327480776696fadc8c6547cbdbbf46",
+  "results": [
+    {
+      "case_id": "MC-01",
+      "title": "三城按顺序：最基本的多行程",
+      "message": "8月5号从北京去上海开会，8月6号去杭州见客户，8月7号回北京",
+      "outcome_kind": "propose_options",
+      "question": null,
+      "summary": "三段行程各找到一趟直飞航班，均符合政策。",
+      "assumptions": [
+        "出发时间按 2026-08-05 00:00（Beijing 当地）起算，因为你要求 08月05日 10:00 前到达",
+        "出发时间按 2026-08-06 00:00（Shanghai 当地）起算，因为你要求 08月06日 10:00 前到达",
+        "出发时间按 2026-08-07 00:00（Hangzhou 当地）起算，因为你要求 08月07日 23:59 前到达"
+      ],
+      "transcript": [
+        {
+          "tool": "search_transport",
+          "arguments": {
+            "origin": "北京",
+            "destination": "上海",
+            "arrive_by": "2026-08-05T10:00:00+08:00"
+          },
+          "ok": true,
+          "result": {
+            "origin": "Beijing",
+            "destination": "Shanghai",
+            "depart_after": "2026-08-05T00:00:00+08:00",
+            "arrive_by": "2026-08-05T10:00:00+08:00",
+            "assumed": "出发时间按 2026-08-05 00:00（Beijing 当地）起算，因为你要求 08月05日 10:00 前到达",
+            "snapshot_id": "mock-transport-f87d925bd396",
+            "valid_until": "2026-08-01T09:15:00+08:00",
+            "options": [
+              {
+                "ref_id": "RT-BESH-08050730",
+                "mode": "FLIGHT",
+                "depart_at": "2026-08-05T07:30:00+08:00",
+                "arrive_at": "2026-08-05T10:00:00+08:00",
+                "price": "950 USD",
+                "seat_class": "ECONOMY",
+                "is_direct": true,
+                "policy_outcome": "COMPLIANT",
+                "policy_violations": []
+              }
+            ],
+            "option_count": 1,
+            "next_step": null
+          }
+        },
+        {
+          "tool": "search_transport",
+          "arguments": {
+            "arrive_by": "2026-08-06T10:00:00+08:00",
+            "destination": "杭州",
+            "origin": "上海"
+          },
+          "ok": true,
+          "result": {
+            "origin": "Shanghai",
+            "destination": "Hangzhou",
+            "depart_after": "2026-08-06T00:00:00+08:00",
+            "arrive_by": "2026-08-06T10:00:00+08:00",
+            "assumed": "出发时间按 2026-08-06 00:00（Shanghai 当地）起算，因为你要求 08月06日 10:00 前到达",
+            "snapshot_id": "mock-transport-ea23aeb22e66",
+            "valid_until": "2026-08-01T09:15:00+08:00",
+            "options": [
+              {
+                "ref_id": "RT-SHHA-08060730",
+                "mode": "FLIGHT",
+                "depart_at": "2026-08-06T07:30:00+08:00",
+                "arrive_at": "2026-08-06T10:00:00+08:00",
+                "price": "950 USD",
+                "seat_class": "ECONOMY",
+                "is_direct": true,
+                "policy_outcome": "COMPLIANT",
+                "policy_violations": []
+              }
+            ],
+            "option_count": 1,
+            "next_step": null
+          }
+        },
+        {
+          "tool": "search_transport",
+          "arguments": {
+            "arrive_by": "2026-08-07T23:59:00+08:00",
+            "destination": "北京",
+            "origin": "杭州"
+          },
+          "ok": true,
+          "result": {
+            "origin": "Hangzhou",
+            "destination": "Beijing",
+            "depart_after": "2026-08-07T00:00:00+08:00",
+            "arrive_by": "2026-08-07T23:59:00+08:00",
+            "assumed": "出发时间按 2026-08-07 00:00（Hangzhou 当地）起算，因为你要求 08月07日 23:59 前到达",
+            "snapshot_id": "mock-transport-6a565bf137d8",
+            "valid_until": "2026-08-01T09:15:00+08:00",
+            "options": [
+              {
+                "ref_id": "RT-HABE-08072129",
+                "mode": "FLIGHT",
+                "depart_at": "2026-08-07T21:29:00+08:00",
+                "arrive_at": "2026-08-07T23:59:00+08:00",
+                "price": "950 USD",
+                "seat_class": "ECONOMY",
+                "is_direct": true,
+                "policy_outcome": "COMPLIANT",
+                "policy_violations": []
+              }
+            ],
+            "option_count": 1,
+            "next_step": null
+          }
+        }
+      ],
+      "checks": [
+        {
+          "name": "terminal_action",
+          "ok": true,
+          "detail": "propose_options"
+        },
+        {
+          "name": "routes_in_travel_order",
+          "ok": true,
+          "detail": "expected [('Beijing', 'Shanghai'), ('Shanghai', 'Hangzhou'), ('Hangzhou', 'Beijing')], searched [('Beijing', 'Shanghai'), ('Shanghai', 'Hangzhou'), ('Hangzhou', 'Beijing')]"
+        }
+      ],
+      "passed": true,
+      "llm_calls": 4,
+      "input_tokens": 9670,
+      "output_tokens": 592,
+      "attempt": 1
+    },
+    {
+      "case_id": "MC-02",
+      "title": "倒着叙述：说的顺序和走的顺序相反",
+      "message": "8月7号从杭州飞回北京，在那之前8月6号从上海去杭州，最开始是8月5号从北京到上海",
+      "outcome_kind": "propose_options",
+      "question": null,
+      "summary": "三段行程各找到一个直飞航班，均符合政策。",
+      "assumptions": [
+        "出发时间按 2026-08-05 00:00（Beijing 当地）起算，因为你要求 08月05日 23:59 前到达",
+        "出发时间按 2026-08-06 00:00（Shanghai 当地）起算，因为你要求 08月06日 23:59 前到达",
+        "出发时间按 2026-08-07 00:00（Hangzhou 当地）起算，因为你要求 08月07日 23:59 前到达"
+      ],
+      "transcript": [
+        {
+          "tool": "search_transport",
+          "arguments": {
+            "origin": "北京",
+            "destination": "上海",
+            "arrive_by": "2026-08-05T23:59:00+08:00"
+          },
+          "ok": true,
+          "result": {
+            "origin": "Beijing",
+            "destination": "Shanghai",
+            "depart_after": "2026-08-05T00:00:00+08:00",
+            "arrive_by": "2026-08-05T23:59:00+08:00",
+            "assumed": "出发时间按 2026-08-05 00:00（Beijing 当地）起算，因为你要求 08月05日 23:59 前到达",
+            "snapshot_id": "mock-transport-a40609c7bf95",
+            "valid_until": "2026-08-01T09:15:00+08:00",
+            "options": [
+              {
+                "ref_id": "RT-BESH-08052129",
+                "mode": "FLIGHT",
+                "depart_at": "2026-08-05T21:29:00+08:00",
+                "arrive_at": "2026-08-05T23:59:00+08:00",
+                "price": "950 USD",
+                "seat_class": "ECONOMY",
+                "is_direct": true,
+                "policy_outcome": "COMPLIANT",
+                "policy_violations": []
+              }
+            ],
+            "option_count": 1,
+            "next_step": null
+          }
+        },
+        {
+          "tool": "search_transport",
+          "arguments": {
+            "arrive_by": "2026-08-06T23:59:00+08:00",
+            "destination": "杭州",
+            "origin": "上海"
+          },
+          "ok": true,
+          "result": {
+            "origin": "Shanghai",
+            "destination": "Hangzhou",
+            "depart_after": "2026-08-06T00:00:00+08:00",
+            "arrive_by": "2026-08-06T23:59:00+08:00",
+            "assumed": "出发时间按 2026-08-06 00:00（Shanghai 当地）起算，因为你要求 08月06日 23:59 前到达",
+            "snapshot_id": "mock-transport-f72d4f9d15dd",
+            "valid_until": "2026-08-01T09:15:00+08:00",
+            "options": [
+              {
+                "ref_id": "RT-SHHA-08062129",
+                "mode": "FLIGHT",
+                "depart_at": "2026-08-06T21:29:00+08:00",
+                "arrive_at": "2026-08-06T23:59:00+08:00",
+                "price": "950 USD",
+                "seat_class": "ECONOMY",
+                "is_direct": true,
+                "policy_outcome": "COMPLIANT",
+                "policy_violations": []
+              }
+            ],
+            "option_count": 1,
+            "next_step": null
+          }
+        },
+        {
+          "tool": "search_transport",
+          "arguments": {
+            "arrive_by": "2026-08-07T23:59:00+08:00",
+            "destination": "北京",
+            "origin": "杭州"
+          },
+          "ok": true,
+          "result": {
+            "origin": "Hangzhou",
+            "destination": "Beijing",
+            "depart_after": "2026-08-07T00:00:00+08:00",
+            "arrive_by": "2026-08-07T23:59:00+08:00",
+            "assumed": "出发时间按 2026-08-07 00:00（Hangzhou 当地）起算，因为你要求 08月07日 23:59 前到达",
+            "snapshot_id": "mock-transport-6a565bf137d8",
+            "valid_until": "2026-08-01T09:15:00+08:00",
+            "options": [
+              {
+                "ref_id": "RT-HABE-08072129",
+                "mode": "FLIGHT",
+                "depart_at": "2026-08-07T21:29:00+08:00",
+                "arrive_at": "2026-08-07T23:59:00+08:00",
+                "price": "950 USD",
+                "seat_class": "ECONOMY",
+                "is_direct": true,
+                "policy_outcome": "COMPLIANT",
+                "policy_violations": []
+              }
+            ],
+            "option_count": 1,
+            "next_step": null
+          }
+        }
+      ],
+      "checks": [
+        {
+          "name": "terminal_action",
+          "ok": true,
+          "detail": "propose_options"
+        },
+        {
+          "name": "routes_in_travel_order",
+          "ok": true,
+          "detail": "expected [('Beijing', 'Shanghai'), ('Shanghai', 'Hangzhou'), ('Hangzhou', 'Beijing')], searched [('Beijing', 'Shanghai'), ('Shanghai', 'Hangzhou'), ('Hangzhou', 'Beijing')]"
+        }
+      ],
+      "passed": true,
+      "llm_calls": 4,
+      "input_tokens": 9699,
+      "output_tokens": 591,
+      "attempt": 1
+    }
+  ]
+}

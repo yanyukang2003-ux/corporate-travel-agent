@@ -27,6 +27,50 @@ def _as_hotels(
     return tuple(item for item in stays if item is not None)
 
 
+#: 这几条规则判不了时，**同一份判定里其余的"判过了"也不算数**。
+#:
+#: - `pricing.currency`：总价把 100 USD 和 500 CNY 直接相加得到 600，
+#:   那不是任何一种货币下的价格。方案自身的数字不成立。
+#: - `policy.effective_window`：这几天不归这一版政策管。那么同一份判定里的
+#:   "舱位合规""夜费合规"是拿一份**不适用的政策**判出来的，同样不算数。
+#:
+#: 和"成都缺一条夜费上限"的区别就在这里：后者的缺口有名有姓、范围清楚，
+#: 其余规则都在有效政策下真判过了，人补得上；这两条一破，整份判定都悬空。
+EVIDENCE_INVALIDATING_RULE_IDS = frozenset({"pricing.currency", "policy.effective_window"})
+
+#: "一条规则都没真正判过"这个理由的代号。审批材料里和真实 rule_id 区分得开。
+NO_JUDGED_RULE = "policy.no_judged_rule"
+
+
+def unreviewable_reasons(decision: PolicyDecision) -> tuple[str, ...]:
+    """把这条方案摆给审批人看**也没用**的理由；空元组表示可以交给人定。
+
+    "证据不足"现在是可选的一档：系统判不了，就把方案摆出来、请人来定
+    （见 `ItineraryPlanner` 的分档与 `select_option`）。但要请人定，
+    得先有**可定的东西**。两种情况没有：
+
+    - **其余证据也跟着不成立。** 见 `EVIDENCE_INVALIDATING_RULE_IDS`：
+      总价算不出来（混币种），或者这几天根本不归这版政策管。摆出来的
+      "已经判过的规则"是假材料，审批人照着批等于什么都没批。
+    - **一条规则都没真正判过。** 职级不在政策表里时，引擎直接返回，
+      舱位、夜费一条都没查——审批人手里只有一句"什么都没判"，无从批起。
+
+    共同点是"批的人看不出自己在批什么"。这和"成都缺一条夜费上限、其余都判过了"
+    是两回事：后者的缺口有名有姓、范围清楚，正是人能补的那种。
+    """
+    reasons = [
+        rule_id
+        for rule_id in dict.fromkeys(decision.unjudged_rule_ids)
+        if rule_id in EVIDENCE_INVALIDATING_RULE_IDS
+    ]
+    if not any(
+        item.outcome is not PolicyOutcome.INSUFFICIENT_EVIDENCE
+        for item in decision.evidence
+    ):
+        reasons.append(NO_JUDGED_RULE)
+    return tuple(reasons)
+
+
 class PolicyEngine:
     """将政策快照落实为可审计的规则证据与最终 outcome；决策不含 LLM。"""
 
@@ -151,6 +195,13 @@ class PolicyEngine:
                             f"exceeds cap {cap}."
                         ),
                         exception_allowed=outcome is PolicyOutcome.REQUIRES_APPROVAL,
+                        # 夜费上限是今天唯一一条阈值本来就是数字的规则，所以它
+                        # 额外给出带类型的值：**超出差标多少钱**由确定性代码算，
+                        # 不让别人去 parse 上面那两个展示字符串。
+                        # 币种到这里已经和政策一致——上面 `continue` 挡掉了不一致的。
+                        actual_amount=hotel.nightly_price,
+                        threshold_amount=cap,
+                        amount_currency=policy.currency,
                     )
                 )
 

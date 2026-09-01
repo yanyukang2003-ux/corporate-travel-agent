@@ -1,0 +1,120 @@
+=== 配置 ===
+model: deepseek-v4-pro
+semantic_prompt: semantic-trip-intent-v13c
+reference_clock: 2026-08-19T15:00:00+08:00
+inventory: MockProvider
+user_message: 9月15号从北京去上海，9月16号中午12点前到，不住酒店
+
+=== 任务终态 ===
+{
+  "label": "after_create",
+  "task_id": "a1b21667-471a-4929-9220-eeede1a742ba",
+  "state": "NO_FEASIBLE_OPTION",
+  "intent_entrypoint": "semantic",
+  "clarification_question": null,
+  "clarification_rounds": 0,
+  "missing_required_fields": [],
+  "intent_conflicts": [],
+  "failure": "no outbound inventory matched the requested route and time window",
+  "intent_fields": {
+    "origin": "Beijing",
+    "destination": "Shanghai",
+    "departure_after": "2026-09-15 00:00:00+08:00",
+    "arrive_by": "2026-09-16 12:00:00+08:00",
+    "booking_scope": "OUTBOUND_ONLY",
+    "lodging_requirement": "NOT_REQUIRED"
+  },
+  "assumptions": [
+    "出发日期为2026年9月15日，到达截止时间为2026年9月16日中午12点。"
+  ],
+  "request_version": 1,
+  "journey_legs": [
+    [
+      "Beijing",
+      "Shanghai",
+      "OUTBOUND"
+    ]
+  ],
+  "options_count": 0,
+  "option_sample": [],
+  "tool_calls": [
+    {
+      "tool_name": "llm.interpret_trip_intent",
+      "tool_kind": "LLM",
+      "status": "SUCCEEDED",
+      "counts_toward_budget": true
+    },
+    {
+      "tool_name": "provider.search_transport.outbound",
+      "tool_kind": "PROVIDER",
+      "status": "SUCCEEDED",
+      "counts_toward_budget": true
+    }
+  ],
+  "llm_calls": [
+    {
+      "prompt_version": "semantic-trip-intent-v13c",
+      "model": "deepseek-v4-pro",
+      "duration_ms": 5521,
+      "requested_model": "deepseek-v4-pro",
+      "reasoning_effort": "medium",
+      "response_id": "b6cbdfdd-6c17-47a0-9c14-5fd916f1f4a1",
+      "input_tokens": 3698,
+      "output_tokens": 485,
+      "cached_input_tokens": 3584,
+      "cache_write_input_tokens": null,
+      "reasoning_output_tokens": null,
+      "total_tokens": 4183,
+      "service_tier": null,
+      "evidence_contract_version": "conversation-turn-v1",
+      "envelope_repaired": false
+    }
+  ],
+  "semantic_status": "READY"
+}
+
+=== 模型语义结论 ===
+{
+  "status": "READY",
+  "confidence": 1.0,
+  "summary": "9月15号从北京去上海，9月16号中午12点前到，不住酒店",
+  "origin_candidates": [
+    "北京"
+  ],
+  "destination_candidates": [
+    "上海"
+  ],
+  "departure_after": "2026-09-15T00:00:00+08:00",
+  "arrive_by": "2026-09-16T12:00:00+08:00",
+  "booking_scope": "OUTBOUND_ONLY",
+  "lodging_requirement": "NOT_REQUIRED",
+  "evidence": [
+    {
+      "turn_index": 0,
+      "field": "origin_candidates",
+      "quote": "9月15号从北京去上海"
+    },
+    {
+      "turn_index": 0,
+      "field": "destination_candidates",
+      "quote": "9月15号从北京去上海"
+    },
+    {
+      "turn_index": 0,
+      "field": "departure_after",
+      "quote": "9月15号从北京去上海"
+    },
+    {
+      "turn_index": 0,
+      "field": "arrive_by",
+      "quote": "9月16号中午12点前到"
+    }
+  ],
+  "conflicts": [],
+  "assumptions": [
+    "出发日期为2026年9月15日，到达截止时间为2026年9月16日中午12点。"
+  ],
+  "clarification_question": null
+}
+
+artifacts: reports/evaluation-runs/semantic-live-single-20260829-124336

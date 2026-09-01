@@ -77,6 +77,9 @@ def build_demo_system(
     policy_configuration: LoadedPolicyConfiguration | None = None,
     trace_observer: WorkflowTraceObserverPort | None = None,
     provider: TravelInventoryProvider | None = None,
+    #: 员工习惯画像的历史来源。默认 None——这一层默认关着，理由见
+    #: `TripWorkflowOrchestrator.__init__` 上的说明。
+    trip_history: object | None = None,
 ) -> tuple[TripWorkflowOrchestrator, TravelInventoryProvider]:
     """构建演示系统：返回 (Orchestrator, Provider)，便于本地/API 冒烟。"""
     effective_clock = clock or (lambda: datetime.now(UTC))
@@ -193,6 +196,7 @@ def build_demo_system(
             current_snapshot_id=policy_configuration.config.active_policy_snapshot_id,
         ),
         provider=provider,
+        trip_history=trip_history,
         language_model=language_model,
         semantic_language_model=semantic_language_model,
         tool_calling_language_model=tool_calling_language_model,

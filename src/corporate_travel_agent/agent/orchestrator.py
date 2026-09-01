@@ -38,6 +38,7 @@ from corporate_travel_agent.domain.enums import (
     IntentEntrypoint,
     LodgingRequirement,
     PolicyOutcome,
+    PreferenceOrigin,
     RevalidationStatus,
     TaskState,
     ToolCallStatus,
@@ -47,11 +48,16 @@ from corporate_travel_agent.domain.models import (
     ApprovalRequest,
     BookingIntent,
     ConversationMessage,
+    EmployeeTravelProfileSnapshot,
     HotelOffer,
     InventorySnapshot,
+    PolicyDecision,
     PolicySnapshot,
+    ProfilePreference,
+    SearchProvenance,
     ToolCallRecord,
     TransportOffer,
+    TravelOptionVersion,
     TripLeg,
     TripRequestVersion,
     TripStay,
@@ -63,6 +69,7 @@ from corporate_travel_agent.domain.validation import (
 )
 from corporate_travel_agent.planning.feasibility import leg_spec, planned_leg_count
 from corporate_travel_agent.planning.planner import ItineraryPlanner
+from corporate_travel_agent.policy.engine import unreviewable_reasons
 from corporate_travel_agent.providers.base import (
     HotelSearchQuery,
     JourneySearchQuery,
@@ -73,6 +80,10 @@ from corporate_travel_agent.providers.base import (
 )
 from corporate_travel_agent.services.audit import new_audit_event, stable_hash
 from corporate_travel_agent.services.locations import CityNormalizer
+from corporate_travel_agent.services.provenance import (
+    option_provenance,
+    provenance_hash,
+)
 from corporate_travel_agent.services.provider_resilience import (
     DEFAULT_CIRCUIT_OPEN_SECONDS,
     DEFAULT_DELAYED_PROVIDER_RETRY_SECONDS,
@@ -86,6 +97,10 @@ from corporate_travel_agent.services.repositories import (
     InMemoryEmployeeDirectory,
     InMemoryPolicyRepository,
     TaskRepository,
+)
+from corporate_travel_agent.services.travel_profile import (
+    TripHistoryPort,
+    derive_travel_profile,
 )
 from corporate_travel_agent.workflow.state_machine import StateMachine
 
@@ -168,6 +183,19 @@ def _leg_phrase(request: TripRequestVersion, leg_index: int) -> str:
     return f"{spec.label} ({spec.origin} → {spec.destination})"
 
 
+def _approval_subject_rules(decision: PolicyDecision) -> tuple[str, ...]:
+    """这次审批到底在批哪几条规则。
+
+    违规规则原样列出；系统判不了的加 `unjudged:` 前缀。两者都进审批主体哈希——
+    "批的是一条违规"和"批的是一条查不到标准"不该哈希成同一件事。
+    没有判不了的规则时，返回值和以前逐字相同，既有审批对象不受影响。
+    """
+    return (
+        *decision.violation_ids,
+        *(f"unjudged:{rule_id}" for rule_id in dict.fromkeys(decision.unjudged_rule_ids)),
+    )
+
+
 def _empty_corridor_question(query: TransportSearchQuery) -> str:
     """一段搜空时对旅行者说的话：不编火车票，也不把整趟行程停掉。"""
     return (
@@ -195,6 +223,13 @@ class TripWorkflowOrchestrator:
         semantic_language_model: SemanticLanguageModelPort | None = None,
         tool_calling_language_model: Any | None = None,
         planner: ItineraryPlanner | None = None,
+        #: 员工习惯画像的来源。**默认 None，也就是这一层默认关着。**
+        #:
+        #: 关着不是没做完，是刻意的：接上画像的那一刻排序分数就变了，既有的评测
+        #: 基线（`reports/evaluation-runs/`）和新数字就不能放在同一张图上比。
+        #: 要打开就传一个 `TripHistoryPort`（`services/travel_profile.py` 里有
+        #: 读任务仓储的现成适配器），并且新开一个报告目录重跑基线。
+        trip_history: TripHistoryPort | None = None,
         state_machine: StateMachine | None = None,
         clock: Callable[[], datetime] | None = None,
         timezone_name: str = "Asia/Shanghai",
@@ -276,6 +311,7 @@ class TripWorkflowOrchestrator:
         self.fallback_model = getattr(language_model, "fallback_model", None)
         self.llm_runtime_status = "unknown"
         self.planner = planner or ItineraryPlanner()
+        self.trip_history = trip_history
         self.state_machine = state_machine or StateMachine()
         self.clock = clock or (lambda: datetime.now(UTC))
         self.timezone_name = timezone_name
@@ -872,6 +908,9 @@ class TripWorkflowOrchestrator:
 
         leg_snapshots = [snapshot for _, snapshot in settled]
         hotel_snapshots = [snapshot for _, snapshot in executor.stay_searches]
+        # 搜索出处从执行器抄到任务上。**抄全部，不只抄用上的那几次**：
+        # "我们还搜过这条航线、结果是空的"本身就是溯源的一部分。
+        self._record_searches(task, executor.searches)
         self._transition(task, TaskState.SEARCHING)
         invalid = self._invalid_snapshot_ids([*leg_snapshots, *hotel_snapshots])
         if invalid:
@@ -896,7 +935,9 @@ class TripWorkflowOrchestrator:
         task.approval = None
         self._audit(task, "SEARCH_COMMAND_COMPILED", outcome.summary, task.request)
         self._record_coverage_notices(task, [*leg_snapshots, *hotel_snapshots])
-        self._audit_snapshots(task, [*leg_snapshots, *hotel_snapshots])
+        # 存档认**每一次真实搜索**，不认跨日合并出来的那个：合并快照的原始响应
+        # 只覆盖第一天，却装着后面几天的报价，按哈希核对不上。见 `search_transport`。
+        self._audit_snapshots(task, list(executor.captured_snapshots))
         self._transition(task, TaskState.PLANNING)
 
         task.options = self.planner.plan(
@@ -905,6 +946,7 @@ class TripWorkflowOrchestrator:
             policy=policy,
             leg_offers=[self._transports(item) for item in leg_snapshots],
             hotel_offers=[self._hotels(item) for item in hotel_snapshots],
+            profile=self._travel_profile(task),
             now=self.clock(),
         )
         if not task.options:
@@ -2790,14 +2832,33 @@ class TripWorkflowOrchestrator:
             raise WorkflowError(f"Unknown option {option_id}")
         if not option.feasibility.feasible:
             raise WorkflowError("INV-002: an infeasible option cannot be selected")
-        if option.policy_decision.outcome is PolicyOutcome.REQUIRES_APPROVAL and (
-            not business_reason or not business_reason.strip()
-        ):
+        decision = option.policy_decision
+        # **"禁止"要在最前面挡住，不能只看聚合结论。** 政策引擎的严重度是
+        # "证据不足 > 禁止"，所以一条既违规又缺数据的方案聚合出来是
+        # INSUFFICIENT_EVIDENCE；而那一档现在是可选的（走人工审批），
+        # 只认 outcome 的话，被禁的方案会从"判不了"这道门溜出去。
+        if decision.forbidden_rule_ids:
+            raise WorkflowError("INV-003: a forbidden option cannot proceed")
+        # 判不了、又拿不出可批材料的方案同样不能选：批的人看不出自己在批什么。
+        unreviewable = unreviewable_reasons(decision)
+        if unreviewable:
+            raise WorkflowError(
+                f"INV-003: an option with no reviewable policy evidence cannot proceed "
+                f"({', '.join(unreviewable)})"
+            )
+        # 需审批和证据不足都要人来定，但定的是两件事：前者是"违规但值得破例吗"，
+        # 后者是"系统查不到公司的标准，请你确认"。走同一条审批路径，
+        # 材料里分开写（见 `_new_approval` 的 violations）。
+        needs_human_judgment = decision.outcome in {
+            PolicyOutcome.REQUIRES_APPROVAL,
+            PolicyOutcome.INSUFFICIENT_EVIDENCE,
+        }
+        if needs_human_judgment and (not business_reason or not business_reason.strip()):
             raise WorkflowError("A business reason is required for a policy exception")
 
         task.selected_option_id = option_id
-        self._audit(task, "OPTION_SELECTED", option_id, option.policy_decision.outcome.value)
-        if option.policy_decision.outcome is PolicyOutcome.REQUIRES_APPROVAL:
+        self._audit(task, "OPTION_SELECTED", option_id, decision.outcome.value)
+        if needs_human_judgment:
             assert business_reason is not None
             task.approval = self._new_approval(task, business_reason.strip())
             self._transition(task, TaskState.WAITING_FOR_APPROVAL)
@@ -2809,7 +2870,7 @@ class TripWorkflowOrchestrator:
                 option.inventory_refs,
             )
             return task
-        if option.policy_decision.outcome is not PolicyOutcome.COMPLIANT:
+        if decision.outcome is not PolicyOutcome.COMPLIANT:
             raise WorkflowError("INV-003: non-compliant option cannot proceed")
 
         self._transition(task, TaskState.REVALIDATING)
@@ -2900,6 +2961,8 @@ class TripWorkflowOrchestrator:
             # 一段一次搜索，段数由行程自己说了算。此前这里是写死的"去程一次、返程一次"
             # ——第三段没有位置可搜，规划器再能规划多城也拿不到货。
             leg_snapshots: list[InventorySnapshot] = []
+            #: 每段的查询留一份，好让搜完能说出"这个快照是拿什么参数搜来的"。
+            searched: list[SearchProvenance] = []
             for index, leg in enumerate(transport_legs):
                 leg_query = TransportSearchQuery(
                     origin=leg.origin,
@@ -2918,6 +2981,9 @@ class TripWorkflowOrchestrator:
                             query
                         ),
                     )
+                )
+                searched.append(
+                    self._transport_provenance(leg_query, leg_snapshots[-1])
                 )
             journey_snapshot: InventorySnapshot | None = None
             if wants_journey_fare:
@@ -2963,6 +3029,9 @@ class TripWorkflowOrchestrator:
                             query
                         ),
                     )
+                )
+                searched.append(
+                    self._hotel_provenance(hotel_query, hotel_snapshots[-1])
                 )
         except ToolBudgetExceeded:
             self.provider_circuit_breaker.record_success()
@@ -3029,6 +3098,7 @@ class TripWorkflowOrchestrator:
             )
             return task
         self._complete_provider_retry(task)
+        self._record_searches(task, searched)
         self._record_coverage_notices(task, snapshots)
         self._audit_snapshots(task, snapshots)
         self._transition(task, TaskState.PLANNING)
@@ -3040,6 +3110,7 @@ class TripWorkflowOrchestrator:
             leg_offers=[self._transports(item) for item in leg_snapshots],
             journey_fares=_fares_from(self._transports(journey_snapshot)),
             hotel_offers=[self._hotels(item) for item in hotel_snapshots],
+            profile=self._travel_profile(task),
             now=self.clock(),
         )
         if not task.options:
@@ -3354,6 +3425,7 @@ class TripWorkflowOrchestrator:
             raise WorkflowError("INV-006: conflicting BookingIntent")
         self.provider_circuit_breaker.record_success()
         self._complete_provider_retry(task)
+        self._pin_provenance(task, option)
         self._transition(task, TaskState.READY_FOR_HANDOFF)
         self._audit(task, "BOOKING_INTENT_CREATED", idempotency_key, task.booking_intent.intent_id)
         return task
@@ -4044,7 +4116,12 @@ class TripWorkflowOrchestrator:
         return task
 
     def _new_approval(self, task: TripTask, business_reason: str) -> ApprovalRequest:
-        """为需审批方案创建 ApprovalRequest。"""
+        """为需审批方案创建 ApprovalRequest。
+
+        审批人要看的是**为什么轮到他来定**，而"违规了"和"系统判不了"是两个
+        不同的理由。判不了的规则加 `unjudged:` 前缀写进同一串里：既不和真的
+        违规规则混淆，也不用另开一个字段（那要动持久化、投影和 API）。
+        """
         option = task.selected_option()
         if option is None:
             raise WorkflowError("No selected option")
@@ -4057,7 +4134,7 @@ class TripWorkflowOrchestrator:
             trip_request_version=self._request(task).version,
             policy_snapshot_id=task.policy_snapshot_id,
             employee_snapshot_id=task.employee.snapshot_id,
-            violations=option.policy_decision.violation_ids,
+            violations=_approval_subject_rules(option.policy_decision),
             business_reason=business_reason,
             approver_id=task.employee.manager_id,
             approved_price=option.total_cost,
@@ -4077,9 +4154,38 @@ class TripWorkflowOrchestrator:
                 "option_id": option.option_id,
                 "option_version": option.version,
                 "approved_price": str(option.total_cost),
-                "violations": option.policy_decision.violation_ids,
+                "violations": _approval_subject_rules(option.policy_decision),
             }
         )
+
+    def _travel_profile(self, task: TripTask) -> EmployeeTravelProfileSnapshot | None:
+        """这位员工的习惯画像；没接历史来源就是 None。
+
+        **算出来就钉进任务**（`task.metadata["travel_profile"]`），此后这趟任务
+        再规划多少次都用同一份。和政策快照同一个道理：员工下个月习惯变了，
+        这趟任务"当初为什么这么排"仍然答得上来。
+
+        算不出来不让整趟任务失败——画像只是排序上的加成，读历史出问题就当没有它，
+        照常按这一轮说的话排。**这一层永远不该是任务失败的理由。**
+        """
+        if self.trip_history is None:
+            return None
+        pinned = task.metadata.get("travel_profile")
+        if pinned is not None:
+            return _travel_profile_from_metadata(pinned)
+        try:
+            profile = derive_travel_profile(task.employee, self.trip_history)
+        except Exception:  # noqa: BLE001 — 见 docstring：画像失败不该拖垮任务
+            self._audit(task, "TRAVEL_PROFILE_UNAVAILABLE", task.employee.employee_id, None)
+            return None
+        task.metadata["travel_profile"] = asdict(profile)
+        self._audit(
+            task,
+            "TRAVEL_PROFILE_PINNED",
+            profile.snapshot_id,
+            [item.name for item in profile.preferences],
+        )
+        return profile
 
     def _policy_for(self, task: TripTask) -> PolicySnapshot:
         """加载任务绑定的政策快照。"""
@@ -4213,6 +4319,136 @@ class TripWorkflowOrchestrator:
         else:
             task.metadata.pop(PARTIAL_COVERAGE_METADATA_KEY, None)
 
+    def _pin_provenance(self, task: TripTask, option: TravelOptionVersion) -> None:
+        """交接这一刻，把这条方案的依据链算一个哈希钉住。
+
+        **钉的是哈希，不是那份记录本身。** 记录始终由已落库的不可变对象推导
+        （`services/provenance.py`），另存一份就等于多一个会和事实分叉的事实源。
+        存下指纹就够了：以后任何时候重算再比对，能改的地方都会露出来。
+        """
+        record = option_provenance(
+            task=task,
+            option=option,
+            snapshots=self.tasks.snapshots(task.task_id),
+            events=self.tasks.events(task.task_id),
+            policy=self._policy_for(task),
+        )
+        digest = provenance_hash(record)
+        task.metadata["provenance"] = {
+            "option_id": option.option_id,
+            "option_version": option.version,
+            "hash": digest,
+            "pinned_at": self.clock().isoformat(),
+            # 缺口一并钉住：当时就说不清的地方，事后不该被悄悄补上。
+            "gaps": list(record["gaps"]),
+        }
+        self._audit(task, "PROVENANCE_PINNED", option.option_id, digest)
+
+    def verify_provenance(self, task_id: str) -> dict[str, Any]:
+        """重算这条链，和交接时钉住的指纹比对。
+
+        对得上，说明从交接到现在没有任何一环被改过；对不上，返回值会说清是
+        哪一份记录变了——**它不自己修复，也不解释原因**，那是人要看的东西。
+        """
+        task = self.tasks.get(task_id)
+        pinned = task.metadata.get("provenance")
+        if not pinned:
+            return {"status": "NOT_PINNED", "task_id": task_id}
+        option = next(
+            (item for item in task.options if item.option_id == pinned["option_id"]),
+            None,
+        )
+        if option is None:
+            return {"status": "OPTION_MISSING", "task_id": task_id, "pinned": pinned}
+        record = option_provenance(
+            task=task,
+            option=option,
+            snapshots=self.tasks.snapshots(task_id),
+            events=self.tasks.events(task_id),
+            policy=self._policy_for(task),
+        )
+        digest = provenance_hash(record)
+        return {
+            "status": "MATCH" if digest == pinned["hash"] else "MISMATCH",
+            "task_id": task_id,
+            "option_id": pinned["option_id"],
+            "pinned_hash": pinned["hash"],
+            "recomputed_hash": digest,
+            "pinned_at": pinned["pinned_at"],
+        }
+
+    def option_provenance_record(self, task_id: str, option_id: str) -> dict[str, Any]:
+        """取一条方案的依据链。任何时候都能取，不必等到交接。"""
+        task = self.tasks.get(task_id)
+        option = next(
+            (item for item in task.options if item.option_id == option_id), None
+        )
+        if option is None:
+            raise WorkflowError(f"Unknown option {option_id}")
+        return option_provenance(
+            task=task,
+            option=option,
+            snapshots=self.tasks.snapshots(task_id),
+            events=self.tasks.events(task_id),
+            policy=self._policy_for(task),
+        )
+
+    def _record_searches(
+        self, task: TripTask, searches: Sequence[SearchProvenance]
+    ) -> None:
+        """把这一轮的搜索出处并进任务，按 snapshot_id 去重。
+
+        去重是必要的：同一条任务会多轮搜索，重验也会再走一次，而快照是不可变的
+        ——同一个 snapshot_id 的出处不该记两遍。
+        """
+        known = {item.snapshot_id for item in task.searches}
+        for item in searches:
+            if item.snapshot_id in known:
+                continue
+            known.add(item.snapshot_id)
+            task.searches.append(item)
+
+    @staticmethod
+    def _transport_provenance(
+        query: TransportSearchQuery, snapshot: InventorySnapshot
+    ) -> SearchProvenance:
+        """结构化入口的出处。
+
+        这条路上**没有用户原话可抄**——日期来自已经校验过的 `TripRequestVersion`，
+        不是从一句话里读出来的。`date_evidence` 因此留空，如实反映"这一天的依据
+        在请求版本里，不在对话里"。
+        """
+        return SearchProvenance(
+            kind="transport",
+            parameters=(
+                ("origin", query.origin),
+                ("destination", query.destination),
+                ("depart_after", query.depart_after.isoformat()),
+                ("arrive_by", query.arrive_before.isoformat()),
+            ),
+            snapshot_id=snapshot.snapshot_id,
+            query_hash=snapshot.query_hash,
+            captured_at=snapshot.captured_at,
+            valid_until=snapshot.valid_until,
+        )
+
+    @staticmethod
+    def _hotel_provenance(
+        query: HotelSearchQuery, snapshot: InventorySnapshot
+    ) -> SearchProvenance:
+        return SearchProvenance(
+            kind="hotel",
+            parameters=(
+                ("city", query.city),
+                ("check_in", query.check_in.isoformat()),
+                ("check_out", query.check_out.isoformat()),
+            ),
+            snapshot_id=snapshot.snapshot_id,
+            query_hash=snapshot.query_hash,
+            captured_at=snapshot.captured_at,
+            valid_until=snapshot.valid_until,
+        )
+
     def _audit_snapshots(self, task: TripTask, snapshots: list[InventorySnapshot]) -> None:
         for snapshot in snapshots:
             self.tasks.add_snapshot(task.task_id, snapshot)
@@ -4246,3 +4482,28 @@ class TripWorkflowOrchestrator:
         if snapshot is None:
             return []
         return [item for item in snapshot.items if isinstance(item, HotelOffer)]
+
+
+def _travel_profile_from_metadata(payload: dict) -> EmployeeTravelProfileSnapshot:
+    """把钉在任务上的画像读回来。
+
+    任务从数据库恢复时 metadata 是纯 JSON，`origin` 变回了字符串。这里显式还原成
+    枚举——不还原的话，`planning/preferences.py` 里那张按枚举查的权重表会查不到，
+    画像**静默失效**：不报错，只是排序悄悄变回没有画像的样子。
+    """
+    return EmployeeTravelProfileSnapshot(
+        snapshot_id=payload["snapshot_id"],
+        employee_id=payload["employee_id"],
+        profile_version=payload.get("profile_version", 1),
+        preferences=tuple(
+            ProfilePreference(
+                name=item["name"],
+                origin=PreferenceOrigin(item["origin"]),
+                evidence=item["evidence"],
+            )
+            for item in payload.get("preferences", ())
+        ),
+        preferred_hotels=tuple(payload.get("preferred_hotels", ())),
+        cost_center=payload.get("cost_center"),
+        derived_from_trips=payload.get("derived_from_trips", 0),
+    )

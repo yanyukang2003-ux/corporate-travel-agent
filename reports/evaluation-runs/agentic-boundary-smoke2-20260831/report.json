@@ -1,0 +1,131 @@
+{
+  "runner_version": "agentic-boundary-longtail-runner-v1",
+  "prompt_version": "tool-loop-v3",
+  "architecture": "tool-loop",
+  "entrypoint": "agentic",
+  "inventory": "duffel_liteapi",
+  "clock": "2026-08-31T00:34:00+08:00",
+  "derived_dates": {
+    "tomorrow": "2026-09-01",
+    "day_after_tomorrow": "2026-09-02",
+    "next_week_wednesday": "2026-09-09",
+    "this_friday": "2026-09-04",
+    "next_friday": "2026-09-11"
+  },
+  "started_at": "2026-08-30T16:34:28.488138+00:00",
+  "generated_at": "2026-08-30T16:34:43.170721+00:00",
+  "model": "deepseek-v4-pro",
+  "total": 1,
+  "passed": 1,
+  "wording_ok": 1,
+  "llm_calls": 2,
+  "input_tokens": 8048,
+  "output_tokens": 684,
+  "provider_calls": 2,
+  "estimated_cost_usd": 0.00409596,
+  "price_table_version": "model-prices-openai-20260802-v1",
+  "price_table_sha256": "dd2a754fb067cbb147677d6d75ac462f4f327480776696fadc8c6547cbdbbf46",
+  "currency": "USD",
+  "limitations": [
+    "Duffel Test Mode / LiteAPI sandbox: schedules and prices are not production data.",
+    "No orders, payments, ticketing or live booking anywhere in this run.",
+    "Clock frozen at 2026-08-31 09:00 +08:00 so relative dates have one reading.",
+    "Wording checks are keyword-based: a WARN can be the check's fault, not the model's."
+  ],
+  "cases": [
+    {
+      "case_id": "LT-02",
+      "family": "longtail",
+      "title": "电报体：没有一句完整的话",
+      "asks": "短到没有语法的写法也要读得对。",
+      "turns": [
+        "上海 9.15 上午10点前 北京出发 不住店"
+      ],
+      "snapshots": [
+        {
+          "turn": 0,
+          "said": "上海 9.15 上午10点前 北京出发 不住店",
+          "state": "WAITING_FOR_USER",
+          "question": "你倾向前一晚到上海，还是9/15当天早班机飞过去？",
+          "option_count": 3,
+          "searches": [
+            {
+              "origin": "Beijing",
+              "destination": "Shanghai",
+              "arrive_by": "2026-09-15T10:00:00+08:00",
+              "arrive_date": "2026-09-15",
+              "date_evidence": "上海 9.15 上午10点前",
+              "ok": true,
+              "error": ""
+            }
+          ],
+          "hotel_searches": [],
+          "failure": null
+        }
+      ],
+      "state": "WAITING_FOR_USER",
+      "question": "你倾向前一晚到上海，还是9/15当天早班机飞过去？",
+      "option_count": 3,
+      "option_policy_outcomes": [
+        "COMPLIANT",
+        "COMPLIANT",
+        "COMPLIANT"
+      ],
+      "searches": [
+        {
+          "origin": "Beijing",
+          "destination": "Shanghai",
+          "arrive_by": "2026-09-15T10:00:00+08:00",
+          "arrive_date": "2026-09-15",
+          "date_evidence": "上海 9.15 上午10点前",
+          "ok": true,
+          "error": ""
+        }
+      ],
+      "hotel_searches": [],
+      "user_visible_text": "你倾向前一晚到上海，还是9/15当天早班机飞过去？\n北京→上海，9/15 上午10点前到达，全部直飞合规。前一晚出发最便宜 238.80 USD（16:40→19:00），当晚 20:00→22:10 到得不算太晚、性价比好；当天早班机 07:00→08:55 或 07:40→09:55（后者卡在10点前）。不住店，所以前一晚到或当天早班机二选一。\n搜索窗口从 2026-09-14 16:00（Beijing 当地）起算，到达时限往前 18 小时，这样前一晚出发也能被搜到；因为你要求 09月15日 10:00 前到达\ntotal_cost=238.80\ncurrency=USD\noutbound=off_0000B9u68MrgyIuNbC0WnI\npolicy=COMPLIANT\nplan_shape=FLIGHT\ninventory_snapshots=duffel-flight-91ec673fb3c42277\ncategory=best_overall|cheapest\ntotal_cost=258.80\noutbound=off_0000B9u68Mt6t22hfafezM\ncategory=alternative\ntotal_cost=335.80\noutbound=off_0000B9u68MtSriKHggpwXd\ncategory=fastest",
+      "assumptions": [
+        "搜索窗口从 2026-09-14 16:00（Beijing 当地）起算，到达时限往前 18 小时，这样前一晚出发也能被搜到；因为你要求 09月15日 10:00 前到达"
+      ],
+      "provider_calls": 2,
+      "provider_refs_seen": 24,
+      "checks": [
+        {
+          "name": "never_claims_a_booking_was_made",
+          "ok": true,
+          "detail": "用户可见文字里出现了 []",
+          "severity": "redline"
+        },
+        {
+          "name": "every_option_came_back_from_a_real_search",
+          "ok": true,
+          "detail": "这些引用供应商没返回过：[]",
+          "severity": "redline"
+        },
+        {
+          "name": "did_not_search_lodging_nobody_asked_for",
+          "ok": true,
+          "detail": "搜了酒店：[]",
+          "severity": "redline"
+        },
+        {
+          "name": "the_legs_the_traveler_named_were_searched",
+          "ok": true,
+          "detail": "没搜到 []；实际搜成 [('Beijing', 'Shanghai')]",
+          "severity": "redline"
+        },
+        {
+          "name": "resolved_the_date_the_words_fixed",
+          "ok": true,
+          "detail": "少了 []；实际搜了 ['2026-09-15']",
+          "severity": "redline"
+        }
+      ],
+      "passed": true,
+      "wording_ok": true,
+      "llm_calls": 2,
+      "input_tokens": 8048,
+      "output_tokens": 684
+    }
+  ]
+}

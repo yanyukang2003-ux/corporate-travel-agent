@@ -25,13 +25,16 @@ from corporate_travel_agent.domain.enums import PolicyOutcome, TransportMode
 from corporate_travel_agent.domain.models import (
     COMMUTE_UNKNOWN_MINUTES,
     EmployeeProfileSnapshot,
+    EmployeeTravelProfileSnapshot,
     HotelOffer,
+    PolicyDecision,
     PolicySnapshot,
     TransportOffer,
     TravelOptionVersion,
     TripRequestVersion,
 )
-from corporate_travel_agent.policy.engine import PolicyEngine
+from corporate_travel_agent.policy.engine import PolicyEngine, unreviewable_reasons
+from corporate_travel_agent.policy.gaps import unjudged_gap_sentences
 
 from .feasibility import FeasibilityValidator, planned_leg_count
 from .preferences import (
@@ -149,6 +152,7 @@ class ItineraryPlanner:
         limit: int = 3,
         *,
         journey_fares: Sequence[Sequence[TransportOffer]] = (),
+        profile: EmployeeTravelProfileSnapshot | None = None,
         now: datetime,
     ) -> list[TravelOptionVersion]:
         """产出最多 ``limit`` 条**互不相同的**方案，外加需要说明的被挡方案。
@@ -180,12 +184,13 @@ class ItineraryPlanner:
         # 只看这一项，所以整个行程只算一遍，各走法共用。
         leg_axes = [
             self._leg_choices(
-                request, employee, policy, index, pool, minutes_per_unit, now=now
+                request, employee, policy, index, pool, minutes_per_unit,
+                profile=profile, now=now,
             )
             for index, pool in enumerate(pools)
         ]
         stay_axes = [
-            self._lodging_choices(request, employee, policy, index, pool)
+            self._lodging_choices(request, employee, policy, index, pool, profile=profile)
             for index, pool in enumerate(stay_pools)
         ]
 
@@ -199,6 +204,7 @@ class ItineraryPlanner:
                 stay_axes,
                 minutes_per_unit,
                 limit,
+                profile=profile,
                 now=now,
             )
         )
@@ -213,6 +219,7 @@ class ItineraryPlanner:
                     stay_axes,
                     minutes_per_unit,
                     limit,
+                    profile=profile,
                     now=now,
                 )
             )
@@ -231,6 +238,7 @@ class ItineraryPlanner:
         minutes_per_unit: Decimal,
         limit: int,
         *,
+        profile: EmployeeTravelProfileSnapshot | None = None,
         now: datetime,
     ) -> list[tuple[PlanShape, TravelOptionVersion]]:
         """整票各自评成方案。**一张整票是一个不可拆的候选。**
@@ -284,6 +292,7 @@ class ItineraryPlanner:
                     [item.offer for item in combination if item.offer is not None],
                     shape,
                     minutes_per_unit,
+                    profile=profile,
                     now=now,
                 )
                 if option is not None:
@@ -299,6 +308,7 @@ class ItineraryPlanner:
         pool: list[TransportOffer],
         minutes_per_unit: Decimal,
         *,
+        profile: EmployeeTravelProfileSnapshot | None = None,
         now: datetime,
     ) -> list[_Choice]:
         """这一段自己站得住的报价，外加排序要用的几个量。"""
@@ -319,7 +329,7 @@ class ItineraryPlanner:
                     score=(
                         offer.price
                         + Decimal(duration) / minutes_per_unit
-                        + leg_penalty(request, leg_index, offer)
+                        + leg_penalty(request, leg_index, offer, profile)
                     ),
                     price=offer.price,
                     duration=duration,
@@ -334,6 +344,8 @@ class ItineraryPlanner:
         policy: PolicySnapshot,
         stay_index: int,
         hotel_choices: Sequence[HotelOffer | None],
+        *,
+        profile: EmployeeTravelProfileSnapshot | None = None,
     ) -> list[_Choice]:
         """第 ``stay_index`` 站住宿的候选。这一站不需要住时，唯一的候选就是"不住"。"""
         choices: list[_Choice] = []
@@ -350,7 +362,7 @@ class ItineraryPlanner:
                     display_key=_hotel_display_key(hotel),
                     mode=None,
                     band=self._item_band(employee, policy, (), hotel),
-                    score=hotel.total_price + lodging_penalty(request, hotel),
+                    score=hotel.total_price + lodging_penalty(request, hotel, profile),
                     price=hotel.total_price,
                     duration=0,
                 )
@@ -366,7 +378,7 @@ class ItineraryPlanner:
     ) -> int:
         """这一项**自己**落在哪一档。整条方案的档是各项里最差的那一档。"""
         decision = self.policy_engine.evaluate(employee, policy, transports, hotel)
-        return _POLICY_BANDS.get(decision.outcome, _BLOCKED_BAND)
+        return _decision_band(decision)
 
     def _shape_candidates(
         self,
@@ -379,6 +391,7 @@ class ItineraryPlanner:
         minutes_per_unit: Decimal,
         limit: int,
         *,
+        profile: EmployeeTravelProfileSnapshot | None = None,
         now: datetime,
     ) -> list[tuple[PlanShape, TravelOptionVersion]]:
         """这种走法值得摆出来的几条方案。
@@ -425,6 +438,7 @@ class ItineraryPlanner:
                 [choice.offer for choice in lodging if choice.offer is not None],
                 shape,
                 minutes_per_unit,
+                profile=profile,
                 now=now,
             )
             if option is not None:
@@ -441,6 +455,7 @@ class ItineraryPlanner:
         shape: PlanShape,
         minutes_per_unit: Decimal,
         *,
+        profile: EmployeeTravelProfileSnapshot | None = None,
         now: datetime,
     ) -> TravelOptionVersion | None:
         """把一种走法的一组具体报价评成一条方案；不可行则返回 None。"""
@@ -459,7 +474,7 @@ class ItineraryPlanner:
         total_cost = sum((item.price for item in transports), Decimal("0"))
         total_cost += sum((stay.total_price for stay in stays), Decimal("0"))
         duration = sum(_minutes(item.depart_at, item.arrive_at) for item in transports)
-        penalty = preference_penalty(request, transports, stays)
+        penalty = preference_penalty(request, transports, stays, profile)
         # 政策**不进分数**。它是三档分类结论，不是可以被价格投票推翻的权重：
         # 折算成罚分的话，一个需审批但足够便宜的方案会排到完全合规的前面。
         # 排序改为「先按政策分档，档内再按分数」，见 _select_options。
@@ -478,6 +493,13 @@ class ItineraryPlanner:
             f"plan_shape={shape.label()}",
             f"inventory_snapshots={','.join(snapshot_ids)}",
         ]
+        # 判不了的规则要写在方案自己身上。只记一个 `policy=INSUFFICIENT_EVIDENCE`
+        # 的话，看方案的人只知道"有问题"，不知道缺的是公司没填的一个数字——
+        # 那正是他能拿去找管理员补的东西。和 §39 的空段说明同一条规矩。
+        unjudged = decision.unjudged_rule_ids
+        if unjudged:
+            facts.append(f"unjudged_rules={','.join(dict.fromkeys(unjudged))}")
+            facts.extend(unjudged_gap_sentences(decision))
         # 前两段沿用 outbound / inbound 这两个名字：前端、评测与冻结数据集都认它们。
         # 第三段起才用 leg2、leg3……——新名字只加在新东西上，旧的一个字不动。
         if len(transports) > 1:
@@ -567,16 +589,28 @@ def _enumerate_shapes(
     ]
 
 
-#: 政策分档：合规优先，需审批其次，不可选的排最后。政策不参与分数计算。
+#: 政策分档：合规优先，需审批其次，判不了的排在可选的最后，禁止的不可选。
+#: 政策不参与分数计算。
+#:
+#: **"判不了"和"不许"分成两档，是这张表最要紧的一件事。** 此前它们同属一档，
+#: 于是"政策表里没有成都的夜费上限"和"公司禁止商务舱"得到同样的处置——整条方案
+#: 被清零（§41.3 四：机票合规、酒店也搜到了，最后 0 个方案）。缺一条公司自己没填
+#: 的数字，不是旅行者违规。§35.7 原本写的就是"降到最差档"，不是"禁止"。
 _POLICY_BANDS: dict[PolicyOutcome, int] = {
     PolicyOutcome.COMPLIANT: 0,
     PolicyOutcome.REQUIRES_APPROVAL: 1,
+    PolicyOutcome.INSUFFICIENT_EVIDENCE: 2,
+    PolicyOutcome.FORBIDDEN: 3,
 }
-_BLOCKED_BAND = 2
+#: 判不了：可选，但排在所有能判的后面，且必须有人批（见 `select_option`）。
+_UNJUDGED_BAND = 2
+#: 不可选：公司明确禁止，或方案自身的数字算不出来（混币种）。
+#: 只在"它本可胜出"时作为说明留在结果里。
+_BLOCKED_BAND = 3
 
 #: 按档收窄时依次试的上限。分开试是必要的：最便宜的那条常常在更差的档里，
 #: 只按"全场最便宜"取一次，合规档里最便宜的那条就再也没机会被摆出来。
-_POLICY_CEILINGS: tuple[int, ...] = (0, 1, _BLOCKED_BAND)
+_POLICY_CEILINGS: tuple[int, ...] = (0, 1, _UNJUDGED_BAND, _BLOCKED_BAND)
 
 
 def _by_score(choice: _Choice) -> tuple[object, ...]:
@@ -642,7 +676,23 @@ def _axes_score(ordered: list[list[_Choice]], indexes: tuple[int, ...]) -> Decim
 
 
 def _policy_band(option: TravelOptionVersion) -> int:
-    return _POLICY_BANDS.get(option.policy_decision.outcome, _BLOCKED_BAND)
+    return _decision_band(option.policy_decision)
+
+
+def _decision_band(decision: PolicyDecision) -> int:
+    """这条判定落在哪一档。
+
+    **先看有没有"禁止"，再看聚合结论。** 政策引擎的严重度是"证据不足 > 禁止"
+    （缺数据比违规更该先说出口），所以一条既违规又缺数据的方案聚合出来是
+    `INSUFFICIENT_EVIDENCE`。证据不足这一档现在可选，只认聚合结论的话，
+    被禁的方案会从"判不了"这道门溜出去。
+
+    "判不了"要能摆出来让人批，得先有可批的材料；没有的（总价算不出来、
+    一条规则都没真正判过）也归到不可选，理由见 `unreviewable_reasons`。
+    """
+    if decision.forbidden_rule_ids or unreviewable_reasons(decision):
+        return _BLOCKED_BAND
+    return _POLICY_BANDS.get(decision.outcome, _BLOCKED_BAND)
 
 
 def _rank_key(entry: tuple[PlanShape, TravelOptionVersion]) -> tuple[object, ...]:
