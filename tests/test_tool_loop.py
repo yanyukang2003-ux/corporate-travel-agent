@@ -741,6 +741,69 @@ def test_a_date_nobody_stated_cannot_be_searched() -> None:
     assert ok["arrive_by"] == "2026-08-05T10:00:00+08:00"
 
 
+def test_an_english_date_is_accepted_as_evidence() -> None:
+    """§41.3 LT-03 的原话，逐字抄进出处。以前关卡不认 "Sept 9"，模型十种抄法全被拒。"""
+    executor = _executor_with_conversation(
+        "I need to fly from PEK to SHA on Sept 9, must land before noon"
+    )
+    result = executor.search_transport(
+        {
+            "origin": "PEK",
+            "destination": "SHA",
+            "arrive_by": "2026-09-09T12:00:00+08:00",
+            "date_evidence": "fly from PEK to SHA on Sept 9, must land before noon",
+        }
+    )
+    assert result["arrive_by"] == "2026-09-09T12:00:00+08:00"
+
+
+def test_futile_evidence_retries_are_capped() -> None:
+    """一个读不了的日期不许把预算烧光。
+
+    实测（§41.3 LT-03）：出处关卡拒一次，模型就换一种抄法再试，10 轮全烧在同一段上，
+    用户拿到"没有收敛"。被拒的调用从不登记签名，所以签名守卫拦不住它。
+    现在同一条航线连着被拒超过 `_EVIDENCE_REFUSAL_LIMIT` 次，就换成硬话：
+    交出已搜到的段，去问人。**能过关卡的引用照常放行，计数清零。**
+    """
+    executor = _executor_with_conversation(
+        "8月5号上午10点前要到上海，我从北京走，之后还要去杭州，再回北京"
+    )
+    leg = {
+        "origin": "上海",
+        "destination": "杭州",
+        "arrive_by": "2026-08-06T23:59:00+08:00",
+    }
+    # 前两次：逐条解释为什么这句话没定下哪一天
+    for quote in ("之后还要去杭州", "再回北京"):
+        with pytest.raises(ToolInputError, match="没有定下任何一天"):
+            executor.search_transport({**leg, "date_evidence": quote})
+    # 第三次起：不再解释，直说别再试、去问人
+    with pytest.raises(ToolInputError, match="被拒 3 次") as excinfo:
+        executor.search_transport({**leg, "date_evidence": "之后还要去杭州"})
+    assert "ask_traveler" in str(excinfo.value)
+    assert "propose_options" in str(excinfo.value)
+    # 换了一条航线不受影响：计数按航线记
+    with pytest.raises(ToolInputError, match="没有定下任何一天"):
+        executor.search_transport(
+            {
+                "origin": "杭州",
+                "destination": "北京",
+                "arrive_by": "2026-08-07T23:59:00+08:00",
+                "date_evidence": "再回北京",
+            }
+        )
+    # 能过关卡的引用永远不拦——哪怕这条航线刚被拒过三次
+    ok = executor.search_transport(
+        {
+            "origin": "北京",
+            "destination": "上海",
+            "arrive_by": "2026-08-05T10:00:00+08:00",
+            "date_evidence": "8月5号上午10点前要到上海",
+        }
+    )
+    assert ok["arrive_by"] == "2026-08-05T10:00:00+08:00"
+
+
 def test_citing_one_day_and_searching_another_is_refused() -> None:
     """引用了 8 月 5 号却去搜 8 月 6 日——张冠李戴。
 
@@ -782,6 +845,17 @@ def test_citing_one_day_and_searching_another_is_refused() -> None:
         ("杭州帮我订一晚", "2026-08-06", False),
         # 农历没有固定公历日：本来就该问（和 H-04 同一个结论）
         ("春节从北京去上海出差", "2027-02-06", False),
+        # 英文月份：§41.3 LT-03 的原话，之前关卡不认，模型换十种抄法烧光 10 轮
+        ("fly from PEK to SHA on Sept 9, must land before noon", "2026-09-09", True),
+        ("September 9th", "2026-09-09", True),
+        ("Sep. 9, 2026", "2026-09-09", True),
+        ("9 Sep", "2026-09-09", True),
+        ("the 9th of September", "2026-09-09", True),
+        ("Dec 30 out, Jan 2 back", "2027-01-02", True),
+        # 英文月份同样逐位比对：引用 Sept 9 却搜 9 月 10 日，照样拦
+        ("on Sept 9, must land before noon", "2026-09-10", False),
+        # 月份词单独出现不算定下哪一天
+        ("sometime in September", "2026-09-09", False),
     ],
 )
 def test_date_traceability_predicate(quote: str, resolved: str, allowed: bool) -> None:

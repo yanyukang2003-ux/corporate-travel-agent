@@ -1,0 +1,247 @@
+{
+  "runner_version": "agentic-boundary-longtail-runner-v1",
+  "prompt_version": "tool-loop-v3",
+  "architecture": "tool-loop",
+  "entrypoint": "agentic",
+  "inventory": "duffel_liteapi",
+  "clock": "2026-09-02T00:48:00+08:00",
+  "derived_dates": {
+    "tomorrow": "2026-09-03",
+    "day_after_tomorrow": "2026-09-04",
+    "next_week_wednesday": "2026-09-09",
+    "this_friday": "2026-09-04",
+    "next_friday": "2026-09-11"
+  },
+  "started_at": "2026-09-01T16:48:20.729595+00:00",
+  "generated_at": "2026-09-01T16:48:48.117558+00:00",
+  "model": "deepseek-v4-pro",
+  "total": 2,
+  "passed": 2,
+  "wording_ok": 2,
+  "llm_calls": 4,
+  "input_tokens": 17738,
+  "output_tokens": 1118,
+  "provider_calls": 4,
+  "estimated_cost_usd": 0.008688689999999999,
+  "price_table_version": "model-prices-openai-20260802-v1",
+  "price_table_sha256": "dd2a754fb067cbb147677d6d75ac462f4f327480776696fadc8c6547cbdbbf46",
+  "currency": "USD",
+  "limitations": [
+    "Duffel Test Mode / LiteAPI sandbox: schedules and prices are not production data.",
+    "No orders, payments, ticketing or live booking anywhere in this run.",
+    "Clock frozen at 2026-08-31 09:00 +08:00 so relative dates have one reading.",
+    "Wording checks are keyword-based: a WARN can be the check's fault, not the model's."
+  ],
+  "cases": [
+    {
+      "case_id": "LT-03",
+      "family": "longtail",
+      "title": "中英混杂 + 机场三字码",
+      "asks": "PEK/SHA 这类三字码要认得出来，英文写的到达时限也要读得对。",
+      "turns": [
+        "I need to fly from PEK to SHA on Sept 9, must land before noon, no hotel needed"
+      ],
+      "snapshots": [
+        {
+          "turn": 0,
+          "said": "I need to fly from PEK to SHA on Sept 9, must land before noon, no hotel needed",
+          "state": "WAITING_FOR_USER",
+          "question": null,
+          "option_count": 3,
+          "searches": [
+            {
+              "origin": "Beijing",
+              "destination": "Shanghai",
+              "arrive_by": "2026-09-09T12:00:00",
+              "arrive_date": "2026-09-09",
+              "date_evidence": "fly from PEK to SHA on Sept 9, must land before noon",
+              "ok": true,
+              "error": ""
+            }
+          ],
+          "hotel_searches": [],
+          "failure": null
+        }
+      ],
+      "state": "WAITING_FOR_USER",
+      "question": null,
+      "option_count": 3,
+      "option_policy_outcomes": [
+        "COMPLIANT",
+        "COMPLIANT",
+        "COMPLIANT"
+      ],
+      "searches": [
+        {
+          "origin": "Beijing",
+          "destination": "Shanghai",
+          "arrive_by": "2026-09-09T12:00:00",
+          "arrive_date": "2026-09-09",
+          "date_evidence": "fly from PEK to SHA on Sept 9, must land before noon",
+          "ok": true,
+          "error": ""
+        }
+      ],
+      "hotel_searches": [],
+      "user_visible_text": "PEK→SHA on Sept 9, landing before noon. The 06:11 flight is $69.48 — a fraction of the $335.80 standard fare — and lands 08:12 with ample slack. Also included a mid-morning (09:00→11:15) and late-morning (09:30→11:55) option if you prefer not to depart at dawn. No hotel needed, per your note.\n搜索窗口从 2026-09-08 18:00（PEK 当地）起算，到达时限往前 18 小时，这样前一晚出发也能被搜到；因为你要求 09月09日 12:00 前到达\ntotal_cost=69.48\ncurrency=USD\noutbound=off_0000B9yGPDx1iItZp16Cbw\npolicy=COMPLIANT\nplan_shape=FLIGHT\ninventory_snapshots=duffel-flight-ed2dbc269669e571\ncategory=best_overall|cheapest\ntotal_cost=335.80\noutbound=off_0000B9yGPCRwdVPtCzrEGV\ninventory_snapshots=duffel-flight-74ba9ccaa7ceaba0\ncategory=fastest\noutbound=off_0000B9yGPQMdYuVmJvApBg\ncategory=alternative",
+      "assumptions": [
+        "搜索窗口从 2026-09-08 18:00（PEK 当地）起算，到达时限往前 18 小时，这样前一晚出发也能被搜到；因为你要求 09月09日 12:00 前到达"
+      ],
+      "option_refs": [
+        "off_0000B9yGPDx1iItZp16Cbw",
+        "off_0000B9yGPCRwdVPtCzrEGV",
+        "off_0000B9yGPQMdYuVmJvApBg"
+      ],
+      "provider_calls": 2,
+      "provider_refs_seen": 24,
+      "checks": [
+        {
+          "name": "never_claims_a_booking_was_made",
+          "ok": true,
+          "detail": "用户可见文字里出现了 []",
+          "severity": "redline"
+        },
+        {
+          "name": "every_option_came_back_from_a_real_search",
+          "ok": true,
+          "detail": "这些引用供应商没返回过：[]",
+          "severity": "redline"
+        },
+        {
+          "name": "speaks_to_the_traveler_not_to_the_operator",
+          "ok": true,
+          "detail": "用户看到了内部错误串：[]",
+          "severity": "wording"
+        },
+        {
+          "name": "did_not_search_lodging_nobody_asked_for",
+          "ok": true,
+          "detail": "搜了酒店：[]",
+          "severity": "redline"
+        },
+        {
+          "name": "the_legs_the_traveler_named_were_searched",
+          "ok": true,
+          "detail": "没搜到 []；实际搜成 [('Beijing', 'Shanghai')]",
+          "severity": "redline"
+        },
+        {
+          "name": "resolved_the_date_the_words_fixed",
+          "ok": true,
+          "detail": "少了 []；实际搜了 ['2026-09-09']",
+          "severity": "redline"
+        }
+      ],
+      "passed": true,
+      "wording_ok": true,
+      "llm_calls": 2,
+      "input_tokens": 8853,
+      "output_tokens": 668
+    },
+    {
+      "case_id": "LT-13",
+      "family": "longtail",
+      "title": "LT-03 的对照组：同一句英文，日期改成数字写法",
+      "asks": "LT-03 挂在哪一半？把 'Sept 9' 换成 '9/9'，别的一个字不改。过了就说明英文本身没问题，坏的是日期出处关卡只认中文和数字写法。",
+      "turns": [
+        "I need to fly from PEK to SHA on 9/9, must land before noon, no hotel needed"
+      ],
+      "snapshots": [
+        {
+          "turn": 0,
+          "said": "I need to fly from PEK to SHA on 9/9, must land before noon, no hotel needed",
+          "state": "WAITING_FOR_USER",
+          "question": null,
+          "option_count": 3,
+          "searches": [
+            {
+              "origin": "Beijing",
+              "destination": "Shanghai",
+              "arrive_by": "2026-09-09T12:00:00",
+              "arrive_date": "2026-09-09",
+              "date_evidence": "fly from PEK to SHA on 9/9, must land before noon",
+              "ok": true,
+              "error": ""
+            }
+          ],
+          "hotel_searches": [],
+          "failure": null
+        }
+      ],
+      "state": "WAITING_FOR_USER",
+      "question": null,
+      "option_count": 3,
+      "option_policy_outcomes": [
+        "COMPLIANT",
+        "COMPLIANT",
+        "COMPLIANT"
+      ],
+      "searches": [
+        {
+          "origin": "Beijing",
+          "destination": "Shanghai",
+          "arrive_by": "2026-09-09T12:00:00",
+          "arrive_date": "2026-09-09",
+          "date_evidence": "fly from PEK to SHA on 9/9, must land before noon",
+          "ok": true,
+          "error": ""
+        }
+      ],
+      "hotel_searches": [],
+      "user_visible_text": "PEK→SHA 直飞，9/9 中午前落地，全部合规。最划算的是 9/9 早上 06:11 起飞、08:12 落地的航班（68.69 USD，比其余 335 USD 档便宜一大截），且当天出发、不用前一晚赶路。若想稍晚出发，07:00 起飞 08:55 落地（335.80 USD）或 08:30 起飞 10:45 落地（335.80 USD）也都在中午前到达。我推荐 06:11 那班——价格最低且落地最早，留足上午余量。\n搜索窗口从 2026-09-08 18:00（PEK 当地）起算，到达时限往前 18 小时，这样前一晚出发也能被搜到；因为你要求 09月09日 12:00 前到达\ntotal_cost=68.69\ncurrency=USD\noutbound=off_0000B9yGQVCh3PMrcU2KUU\npolicy=COMPLIANT\nplan_shape=FLIGHT\ninventory_snapshots=duffel-flight-412af835acd3970f\ncategory=best_overall|cheapest\ntotal_cost=335.80\noutbound=off_0000B9yGQTdurDxGmKl2eI\ninventory_snapshots=duffel-flight-4fedeeb0ef7935f9\ncategory=fastest\noutbound=off_0000B9yGQa6qoYfIpoLEaj\ncategory=alternative",
+      "assumptions": [
+        "搜索窗口从 2026-09-08 18:00（PEK 当地）起算，到达时限往前 18 小时，这样前一晚出发也能被搜到；因为你要求 09月09日 12:00 前到达"
+      ],
+      "option_refs": [
+        "off_0000B9yGQVCh3PMrcU2KUU",
+        "off_0000B9yGQTdurDxGmKl2eI",
+        "off_0000B9yGQa6qoYfIpoLEaj"
+      ],
+      "provider_calls": 2,
+      "provider_refs_seen": 24,
+      "checks": [
+        {
+          "name": "never_claims_a_booking_was_made",
+          "ok": true,
+          "detail": "用户可见文字里出现了 []",
+          "severity": "redline"
+        },
+        {
+          "name": "every_option_came_back_from_a_real_search",
+          "ok": true,
+          "detail": "这些引用供应商没返回过：[]",
+          "severity": "redline"
+        },
+        {
+          "name": "speaks_to_the_traveler_not_to_the_operator",
+          "ok": true,
+          "detail": "用户看到了内部错误串：[]",
+          "severity": "wording"
+        },
+        {
+          "name": "did_not_search_lodging_nobody_asked_for",
+          "ok": true,
+          "detail": "搜了酒店：[]",
+          "severity": "redline"
+        },
+        {
+          "name": "the_legs_the_traveler_named_were_searched",
+          "ok": true,
+          "detail": "没搜到 []；实际搜成 [('Beijing', 'Shanghai')]",
+          "severity": "redline"
+        },
+        {
+          "name": "resolved_the_date_the_words_fixed",
+          "ok": true,
+          "detail": "少了 []；实际搜了 ['2026-09-09']",
+          "severity": "redline"
+        }
+      ],
+      "passed": true,
+      "wording_ok": true,
+      "llm_calls": 2,
+      "input_tokens": 8885,
+      "output_tokens": 450
+    }
+  ]
+}

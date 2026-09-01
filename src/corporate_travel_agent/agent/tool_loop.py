@@ -424,6 +424,11 @@ class ToolExecutor:
         #: 挪一小时再搜一遍，参数不同就绕过了签名守卫，照样把预算烧光。
         #: 一条航线连着搜空 `_EMPTY_ROUTE_LIMIT` 次，就该去问人，不是继续试。
         self._empty_routes: dict[str, int] = {}
+        #: 每条航线的日期出处被拒了几次。被拒的调用从不登记签名（关卡先于签名守卫），
+        #: 于是同一段可以换着抄法无限重试——实测（§41.3，LT-03）一个读不了的日期
+        #: 把 10 轮预算全烧光，用户拿到一句"没有收敛"。超过 `_EVIDENCE_REFUSAL_LIMIT`
+        #: 就换成硬话：交出已搜到的段，去问人。**能过关卡的引用永远不拦。**
+        self._evidence_refusals: dict[str, int] = {}
 
     # -- 工具实现 ---------------------------------------------------------
 
@@ -461,9 +466,24 @@ class ToolExecutor:
         # 拒掉的那次搜索，假设还留在任务上——旅行者看到的是"因为你要求 23:59 前
         # 到达"，而他从没这么要求过。**幻觉穿着推导的外衣**，比直接报错难发现得多。
         # ————————————————————————————————————————————————————————
-        date_evidence = self._require_quoted_evidence(
-            args, "date_evidence", resolved=arrive_by
-        )
+        route = f"{origin}->{destination}"
+        try:
+            date_evidence = self._require_quoted_evidence(
+                args, "date_evidence", resolved=arrive_by
+            )
+        except ToolInputError as exc:
+            refusals = self._evidence_refusals.get(route, 0) + 1
+            self._evidence_refusals[route] = refusals
+            if refusals > _EVIDENCE_REFUSAL_LIMIT:
+                raise ToolInputError(
+                    f"{route} 这一段的日期出处已经被拒 {refusals} 次：对话里没有哪句话定下"
+                    "这一天，或者系统读不了它的写法。**别再换抄法重试了**，每试一次都在烧预算。"
+                    "现在做两件事：日期已经写明、已经搜到的段用 propose_options 交出去；"
+                    "这一段用 ask_traveler 请旅行者用「9月9日」这样的写法确认日期。",
+                    field_name="date_evidence",
+                ) from exc
+            raise
+        self._evidence_refusals.pop(route, None)
         if arrive_by <= self.now:
             raise ToolInputError(
                 f"到达时限 {arrive_by.isoformat()} 已经过去了（现在是 {self.now.isoformat()}）",
@@ -506,7 +526,6 @@ class ToolExecutor:
             depart_after=depart_after,
             arrive_before=arrive_by,
         )
-        route = f"{origin}->{destination}"
         self._refuse_repeat(
             f"transport|{route}|{depart_after.isoformat()}|{arrive_by.isoformat()}",
             "这次搜索刚刚已经做过了，结果不会变。",
@@ -760,7 +779,8 @@ class ToolExecutor:
 #:
 #: 这份清单**宁可漏判也不误判**：漏判的后果是多问旅行者一句，误判的后果是
 #: 拿一个编出来的日期去搜库存、还当成确定行程交付。两者不对等。
-#: 绝对日期的写法：2026-08-05 / 2026年8月5日 / 8月5号 / 8/5 / 8.5 / 5号。
+#: 绝对日期的写法：2026-08-05 / 2026年8月5日 / 8月5号 / 8/5 / 8.5 / 5号，
+#: 以及英文月份：Sept 9 / September 9th / 9 Sep / Sep. 9（见 `_ENGLISH_DATE`）。
 #: 抓到之后**和模型填进来的那一天逐位比对**——这是这道关卡真正的力气所在，
 #: 它顺带还能挡住"引用了8月5号、却去搜8月6日"这类张冠李戴。
 _ABSOLUTE_DATE = re.compile(
@@ -769,6 +789,27 @@ _ABSOLUTE_DATE = re.compile(
     r"(?P<y>\d{4})\s*[-/.年]\s*(?P<m>\d{1,2})\s*[-/.月]\s*(?P<d>\d{1,2})"
     r"|(?<!\d)(?P<m2>\d{1,2})\s*[月/\-.]\s*(?P<d2>\d{1,2})\s*[号日]?"
     r"|(?<!\d)(?P<d3>\d{1,2})\s*[号日]"
+)
+
+#: 英文月份写法。实测（§41.3，LT-03）："fly from PEK to SHA on Sept 9" 模型读对了
+#: 9 月 9 日，抄了原话当出处，关卡却不认 "Sept 9"——换十种抄法全被拒，10 轮烧完。
+#: 坏的不是英文，是这张表。这里补上，**照样逐位比对月日**，不是放行。
+_MONTH_WORD = (
+    r"(?:jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|june?|july?"
+    r"|aug(?:ust)?|sep(?:t|tember)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)"
+)
+_MONTH_BY_NAME = {
+    "jan": 1, "january": 1, "feb": 2, "february": 2, "mar": 3, "march": 3,
+    "apr": 4, "april": 4, "may": 5, "jun": 6, "june": 6, "jul": 7, "july": 7,
+    "aug": 8, "august": 8, "sep": 9, "sept": 9, "september": 9,
+    "oct": 10, "october": 10, "nov": 11, "november": 11, "dec": 12, "december": 12,
+}
+_ENGLISH_DATE = re.compile(
+    # "Sept 9" / "Sept. 9th" / "September 9, 2026"（年份归模型，这里只比月日）
+    rf"\b(?P<mon>{_MONTH_WORD})\.?\s+(?P<day>\d{{1,2}})(?:st|nd|rd|th)?\b"
+    # "9 Sep" / "9th of September"
+    rf"|\b(?P<day2>\d{{1,2}})(?:st|nd|rd|th)?\s+(?:of\s+)?(?P<mon2>{_MONTH_WORD})\b",
+    re.IGNORECASE,
 )
 
 #: 相对日期的**表达式**（不是零散的字）。抓到就放行，不核对具体是哪一天——
@@ -806,6 +847,9 @@ def _quote_fixes_date(quote: str, resolved: datetime) -> str | None:
             months.append((int(match.group("m2")), int(match.group("d2"))))
         elif match.group("d3"):
             days.append(int(match.group("d3")))
+    for match in _ENGLISH_DATE.finditer(quote):
+        name = (match.group("mon") or match.group("mon2")).lower()
+        months.append((_MONTH_BY_NAME[name], int(match.group("day") or match.group("day2"))))
 
     if months:
         if (local_date.month, local_date.day) in months:
@@ -849,6 +893,10 @@ def _searchable(text: str) -> str:
 #: 同一条航线连着搜空几次就不许再试。2 是有意留的余地：换一个时间窗是合理的
 #: 第二次尝试，第三次就只是在烧预算了。
 _EMPTY_ROUTE_LIMIT = 2
+
+#: 同一条航线的日期出处连着被拒几次之后，不再逐条解释、改说硬话。2 同样是留的余地：
+#: 第一次是抄错了句子，第二次可能是换了一句更准的；第三次还过不了，就不是抄法的问题。
+_EVIDENCE_REFUSAL_LIMIT = 2
 
 
 def _window_day_queries(query: TransportSearchQuery) -> tuple[TransportSearchQuery, ...]:
