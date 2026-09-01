@@ -310,6 +310,14 @@ python examples/evaluate_cost_stability.py \
 72 次计费模型调用。命令要求显式传入 `--confirm-billable`，并在运行前将价格表
 升级为含官方价格来源和目标模型条目的新版本：
 
+> **以下真实模型执行节奏是历史记录（截至 2026-09-01）。** 它引用的
+> `run_real_model_preflight.py`、`run_real_model_stability.py`、`run_real_model_duffel_workflow.py`、
+> `regrade_real_model_duffel_workflow.py` 及 `model_mock` 模式都驱动旧的意图抽取入口，已随
+> legacy 入口一起删除（ADR-0003）；命令不再可执行，报告目录留档。产品入口（工具循环）的
+> 真实模型运行现在由 `examples/run_tool_loop_*` 与 `run_agentic_boundary_longtail_evaluation.py`
+> 产出，它们尚未具备这一节要求的轨迹 JSONL、价目表记账和显式重试上限回归——这是 ADR-0003
+> 列出的第一个后续项。保留原文是为了让那些要求在重建时有据可依。
+
 首次真实模型运行先使用 `intent-model-preflight-v1`。它从上述 24 条子集中预先冻结
 `prefer-intent-0001` 与 `open-train-missing-fields-0085`，每条只运行一次，最多产生
 2 次模型调用。预检检查鉴权、模型可用性、Pydantic Structured Outputs、完整轨迹、
