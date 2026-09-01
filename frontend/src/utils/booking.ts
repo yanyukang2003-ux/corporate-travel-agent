@@ -5,7 +5,7 @@
  * 订单号去空白、去重、去空串；差额只在币种一致时说，不一致就明说"不比较"，不换算。
  */
 
-import type { BookingConfirmation } from '../api/types.ts'
+import type { BookingConfirmation, ExpenseReconciliation } from '../api/types.ts'
 import { money } from './cost.ts'
 
 /** 把一行文字切成订单号列表：逗号、分号、换行都算分隔；去空白、去重、去空串，顺序保留。 */
@@ -41,4 +41,16 @@ export function confirmationSummary(confirmation: BookingConfirmation): string {
   return variance > 0
     ? `实付 ${paid}，比方案价多付 ${delta}`
     : `实付 ${paid}，比方案价少付 ${delta}`
+}
+
+/** 费控对账结果写成一句：对上了 / 差多少 / 币种不同不比较。 */
+export function reconciliationText(reconciliation: ExpenseReconciliation, currency: string): string {
+  const expensed = money(String(reconciliation.expense_amount), reconciliation.currency)
+  if (reconciliation.status === 'CURRENCY_MISMATCH' || reconciliation.amount_variance == null) {
+    return `费控 ${expensed}，币种和自述不同，不比较`
+  }
+  const variance = Number(reconciliation.amount_variance)
+  if (!Number.isFinite(variance) || variance === 0) return `费控 ${expensed}，和自述一致`
+  const delta = money(String(Math.abs(variance)), currency)
+  return variance > 0 ? `费控 ${expensed}，比自述多 ${delta}` : `费控 ${expensed}，比自述少 ${delta}`
 }

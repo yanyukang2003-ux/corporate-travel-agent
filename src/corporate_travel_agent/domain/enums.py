@@ -59,6 +59,25 @@ class BookingConfirmationSource(StrEnum):
     """员工（或替他操作的管理员）在本系统里手填的订单号和金额。"""
 
 
+class ReconciliationStatus(StrEnum):
+    """一条费控记录和本系统里下单确认的对账结果。"""
+
+    MATCHED = "MATCHED"
+    """找到了确认，金额一致：自述被外部记录印证。"""
+
+    AMOUNT_MISMATCH = "AMOUNT_MISMATCH"
+    """找到了确认，但金额对不上：两边都留着，差额摆出来。"""
+
+    CURRENCY_MISMATCH = "CURRENCY_MISMATCH"
+    """找到了确认，但币种不同：不换算、不判对错。"""
+
+    UNMATCHED = "UNMATCHED"
+    """本系统里没有对应的确认——**这就是渠道外预订的可观测形态**。"""
+
+    DUPLICATE = "DUPLICATE"
+    """对应的任务已经被另一条费控记录对过账了。"""
+
+
 class ToolCallStatus(StrEnum):
     """单次工具调用生命周期状态。"""
 

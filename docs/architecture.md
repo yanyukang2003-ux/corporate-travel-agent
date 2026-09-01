@@ -214,6 +214,19 @@ stateDiagram-v2
 已发布**。`examples/run_outbox_worker.py` 循环投递；管理员也可以 `POST /outbox/dispatch` 手动
 跑一轮，`GET /outbox/events` 看有没有卡住。
 
+### 4.3 费控对账：自述变成核实过
+
+下单确认是员工说的（`SELF_REPORTED`），系统核不了。费控系统推来的报销记录
+（`POST /expenses/import`，或 `SQLAlchemyExpenseRecordStore` 直接导入）按**旅行者 + 订单号**
+和已确认的任务匹配：同币种金额相等 `MATCHED`，金额不等 `AMOUNT_MISMATCH`（两边都留着，差额摆
+出来），币种不同 `CURRENCY_MISMATCH`（不换算），任务已对过账 `DUPLICATE`。对上了就在任务上钉一条
+`ExpenseReconciliation`（`EXPENSE_RECONCILED` 审计事件），确认记录本身不改——员工当时说的和费控后来
+说的都留着。不做模糊匹配：猜错一次，"核实过"三个字就不值钱了。
+
+**费控里有、本系统里没有的记录（`UNMATCHED`）就是渠道外预订**：员工绕开系统订的那部分。
+`GET /metrics/business` 的 `off_channel_expense_rate` 从导入的记录里算，第一次有了真值；此前只能
+拿"交接完成率"往上估。预算账本对过账的用费控的数，没对过的用自述。导入按 `expense_id` 幂等。
+
 ## 5. 证据与版本
 
 每个候选方案绑定：

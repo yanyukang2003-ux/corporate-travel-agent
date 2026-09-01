@@ -37,6 +37,7 @@ from corporate_travel_agent.domain.enums import (
     LodgingRequirement,
     PolicyOutcome,
     PreferenceOrigin,
+    ReconciliationStatus,
     RevalidationStatus,
     TaskState,
     ToolCallStatus,
@@ -51,6 +52,7 @@ from corporate_travel_agent.domain.models import (
     ConversationMessage,
     EmployeeProfileSnapshot,
     EmployeeTravelProfileSnapshot,
+    ExpenseReconciliation,
     HotelOffer,
     InventorySnapshot,
     PolicyDecision,
@@ -938,6 +940,68 @@ class TripWorkflowOrchestrator:
             stays=stays,
             created_at=self.clock(),
         )
+
+    def reconcile_expense(
+        self,
+        task_id: str,
+        *,
+        expense_id: str,
+        source_system: str,
+        expense_amount: Decimal,
+        currency: str,
+        expensed_at: datetime,
+        matched_order_references: Sequence[str],
+        status: ReconciliationStatus,
+        note: str | None = None,
+    ) -> TripTask:
+        """把一条费控记录钉到这趟任务上：自述的下单确认从此有了外部佐证。
+
+        只接受 `BOOKING_CONFIRMED`（没有确认就没什么可对）；一个任务只对一次，第二条
+        记录该由对账服务标成 `DUPLICATE`，不该走到这里。状态不变——对账是确认的佐证，
+        不是新的一步。
+        """
+        task = self.tasks.get(task_id)
+        if task.state is not TaskState.BOOKING_CONFIRMED or task.booking_confirmation is None:
+            raise WorkflowError(f"Cannot reconcile an expense against a task in {task.state.value}")
+        if task.expense_reconciliation is not None:
+            raise WorkflowError("This booking has already been reconciled")
+        if status in {ReconciliationStatus.UNMATCHED, ReconciliationStatus.DUPLICATE}:
+            raise WorkflowError(f"A {status.value} record does not belong on a task")
+        if not expense_id.strip():
+            raise WorkflowError("An expense record needs an id")
+        reconciliation = ExpenseReconciliation(
+            reconciliation_id=str(uuid4()),
+            expense_id=expense_id.strip(),
+            source_system=source_system.strip() or "expense-system",
+            expense_amount=expense_amount,
+            currency=currency,
+            expensed_at=expensed_at,
+            reconciled_at=self.clock(),
+            status=status,
+            matched_order_references=tuple(dict.fromkeys(matched_order_references)),
+            note=note,
+        )
+        task.expense_reconciliation = reconciliation
+        self._audit(
+            task,
+            "EXPENSE_RECONCILED",
+            {
+                "expense_id": reconciliation.expense_id,
+                "source_system": reconciliation.source_system,
+                "status": reconciliation.status.value,
+                "expense_amount": str(reconciliation.expense_amount),
+                "currency": reconciliation.currency,
+                "variance": (
+                    str(variance)
+                    if (variance := reconciliation.amount_variance(task.booking_confirmation))
+                    is not None
+                    else None
+                ),
+            },
+            reconciliation.reconciliation_id,
+            (task.booking_confirmation.confirmation_id,),
+        )
+        return task
 
     def _requester_for(
         self, traveler: EmployeeProfileSnapshot, requester_id: str | None

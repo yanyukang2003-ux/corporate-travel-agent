@@ -16,6 +16,8 @@
 | 平均耗时 | 从任务第一条审计事件到交接完成的**墙上时间**，含人等审批、人在想 |
 | 提前预订天数 | 员工回填的下单时刻（没回填就用交接时刻）→ 首段实际出发时刻 |
 | 实付偏差 | （实付 − 方案价）÷ 方案价，只算币种一致的确认记录 |
+| 费控对账率 | 回填过的任务里费控对上账的比例——对上了的自述才算"核实过" |
+| 渠道外预订率 | 费控记录里本系统找不到对应确认的比例——第一次有真值的"绕开系统" |
 | 超标发生率 | 方案里带"需审批/禁止"证据的比例，分选中和展示两个口径 |
 
 ## 数据从哪来
@@ -73,7 +75,7 @@ from collections.abc import Mapping, Sequence
 from datetime import UTC, datetime
 from decimal import Decimal
 from pathlib import Path
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -154,6 +156,11 @@ class TaskBusinessRecord(BusinessModel):
     #: 实付减方案价。币种对不上时为 `None`，配 `confirmation_currency_mismatch` 说明。
     cost_variance: Decimal | None
     cost_variance_currency: str | None
+    #: 费控对过账没有。对过账的自述才算"核实过"。
+    expense_reconciled: bool
+    reconciliation_status: str | None
+    #: 费控金额减自述金额。没对账或币种不同时为 `None`。
+    reconciliation_variance: Decimal | None
     #: 下单时刻 → 首段实际出发时刻，天。负数表示出发早于下单（时间线对不上时才会出现）。
     advance_days: float | None
     #: 提前天数用了哪个时刻做起点：员工回填的下单时刻、审计里的交接事件，
@@ -185,6 +192,8 @@ class BusinessMetricsReport(BusinessModel):
     task_count: int = Field(ge=0)
     records: tuple[TaskBusinessRecord, ...]
     metrics: dict[str, MetricResult]
+    #: 导入过的费控记录数。渠道外预订率的分母；0 表示费控没接。
+    expense_records_imported: int = Field(default=0, ge=0)
 
 
 def summarize_task(
@@ -267,6 +276,12 @@ def summarize_task(
     actual_total: Decimal | None = None
     cost_variance: Decimal | None = None
     cost_variance_currency: str | None = None
+    reconciliation = task.expense_reconciliation
+    reconciliation_variance: Decimal | None = None
+    if reconciliation is not None and confirmation is not None:
+        reconciliation_variance = reconciliation.amount_variance(confirmation)
+        if reconciliation_variance is None:
+            notes.append("reconciliation_currency_mismatch")
     if confirmation is not None:
         actual_total = confirmation.total_amount
         confirmed_option = task.confirmed_option()
@@ -302,6 +317,9 @@ def summarize_task(
         actual_total=actual_total,
         cost_variance=cost_variance,
         cost_variance_currency=cost_variance_currency,
+        expense_reconciled=reconciliation is not None,
+        reconciliation_status=reconciliation.status.value if reconciliation is not None else None,
+        reconciliation_variance=reconciliation_variance,
         has_selected_option=selected is not None,
         started_at=started_at,
         handed_off_at=handed_off_at,
@@ -324,8 +342,12 @@ def build_business_metrics_report(
     *,
     generated_at: datetime | None = None,
     handoff_reference_time: datetime | None = None,
+    expense_records: Sequence[Any] = (),
 ) -> BusinessMetricsReport:
     """把一批任务汇总成业务指标报告。
+
+    `expense_records` 是导入过的费控记录（`StoredExpenseRecord`）：有了它才算得出
+    **渠道外预订率**——费控里有、本系统里没有的报销，就是员工绕开系统订的。
 
     `events_by_task` 少了某个任务的条目按"没有审计事件"处理：耗时和提前天数测不出来，
     但方案数、超标、澄清轮数这些从聚合上读的字段照常可用。
@@ -344,17 +366,32 @@ def build_business_metrics_report(
         generated_at=generated_at or datetime.now(UTC),
         task_count=len(records),
         records=records,
-        metrics=aggregate_metrics(records),
+        metrics=aggregate_metrics(records, expense_records=expense_records),
+        expense_records_imported=len(expense_records),
     )
 
 
 def aggregate_metrics(
     records: Sequence[TaskBusinessRecord],
+    *,
+    expense_records: Sequence[Any] = (),
 ) -> dict[str, MetricResult]:
     """把每任务一行的事实汇总成指标。分母为零一律 `unavailable`，不写 0。"""
     with_options = [item for item in records if item.produced_options]
     handed_off = [item for item in records if item.handed_off]
     confirmed = [item for item in records if item.booking_confirmed]
+    reconciled = [item for item in confirmed if item.expense_reconciled]
+    reconciliation_ratios = [
+        float(item.reconciliation_variance / item.actual_total)
+        for item in reconciled
+        if item.reconciliation_variance is not None
+        and item.actual_total is not None
+        and item.actual_total != 0
+    ]
+    unmatched_expenses = sum(
+        1 for item in expense_records if getattr(item, "status", None) is not None
+        and getattr(item.status, "value", item.status) == "UNMATCHED"
+    )
     variance_ratios = [
         float(item.cost_variance / item.planned_total)
         for item in confirmed
@@ -410,6 +447,33 @@ def aggregate_metrics(
             confidence_note=(
                 "（实付 − 方案价）÷ 方案价，正数是多付。只算币种一致的确认记录；"
                 "币种不一致的任务带 confirmation_currency_mismatch 说明，不换算。"
+            ),
+        ),
+        "expense_reconciled_rate": _rate(
+            len(reconciled),
+            len(confirmed),
+            unit="rate",
+            confidence_note=(
+                "回填了订单号的任务里，费控记录对上了的比例。对上了的自述才算「核实过」；"
+                "费控没接时分母有、分子为 0，这个数就是 0——那是事实，不是测不出来。"
+            ),
+        ),
+        "reconciliation_variance_ratio_mean": _stat(
+            reconciliation_ratios,
+            unit="ratio",
+            statistic="mean",
+            confidence_note=(
+                "（费控金额 − 自述金额）÷ 自述金额，只算币种一致的对账记录。"
+                "正数是员工少报、负数是多报。"
+            ),
+        ),
+        "off_channel_expense_rate": _rate(
+            unmatched_expenses,
+            len(expense_records),
+            unit="rate",
+            confidence_note=(
+                "导入的费控记录里，本系统找不到对应下单确认的比例——员工绕开系统订的那部分。"
+                "这是设计文档里「渠道内预订率」的补集，第一次有了真值；费控没接时测不出来。"
             ),
         ),
         "handoff_completion_rate.all_tasks": _rate(
@@ -617,6 +681,9 @@ METRIC_LABELS: dict[str, str] = {
     "booking_confirmation_rate": "系统给出了方案的任务里，员工回填了订单号和实付金额的比例（自述）",
     "booking_confirmation_rate.of_handed_off": "说了「已订好」的任务里，回来填了订单号的比例",
     "booked_cost_variance_ratio_mean": "实付比方案价多付或少付了几成，平均（只算币种一致的）",
+    "expense_reconciled_rate": "回填了订单号的任务里，费控对上账的比例（对上了才算核实过）",
+    "reconciliation_variance_ratio_mean": "费控金额比员工自述多或少了几成，平均",
+    "off_channel_expense_rate": "费控记录里在本系统找不到对应确认的比例（绕开系统订的）",
     "seconds_to_handoff_mean": "从任务开始到说「已订好」的平均墙上时间（秒）",
     "seconds_to_handoff_p50": "同上，中位数（秒）",
     "seconds_to_handoff_p95": "同上，95 分位（秒）",

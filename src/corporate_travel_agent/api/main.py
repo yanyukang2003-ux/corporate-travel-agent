@@ -181,6 +181,18 @@ def _configured_outbox_store():
     return SQLAlchemyOutboxStore(engine)
 
 
+def _configured_expense_store():
+    """费控记录存储：和任务仓储同一个引擎；内存仓储时用内存。"""
+    from corporate_travel_agent.services.expense_reconciliation import InMemoryExpenseRecordStore
+
+    engine = getattr(workflow.tasks, "engine", None)
+    if engine is None:
+        return InMemoryExpenseRecordStore()
+    from corporate_travel_agent.services.sqlalchemy_repository import SQLAlchemyExpenseRecordStore
+
+    return SQLAlchemyExpenseRecordStore(engine)
+
+
 def _configured_outbox_dispatcher(store):
     """装配投递器：配了 OUTBOX_WEBHOOK_URL 就 POST 给企业侧，否则记日志。
 
@@ -316,6 +328,7 @@ provider_retry_scheduler = (
     else None
 )
 outbox_store = _configured_outbox_store()
+expense_store = _configured_expense_store()
 outbox_dispatcher = _configured_outbox_dispatcher(outbox_store)
 bearer_scheme = HTTPBearer(auto_error=False)
 
@@ -814,6 +827,72 @@ def active_policy(identity: CurrentIdentity) -> dict[str, Any]:
     }
 
 
+class ExpenseImportRequest(BaseModel):
+    """费控系统推来的一批报销记录。每条至少要有订单号，那是对账的钥匙。"""
+    model_config = ConfigDict(extra="forbid")
+
+    source_system: str = Field(default="expense-system", min_length=1, max_length=64)
+    records: list[dict[str, Any]] = Field(min_length=1, max_length=1000)
+
+
+@app.post("/expenses/import")
+def import_expenses(payload: ExpenseImportRequest, identity: CurrentIdentity) -> dict[str, Any]:
+    """导入费控记录并逐条对账（管理员）。同一个 expense_id 重复导入会被跳过。
+
+    对上了的自述从此算"核实过"；对不上的两边都留着；本系统里没有对应确认的，
+    就是渠道外预订——`GET /metrics/business` 的 `off_channel_expense_rate` 从这里来。
+    """
+    from corporate_travel_agent.services.expense_reconciliation import (
+        reconcile_expenses,
+        record_from_payload,
+    )
+
+    if not identity.has_role(Role.ADMIN):
+        raise HTTPException(status_code=403, detail="Admin role required")
+    try:
+        records = [
+            record_from_payload({"source_system": payload.source_system, **item})
+            for item in payload.records
+        ]
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    report = reconcile_expenses(
+        records,
+        repository=workflow.tasks,
+        store=expense_store,
+        reconcile=workflow.reconcile_expense,
+        now=workflow.clock,
+    )
+    return report.as_dict()
+
+
+@app.get("/expenses/records")
+def expense_records(identity: CurrentIdentity, limit: int = 100) -> list[dict[str, Any]]:
+    """导入过的费控记录及对账结果（管理员）。"""
+    if not 1 <= limit <= 1000:
+        raise HTTPException(status_code=400, detail="limit must be between 1 and 1000")
+    if not identity.has_role(Role.ADMIN):
+        raise HTTPException(status_code=403, detail="Admin role required")
+    return [
+        {
+            "expense_id": item.record.expense_id,
+            "employee_id": item.record.employee_id,
+            "amount": str(item.record.amount),
+            "currency": item.record.currency,
+            "expensed_at": item.record.expensed_at,
+            "order_references": list(item.record.order_references),
+            "source_system": item.record.source_system,
+            "cost_center": item.record.cost_center,
+            "description": item.record.description,
+            "status": item.status.value,
+            "matched_task_id": item.matched_task_id,
+            "note": item.note,
+            "imported_at": item.imported_at,
+        }
+        for item in expense_store.list_records(limit=limit)
+    ]
+
+
 class OutboxDispatchRequest(BaseModel):
     """手动跑一轮投递的请求体。"""
     model_config = ConfigDict(extra="forbid")
@@ -916,7 +995,9 @@ def business_metrics(
             events[summary.task_id] = workflow.tasks.events(summary.task_id)
         except NotFoundError:
             continue
-    report = build_business_metrics_report(tasks, events)
+    report = build_business_metrics_report(
+        tasks, events, expense_records=expense_store.list_records(limit=limit)
+    )
     return report.model_dump(mode="json")
 
 
@@ -1271,6 +1352,19 @@ def _public_task(task: TripTask) -> dict[str, Any]:
         "approval": asdict(task.approval) if task.approval else None,
         "booking_intent": asdict(task.booking_intent) if task.booking_intent else None,
         "booking_confirmation": _public_booking_confirmation(task),
+        # 费控对账结果；没对过账是 null。对上了，自述才算"核实过"。
+        "expense_reconciliation": (
+            {
+                **asdict(task.expense_reconciliation),
+                "amount_variance": (
+                    task.expense_reconciliation.amount_variance(task.booking_confirmation)
+                    if task.booking_confirmation is not None
+                    else None
+                ),
+            }
+            if task.expense_reconciliation is not None
+            else None
+        ),
         "summary": False,
     }
 

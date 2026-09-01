@@ -71,3 +71,41 @@ describe('confirmationSummary', () => {
     )
   })
 })
+
+import { reconciliationText } from './booking.ts'
+import type { ExpenseReconciliation } from '../api/types.ts'
+
+function reconciliation(overrides: Partial<ExpenseReconciliation> = {}): ExpenseReconciliation {
+  return {
+    reconciliation_id: 'r-1',
+    expense_id: 'EXP-1',
+    source_system: 'expense-system',
+    expense_amount: '1200',
+    currency: 'USD',
+    expensed_at: '2026-08-10T00:00:00+00:00',
+    reconciled_at: '2026-08-11T00:00:00+00:00',
+    status: 'MATCHED',
+    matched_order_references: ['PNR-1'],
+    note: null,
+    amount_variance: '0',
+    ...overrides,
+  }
+}
+
+describe('reconciliationText', () => {
+  it('says the expense matches the self-reported amount', () => {
+    assert.equal(reconciliationText(reconciliation(), 'USD'), '费控 $1,200，和自述一致')
+  })
+  it('says how much more or less the expense system recorded', () => {
+    assert.equal(
+      reconciliationText(reconciliation({ expense_amount: '1235', status: 'AMOUNT_MISMATCH', amount_variance: '35' }), 'USD'),
+      '费控 $1,235，比自述多 $35',
+    )
+  })
+  it('refuses to compare across currencies', () => {
+    assert.equal(
+      reconciliationText(reconciliation({ currency: 'CNY', status: 'CURRENCY_MISMATCH', amount_variance: null }), 'USD'),
+      '费控 ¥1,200，币种和自述不同，不比较',
+    )
+  })
+})

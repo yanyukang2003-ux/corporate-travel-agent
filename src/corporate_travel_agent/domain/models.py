@@ -15,6 +15,7 @@ from .enums import (
     PolicyOutcome,
     PreferenceOrigin,
     RawResponseAccessPolicy,
+    ReconciliationStatus,
     RevalidationStatus,
     SourceType,
     TaskState,
@@ -802,6 +803,33 @@ class BookingConfirmation:
 
 
 @dataclass(frozen=True, slots=True)
+class ExpenseReconciliation:
+    """费控系统的记录和这趟任务的下单确认对上了：自述有了外部佐证。
+
+    它是**另一条记录**，不改动 `BookingConfirmation`——确认是员工当时说的话，对账是
+    费控后来说的话，两句话都要留着。金额对不上时两边都在，差额（`amount_variance`）
+    由此算出来；币种不同不换算。
+    """
+
+    reconciliation_id: str
+    expense_id: str
+    source_system: str
+    expense_amount: Decimal
+    currency: str
+    expensed_at: datetime
+    reconciled_at: datetime
+    status: ReconciliationStatus
+    matched_order_references: tuple[str, ...]
+    note: str | None = None
+
+    def amount_variance(self, confirmation: BookingConfirmation) -> Decimal | None:
+        """费控金额减自述金额；币种不同就是 None。"""
+        if confirmation.currency != self.currency:
+            return None
+        return self.expense_amount - confirmation.total_amount
+
+
+@dataclass(frozen=True, slots=True)
 class AuditEvent:
     """任务审计事件（输入/输出哈希与证据引用）。"""
 
@@ -893,6 +921,8 @@ class TripTask:
     #: 谁发起的这趟任务。None（旧任务）等于旅行者本人。和 `employee`（旅行者）分开记：
     #: 助理替高管订时，差标看高管、审批找高管的经理、审计记两个人。
     requester_id: str | None = None
+    #: 费控对账结果。有它，下单确认才算"核实过"；一个任务只对一次。
+    expense_reconciliation: ExpenseReconciliation | None = None
     failure: str | None = None
     intent_fields: dict[str, Any] = field(default_factory=dict)
     messages: list[ConversationMessage] = field(default_factory=list)

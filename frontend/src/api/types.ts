@@ -323,6 +323,22 @@ export interface BookingConfirmation {
   cost_variance: string | number | null
 }
 
+/** 费控系统的记录和这趟任务的下单确认对上了。 */
+export interface ExpenseReconciliation {
+  reconciliation_id: string
+  expense_id: string
+  source_system: string
+  expense_amount: string | number
+  currency: string
+  expensed_at: string
+  reconciled_at: string
+  status: 'MATCHED' | 'AMOUNT_MISMATCH' | 'CURRENCY_MISMATCH'
+  matched_order_references: string[]
+  note: string | null
+  /** 费控金额减自述金额；币种不同为 null。 */
+  amount_variance: string | number | null
+}
+
 /** 回填订单号的请求体。金额用字符串传，避免浮点。 */
 export interface BookingConfirmationCreate {
   order_references: string[]
@@ -433,6 +449,8 @@ export interface TripTask {
   approval: ApprovalInfo | null
   booking_intent: BookingIntent | null
   booking_confirmation: BookingConfirmation | null
+  /** 费控对账结果；对上了，自述才算"核实过"。 */
+  expense_reconciliation: ExpenseReconciliation | null
   budget_snapshot: BudgetSnapshot | null
   /** 旅行者：差标、审批、预算都看这个人。 */
   traveler_id: string

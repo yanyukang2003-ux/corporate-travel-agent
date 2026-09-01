@@ -15,6 +15,8 @@
    但会作为 `excluded_confirmations` 记在快照旁边，读的人知道有几笔没算进来。
 3. **按下单时刻归期。** 落在 `[period_from, period_to]` 的算这一期；下单时刻是员工说的
    （`booked_at`），没说就是回填时刻。
+4. **费控对过账的用费控的数。** 对账记录（`ExpenseReconciliation`）是外部佐证，比自述硬；
+   有它就用它的金额，没有才用自述。
 
 ## 默认接上，但只有配了预算才会有规则
 
@@ -81,10 +83,15 @@ class RepositoryTripBudgetLedger:
             confirmation = task.booking_confirmation
             if confirmation is None or task.employee.cost_center != cost_center:
                 continue
-            if confirmation.currency != currency:
-                continue
             booked_day = confirmation.booked_at.date()
-            if period_from <= booked_day <= period_to:
+            if not period_from <= booked_day <= period_to:
+                continue
+            # 费控对过账、而且币种对得上：用费控的数——那是外部记录，比自述硬。
+            # 否则用自述；币种对不上的一律不进这个数。
+            reconciliation = task.expense_reconciliation
+            if reconciliation is not None and reconciliation.currency == currency:
+                total += reconciliation.expense_amount
+            elif confirmation.currency == currency:
                 total += confirmation.total_amount
         return total
 

@@ -269,6 +269,84 @@ class OutboxEventRow(Base):
     last_error: Mapped[str | None] = mapped_column(String(512))
 
 
+class ExpenseRecordRow(Base):
+    """导入过的费控记录及其对账结果。渠道外预订率从这张表算。"""
+
+    __tablename__ = "expense_records"
+    __table_args__ = (
+        Index("ix_expense_records_employee", "employee_id", "expensed_at"),
+        Index("ix_expense_records_status", "status", "imported_at"),
+    )
+
+    expense_id: Mapped[str] = mapped_column(String(96), primary_key=True)
+    employee_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    amount: Mapped[str] = mapped_column(String(32), nullable=False)
+    currency: Mapped[str] = mapped_column(String(3), nullable=False)
+    expensed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    order_references: Mapped[list[str]] = mapped_column(JSON_DOCUMENT, nullable=False)
+    source_system: Mapped[str] = mapped_column(String(64), nullable=False)
+    cost_center: Mapped[str | None] = mapped_column(String(64))
+    description: Mapped[str | None] = mapped_column(String(500))
+    status: Mapped[str] = mapped_column(String(32), nullable=False)
+    matched_task_id: Mapped[str | None] = mapped_column(String(64))
+    note: Mapped[str | None] = mapped_column(String(500))
+    imported_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
+class SQLAlchemyExpenseRecordStore:
+    """费控记录的 SQL 存储；和任务表同一个引擎。"""
+
+    backend_name = "sqlalchemy"
+
+    def __init__(self, engine: Engine) -> None:
+        self.engine = engine
+
+    def get(self, expense_id: str):
+        from corporate_travel_agent.services.expense_reconciliation import (
+            stored_record_from_row,
+        )
+
+        with Session(self.engine) as session:
+            row = session.get(ExpenseRecordRow, expense_id)
+            return stored_record_from_row(row) if row is not None else None
+
+    def add(self, stored) -> None:
+        record = stored.record
+        with Session(self.engine) as session, session.begin():
+            if session.get(ExpenseRecordRow, record.expense_id) is not None:
+                raise ValueError(f"expense record {record.expense_id} already imported")
+            session.add(
+                ExpenseRecordRow(
+                    expense_id=record.expense_id,
+                    employee_id=record.employee_id,
+                    amount=str(record.amount),
+                    currency=record.currency,
+                    expensed_at=record.expensed_at,
+                    order_references=list(record.order_references),
+                    source_system=record.source_system,
+                    cost_center=record.cost_center,
+                    description=record.description,
+                    status=stored.status.value,
+                    matched_task_id=stored.matched_task_id,
+                    note=stored.note,
+                    imported_at=stored.imported_at,
+                )
+            )
+
+    def list_records(self, *, limit: int = 500):
+        from corporate_travel_agent.services.expense_reconciliation import (
+            stored_record_from_row,
+        )
+
+        with Session(self.engine) as session:
+            rows = session.scalars(
+                select(ExpenseRecordRow)
+                .order_by(ExpenseRecordRow.imported_at, ExpenseRecordRow.expense_id)
+                .limit(max(limit, 0))
+            )
+            return tuple(stored_record_from_row(row) for row in rows)
+
+
 class SQLAlchemyTaskRepository:
     """面向 PostgreSQL 的事务性任务仓储（亦支持 SQLite 测试）。"""
 
@@ -295,6 +373,7 @@ class SQLAlchemyTaskRepository:
             "employee_profiles",
             "policy_snapshot_rows",
             "outbox_events",
+            "expense_records",
         }
         available = set(inspect(self.engine).get_table_names())
         missing = sorted(required - available)
@@ -316,6 +395,8 @@ class SQLAlchemyTaskRepository:
             "retry_lease_until",
             "retry_attempt_token",
             "payload_schema_version",
+            "pending_approver_id",
+            "requester_id",
         }
         missing_task_columns = sorted(required_task_columns - task_columns)
         if missing_task_columns:

@@ -26,7 +26,7 @@ import { formatTravelDate, formatTravelTime, getStateMeta, parseIsoWallClock } f
 import { approvalReasonText, factsForOptionCard, openQuestionsFromTask } from './utils/notices'
 import { chatTurns } from './utils/chat'
 import { costNotes, money as moneyText } from './utils/cost'
-import { confirmationSummary, parseOrderReferences } from './utils/booking'
+import { confirmationSummary, parseOrderReferences, reconciliationText } from './utils/booking'
 import type { CostNote } from './utils/cost'
 import { categoriesFromFacts, rankedBreakdowns } from './utils/scoring'
 import type { ChatTurn } from './utils/chat'
@@ -1213,8 +1213,9 @@ function HandoffPanel({ task, busy, error, onHandoff, onConfirm }: {
         <div><dt>方案价</dt><dd>{confirmation.planned_total != null ? moneyText(String(confirmation.planned_total), confirmation.planned_currency ?? confirmation.currency) : '—'}</dd></div>
         <div><dt>下单时间</dt><dd>{formatTravelDate(confirmation.booked_at)} {formatTravelTime(confirmation.booked_at)}</dd></div>
         {confirmation.note && <div><dt>备注</dt><dd>{confirmation.note}</dd></div>}
+        {task.expense_reconciliation && <div data-testid="expense-reconciliation"><dt>费控对账</dt><dd>{reconciliationText(task.expense_reconciliation, confirmation.currency)}</dd></div>}
       </dl>
-      <p className="handoff-help"><Icon name="info" size={14} />订单号和金额是你自己填的，系统核不了；费控对账接上之前，报表里它会标为「自述」。</p>
+      <p className="handoff-help"><Icon name="info" size={14} />{task.expense_reconciliation ? '费控记录已对上：自述有了外部佐证。' : '订单号和金额是你自己填的，系统核不了；费控对账接上之前，报表里它会标为「自述」。'}</p>
     </section>
   }
 

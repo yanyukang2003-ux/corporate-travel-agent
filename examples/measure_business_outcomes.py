@@ -92,8 +92,42 @@ def _demo_tasks(limit: int):
         approval.task_id, exception.option_id, business_reason="客户会议改期，只剩这班"
     )
 
+    # 费控推来两条：一条对上了回填的那单（金额差 15），一条本系统从没见过——渠道外预订。
+    from corporate_travel_agent.services.expense_reconciliation import (
+        ExpenseRecord,
+        InMemoryExpenseRecordStore,
+        reconcile_expenses,
+    )
+
+    store = InMemoryExpenseRecordStore()
+    reconcile_expenses(
+        [
+            ExpenseRecord(
+                expense_id="EXP-1",
+                employee_id="E1001",
+                amount=confirmed_option.total_cost + Decimal("35"),
+                currency=confirmed_option.currency,
+                expensed_at=DEMO_CLOCK,
+                order_references=("DEMO-PNR-1",),
+            ),
+            ExpenseRecord(
+                expense_id="EXP-2",
+                employee_id="E1001",
+                amount=Decimal("1180"),
+                currency=confirmed_option.currency,
+                expensed_at=DEMO_CLOCK,
+                order_references=("CTRIP-99881",),
+                description="booked outside the system",
+            ),
+        ],
+        repository=workflow.tasks,
+        store=store,
+        reconcile=workflow.reconcile_expense,
+        now=lambda: DEMO_CLOCK,
+    )
+
     tasks, events = _collect(workflow.tasks, limit)
-    return tasks, events, DEMO_CLOCK
+    return tasks, events, DEMO_CLOCK, store.list_records()
 
 
 def main() -> None:
@@ -119,21 +153,25 @@ def main() -> None:
         reference = datetime.fromisoformat(args.handoff_reference_time)
 
     if args.demo:
-        tasks, events, demo_clock = _demo_tasks(args.limit)
+        tasks, events, demo_clock, expense_records = _demo_tasks(args.limit)
         reference = reference or demo_clock
     else:
         from corporate_travel_agent.services.sqlalchemy_repository import (
+            SQLAlchemyExpenseRecordStore,
             SQLAlchemyTaskRepository,
         )
 
         repository = SQLAlchemyTaskRepository(args.database_url)
         try:
             tasks, events = _collect(repository, args.limit)
+            expense_records = SQLAlchemyExpenseRecordStore(repository.engine).list_records(
+                limit=args.limit
+            )
         finally:
             repository.dispose()
 
     report = build_business_metrics_report(
-        tasks, events, handoff_reference_time=reference
+        tasks, events, handoff_reference_time=reference, expense_records=expense_records
     )
     output_root = write_business_metrics_report(report, args.output)
 
