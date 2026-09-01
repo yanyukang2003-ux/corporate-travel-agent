@@ -35,6 +35,10 @@ flowchart LR
 
 `domain` 不依赖 FastAPI、数据库或供应商 SDK。当前可在内存与 PostgreSQL 仓储之间切换；把 Mock 替换为正式 TMC API 也不需要重写规划和政策核心。
 
+`agent/orchestrator` 自 2026-09-01 起是一个包（ADR-0004）：`core` / `intake` / `planning` / `approval` /
+`confirmation` / `resilience` / `records` 七个模块各管一个职责，`TripWorkflowOrchestrator` 由六个 mixin 组装，
+状态全部在实例上、只在 `__init__` 里定义。行为和公开名字与拆分前逐字相同。
+
 离线评测层使用严格 manifest 和固定来源哈希加载派生案例。PreferTripPlan 案例通过 Mock Provider 逐条运行同一个 Orchestrator、Planner 和 Policy Engine；Open-Travel 仅提供中文 query 与机器可检查的分类/缺失字段约束，不采用数据中的模型回答作为标准答案。
 
 ## 3. Agent 与确定性内核的边界
@@ -242,8 +246,10 @@ stateDiagram-v2
 这不是改库存，是"航司说这张票没了，就别再端上来"。改期任务同样走规划、政策、审批、交接、
 确认；它确认了，差旅进入 `REBOOKED`。发件箱里多一条 `TRIP_CHANGE_REQUESTED`。
 
-差旅聚合和任务不在同一笔事务里（不同表、先任务后差旅）；这是已知的窄缝，改期任务建了而差旅
-没记上时，`find_by_task` 找不到它——列在后续项里，没有假装它是原子的。
+差旅聚合和任务**同一笔事务**落库（`SQLAlchemyTaskRepository.add_with_trip`）：新差旅插一行，已有差旅按
+乐观锁更新，改期事件也在这一笔里写进差旅——要么一起成，要么一起回滚。前提是两张表共用一个引擎；
+任务在 SQL、差旅在内存（单测常见）时退回先任务后差旅。2026-09-01 之前这里是三次写，改期任务建了
+而差旅没记上时 `find_by_task` 找不到它，已修。
 
 业务指标多了两条：`change_auto_planned_rate`（改期任务里系统直接摆出方案的比例）和
 `change_intervention_rate`（人不得不插手的比例——设计文档里的"变更场景人工介入率"）。
@@ -313,14 +319,18 @@ create_deep_link(option) -> ProviderHandoff
 
 `ProviderError` 与空库存是不同状态，不能被转换为“无结果”。不可重试错误直接进入
 `PROVIDER_FAILED`；明确标记为无外部副作用的瞬时只读错误，在 3 次即时尝试耗尽后进入
-`WAITING_FOR_PROVIDER`。共享熔断器打开 60 秒，后台处理器按持久化时间最多进行 3 次
-任务级延迟重试，成功后继续原流程，耗尽后进入 `PROVIDER_FAILED`。任何外部写操作都不允许
-盲目进入该重试链路。
+`WAITING_FOR_PROVIDER`。熔断器打开 60 秒；配了 `DATABASE_URL` 时"打开到几点"写进
+`provider_circuit_state` 表（`SQLAlchemyProviderCircuitStore`），所有实例共用：A 实例判定供应商挂了，
+B 实例下一次调用前就知道，不再各自撞一遍；半开探测仍按进程各自做。存储读写失败只记日志、退回
+本地状态。后台处理器按持久化时间最多进行 3 次任务级延迟重试，成功后继续原流程，耗尽后进入
+`PROVIDER_FAILED`。任何外部写操作都不允许盲目进入该重试链路。
 
-延迟重试消费者默认不运行在 API worker。专用 worker 通过数据库原子 claim 取得任务，持有
+延迟重试消费者默认不运行在 API worker：`PROCESS_ROLE=worker` 的 uvicorn 进程，或不开 HTTP 的
+`examples/run_provider_retry_worker.py`（装配和 API 完全一样）。专用 worker 通过数据库原子 claim 取得任务，持有
 有上限的 lease 和唯一 fencing token；lease 到期可被其他 worker 接管，任何旧 token 的迟到
-状态写回都会被仓储拒绝。到期与 stale in-progress 查询分别使用状态/时间索引，不通过公共
-任务列表扫描全表。关闭先停止新 claim，再等待在途调用 drain。
+状态写回都会被仓储拒绝。到期查询走状态/时间索引；重启时的中断任务恢复只查四个瞬时状态
+（`list_by_states`），不再 `list_tasks()` 全表反序列化——陈旧与否仍按活动时间在内存里判，因为
+`updated_at` 是墙钟而业务时钟可能被冻结。关闭先停止新 claim，再等待在途调用 drain。
 
 Provider 与 Orchestrator 共享同一时钟来源。库存快照必须包含有效时区，且 `valid_until` 必须晚于采集和使用时刻；交接链接在创建 Booking Intent 前也必须仍然有效。任一校验失败均进入 `PROVIDER_FAILED` 并写入拒绝事件。
 
