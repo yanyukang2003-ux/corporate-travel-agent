@@ -79,6 +79,7 @@ class TaskRow(Base):
         Index("ix_trip_tasks_provider_retry_due", "state", "next_retry_at"),
         Index("ix_trip_tasks_retry_lease", "state", "retry_lease_until"),
         Index("ix_trip_tasks_pending_approver", "pending_approver_id", "state"),
+        Index("ix_trip_tasks_requester_updated", "requester_id", "updated_at"),
     )
 
     task_id: Mapped[str] = mapped_column(String(64), primary_key=True)
@@ -96,6 +97,7 @@ class TaskRow(Base):
     retry_lease_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     retry_attempt_token: Mapped[str | None] = mapped_column(String(64))
     pending_approver_id: Mapped[str | None] = mapped_column(String(64))
+    requester_id: Mapped[str | None] = mapped_column(String(64))
     payload_schema_version: Mapped[int] = mapped_column(
         Integer, nullable=False, default=SCHEMA_VERSION
     )
@@ -389,12 +391,20 @@ class SQLAlchemyTaskRepository:
         manager_id: str | None = None,
         state: str | None = None,
         pending_approver_id: str | None = None,
+        involving_employee_id: str | None = None,
         limit: int = 100,
     ) -> tuple[TaskSummary, ...]:
         if limit < 0:
             raise ValueError("limit must be non-negative")
         with Session(self.engine) as session:
             statement = select(TaskRow)
+            if involving_employee_id is not None:
+                statement = statement.where(
+                    or_(
+                        TaskRow.employee_id == involving_employee_id,
+                        TaskRow.requester_id == involving_employee_id,
+                    )
+                )
             if employee_id is not None:
                 statement = statement.where(TaskRow.employee_id == employee_id)
             if manager_id is not None:
@@ -707,6 +717,7 @@ class SQLAlchemyTaskRepository:
                 request_version=_request_version(row.payload),
                 failure=_failure(row.payload),
                 pending_approver_id=row.pending_approver_id,
+                requester_id=row.requester_id or row.employee_id,
             )
         task = deserialize_task(row.payload)
         return summarize_task(task, created_at=row.created_at, updated_at=row.updated_at)

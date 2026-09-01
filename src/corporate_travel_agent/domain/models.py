@@ -41,6 +41,9 @@ class EmployeeProfileSnapshot:
     #: 成本中心。预算规则按它找这位员工的预算，下单确认按它扣减。
     #: None 是"档案里没填"，规则不会因此凭空判——它只是不判预算这一条。
     cost_center: str | None = None
+    #: 可以替这位员工订差旅的人（助理替高管订、项目经理替组员订）。
+    #: 差标、审批、预算全看**旅行者**的档案；委托只决定"谁能发起"。
+    delegate_ids: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)
@@ -887,6 +890,9 @@ class TripTask:
     booking_intent: BookingIntent | None = None
     #: 员工回填的下单确认。交接之后唯一的新事实；一个任务只有一条，写了不改。
     booking_confirmation: BookingConfirmation | None = None
+    #: 谁发起的这趟任务。None（旧任务）等于旅行者本人。和 `employee`（旅行者）分开记：
+    #: 助理替高管订时，差标看高管、审批找高管的经理、审计记两个人。
+    requester_id: str | None = None
     failure: str | None = None
     intent_fields: dict[str, Any] = field(default_factory=dict)
     messages: list[ConversationMessage] = field(default_factory=list)
@@ -911,6 +917,16 @@ class TripTask:
     def tool_calls_remaining(self) -> int:
         """剩余可用工具调用次数。"""
         return max(self.tool_call_limit - self.tool_calls_used, 0)
+
+    @property
+    def requested_by(self) -> str:
+        """发起人；没记（旧任务）就是旅行者本人。"""
+        return self.requester_id or self.employee.employee_id
+
+    @property
+    def is_delegated(self) -> bool:
+        """是不是代订：发起人不是旅行者本人。"""
+        return self.requested_by != self.employee.employee_id
 
     def selected_option(self) -> TravelOptionVersion | None:
         """当前选中的 TravelOptionVersion，未选则 None。"""

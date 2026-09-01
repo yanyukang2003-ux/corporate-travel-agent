@@ -31,6 +31,7 @@
 - 业务结果指标层：交接完成率、平均耗时、提前预订天数和超标发生率，只读任务聚合与审计事件，不调模型和供应商；管理员端点 `GET /metrics/business`；
 - 产品入口可离线评测（D16）：`DeterministicToolCallingModel` 让 60 条工作流和 480 条意图冻结用例经工具循环逐条执行，并与语义入口并排；`tests/test_product_entrypoint_evaluation.py` 是 CI 门禁；
 - 工具循环的交付契约：`propose_options` 声明旅行者的硬要求与偏好（此前一条都不到规划器）；搜空落 `NO_FEASIBLE_OPTION`，越界落 `OUT_OF_SCOPE`，都不占澄清轮数；
+- 代订：任务记旅行者和发起人两个人，谁能替谁订由员工档案的委托名单决定（演示：助理 `A1002` 可替 `E1001` 订）；差标、审批、预算全看旅行者，助理和高管都看得见、都能操作；
 - 分级审批与事务性发件箱：审批链由政策 `approval_tiers` 决定（金额过档或触发某条规则就多一级），收件箱按"当前待谁批"查；审批各步与下单确认随任务更新同一事务进 `outbox_events`，`examples/run_outbox_worker.py` 或 `POST /outbox/dispatch` 投递到日志 / webhook（HMAC 签名）/ 仓库内模拟的外部审批系统；
 - 政策四个维度：夜费基础上限之外，淡旺季上限（按城市 × 日期窗口）、提前预订天数、成本中心预算余额；预算的"用掉多少"来自员工回填的下单确认，规划时钉成 `BudgetSnapshot`，账本没接就判"判不了"而不是当作没超；
 - 下单确认回流：交接之后员工回填订单号和实付金额（`POST /trip-tasks/{id}/booking-confirmation`），任务进入 `BOOKING_CONFIRMED`；指标层由此得到确认预订率、真实下单时刻的提前预订天数和实付偏差。**是自述不是回执**——系统核不了订单号，来源固定标为 `SELF_REPORTED`；一个任务一条，写了不改；

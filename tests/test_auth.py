@@ -31,7 +31,18 @@ def _auth_service() -> AuthService:
                 employee_id="E1001",
             ),
             UserAccount(
+                user_id="A1002",
+                password_hash=password_hash,
+                roles=frozenset({Role.EMPLOYEE}),
+                employee_id="A1002",
+            ),
+            UserAccount(
                 user_id="M2001",
+                password_hash=password_hash,
+                roles=frozenset({Role.APPROVER}),
+            ),
+            UserAccount(
+                user_id="F3001",
                 password_hash=password_hash,
                 roles=frozenset({Role.APPROVER}),
             ),
@@ -313,3 +324,54 @@ def test_approval_identity_comes_from_authenticated_manager(secured_client) -> N
     assert approved.status_code == 200
     assert approved.json()["approval"]["approver_id"] == "M2001"
     assert approved.json()["approval"]["status"] == "APPROVED"
+
+
+def test_a_delegate_can_book_for_the_traveler_and_see_the_task(secured_client) -> None:
+    """助理替高管订：差标看高管、审批找高管的经理、审计记两个人；外人不行。"""
+    assistant = _login(secured_client, "A1002")
+    executive = _login(secured_client, "E1001")
+    manager = _login(secured_client, "M2001")
+
+    me = secured_client.get("/auth/me", headers=assistant).json()
+    assert me["can_book_for"] == ["E1001"]
+    assert secured_client.get("/auth/me", headers=executive).json()["can_book_for"] == []
+
+    created = _create_trip(secured_client, assistant)
+    task_id = created["task_id"]
+    assert created["traveler_id"] == "E1001"
+    assert created["requester_id"] == "A1002"
+    assert created["is_delegated"] is True
+
+    # 助理和高管都看得见、都能操作；经理看得见；两个人的列表里都有它。
+    assert secured_client.get(f"/trip-tasks/{task_id}", headers=assistant).status_code == 200
+    assert secured_client.get(f"/trip-tasks/{task_id}", headers=executive).status_code == 200
+    assert secured_client.get(f"/trip-tasks/{task_id}", headers=manager).status_code == 200
+    assert task_id in {
+        item["task_id"] for item in secured_client.get("/trip-tasks", headers=assistant).json()
+    }
+    assert task_id in {
+        item["task_id"] for item in secured_client.get("/trip-tasks", headers=executive).json()
+    }
+    option = created["options"][0]
+    assert (
+        secured_client.post(
+            f"/trip-tasks/{task_id}/select-option",
+            headers=assistant,
+            json={"option_id": option["option_id"], "business_reason": "老板的日程"},
+        ).status_code
+        == 200
+    )
+
+    # 高管不能反过来替助理订：委托是单向的。
+    forbidden = secured_client.post(
+        "/trip-tasks",
+        headers=executive,
+        json={
+            "traveler_id": "A1002",
+            "origin": "Beijing",
+            "destination": "Shanghai",
+            "departure_after": "2026-08-05T05:00:00+08:00",
+            "arrive_by": "2026-08-06T10:00:00+08:00",
+        },
+    )
+    assert forbidden.status_code == 403

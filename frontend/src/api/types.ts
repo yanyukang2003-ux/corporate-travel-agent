@@ -42,6 +42,8 @@ export interface UserIdentity {
   user_id: string
   roles: Role[]
   employee_id: string | null
+  /** 我可以替谁订差旅（别人把我列进了委托名单）。 */
+  can_book_for?: string[]
 }
 
 /** 登录成功后返回的访问令牌载荷。 */
@@ -351,6 +353,8 @@ export interface TaskSummary {
   failure: string | null
   /** 现在轮到谁批；不在等审批时为 null。 */
   pending_approver_id?: string | null
+  /** 谁发起的；旧任务等于旅行者。 */
+  requester_id?: string | null
   provider_retry: ProviderRetry
   updated_at: string
   summary: true
@@ -430,6 +434,11 @@ export interface TripTask {
   booking_intent: BookingIntent | null
   booking_confirmation: BookingConfirmation | null
   budget_snapshot: BudgetSnapshot | null
+  /** 旅行者：差标、审批、预算都看这个人。 */
+  traveler_id: string
+  /** 发起人：代订时和旅行者不是同一个人。 */
+  requester_id: string
+  is_delegated: boolean
   summary: false
 }
 

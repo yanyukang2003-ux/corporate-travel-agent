@@ -93,6 +93,15 @@ class EmployeeConfig(StrictConfigModel):
     manager_id: str = Field(pattern=r"^[A-Za-z0-9._-]{1,64}$")
     #: 成本中心。不填就没有预算规则；填了但政策没给它配预算，同样没有。
     cost_center: str | None = Field(default=None, pattern=r"^[A-Za-z0-9._-]{1,64}$")
+    #: 可以替这位员工订差旅的员工 ID。
+    delegates: tuple[str, ...] = Field(default=(), max_length=50)
+
+    @field_validator("delegates")
+    @classmethod
+    def delegates_are_unique(cls, values: tuple[str, ...]) -> tuple[str, ...]:
+        if len(values) != len(set(values)):
+            raise ValueError("delegates must be unique")
+        return values
 
 
 def _safe_money(value: Decimal, label: str) -> Decimal:
@@ -323,6 +332,14 @@ class EnterpriseTravelPolicyConfig(StrictConfigModel):
                 )
             if employee.employee_id == employee.manager_id:
                 raise ValueError(f"employee {employee.employee_id} cannot approve their own trip")
+            if employee.employee_id in employee.delegates:
+                raise ValueError(f"employee {employee.employee_id} cannot delegate to themselves")
+            unknown_delegates = set(employee.delegates) - employee_ids
+            if unknown_delegates:
+                raise ValueError(
+                    f"employee {employee.employee_id} lists unknown delegates: "
+                    + ", ".join(sorted(unknown_delegates))
+                )
             if employee.level not in active_policy.level_rules:
                 raise ValueError(
                     f"employee {employee.employee_id} has no rule in the active policy"
@@ -511,6 +528,7 @@ def _parse_policy_configuration(
             manager_id=employee.manager_id,
             profile_version=employee.profile_version,
             cost_center=employee.cost_center,
+            delegate_ids=tuple(employee.delegates),
         )
         for employee in config.employees
     )

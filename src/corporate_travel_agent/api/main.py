@@ -511,10 +511,17 @@ def login(payload: LoginRequest) -> dict[str, Any]:
 @app.get("/auth/me")
 def current_user(identity: CurrentIdentity) -> dict[str, Any]:
     """返回当前登录用户信息。"""
+    can_book_for: tuple[str, ...] = ()
+    if identity.employee_id:
+        delegators_of = getattr(workflow.employees, "delegators_of", None)
+        if callable(delegators_of):
+            can_book_for = delegators_of(identity.employee_id)
     return {
         "user_id": identity.user_id,
         "roles": sorted(role.value for role in identity.roles),
         "employee_id": identity.employee_id,
+        # 我可以替谁订：出现在别人委托名单上的那些人。前端据此显示"为谁出差"。
+        "can_book_for": list(can_book_for),
     }
 
 
@@ -527,7 +534,7 @@ def create_trip(
     _require_can_create(identity, payload.traveler_id)
     task_id = str(uuid4())
     request = _to_request(payload, task_id=task_id, version=1)
-    return _run(lambda: workflow.create_task(request))
+    return _run(lambda: workflow.create_task(request, requester_id=_requester_id(identity)))
 
 
 @app.post("/agentic/trip-tasks")
@@ -543,7 +550,9 @@ def create_agentic_trip(
     _require_can_create(identity, payload.traveler_id)
     return _run(
         lambda: workflow.create_task_from_agentic_message(
-            payload.message, traveler_id=payload.traveler_id
+            payload.message,
+            traveler_id=payload.traveler_id,
+            requester_id=_requester_id(identity),
         )
     )
 
@@ -971,13 +980,22 @@ def _visible_task(task_id: str, identity: UserIdentity) -> TripTask:
     return task
 
 
+def _requester_id(identity: UserIdentity) -> str | None:
+    """记到任务上的发起人：员工记员工 ID，管理员记用户 ID；鉴权关闭的开发身份不记。"""
+    if identity.employee_id:
+        return identity.employee_id
+    if identity.has_role(Role.ADMIN) and identity.user_id != "development-system":
+        return identity.user_id
+    return None
+
+
 def _can_read_task(identity: UserIdentity, task: TripTask) -> bool:
-    """当前身份是否可读该任务。"""
+    """当前身份是否可读该任务：旅行者本人、发起人（代订的助理）、直属经理或当前审批人、管理员。"""
     return (
         identity.has_role(Role.ADMIN)
         or (
             identity.has_role(Role.EMPLOYEE)
-            and identity.employee_id == task.employee.employee_id
+            and identity.employee_id in {task.employee.employee_id, task.requested_by}
         )
         or (
             identity.has_role(Role.APPROVER)
@@ -987,24 +1005,30 @@ def _can_read_task(identity: UserIdentity, task: TripTask) -> bool:
 
 
 def _require_can_create(identity: UserIdentity, traveler_id: str) -> None:
-    """校验是否可为该出行人创建任务。"""
+    """校验是否可为该出行人创建任务：本人、旅行者委托名单上的人、管理员。"""
     if identity.has_role(Role.ADMIN):
         return
-    if identity.has_role(Role.EMPLOYEE) and identity.employee_id == traveler_id:
-        return
+    if identity.has_role(Role.EMPLOYEE) and identity.employee_id:
+        if identity.employee_id == traveler_id:
+            return
+        may_book_for = getattr(workflow.employees, "may_book_for", None)
+        if callable(may_book_for) and may_book_for(identity.employee_id, traveler_id):
+            return
     raise HTTPException(status_code=403, detail="Cannot create a task for this traveler")
 
 
 def _require_can_operate(identity: UserIdentity, task: TripTask) -> None:
-    """校验是否可操作该任务（消息/选方案等）。"""
+    """校验是否可操作该任务（消息/选方案等）：旅行者本人、发起人、管理员。"""
     if identity.has_role(Role.ADMIN):
         return
     if (
         identity.has_role(Role.EMPLOYEE)
-        and identity.employee_id == task.employee.employee_id
+        and identity.employee_id in {task.employee.employee_id, task.requested_by}
     ):
         return
-    raise HTTPException(status_code=403, detail="Only the traveler can modify this task")
+    raise HTTPException(
+        status_code=403, detail="Only the traveler or the requester can modify this task"
+    )
 
 
 def _require_can_approve(identity: UserIdentity, task: TripTask) -> None:
@@ -1066,8 +1090,9 @@ def _visible_task_summaries(
     if identity.has_role(Role.ADMIN):
         return workflow.tasks.list_task_summaries(state=state, limit=limit)
     if identity.has_role(Role.EMPLOYEE) and identity.employee_id:
+        # 我是旅行者的，加上我替别人发起的。
         return workflow.tasks.list_task_summaries(
-            employee_id=identity.employee_id,
+            involving_employee_id=identity.employee_id,
             state=state,
             limit=limit,
         )
@@ -1100,6 +1125,7 @@ def _public_task_summary(item: Any) -> dict[str, Any]:
         },
         "updated_at": item.updated_at,
         "pending_approver_id": item.pending_approver_id,
+        "requester_id": item.requester_id,
         "summary": True,
     }
 
@@ -1110,6 +1136,10 @@ def _public_task(task: TripTask) -> dict[str, Any]:
         "task_id": task.task_id,
         "intent_entrypoint": task.metadata.get("intent_entrypoint", "legacy"),
         "state": task.state,
+        "traveler_id": task.employee.employee_id,
+        # 谁发起的；代订时和旅行者不是同一个人。差标、审批、预算全看旅行者。
+        "requester_id": task.requested_by,
+        "is_delegated": task.is_delegated,
         "request_version": task.request.version if task.request else None,
         "booking_scope": (
             task.request.resolved_booking_scope

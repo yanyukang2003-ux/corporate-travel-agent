@@ -236,6 +236,19 @@
       "department": "Sales",
       "home_city_code": "CN-BJS",
       "manager_id": "M2001",
+      "cost_center": "CC-SALES-CN",
+      "delegates": [
+        "A1002"
+      ]
+    },
+    {
+      "snapshot_id": "employee-A1002-v1",
+      "employee_id": "A1002",
+      "profile_version": 1,
+      "level": "L3",
+      "department": "Sales",
+      "home_city_code": "CN-BJS",
+      "manager_id": "M2001",
       "cost_center": "CC-SALES-CN"
     }
   ],

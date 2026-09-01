@@ -49,6 +49,7 @@ from corporate_travel_agent.domain.models import (
     BookingIntent,
     BudgetSnapshot,
     ConversationMessage,
+    EmployeeProfileSnapshot,
     EmployeeTravelProfileSnapshot,
     HotelOffer,
     InventorySnapshot,
@@ -346,17 +347,21 @@ class TripWorkflowOrchestrator:
         self.recover_interrupted_tasks()
         self._restore_provider_circuit()
 
-    def create_task(self, request: TripRequestVersion) -> TripTask:
+    def create_task(
+        self, request: TripRequestVersion, *, requester_id: str | None = None
+    ) -> TripTask:
         """用结构化 TripRequest 建任务并立即搜索规划。"""
         request = self._canonicalize_request_cities(request)
         validate_trip_request(request).require_valid()
         employee = self.employees.snapshot(request.traveler_id)
+        requester = self._requester_for(employee, requester_id)
         policy = self.policies.current()
         task = TripTask(
             task_id=request.task_id,
             state=TaskState.DRAFT,
             request=request,
             employee=employee,
+            requester_id=requester,
             policy_snapshot_id=policy.snapshot_id,
             tool_call_limit=self.max_tool_calls,
             metadata={
@@ -365,7 +370,12 @@ class TripWorkflowOrchestrator:
             },
         )
         self.tasks.add(task)
-        self._audit(task, "TASK_CREATED", request, {"state": task.state.value})
+        self._audit(
+            task,
+            "TASK_CREATED",
+            request,
+            {"state": task.state.value, "requester_id": task.requested_by},
+        )
         return self._search_and_plan(task, policy)
 
     # ------------------------------------------------------------------
@@ -378,6 +388,7 @@ class TripWorkflowOrchestrator:
         *,
         traveler_id: str,
         task_id: str | None = None,
+        requester_id: str | None = None,
     ) -> TripTask:
         """用工具循环入口创建任务。
 
@@ -388,12 +399,14 @@ class TripWorkflowOrchestrator:
         if self.tool_calling_language_model is None:
             raise LanguageModelUnavailable("No tool-calling language model adapter is configured")
         employee = self.employees.snapshot(traveler_id)
+        requester = self._requester_for(employee, requester_id)
         policy = self.policies.current()
         task = TripTask(
             task_id=task_id or str(uuid4()),
             state=TaskState.DRAFT,
             request=None,
             employee=employee,
+            requester_id=requester,
             policy_snapshot_id=policy.snapshot_id,
             intent_fields=self._empty_intent_fields(),
             messages=[ConversationMessage(role="user", content=message)],
@@ -408,7 +421,7 @@ class TripWorkflowOrchestrator:
             task,
             "AGENTIC_TASK_CREATED_FROM_MESSAGE",
             message,
-            {"state": task.state.value},
+            {"state": task.state.value, "requester_id": task.requested_by},
         )
         return self._run_tool_loop(task)
 
@@ -925,6 +938,28 @@ class TripWorkflowOrchestrator:
             stays=stays,
             created_at=self.clock(),
         )
+
+    def _requester_for(
+        self, traveler: EmployeeProfileSnapshot, requester_id: str | None
+    ) -> str:
+        """定下这趟任务的发起人，并把"能不能替他订"挡在这里。
+
+        - 没给发起人（旧调用方、内部脚本）：就是旅行者本人。
+        - 发起人是本系统认识的员工：要么是本人，要么在旅行者的委托名单上，否则拒绝。
+          这是防御纵深——API 层已经按身份查过一次，编排器不信它。
+        - 发起人不是员工（管理员、系统身份）：照记不拦。他们能不能建任务由角色管，
+          不由委托名单管。
+        """
+        if requester_id is None:
+            return traveler.employee_id
+        knows = getattr(self.employees, "knows", None)
+        if callable(knows) and knows(requester_id):
+            may_book_for = getattr(self.employees, "may_book_for", None)
+            if callable(may_book_for) and not may_book_for(requester_id, traveler.employee_id):
+                raise WorkflowError(
+                    f"{requester_id} is not allowed to book on behalf of {traveler.employee_id}"
+                )
+        return requester_id
 
     def complete_with_structured_request(
         self, task_id: str, request: TripRequestVersion
@@ -2619,6 +2654,7 @@ class TripWorkflowOrchestrator:
                 "step_label": step.label if step is not None else "manager",
                 "step_count": len(approval.steps) or 1,
                 "employee_id": task.employee.employee_id,
+                "requester_id": task.requested_by,
                 "approved_price": str(approval.approved_price),
                 "currency": option.currency if option is not None else None,
                 "violations": list(approval.violations),

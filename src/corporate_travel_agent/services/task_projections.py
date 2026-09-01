@@ -34,6 +34,8 @@ class TaskSummary:
     failure: str | None = None
     #: 现在轮到谁批。只有 WAITING_FOR_APPROVAL 且审批单还挂着时才有值。
     pending_approver_id: str | None = None
+    #: 谁发起的；旧任务没记时等于旅行者。
+    requester_id: str | None = None
 
 
 def pending_approver_id(task: TripTask) -> str | None:
@@ -67,6 +69,7 @@ def projection_fields(task: TripTask) -> dict[str, Any]:
         "retry_attempt_token": retry.get("attempt_token"),
         "payload_schema_version": SCHEMA_VERSION,
         "pending_approver_id": pending_approver_id(task),
+        "requester_id": task.requested_by,
     }
 
 
@@ -96,6 +99,7 @@ def summarize_task(
         request_version=task.request.version if task.request else None,
         failure=task.failure,
         pending_approver_id=fields["pending_approver_id"],
+        requester_id=fields["requester_id"],
     )
 
 

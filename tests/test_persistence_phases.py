@@ -82,7 +82,7 @@ def test_alembic_head_includes_phase_tables(tmp_path, monkeypatch) -> None:
     repository.check_schema()
     status = repository.operational_status()
     assert status["backend"] == "sqlite"
-    assert status["alembic_version"] == "0007_pending_approver_projection"
+    assert status["alembic_version"] == "0008_requester_projection"
 
     outbox = SQLAlchemyOutboxStore(repository.engine)
     event = outbox.enqueue(

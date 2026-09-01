@@ -49,6 +49,7 @@ class TaskRepository(Protocol):
         manager_id: str | None = None,
         state: str | None = None,
         pending_approver_id: str | None = None,
+        involving_employee_id: str | None = None,
         limit: int = 100,
     ) -> tuple[TaskSummary, ...]: ...
 
@@ -131,6 +132,7 @@ class InMemoryTaskRepository:
         manager_id: str | None = None,
         state: str | None = None,
         pending_approver_id: str | None = None,
+        involving_employee_id: str | None = None,
         limit: int = 100,
     ) -> tuple[TaskSummary, ...]:
         from corporate_travel_agent.services.task_projections import (
@@ -149,6 +151,12 @@ class InMemoryTaskRepository:
             if state is not None and task.state.value != state:
                 continue
             if pending_approver_id is not None and pending_approver_of(task) != pending_approver_id:
+                continue
+            # "和我有关"：我是旅行者，或者我是发起人（替别人订的）。
+            if involving_employee_id is not None and involving_employee_id not in {
+                task.employee.employee_id,
+                task.requested_by,
+            }:
                 continue
             items.append(
                 summarize_task(
@@ -341,6 +349,26 @@ class InMemoryEmployeeDirectory:
             return self._profiles[employee_id]
         except KeyError as exc:
             raise NotFoundError(f"employee:{employee_id}") from exc
+
+    def knows(self, employee_id: str) -> bool:
+        return employee_id in self._profiles
+
+    def delegators_of(self, employee_id: str) -> tuple[str, ...]:
+        """这位员工可以替谁订差旅（谁把他列成了委托人）。"""
+        return tuple(
+            sorted(
+                item.employee_id
+                for item in self._profiles.values()
+                if employee_id in item.delegate_ids
+            )
+        )
+
+    def may_book_for(self, requester_id: str, traveler_id: str) -> bool:
+        """发起人能不能替旅行者订：本人，或者在旅行者的委托名单上。"""
+        if requester_id == traveler_id:
+            return True
+        traveler = self._profiles.get(traveler_id)
+        return traveler is not None and requester_id in traveler.delegate_ids
 
 
 class InMemoryPolicyRepository:

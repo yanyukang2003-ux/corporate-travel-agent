@@ -537,6 +537,7 @@ function ChatBubble({ turn }: { turn: ChatTurn }) {
  */
 function ChatPane({
   task, turns, pending, busy, error, message, onMessageChange, onSubmit, onNewTrip,
+  travelerId, travelerOptions, onTravelerChange,
 }: {
   task: TripTask | null
   turns: ChatTurn[]
@@ -548,6 +549,10 @@ function ChatPane({
   onMessageChange: (value: string) => void
   onSubmit: (message: string) => Promise<boolean>
   onNewTrip: () => void
+  /** 为谁出差：本人，或者委托我代订的人。只有一个选项时不显示选择器。 */
+  travelerId: string
+  travelerOptions: { id: string; label: string }[]
+  onTravelerChange: (travelerId: string) => void
 }) {
   const suggestions = ['14:00 前抵达', '优先高铁', '酒店靠近客户', '避免早班']
   const stateMeta = task ? getStateMeta(task.state) : null
@@ -581,6 +586,15 @@ function ChatPane({
           </div>
         </div>
         <div className="chat-pane-status">
+          {travelerOptions.length > 1 && !task && (
+            <label className="traveler-select" data-testid="traveler-select">
+              <span>为谁出差</span>
+              <select value={travelerId} onChange={(event) => onTravelerChange(event.target.value)}>
+                {travelerOptions.map((option) => <option key={option.id} value={option.id}>{option.label}</option>)}
+              </select>
+            </label>
+          )}
+          {task?.is_delegated && <Badge tone="dark">代订 · {task.requester_id} 为 {task.traveler_id}</Badge>}
           <Badge tone={stateBadgeTone(task?.state ?? null)}>{stateMeta?.label ?? '等待指令'}</Badge>
           {task && <button type="button" className="chat-new" onClick={onNewTrip}>新对话</button>}
         </div>
@@ -1088,7 +1102,8 @@ function StructuredRequestForm({ task, busy, error, onSubmit }: {
   const submit = async () => {
     if (!canSubmit || !user) return
     await onSubmit({
-      traveler_id: user.employee_id ?? user.user_id,
+      // 结构化补表是在已有任务上做的：旅行者是任务的旅行者，不是当前登录的人（代订时不同）。
+      traveler_id: task.traveler_id ?? user.employee_id ?? user.user_id,
       origin: origin.trim(),
       destination: destination.trim(),
       departure_after: datetimeLocalToIso(departureAfter),
@@ -1299,6 +1314,12 @@ function PlanView({ onToast, composerEpoch, onNewTrip }: {
 }) {
   const { user } = useAuth()
   const [task, setTask] = useState<TripTask | null>(null)
+  const selfId = user?.employee_id ?? user?.user_id ?? ''
+  const [travelerId, setTravelerId] = useState<string>(selfId)
+  const travelerOptions = [
+    { id: selfId, label: `本人（${selfId}）` },
+    ...((user?.can_book_for ?? []).map((id) => ({ id, label: `代订 · ${id}` }))),
+  ]
   const [selectedId, setSelectedId] = useState('')
   const [compared, setCompared] = useState<string[]>([])
   const [tab, setTab] = useState<'options' | 'request' | 'scoring' | 'timeline'>('options')
@@ -1423,7 +1444,7 @@ function PlanView({ onToast, composerEpoch, onNewTrip }: {
       // 只能新建；这里把它当成新任务处理，不再按 intent_entrypoint 分流。
       const nextTask = continueAgentic
         ? await api.submitAgenticMessage(task.task_id, message)
-        : await api.createAgenticNaturalLanguage(message, user.employee_id ?? user.user_id)
+        : await api.createAgenticNaturalLanguage(message, travelerId || (user.employee_id ?? user.user_id))
       setInstruction(message)
       composingNewRef.current = false
       setComposingNew(false)
@@ -1565,6 +1586,9 @@ function PlanView({ onToast, composerEpoch, onNewTrip }: {
         onMessageChange={updateDraft}
         onSubmit={submitInstruction}
         onNewTrip={onNewTrip}
+        travelerId={travelerId || selfId}
+        travelerOptions={travelerOptions}
+        onTravelerChange={setTravelerId}
       />
 
       <section className="itinerary-pane" aria-label="行程">
