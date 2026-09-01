@@ -59,6 +59,32 @@ class BookingConfirmationSource(StrEnum):
     """员工（或替他操作的管理员）在本系统里手填的订单号和金额。"""
 
 
+class TripStatus(StrEnum):
+    """一趟差旅（跨越多个任务）的生命周期。"""
+
+    PLANNED = "PLANNED"
+    """第一个规划任务建了，还没订。"""
+
+    BOOKED = "BOOKED"
+    """员工回填了下单确认；从这一刻起系统在盯着它的航段。"""
+
+    CHANGE_REQUESTED = "CHANGE_REQUESTED"
+    """收到了外部变更事件，改期任务已开，还没订。"""
+
+    REBOOKED = "REBOOKED"
+    """改期任务也回填了下单确认。"""
+
+
+class TripEventType(StrEnum):
+    """外部世界推来的、可能让已订行程失效的事。"""
+
+    FLIGHT_CHANGED = "FLIGHT_CHANGED"
+    """某一段航班取消或改时——由航司 / 供应商推送。"""
+
+    MEETING_MOVED = "MEETING_MOVED"
+    """会议改了时间——由日历或旅行者本人报。"""
+
+
 class ReconciliationStatus(StrEnum):
     """一条费控记录和本系统里下单确认的对账结果。"""
 

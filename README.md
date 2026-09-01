@@ -31,6 +31,7 @@
 - 业务结果指标层：交接完成率、平均耗时、提前预订天数和超标发生率，只读任务聚合与审计事件，不调模型和供应商；管理员端点 `GET /metrics/business`；
 - 产品入口可离线评测（D16）：`DeterministicToolCallingModel` 让 60 条工作流和 480 条意图冻结用例经工具循环逐条执行，并与语义入口并排；`tests/test_product_entrypoint_evaluation.py` 是 CI 门禁；
 - 工具循环的交付契约：`propose_options` 声明旅行者的硬要求与偏好（此前一条都不到规划器）；搜空落 `NO_FEASIBLE_OPTION`，越界落 `OUT_OF_SCOPE`，都不占澄清轮数；
+- 一趟差旅与改期：`Trip` 聚合跨越规划任务和改期任务；下单确认后登记观察对象，航变/会议改期事件（`POST /trips/{id}/events`）开一个新的改期任务挂在同一趟差旅下，原任务不动；指标多了变更场景人工介入率；
 - 费控对账：导入费控记录（`POST /expenses/import`），按旅行者 + 订单号和下单确认匹配；对上了自述才算核实过，找不到确认的就是渠道外预订——`off_channel_expense_rate` 第一次有真值；预算账本对过账的用费控的数；
 - 代订：任务记旅行者和发起人两个人，谁能替谁订由员工档案的委托名单决定（演示：助理 `A1002` 可替 `E1001` 订）；差标、审批、预算全看旅行者，助理和高管都看得见、都能操作；
 - 分级审批与事务性发件箱：审批链由政策 `approval_tiers` 决定（金额过档或触发某条规则就多一级），收件箱按"当前待谁批"查；审批各步与下单确认随任务更新同一事务进 `outbox_events`，`examples/run_outbox_worker.py` 或 `POST /outbox/dispatch` 投递到日志 / webhook（HMAC 签名）/ 仓库内模拟的外部审批系统；

@@ -269,6 +269,21 @@ class OutboxEventRow(Base):
     last_error: Mapped[str | None] = mapped_column(String(512))
 
 
+class TripRow(Base):
+    """差旅聚合表行：投影列 + 完整 JSON 载荷，和任务表同一套做法。"""
+
+    __tablename__ = "trips"
+
+    trip_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    traveler_id: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    requester_id: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    status: Mapped[str] = mapped_column(String(32), nullable=False, index=True)
+    revision: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    payload: Mapped[dict] = mapped_column(JSON_DOCUMENT, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
 class ExpenseRecordRow(Base):
     """导入过的费控记录及其对账结果。渠道外预订率从这张表算。"""
 
@@ -374,6 +389,7 @@ class SQLAlchemyTaskRepository:
             "policy_snapshot_rows",
             "outbox_events",
             "expense_records",
+            "trips",
         }
         available = set(inspect(self.engine).get_table_names())
         missing = sorted(required - available)

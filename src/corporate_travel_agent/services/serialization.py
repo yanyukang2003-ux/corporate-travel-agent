@@ -7,13 +7,14 @@ from typing import Any, cast
 
 from pydantic import TypeAdapter
 
-from corporate_travel_agent.domain.models import AuditEvent, InventorySnapshot, TripTask
+from corporate_travel_agent.domain.models import AuditEvent, InventorySnapshot, Trip, TripTask
 
 SCHEMA_VERSION = 1
 
 _TASK_ADAPTER = TypeAdapter(TripTask)
 _AUDIT_ADAPTER = TypeAdapter(AuditEvent)
 _SNAPSHOT_ADAPTER = TypeAdapter(InventorySnapshot)
+_TRIP_ADAPTER = TypeAdapter(Trip)
 
 _INTENT_DATETIME_FIELDS = (
     "departure_after",
@@ -97,3 +98,17 @@ def _restore_intent_types(fields: dict[str, Any]) -> dict[str, Any]:
         if isinstance(value, str):
             restored[field_name] = date.fromisoformat(value)
     return restored
+
+
+def serialize_trip(trip: Trip) -> dict[str, Any]:
+    """将 Trip 序列化为带 schema_version 的 JSON 兼容字典。"""
+    return {
+        "schema_version": SCHEMA_VERSION,
+        "trip": cast(dict[str, Any], _TRIP_ADAPTER.dump_python(trip, mode="json")),
+    }
+
+
+def deserialize_trip(payload: dict[str, Any]) -> Trip:
+    """从持久化载荷还原 Trip。"""
+    _require_supported_version(payload)
+    return _TRIP_ADAPTER.validate_python(payload["trip"])

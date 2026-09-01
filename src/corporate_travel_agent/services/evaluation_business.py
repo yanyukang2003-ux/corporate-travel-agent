@@ -18,6 +18,7 @@
 | 实付偏差 | （实付 − 方案价）÷ 方案价，只算币种一致的确认记录 |
 | 费控对账率 | 回填过的任务里费控对上账的比例——对上了的自述才算"核实过" |
 | 渠道外预订率 | 费控记录里本系统找不到对应确认的比例——第一次有真值的"绕开系统" |
+| 变更人工介入率 | 航变/会议改期开出的改期任务里，人不得不插手的比例 |
 | 超标发生率 | 方案里带"需审批/禁止"证据的比例，分选中和展示两个口径 |
 
 ## 数据从哪来
@@ -111,6 +112,17 @@ HANDOFF_COMPLETED_EVENT_TYPE = "HANDOFF_COMPLETED"
 #: 员工回填订单号和实付金额时写的事件。
 BOOKING_CONFIRMED_EVENT_TYPE = "BOOKING_CONFIRMED"
 
+#: 改期任务上出现这些事件之一，就算"人不得不插手"：改需求、补结构化表、没方案、供应商失败。
+CHANGE_INTERVENTION_EVENT_TYPES: frozenset[str] = frozenset(
+    {
+        "REQUEST_REVISED",
+        "STRUCTURED_FALLBACK_SUBMITTED",
+        "NO_FEASIBLE_OPTION",
+        "PROVIDER_FAILED",
+        "AGENTIC_CLARIFICATION_REQUESTED",
+    }
+)
+
 #: 算作"交接过"的状态：点过"我去订了"，或者回填过订单号（回填会先记交接）。
 HANDED_OFF_STATES: frozenset[TaskState] = frozenset(
     {TaskState.HANDED_OFF, TaskState.BOOKING_CONFIRMED}
@@ -179,6 +191,12 @@ class TaskBusinessRecord(BusinessModel):
     tool_calls_used: int = Field(ge=0)
     #: 这一单是否走了例外审批。
     approval_requested: bool
+    #: 是不是改期任务（由外部变更事件开出来的）。
+    is_change_task: bool = False
+    #: 改期任务：系统有没有不经人插手就直接摆出了方案。
+    change_auto_planned: bool | None = None
+    #: 改期任务：人有没有不得不插手（改需求、补表、没方案、供应商失败）。
+    change_needed_intervention: bool | None = None
     #: 为什么某个字段没算出来。空元组表示这个任务上的每个字段都有确定答案。
     notes: tuple[str, ...] = ()
 
@@ -306,9 +324,22 @@ def summarize_task(
         1 for option in task.options if _violation_rule_ids(option)
     )
 
+    is_change = task.is_change_task
+    change_auto_planned: bool | None = None
+    change_needed_intervention: bool | None = None
+    if is_change:
+        event_types = {item.event_type for item in events}
+        change_auto_planned = "OPTIONS_VERIFIED" in event_types and not (
+            event_types & CHANGE_INTERVENTION_EVENT_TYPES
+        )
+        change_needed_intervention = bool(event_types & CHANGE_INTERVENTION_EVENT_TYPES)
+
     return TaskBusinessRecord(
         task_id=task.task_id,
         state=task.state.value,
+        is_change_task=is_change,
+        change_auto_planned=change_auto_planned,
+        change_needed_intervention=change_needed_intervention,
         produced_options=bool(task.options),
         handed_off=handed_off,
         booking_confirmed=booking_confirmed,
@@ -388,6 +419,7 @@ def aggregate_metrics(
         and item.actual_total is not None
         and item.actual_total != 0
     ]
+    change_tasks = [item for item in records if item.is_change_task]
     unmatched_expenses = sum(
         1 for item in expense_records if getattr(item, "status", None) is not None
         and getattr(item.status, "value", item.status) == "UNMATCHED"
@@ -465,6 +497,24 @@ def aggregate_metrics(
             confidence_note=(
                 "（费控金额 − 自述金额）÷ 自述金额，只算币种一致的对账记录。"
                 "正数是员工少报、负数是多报。"
+            ),
+        ),
+        "change_auto_planned_rate": _rate(
+            sum(1 for item in change_tasks if item.change_auto_planned),
+            len(change_tasks),
+            unit="rate",
+            confidence_note=(
+                "航变/会议改期开出来的改期任务里，系统不经人插手就摆出了方案的比例。"
+                "没有改期任务时测不出来。"
+            ),
+        ),
+        "change_intervention_rate": _rate(
+            sum(1 for item in change_tasks if item.change_needed_intervention),
+            len(change_tasks),
+            unit="rate",
+            confidence_note=(
+                "改期任务里人不得不插手（改需求、补表、没方案、供应商失败）的比例——"
+                "设计文档里的「变更场景人工介入率」。"
             ),
         ),
         "off_channel_expense_rate": _rate(
@@ -684,6 +734,8 @@ METRIC_LABELS: dict[str, str] = {
     "expense_reconciled_rate": "回填了订单号的任务里，费控对上账的比例（对上了才算核实过）",
     "reconciliation_variance_ratio_mean": "费控金额比员工自述多或少了几成，平均",
     "off_channel_expense_rate": "费控记录里在本系统找不到对应确认的比例（绕开系统订的）",
+    "change_auto_planned_rate": "改期任务里系统直接摆出方案、没让人插手的比例",
+    "change_intervention_rate": "改期任务里人不得不插手的比例（变更场景人工介入率）",
     "seconds_to_handoff_mean": "从任务开始到说「已订好」的平均墙上时间（秒）",
     "seconds_to_handoff_p50": "同上，中位数（秒）",
     "seconds_to_handoff_p95": "同上，95 分位（秒）",

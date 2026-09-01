@@ -28,7 +28,7 @@ from corporate_travel_agent.agent.ports import LanguageModelError
 from corporate_travel_agent.agent.tool_loop_adapter import OpenAIToolCallingLanguageModel
 from corporate_travel_agent.demo import build_demo_system
 from corporate_travel_agent.domain.constraints import HardConstraint, SoftPreference
-from corporate_travel_agent.domain.enums import BookingScope
+from corporate_travel_agent.domain.enums import BookingScope, TripEventType
 from corporate_travel_agent.domain.models import (
     AuditEvent,
     InventorySnapshot,
@@ -181,6 +181,19 @@ def _configured_outbox_store():
     return SQLAlchemyOutboxStore(engine)
 
 
+def _configured_trip_repository(task_repository: TaskRepository):
+    """差旅聚合仓储：和任务仓储同一个引擎；内存仓储时用内存。"""
+    from corporate_travel_agent.services.trips import (
+        InMemoryTripRepository,
+        SQLAlchemyTripRepository,
+    )
+
+    engine = getattr(task_repository, "engine", None)
+    if engine is None:
+        return InMemoryTripRepository()
+    return SQLAlchemyTripRepository(engine)
+
+
 def _configured_expense_store():
     """费控记录存储：和任务仓储同一个引擎；内存仓储时用内存。"""
     from corporate_travel_agent.services.expense_reconciliation import InMemoryExpenseRecordStore
@@ -301,6 +314,7 @@ configured_travel_provider = travel_provider_from_environment(
 workflow, _provider = build_demo_system(
     tool_calling_language_model=_configured_tool_calling_language_model(),
     task_repository=task_repository,
+    trip_repository=_configured_trip_repository(task_repository),
     raw_response_store=raw_response_store,
     raw_response_retention_days=_configured_retention_days(),
     policy_configuration=policy_configuration,
@@ -827,6 +841,91 @@ def active_policy(identity: CurrentIdentity) -> dict[str, Any]:
     }
 
 
+class TripEventRequest(BaseModel):
+    """外部变更事件：航变（航司/供应商推送）或会议改期（日历/旅行者报）。"""
+    model_config = ConfigDict(extra="forbid")
+
+    event_type: TripEventType
+    ref_id: str | None = Field(default=None, max_length=128)
+    new_depart_at: datetime | None = None
+    new_arrive_by: datetime | None = None
+    note: str | None = Field(default=None, max_length=500)
+
+
+def _visible_trip(trip_id: str, identity: UserIdentity):
+    try:
+        trip = workflow.trips.get(trip_id)
+    except NotFoundError as exc:
+        raise HTTPException(status_code=404, detail="Trip not found") from exc
+    if identity.has_role(Role.ADMIN):
+        return trip
+    if identity.has_role(Role.EMPLOYEE) and identity.employee_id in {
+        trip.traveler_id,
+        trip.requester_id,
+    }:
+        return trip
+    raise HTTPException(status_code=404, detail="Trip not found")
+
+
+def _public_trip(trip) -> dict[str, Any]:
+    return {
+        "trip_id": trip.trip_id,
+        "traveler_id": trip.traveler_id,
+        "requester_id": trip.requester_id,
+        "status": trip.status.value,
+        "task_ids": list(trip.task_ids),
+        "created_at": trip.created_at,
+        "watch": asdict(trip.watch) if trip.watch is not None else None,
+        "events": [asdict(item) for item in trip.events],
+    }
+
+
+@app.get("/trips")
+def list_trip_aggregates(identity: CurrentIdentity, limit: int = 100) -> list[dict[str, Any]]:
+    """我的差旅（我是旅行者或发起人）；管理员看全部。"""
+    if not 1 <= limit <= 500:
+        raise HTTPException(status_code=400, detail="limit must be between 1 and 500")
+    if identity.has_role(Role.ADMIN):
+        trips = workflow.trips.list_all(limit=limit)
+    elif identity.has_role(Role.EMPLOYEE) and identity.employee_id:
+        trips = workflow.trips.list_involving(identity.employee_id, limit=limit)
+    else:
+        trips = ()
+    return [_public_trip(item) for item in trips]
+
+
+@app.get("/trips/{trip_id}")
+def get_trip_aggregate(trip_id: str, identity: CurrentIdentity) -> dict[str, Any]:
+    return _public_trip(_visible_trip(trip_id, identity))
+
+
+@app.post("/trips/{trip_id}/events")
+def report_trip_event(
+    trip_id: str, payload: TripEventRequest, identity: CurrentIdentity
+) -> dict[str, Any]:
+    """报一条变更事件；系统开一个改期任务挂在这趟差旅下，原任务一个字不动。
+
+    航变由管理员（代表航司/供应商推送）报；会议改期旅行者或发起人自己也能报。
+    """
+    trip = _visible_trip(trip_id, identity)
+    if payload.event_type is TripEventType.FLIGHT_CHANGED and not identity.has_role(Role.ADMIN):
+        raise HTTPException(
+            status_code=403, detail="Flight changes are reported by the carrier feed"
+        )
+    reported_by = _requester_id(identity) or identity.user_id
+    return _run(
+        lambda: workflow.report_trip_event(
+            trip.trip_id,
+            event_type=payload.event_type,
+            ref_id=payload.ref_id,
+            new_depart_at=payload.new_depart_at,
+            new_arrive_by=payload.new_arrive_by,
+            note=payload.note,
+            reported_by=reported_by,
+        )
+    )
+
+
 class ExpenseImportRequest(BaseModel):
     """费控系统推来的一批报销记录。每条至少要有订单号，那是对账的钥匙。"""
     model_config = ConfigDict(extra="forbid")
@@ -1221,6 +1320,12 @@ def _public_task(task: TripTask) -> dict[str, Any]:
         # 谁发起的；代订时和旅行者不是同一个人。差标、审批、预算全看旅行者。
         "requester_id": task.requested_by,
         "is_delegated": task.is_delegated,
+        # 属于哪趟差旅；改期任务还记它改的是哪个任务、因为哪条事件。
+        "trip_id": task.trip_id,
+        "parent_task_id": task.parent_task_id,
+        "change_event_id": task.change_event_id,
+        "is_change_task": task.is_change_task,
+        "change_event": task.metadata.get("change_event"),
         "request_version": task.request.version if task.request else None,
         "booking_scope": (
             task.request.resolved_booking_scope

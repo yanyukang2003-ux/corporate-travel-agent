@@ -41,7 +41,9 @@ from corporate_travel_agent.domain.enums import (
     RevalidationStatus,
     TaskState,
     ToolCallStatus,
+    TripEventType,
     TripLegRole,
+    TripStatus,
 )
 from corporate_travel_agent.domain.models import (
     ApprovalRequest,
@@ -63,10 +65,14 @@ from corporate_travel_agent.domain.models import (
     ToolCallRecord,
     TransportOffer,
     TravelOptionVersion,
+    Trip,
+    TripEvent,
     TripLeg,
     TripRequestVersion,
     TripStay,
     TripTask,
+    TripWatch,
+    TripWatchLeg,
 )
 from corporate_travel_agent.domain.validation import (
     BookingConfirmationValidationError,
@@ -113,7 +119,17 @@ from corporate_travel_agent.services.travel_profile import (
     TripHistoryPort,
     derive_travel_profile,
 )
+from corporate_travel_agent.services.trips import InMemoryTripRepository, TripRepository
 from corporate_travel_agent.workflow.state_machine import StateMachine
+
+
+def _iso_or_none(value: datetime | None) -> str | None:
+    return value.isoformat() if value is not None else None
+
+
+def _aware(value: datetime) -> datetime:
+    """供应商给的时刻没带时区就按 UTC 记——观察期要和系统时钟比。"""
+    return value if value.tzinfo is not None else value.replace(tzinfo=UTC)
 
 
 class WorkflowError(RuntimeError):
@@ -231,6 +247,8 @@ class TripWorkflowOrchestrator:
         #: 预算账本。None 表示没接：政策给员工的成本中心配了预算时，规划会把预算规则
         #: 判成"判不了"（请人定），而不是当作没超。演示系统和 API 默认接仓储账本。
         budget_ledger: BudgetLedgerPort | None = None,
+        #: 差旅聚合仓储：一趟差旅跨越规划任务和改期任务。None 用内存实现。
+        trips: TripRepository | None = None,
         state_machine: StateMachine | None = None,
         clock: Callable[[], datetime] | None = None,
         timezone_name: str = "Asia/Shanghai",
@@ -302,6 +320,7 @@ class TripWorkflowOrchestrator:
         self.planner = planner or ItineraryPlanner()
         self.trip_history = trip_history
         self.budget_ledger = budget_ledger
+        self.trips: TripRepository = trips or InMemoryTripRepository()
         self.state_machine = state_machine or StateMachine()
         self.clock = clock or (lambda: datetime.now(UTC))
         self.timezone_name = timezone_name
@@ -350,14 +369,41 @@ class TripWorkflowOrchestrator:
         self._restore_provider_circuit()
 
     def create_task(
-        self, request: TripRequestVersion, *, requester_id: str | None = None
+        self,
+        request: TripRequestVersion,
+        *,
+        requester_id: str | None = None,
+        trip_id: str | None = None,
+        parent_task_id: str | None = None,
+        change_event: TripEvent | None = None,
     ) -> TripTask:
-        """用结构化 TripRequest 建任务并立即搜索规划。"""
+        """用结构化 TripRequest 建任务并立即搜索规划。
+
+        不传 `trip_id` 就是一趟新差旅的第一个任务；`report_trip_event` 传进来时，
+        这是挂在已有差旅下的改期任务（`parent_task_id` 指向被改的那个任务）。
+        """
         request = self._canonicalize_request_cities(request)
         validate_trip_request(request).require_valid()
         employee = self.employees.snapshot(request.traveler_id)
         requester = self._requester_for(employee, requester_id)
         policy = self.policies.current()
+        metadata: dict[str, Any] = {
+            "policy_content_hash": policy.content_hash,
+            "intent_entrypoint": IntentEntrypoint.STRUCTURED.value,
+        }
+        if change_event is not None:
+            # 航司说这张票变了/没了，就别再端上来——排除的是那一张票，不是改库存。
+            excluded = [change_event.ref_id] if change_event.ref_id else []
+            metadata["change_event"] = {
+                "event_id": change_event.event_id,
+                "event_type": change_event.event_type.value,
+                "ref_id": change_event.ref_id,
+                "note": change_event.note,
+                "new_depart_at": _iso_or_none(change_event.new_depart_at),
+                "new_arrive_by": _iso_or_none(change_event.new_arrive_by),
+                "excluded_refs": excluded,
+            }
+            metadata["excluded_refs"] = excluded
         task = TripTask(
             task_id=request.task_id,
             state=TaskState.DRAFT,
@@ -366,19 +412,173 @@ class TripWorkflowOrchestrator:
             requester_id=requester,
             policy_snapshot_id=policy.snapshot_id,
             tool_call_limit=self.max_tool_calls,
-            metadata={
-                "policy_content_hash": policy.content_hash,
-                "intent_entrypoint": IntentEntrypoint.STRUCTURED.value,
-            },
+            metadata=metadata,
+            trip_id=trip_id or str(uuid4()),
+            parent_task_id=parent_task_id,
+            change_event_id=change_event.event_id if change_event is not None else None,
         )
         self.tasks.add(task)
+        self._attach_to_trip(task)
+        outbox: tuple[OutboxEventDraft, ...] = ()
+        if change_event is not None:
+            outbox = (
+                OutboxEventDraft(
+                    event_type="TRIP_CHANGE_REQUESTED",
+                    payload={
+                        "trip_id": task.trip_id,
+                        "task_id": task.task_id,
+                        "parent_task_id": parent_task_id,
+                        "employee_id": employee.employee_id,
+                        "event_type": change_event.event_type.value,
+                        "ref_id": change_event.ref_id,
+                        "note": change_event.note,
+                    },
+                ),
+            )
         self._audit(
             task,
             "TASK_CREATED",
             request,
-            {"state": task.state.value, "requester_id": task.requested_by},
+            {
+                "state": task.state.value,
+                "requester_id": task.requested_by,
+                "trip_id": task.trip_id,
+                "parent_task_id": parent_task_id,
+                "change_event_id": task.change_event_id,
+            },
+            outbox=outbox,
         )
         return self._search_and_plan(task, policy)
+
+    # ------------------------------------------------------------------
+    # 一趟差旅：规划任务建它，下单确认让它进入观察，变更事件开改期任务
+    # ------------------------------------------------------------------
+
+    def _attach_to_trip(self, task: TripTask) -> None:
+        """把任务挂到差旅上：规划任务建一趟新差旅，改期任务追加到已有差旅。
+
+        差旅和任务不在同一笔事务里（不同表，先任务后差旅）；这是已知窄缝，
+        文档里写着，没有假装它是原子的。
+        """
+        assert task.trip_id is not None
+        if task.parent_task_id is None:
+            self.trips.add(
+                Trip(
+                    trip_id=task.trip_id,
+                    traveler_id=task.employee.employee_id,
+                    requester_id=task.requested_by,
+                    status=TripStatus.PLANNED,
+                    task_ids=(task.task_id,),
+                    created_at=self.clock(),
+                )
+            )
+            return
+        trip = self.trips.get(task.trip_id)
+        trip.task_ids = (*trip.task_ids, task.task_id)
+        trip.status = TripStatus.CHANGE_REQUESTED
+        self.trips.save(trip)
+
+    def _register_trip_watch(self, task: TripTask, option: TravelOptionVersion) -> None:
+        """下单确认之后登记观察对象：盯着确认方案的每一段，盯到最后一段落地后一天。"""
+        if task.trip_id is None:
+            return  # 接差旅聚合之前建的旧任务
+        trip = self.trips.get(task.trip_id)
+        now = self.clock()
+        legs = tuple(
+            TripWatchLeg(
+                ref_id=leg.ref_id,
+                provider=leg.provider,
+                origin=leg.origin,
+                destination=leg.destination,
+                depart_at=_aware(leg.depart_at),
+                arrive_at=_aware(leg.arrive_at),
+            )
+            for leg in option.legs
+        )
+        last_arrival = max((leg.arrive_at for leg in legs), default=now)
+        trip.watch = TripWatch(
+            task_id=task.task_id,
+            legs=legs,
+            registered_at=now,
+            watch_until=max(last_arrival, now) + timedelta(days=1),
+        )
+        trip.status = TripStatus.REBOOKED if task.is_change_task else TripStatus.BOOKED
+        self.trips.save(trip)
+
+    def report_trip_event(
+        self,
+        trip_id: str,
+        *,
+        event_type: TripEventType,
+        reported_by: str,
+        ref_id: str | None = None,
+        new_depart_at: datetime | None = None,
+        new_arrive_by: datetime | None = None,
+        note: str | None = None,
+    ) -> TripTask:
+        """收一条外部变更事件，开一个改期任务挂在这趟差旅下。原任务一个字不动。
+
+        接受的条件：差旅已订（`BOOKED`/`REBOOKED`）、观察期没过；航变必须对上观察对象里
+        的某张票，会议改期必须带新的最晚到达时刻。改期任务复用原请求：会议改期改最晚到达
+        时刻，航变把那张票排除在候选之外，然后照常走规划、政策、审批、交接、确认。
+        """
+        trip = self.trips.get(trip_id)
+        if trip.status not in {TripStatus.BOOKED, TripStatus.REBOOKED} or trip.watch is None:
+            raise WorkflowError(
+                f"Trip {trip_id} has no confirmed booking to change ({trip.status.value})"
+            )
+        now = self.clock()
+        if now > trip.watch.watch_until:
+            raise WorkflowError("The trip has already been travelled; the watch window is over")
+        if event_type is TripEventType.FLIGHT_CHANGED:
+            if not ref_id:
+                raise WorkflowError("FLIGHT_CHANGED needs the ref_id of the affected ticket")
+            if trip.watch.leg(ref_id) is None:
+                raise WorkflowError(f"Ticket {ref_id} is not part of the booked trip")
+        elif new_arrive_by is None:
+            raise WorkflowError("MEETING_MOVED needs the new arrive-by time")
+        booked_task = self.tasks.get(trip.watch.task_id)
+        if booked_task.request is None:
+            raise WorkflowError("The booked task has no structured request to rebook from")
+        event = TripEvent(
+            event_id=str(uuid4()),
+            event_type=event_type,
+            received_at=now,
+            reported_by=reported_by.strip(),
+            ref_id=ref_id,
+            new_depart_at=new_depart_at,
+            new_arrive_by=new_arrive_by,
+            note=note,
+            opened_task_id=None,
+        )
+        change_task = self.create_task(
+            self._change_request(booked_task.request, event, now),
+            requester_id=trip.requester_id,
+            trip_id=trip.trip_id,
+            parent_task_id=booked_task.task_id,
+            change_event=event,
+        )
+        # `_attach_to_trip` 已经把改期任务追加进去并保存过一次；重读再记事件。
+        trip = self.trips.get(trip_id)
+        trip.events = (*trip.events, replace(event, opened_task_id=change_task.task_id))
+        self.trips.save(trip)
+        return change_task
+
+    @staticmethod
+    def _change_request(
+        request: TripRequestVersion, event: TripEvent, now: datetime
+    ) -> TripRequestVersion:
+        """从被改的请求派生改期请求：新任务号、第 1 版；会议改期改最晚到达时刻。"""
+        values: dict[str, Any] = {"task_id": str(uuid4()), "version": 1, "created_at": now}
+        if event.event_type is TripEventType.MEETING_MOVED and event.new_arrive_by is not None:
+            new_arrive_by = event.new_arrive_by
+            if request.journey:
+                first, *rest = request.journey
+                values["journey"] = (replace(first, arrive_before=new_arrive_by), *rest)
+            values["arrive_by"] = new_arrive_by
+            if request.departure_after is not None and request.departure_after >= new_arrive_by:
+                values["departure_after"] = new_arrive_by - timedelta(hours=24)
+        return replace(request, **values)
 
     # ------------------------------------------------------------------
     # 工具循环入口（ADR-0002 的并行迁移方式：新入口另起一条，旧的一个字不动）
@@ -417,8 +617,10 @@ class TripWorkflowOrchestrator:
                 "policy_content_hash": policy.content_hash,
                 "intent_entrypoint": IntentEntrypoint.AGENTIC.value,
             },
+            trip_id=str(uuid4()),
         )
         self.tasks.add(task)
+        self._attach_to_trip(task)
         self._audit(
             task,
             "AGENTIC_TASK_CREATED_FROM_MESSAGE",
@@ -784,7 +986,9 @@ class TripWorkflowOrchestrator:
             request=task.request,
             employee=task.employee,
             policy=policy,
-            leg_offers=[self._transports(item) for item in leg_snapshots],
+            leg_offers=[
+                self._without_excluded(task, self._transports(item)) for item in leg_snapshots
+            ],
             hotel_offers=[self._hotels(item) for item in hotel_snapshots],
             profile=self._travel_profile(task),
             budget=self._budget_snapshot(task),
@@ -1461,6 +1665,7 @@ class TripWorkflowOrchestrator:
                 ),
             ),
         )
+        self._register_trip_watch(task, option)
         return task
 
     def _search_and_plan(self, task: TripTask, policy: PolicySnapshot) -> TripTask:
@@ -1639,8 +1844,14 @@ class TripWorkflowOrchestrator:
             request=request,
             employee=task.employee,
             policy=policy,
-            leg_offers=[self._transports(item) for item in leg_snapshots],
-            journey_fares=_fares_from(self._transports(journey_snapshot)),
+            leg_offers=[
+                self._without_excluded(task, self._transports(item)) for item in leg_snapshots
+            ],
+            journey_fares=[
+                fare
+                for fare in _fares_from(self._transports(journey_snapshot))
+                if len(self._without_excluded(task, fare)) == len(fare)
+            ],
             hotel_offers=[self._hotels(item) for item in hotel_snapshots],
             profile=self._travel_profile(task),
             budget=self._budget_snapshot(task),
@@ -3102,6 +3313,14 @@ class TripWorkflowOrchestrator:
         if snapshot is None:
             return []
         return [item for item in snapshot.items if isinstance(item, TransportOffer)]
+
+    @staticmethod
+    def _without_excluded(task: TripTask, offers: list[TransportOffer]) -> list[TransportOffer]:
+        """改期任务：航司说变了/没了的那张票不再端上来（`metadata["excluded_refs"]`）。"""
+        excluded = set(task.metadata.get("excluded_refs") or ())
+        if not excluded:
+            return offers
+        return [item for item in offers if item.ref_id not in excluded]
 
     @staticmethod
     def _hotels(snapshot: InventorySnapshot | None) -> list[HotelOffer]:

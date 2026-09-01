@@ -21,7 +21,9 @@ from .enums import (
     TaskState,
     ToolCallStatus,
     TransportMode,
+    TripEventType,
     TripLegRole,
+    TripStatus,
 )
 
 # Provider 无法证明客户通勤时间时的哨兵值（分钟）。
@@ -830,6 +832,75 @@ class ExpenseReconciliation:
 
 
 @dataclass(frozen=True, slots=True)
+class TripWatchLeg:
+    """被盯着的一段：哪张票、从哪到哪、什么时候走。变更事件按 `ref_id` 对上它。"""
+
+    ref_id: str
+    provider: str
+    origin: str
+    destination: str
+    depart_at: datetime
+    arrive_at: datetime
+
+
+@dataclass(frozen=True, slots=True)
+class TripWatch:
+    """下单确认之后登记的观察对象：盯到最后一段出发后一天为止。"""
+
+    task_id: str
+    legs: tuple[TripWatchLeg, ...]
+    registered_at: datetime
+    watch_until: datetime
+
+    def leg(self, ref_id: str) -> TripWatchLeg | None:
+        return next((item for item in self.legs if item.ref_id == ref_id), None)
+
+
+@dataclass(frozen=True, slots=True)
+class TripEvent:
+    """收到的一条外部变更事件，以及它开出来的改期任务。"""
+
+    event_id: str
+    event_type: TripEventType
+    received_at: datetime
+    reported_by: str
+    #: 航变时是受影响那张票的 ref_id；会议改期时为 None。
+    ref_id: str | None
+    #: 事件里给的新时间（航班新起飞时刻 / 新的最晚到达时刻）；取消时为 None。
+    new_depart_at: datetime | None
+    new_arrive_by: datetime | None
+    note: str | None
+    opened_task_id: str | None
+
+
+@dataclass(slots=True)
+class Trip:
+    """一趟差旅：从第一个规划任务，到下单、到航变改期，到最后一次确认。
+
+    此前只有 `TripTask`，任务到终态就结束了。改期任务是**第二种任务**——它得挂在同一趟
+    差旅下，原任务的审计一个字不动。这就是抽这个聚合的理由；在此之前抽只会是空壳。
+    """
+
+    trip_id: str
+    traveler_id: str
+    requester_id: str
+    status: TripStatus
+    task_ids: tuple[str, ...]
+    created_at: datetime
+    watch: TripWatch | None = None
+    events: tuple[TripEvent, ...] = ()
+    persistence_revision: int = 0
+
+    @property
+    def latest_task_id(self) -> str:
+        return self.task_ids[-1]
+
+    @property
+    def original_task_id(self) -> str:
+        return self.task_ids[0]
+
+
+@dataclass(frozen=True, slots=True)
 class AuditEvent:
     """任务审计事件（输入/输出哈希与证据引用）。"""
 
@@ -923,6 +994,12 @@ class TripTask:
     requester_id: str | None = None
     #: 费控对账结果。有它，下单确认才算"核实过"；一个任务只对一次。
     expense_reconciliation: ExpenseReconciliation | None = None
+    #: 属于哪趟差旅。None 是没接差旅聚合时建的旧任务。
+    trip_id: str | None = None
+    #: 改期任务记它改的是哪个任务；规划任务为 None。
+    parent_task_id: str | None = None
+    #: 开出这个改期任务的事件。
+    change_event_id: str | None = None
     failure: str | None = None
     intent_fields: dict[str, Any] = field(default_factory=dict)
     messages: list[ConversationMessage] = field(default_factory=list)
@@ -947,6 +1024,11 @@ class TripTask:
     def tool_calls_remaining(self) -> int:
         """剩余可用工具调用次数。"""
         return max(self.tool_call_limit - self.tool_calls_used, 0)
+
+    @property
+    def is_change_task(self) -> bool:
+        """是不是改期任务（由外部变更事件开出来的）。"""
+        return self.parent_task_id is not None
 
     @property
     def requested_by(self) -> str:

@@ -595,6 +595,7 @@ function ChatPane({
             </label>
           )}
           {task?.is_delegated && <Badge tone="dark">代订 · {task.requester_id} 为 {task.traveler_id}</Badge>}
+          {task?.is_change_task && <Badge tone="orange">改期 · {task.change_event?.event_type === 'FLIGHT_CHANGED' ? '航班变更' : '会议改期'}{task.change_event?.ref_id ? ` ${task.change_event.ref_id}` : ''}</Badge>}
           <Badge tone={stateBadgeTone(task?.state ?? null)}>{stateMeta?.label ?? '等待指令'}</Badge>
           {task && <button type="button" className="chat-new" onClick={onNewTrip}>新对话</button>}
         </div>

@@ -37,6 +37,7 @@ from corporate_travel_agent.services.repositories import (
     InMemoryTaskRepository,
     TaskRepository,
 )
+from corporate_travel_agent.services.trips import InMemoryTripRepository
 
 SHANGHAI_TZ = ZoneInfo("Asia/Shanghai")
 
@@ -79,6 +80,8 @@ def build_demo_system(
     trip_history: object | None = None,
     #: 预算账本。默认读同一个任务仓储里回填过的下单确认；政策没配预算就不会有规则。
     budget_ledger: object | None = None,
+    #: 差旅聚合仓储。默认内存；API 按 DATABASE_URL 换成 SQL。
+    trip_repository: object | None = None,
 ) -> tuple[TripWorkflowOrchestrator, TravelInventoryProvider]:
     """构建演示系统：返回 (Orchestrator, Provider)，便于本地/API 冒烟。"""
     effective_clock = clock or (lambda: datetime.now(UTC))
@@ -198,6 +201,7 @@ def build_demo_system(
         provider=provider,
         trip_history=trip_history,
         budget_ledger=budget_ledger or RepositoryTripBudgetLedger(tasks),
+        trips=trip_repository or InMemoryTripRepository(),
         tool_calling_language_model=tool_calling_language_model,
         agentic_tool_call_limit=agentic_tool_call_limit,
         clock=effective_clock,

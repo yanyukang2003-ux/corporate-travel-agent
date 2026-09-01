@@ -457,6 +457,13 @@ export interface TripTask {
   /** 发起人：代订时和旅行者不是同一个人。 */
   requester_id: string
   is_delegated: boolean
+  /** 属于哪趟差旅；旧任务为 null。 */
+  trip_id: string | null
+  /** 改期任务记它改的是哪个任务；规划任务为 null。 */
+  parent_task_id: string | null
+  change_event_id: string | null
+  is_change_task: boolean
+  change_event: { event_type: string; ref_id: string | null; note: string | null; excluded_refs?: string[] } | null
   summary: false
 }
 

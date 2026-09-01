@@ -42,10 +42,10 @@ def _collect(repository, limit: int) -> tuple[list[TripTask], dict[str, tuple[Au
 
 
 def _demo_tasks(limit: int):
-    """跑一小段演示流程：一单说了"去订了"没回来填单号、一单回填了订单号、
-    一单看了没订、一单走例外审批。
+    """跑一小段演示流程：一单说了"去订了"没回来填单号、一单回填了订单号（随后收到航变、
+    开了改期任务）、一单看了没订、一单走例外审批。
 
-    四条路径各一个，是为了让报告里的每个分母都非零——全都测不出来的报告
+    每条路径各一个，是为了让报告里的每个分母都非零——全都测不出来的报告
     看不出格式对不对。
     """
     from decimal import Decimal
@@ -78,6 +78,19 @@ def _demo_tasks(limit: int):
         total_amount=confirmed_option.total_cost + Decimal("20"),
         currency=confirmed_option.currency,
         reported_by="E1001",
+    )
+
+    # 航司推来一条航变：系统开一个改期任务挂在同一趟差旅下，原任务一个字不动。
+    from corporate_travel_agent.domain.enums import TripEventType
+
+    trip = workflow.trips.find_by_task(confirmed.task_id)
+    assert trip is not None
+    workflow.report_trip_event(
+        trip.trip_id,
+        event_type=TripEventType.FLIGHT_CHANGED,
+        ref_id=confirmed_option.legs[0].ref_id,
+        note="航司取消了这一班",
+        reported_by="carrier-feed",
     )
 
     workflow.create_task(make_demo_request(task_id="demo-abandoned"))
