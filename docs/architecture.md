@@ -192,6 +192,28 @@ stateDiagram-v2
 还没有的：`Trip`（一趟差旅）聚合。现在一个任务对应一次交接、一条确认，抽一个 `Trip` 只会是
 空壳；等出现第二种任务（改期）需要挂在同一趟差旅下时再抽。
 
+### 4.2 分级审批与事务性发件箱
+
+审批链是政策的一部分，不是硬编码的"经理然后财务"。`PolicySnapshot.approval_tiers` 说的是
+"什么情况下要多一个人批、由谁批"：方案总价过了某一档，或者违规/判不了的规则里有某一条
+（演示配置：超过 5,000 美元、或预算规则出问题，就多一级财务 `F3001`）。`ApprovalRequest.steps`
+记每一级谁批、批了没有；`approver_id` 始终是**当前**该批的那个人。走到第二级时，任务状态不动，
+投影列 `pending_approver_id` 换人，经理的收件箱里它就没了、财务的才有（`GET /approvals/inbox`
+按这一列查，不按直属经理）。任一级驳回整单驳回；过期整单作废；审批主题一变整单失效——
+这些不变量没有因为多了级别而松动。
+
+审批的每一步变化——建单、进下一级、批/驳、作废——以及下单确认，都作为发件箱事件
+**和任务更新、审计事件同一笔事务**落库（`TaskRepository.record(..., outbox_events=...)`）。
+审批单进了状态机却没通知出去，或通知出去了审批单其实没建成，都是不能接受的半截。
+
+投递（`services/outbox_dispatch.py`）把未发布事件交给通道：`LoggingChannel`（没接外部系统时
+的默认；收件箱本身就是投递）、`WebhookChannel`（POST 给企业侧地址，带事件 ID 和 HMAC 签名；
+接真实 OA / 费控时用它）、`SimulatedApprovalSystemChannel`（仓库内扮演的外部审批系统：收到
+通知记待办，决定后**回调**本系统——和真实 OA 调 `POST /approvals/{id}/decision` 是同一个动作）。
+至少一次投递，通道按 `event_id` 幂等；失败计次，超过 `OUTBOX_MAX_ATTEMPTS` 进死信但**不标
+已发布**。`examples/run_outbox_worker.py` 循环投递；管理员也可以 `POST /outbox/dispatch` 手动
+跑一轮，`GET /outbox/events` 看有没有卡住。
+
 ## 5. 证据与版本
 
 每个候选方案绑定：
@@ -311,11 +333,11 @@ Browser-assisted 与正式 Ctrip Business Provider 应作为后续独立适配�
 - 任务表维护查询投影（`employee_id` / `manager_id` / `next_retry_at` 等），列表与延迟重试
   不再依赖全表 hydrate；`GET /trip-tasks` 默认返回摘要。
 - 政策配置可经 `POLICY_CONFIG_BACKEND=postgres` 从 active 文档加载；文件后端仍为默认。
-- 事务性 Outbox 表已就绪（`outbox_events`），供审批通知等副作用投递；编排层可逐步接入。
+- 事务性 Outbox（`outbox_events`）已接入：审批各步与下单确认随任务更新同一事务入队，投递见 §4.2。
 
 运维与环境变量见 `docs/postgres-operations.md`。
 
-当前本地 WORM 后端用于内部试用；正式环境仍需接入启用 Object Lock 和服务端加密的 S3 兼容后端。其他未完成的生产化部分包括 Outbox 投递 worker 和 Secret Store。
+当前本地 WORM 后端用于内部试用；正式环境仍需接入启用 Object Lock 和服务端加密的 S3 兼容后端。其他未完成的生产化部分还有 Secret Store（Outbox 投递 worker 见 §4.2）。
 
 ## 9. 认证与资源级授权
 
@@ -324,7 +346,7 @@ Browser-assisted 与正式 Ctrip Business Provider 应作为后续独立适配�
 | 角色 | 任务读取 | 工作流操作 | 审批决定 |
 |---|---|---|---|
 | `employee` | `employee_id` 与任务员工一致 | 允许 | 禁止 |
-| `approver` | 用户 ID 与任务 `manager_id` 一致 | 禁止 | 允许 |
+| `approver` | 用户 ID 是任务的直属经理，或当前待批的审批人 | 禁止 | 只能批**当前这一级** |
 | `admin` | 全部 | 允许 | 禁止冒充经理 |
 
 启用认证后所有任务、审计和库存快照端点都要求 Bearer 令牌。越权读取与不存在资源统一返回 `404`；审批身份由令牌派生，不信任请求体。`AUTH_ENABLED=false` 只保留给本机开发兼容。

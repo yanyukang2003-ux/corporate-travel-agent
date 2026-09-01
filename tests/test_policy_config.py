@@ -51,7 +51,7 @@ def test_bundled_configuration_builds_domain_snapshots_and_city_aliases() -> Non
 def test_external_configuration_controls_policy_and_approval_path(tmp_path: Path) -> None:
     payload = _payload()
     payload["config_version"] = "trial-config-v2"
-    payload["approvers"] = [{"approver_id": "M3001", "display_name": "New Manager"}]
+    payload["approvers"].append({"approver_id": "M3001", "display_name": "New Manager"})
     employees = payload["employees"]
     assert isinstance(employees, list)
     employees[0]["manager_id"] = "M3001"

@@ -264,6 +264,18 @@ export interface ApprovalInfo {
   expires_at: string
   status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'INVALIDATED'
   decision_reason: string | null
+  /** 审批链：第一级永远是直属经理，之后按政策分级追加；空数组是旧任务，只有 approver_id 一级。 */
+  steps: ApprovalStep[]
+  current_step: number
+}
+
+/** 分级审批里的一级。 */
+export interface ApprovalStep {
+  approver_id: string
+  label: string
+  status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'INVALIDATED'
+  decided_at: string | null
+  reason: string | null
 }
 
 /** 官方预订平台交接信息（不含本系统支付）。 */
@@ -337,6 +349,8 @@ export interface TaskSummary {
   clarification_rounds: number
   option_count: number
   failure: string | null
+  /** 现在轮到谁批；不在等审批时为 null。 */
+  pending_approver_id?: string | null
   provider_retry: ProviderRetry
   updated_at: string
   summary: true

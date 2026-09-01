@@ -221,6 +221,10 @@
     {
       "approver_id": "M2001",
       "display_name": "Demo Sales Manager"
+    },
+    {
+      "approver_id": "F3001",
+      "display_name": "Demo Finance Controller"
     }
   ],
   "employees": [
@@ -329,6 +333,16 @@
           "amount": "20000",
           "period_from": "2026-01-01",
           "period_to": "2026-12-31"
+        }
+      ],
+      "approval_tiers": [
+        {
+          "label": "finance",
+          "approver_id": "F3001",
+          "above_amount": "5000",
+          "when_rules": [
+            "budget.cost_center.remaining"
+          ]
         }
       ]
     }

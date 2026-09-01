@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from typing import Any
@@ -34,6 +35,7 @@ from corporate_travel_agent.services.db_engine import (
     engine_pool_snapshot,
     read_alembic_version,
 )
+from corporate_travel_agent.services.outbox_events import OutboxEventDraft
 from corporate_travel_agent.services.provider_quote_context import (
     ProviderQuoteContext,
     ProviderQuoteContextExpiredError,
@@ -76,6 +78,7 @@ class TaskRow(Base):
         Index("ix_trip_tasks_manager_state", "manager_id", "state"),
         Index("ix_trip_tasks_provider_retry_due", "state", "next_retry_at"),
         Index("ix_trip_tasks_retry_lease", "state", "retry_lease_until"),
+        Index("ix_trip_tasks_pending_approver", "pending_approver_id", "state"),
     )
 
     task_id: Mapped[str] = mapped_column(String(64), primary_key=True)
@@ -92,6 +95,7 @@ class TaskRow(Base):
     retry_lease_owner: Mapped[str | None] = mapped_column(String(128))
     retry_lease_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     retry_attempt_token: Mapped[str | None] = mapped_column(String(64))
+    pending_approver_id: Mapped[str | None] = mapped_column(String(64))
     payload_schema_version: Mapped[int] = mapped_column(
         Integer, nullable=False, default=SCHEMA_VERSION
     )
@@ -384,6 +388,7 @@ class SQLAlchemyTaskRepository:
         employee_id: str | None = None,
         manager_id: str | None = None,
         state: str | None = None,
+        pending_approver_id: str | None = None,
         limit: int = 100,
     ) -> tuple[TaskSummary, ...]:
         if limit < 0:
@@ -396,6 +401,8 @@ class SQLAlchemyTaskRepository:
                 statement = statement.where(TaskRow.manager_id == manager_id)
             if state is not None:
                 statement = statement.where(TaskRow.state == state)
+            if pending_approver_id is not None:
+                statement = statement.where(TaskRow.pending_approver_id == pending_approver_id)
             statement = statement.order_by(TaskRow.updated_at.desc(), TaskRow.task_id).limit(
                 limit
             )
@@ -517,7 +524,18 @@ class SQLAlchemyTaskRepository:
             )
             return result.rowcount == 1
 
-    def record(self, task: TripTask, event: AuditEvent) -> None:
+    def record(
+        self,
+        task: TripTask,
+        event: AuditEvent,
+        *,
+        outbox_events: Sequence[OutboxEventDraft] = (),
+    ) -> None:
+        """任务更新、审计事件、发件箱事件三者**同一笔事务**提交。
+
+        发件箱事件和任务状态要么一起落库、要么一起回滚：审批单进了状态机却没有通知
+        出去，或者通知出去了而审批单其实没建成，都是不能接受的半截。
+        """
         expected_revision = task.persistence_revision
         next_revision = expected_revision + 1
         task.persistence_revision = next_revision
@@ -557,6 +575,23 @@ class SQLAlchemyTaskRepository:
                         created_at=event.created_at,
                     )
                 )
+                for draft in outbox_events:
+                    outbox_event = draft.materialize(
+                        aggregate_type="trip_task", aggregate_id=task.task_id
+                    )
+                    session.add(
+                        OutboxEventRow(
+                            event_id=outbox_event.event_id,
+                            aggregate_type=outbox_event.aggregate_type,
+                            aggregate_id=outbox_event.aggregate_id,
+                            event_type=outbox_event.event_type,
+                            payload=outbox_event.payload,
+                            created_at=outbox_event.created_at,
+                            published_at=None,
+                            attempt_count=0,
+                            last_error=None,
+                        )
+                    )
         except Exception:
             task.persistence_revision = expected_revision
             raise
@@ -671,6 +706,7 @@ class SQLAlchemyTaskRepository:
                 option_count=_option_count(row.payload),
                 request_version=_request_version(row.payload),
                 failure=_failure(row.payload),
+                pending_approver_id=row.pending_approver_id,
             )
         task = deserialize_task(row.payload)
         return summarize_task(task, created_at=row.created_at, updated_at=row.updated_at)

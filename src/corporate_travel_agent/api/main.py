@@ -71,6 +71,7 @@ from corporate_travel_agent.services.repositories import (
     TaskRepository,
 )
 from corporate_travel_agent.services.runtime_config import validate_deployment_environment
+from corporate_travel_agent.services.task_projections import pending_approver_id
 
 provider_retry_scheduler: ProviderRetryScheduler | None = None
 
@@ -171,16 +172,38 @@ def _configured_task_repository() -> TaskRepository:
 
 
 def _configured_outbox_store():
-    """装配 outbox 存储（若启用）。"""
-    from corporate_travel_agent.services.outbox import (
-        InMemoryOutboxStore,
-        SQLAlchemyOutboxStore,
-    )
+    """装配 outbox 存储：和任务仓储同一个地方——内存仓储自带的那份，或同一个 SQL 引擎。"""
+    from corporate_travel_agent.services.outbox import SQLAlchemyOutboxStore
 
     engine = getattr(workflow.tasks, "engine", None)
     if engine is None:
-        return InMemoryOutboxStore()
+        return workflow.tasks.outbox
     return SQLAlchemyOutboxStore(engine)
+
+
+def _configured_outbox_dispatcher(store):
+    """装配投递器：配了 OUTBOX_WEBHOOK_URL 就 POST 给企业侧，否则记日志。
+
+    至少一次投递；对面按 `event_id` 幂等。`POST /outbox/dispatch` 手动跑一轮，
+    `examples/run_outbox_worker.py` 循环跑。
+    """
+    from corporate_travel_agent.services.outbox_dispatch import (
+        LoggingChannel,
+        OutboxDispatcher,
+        WebhookChannel,
+    )
+
+    url = os.getenv("OUTBOX_WEBHOOK_URL")
+    channel = (
+        WebhookChannel(url, secret=os.getenv("OUTBOX_WEBHOOK_SECRET") or None)
+        if url
+        else LoggingChannel()
+    )
+    return OutboxDispatcher(
+        store,
+        default_channel=channel,
+        max_attempts=int(os.getenv("OUTBOX_MAX_ATTEMPTS", "5")),
+    )
 
 
 def _configured_quote_context_store(
@@ -293,6 +316,7 @@ provider_retry_scheduler = (
     else None
 )
 outbox_store = _configured_outbox_store()
+outbox_dispatcher = _configured_outbox_dispatcher(outbox_store)
 bearer_scheme = HTTPBearer(auto_error=False)
 
 
@@ -563,19 +587,19 @@ def approval_inbox(
         identity.has_role(Role.APPROVER) or identity.has_role(Role.ADMIN)
     ):
         raise HTTPException(status_code=403, detail="Approver role required")
-    manager_id = None if identity.has_role(Role.ADMIN) else identity.user_id
-    summaries = workflow.tasks.list_task_summaries(
-        manager_id=manager_id,
-        state="WAITING_FOR_APPROVAL",
-        limit=limit,
-    )
-    if identity.has_role(Role.ADMIN) and manager_id is None:
-        return [_public_task_summary(item) for item in summaries]
-    return [
-        _public_task_summary(item)
-        for item in summaries
-        if item.manager_id == identity.user_id or identity.has_role(Role.ADMIN)
-    ]
+    # 收件箱按"当前待谁批"查，不按直属经理：分级审批走到第二级时，
+    # 该看见它的是财务，不再是经理。
+    if identity.has_role(Role.ADMIN):
+        summaries = workflow.tasks.list_task_summaries(
+            state="WAITING_FOR_APPROVAL", limit=limit
+        )
+    else:
+        summaries = workflow.tasks.list_task_summaries(
+            pending_approver_id=identity.user_id,
+            state="WAITING_FOR_APPROVAL",
+            limit=limit,
+        )
+    return [_public_task_summary(item) for item in summaries]
 
 
 @app.post("/agentic/trip-tasks/{task_id}/messages")
@@ -781,6 +805,52 @@ def active_policy(identity: CurrentIdentity) -> dict[str, Any]:
     }
 
 
+class OutboxDispatchRequest(BaseModel):
+    """手动跑一轮投递的请求体。"""
+    model_config = ConfigDict(extra="forbid")
+
+    limit: int = Field(default=50, ge=1, le=500)
+
+
+@app.post("/outbox/dispatch")
+def dispatch_outbox(payload: OutboxDispatchRequest, identity: CurrentIdentity) -> dict[str, Any]:
+    """管理员手动投递一轮发件箱。生产里由 `examples/run_outbox_worker.py` 循环做同一件事。"""
+    if not identity.has_role(Role.ADMIN):
+        raise HTTPException(status_code=403, detail="Admin role required")
+    report = outbox_dispatcher.dispatch_once(limit=payload.limit)
+    return {
+        **report.as_dict(),
+        "channel": outbox_dispatcher.default_channel.name,
+        "unpublished_count": outbox_store.unpublished_count(),
+    }
+
+
+@app.get("/outbox/events")
+def outbox_events(identity: CurrentIdentity, limit: int = 50) -> list[dict[str, Any]]:
+    """最近的发件箱事件（已发布和未发布都有），管理员看投递有没有卡住。"""
+    if not 1 <= limit <= 500:
+        raise HTTPException(status_code=400, detail="limit must be between 1 and 500")
+    if not identity.has_role(Role.ADMIN):
+        raise HTTPException(status_code=403, detail="Admin role required")
+    return [
+        {
+            "event_id": item.event_id,
+            "event_type": item.event_type,
+            "aggregate_type": item.aggregate_type,
+            "aggregate_id": item.aggregate_id,
+            "created_at": item.created_at,
+            "published_at": item.published_at,
+            "attempt_count": item.attempt_count,
+            "last_error": item.last_error,
+            "dead_lettered": (
+                item.published_at is None and item.attempt_count >= outbox_dispatcher.max_attempts
+            ),
+            "payload": item.payload,
+        }
+        for item in outbox_store.list_recent(limit=limit)
+    ]
+
+
 @app.get("/audit-events")
 def recent_audit_events(
     identity: CurrentIdentity,
@@ -911,7 +981,7 @@ def _can_read_task(identity: UserIdentity, task: TripTask) -> bool:
         )
         or (
             identity.has_role(Role.APPROVER)
-            and identity.user_id == task.employee.manager_id
+            and identity.user_id in {task.employee.manager_id, pending_approver_id(task)}
         )
     )
 
@@ -938,11 +1008,17 @@ def _require_can_operate(identity: UserIdentity, task: TripTask) -> None:
 
 
 def _require_can_approve(identity: UserIdentity, task: TripTask) -> None:
-    """校验是否可审批该任务。"""
-    if (
-        identity.has_role(Role.APPROVER)
-        and identity.user_id == task.employee.manager_id
+    """校验是否可审批该任务：必须是**当前这一级**该批的人。
+
+    分级审批走到财务那一级时，直属经理已经批过了——他不能再替财务批。
+    """
+    pending = pending_approver_id(task)
+    if identity.has_role(Role.APPROVER) and pending is not None and identity.user_id == pending:
+        return
+    if pending is None and identity.has_role(Role.APPROVER) and (
+        identity.user_id == task.employee.manager_id
     ):
+        # 不在等审批：让编排器给出准确的 409（"没有待处理的审批"），而不是 403。
         return
     raise HTTPException(status_code=403, detail="Task is outside this approver's scope")
 
@@ -1023,6 +1099,7 @@ def _public_task_summary(item: Any) -> dict[str, Any]:
             "delayed_retry_count": item.delayed_retry_count,
         },
         "updated_at": item.updated_at,
+        "pending_approver_id": item.pending_approver_id,
         "summary": True,
     }
 

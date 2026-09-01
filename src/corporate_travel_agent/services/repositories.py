@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from datetime import datetime, timedelta
 from threading import RLock
 from typing import Protocol
@@ -14,6 +15,7 @@ from corporate_travel_agent.domain.models import (
     PolicySnapshot,
     TripTask,
 )
+from corporate_travel_agent.services.outbox_events import InMemoryOutboxStore, OutboxEventDraft
 from corporate_travel_agent.services.task_projections import TaskSummary
 
 
@@ -46,6 +48,7 @@ class TaskRepository(Protocol):
         employee_id: str | None = None,
         manager_id: str | None = None,
         state: str | None = None,
+        pending_approver_id: str | None = None,
         limit: int = 100,
     ) -> tuple[TaskSummary, ...]: ...
 
@@ -71,7 +74,13 @@ class TaskRepository(Protocol):
 
     def release_provider_retry_claim(self, task: TripTask, *, attempt_token: str) -> bool: ...
 
-    def record(self, task: TripTask, event: AuditEvent) -> None: ...
+    def record(
+        self,
+        task: TripTask,
+        event: AuditEvent,
+        *,
+        outbox_events: Sequence[OutboxEventDraft] = (),
+    ) -> None: ...
 
     def events(self, task_id: str) -> tuple[AuditEvent, ...]: ...
 
@@ -85,7 +94,9 @@ class InMemoryTaskRepository:
 
     backend_name = "memory"
 
-    def __init__(self) -> None:
+    def __init__(self, *, outbox: InMemoryOutboxStore | None = None) -> None:
+        #: 发件箱。`record()` 把事件草稿和任务更新一起写进来——内存版的"同一笔事务"。
+        self.outbox = outbox or InMemoryOutboxStore()
         self._tasks: dict[str, TripTask] = {}
         self._events: dict[str, list[AuditEvent]] = {}
         self._snapshots: dict[str, dict[str, InventorySnapshot]] = {}
@@ -119,9 +130,15 @@ class InMemoryTaskRepository:
         employee_id: str | None = None,
         manager_id: str | None = None,
         state: str | None = None,
+        pending_approver_id: str | None = None,
         limit: int = 100,
     ) -> tuple[TaskSummary, ...]:
-        from corporate_travel_agent.services.task_projections import summarize_task
+        from corporate_travel_agent.services.task_projections import (
+            pending_approver_id as pending_approver_of,
+        )
+        from corporate_travel_agent.services.task_projections import (
+            summarize_task,
+        )
 
         items: list[TaskSummary] = []
         for task in self._tasks.values():
@@ -130,6 +147,8 @@ class InMemoryTaskRepository:
             if manager_id is not None and task.employee.manager_id != manager_id:
                 continue
             if state is not None and task.state.value != state:
+                continue
+            if pending_approver_id is not None and pending_approver_of(task) != pending_approver_id:
                 continue
             items.append(
                 summarize_task(
@@ -254,13 +273,23 @@ class InMemoryTaskRepository:
             self._retry_claim_tokens.pop(task.task_id, None)
             return True
 
-    def record(self, task: TripTask, event: AuditEvent) -> None:
+    def record(
+        self,
+        task: TripTask,
+        event: AuditEvent,
+        *,
+        outbox_events: Sequence[OutboxEventDraft] = (),
+    ) -> None:
         if task.task_id not in self._tasks:
             raise NotFoundError(task.task_id)
         task.persistence_revision += 1
         self._tasks[task.task_id] = task
         self._events[task.task_id].append(event)
         self._updated_at[task.task_id] = datetime.now()
+        for draft in outbox_events:
+            self.outbox.add(
+                draft.materialize(aggregate_type="trip_task", aggregate_id=task.task_id)
+            )
 
     def events(self, task_id: str) -> tuple[AuditEvent, ...]:
         self.get(task_id)

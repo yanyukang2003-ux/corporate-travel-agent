@@ -17,6 +17,7 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator, model_validator
 
 from corporate_travel_agent.domain.models import (
+    ApprovalTier,
     CostCenterBudget,
     EmployeeProfileSnapshot,
     LevelTravelRule,
@@ -36,6 +37,13 @@ KNOWN_EXCEPTION_RULE_IDS = frozenset(
         "budget.cost_center.remaining",
     }
 )
+
+#: 引擎会产出的全部规则 ID：审批链的触发条件只能引用这些。
+KNOWN_RULE_IDS = KNOWN_EXCEPTION_RULE_IDS | {
+    "employee.level.known",
+    "pricing.currency",
+    "policy.effective_window",
+}
 
 
 class PolicyConfigurationError(RuntimeError):
@@ -136,6 +144,39 @@ class CostCenterBudgetConfig(StrictConfigModel):
         return self
 
 
+class ApprovalTierConfig(StrictConfigModel):
+    """直属经理之后追加的一级审批：什么情况下要多一个人批、由谁批。"""
+
+    label: str = Field(min_length=1, max_length=60)
+    approver_id: str = Field(pattern=r"^[A-Za-z0-9._-]{1,64}$")
+    above_amount: Decimal | None = None
+    when_rules: tuple[str, ...] = ()
+
+    @field_validator("above_amount")
+    @classmethod
+    def amount_is_safe(cls, value: Decimal | None) -> Decimal | None:
+        if value is None:
+            return None
+        if value.is_nan() or value.is_infinite() or value < 0 or value > Decimal("1000000000"):
+            raise ValueError("invalid approval tier amount")
+        return value
+
+    @field_validator("when_rules")
+    @classmethod
+    def rules_are_known_and_canonical(cls, values: tuple[str, ...]) -> tuple[str, ...]:
+        unknown = set(values) - KNOWN_RULE_IDS
+        if unknown:
+            raise ValueError(f"unknown approval tier rule IDs: {', '.join(sorted(unknown))}")
+        # 排序去重：内容哈希要在进程之间稳定，集合的顺序不能进哈希。
+        return tuple(sorted(set(values)))
+
+    @model_validator(mode="after")
+    def has_a_trigger(self) -> ApprovalTierConfig:
+        if self.above_amount is None and not self.when_rules:
+            raise ValueError("an approval tier needs above_amount or when_rules")
+        return self
+
+
 class LevelTravelRuleConfig(StrictConfigModel):
     """职级对应的舱位/座席许可规则。"""
 
@@ -172,6 +213,7 @@ class PolicySnapshotConfig(StrictConfigModel):
     min_advance_booking_days: int | None = Field(default=None, ge=0, le=365)
     hotel_seasonal_caps: tuple[SeasonalHotelCapConfig, ...] = Field(default=(), max_length=1000)
     cost_center_budgets: tuple[CostCenterBudgetConfig, ...] = Field(default=(), max_length=10000)
+    approval_tiers: tuple[ApprovalTierConfig, ...] = Field(default=(), max_length=20)
 
     @field_validator("cost_center_budgets")
     @classmethod
@@ -302,6 +344,14 @@ class EnterpriseTravelPolicyConfig(StrictConfigModel):
                 raise ValueError(
                     "seasonal hotel caps reference unknown city codes: "
                     + ", ".join(sorted(unknown_seasonal))
+                )
+            unknown_tier_approvers = {
+                item.approver_id for item in policy.approval_tiers
+            } - approver_ids
+            if unknown_tier_approvers:
+                raise ValueError(
+                    "approval tiers reference unknown approvers: "
+                    + ", ".join(sorted(unknown_tier_approvers))
                 )
         return self
 
@@ -506,6 +556,15 @@ def _parse_policy_configuration(
                 )
                 for item in policy.cost_center_budgets
             },
+            approval_tiers=tuple(
+                ApprovalTier(
+                    label=item.label,
+                    approver_id=item.approver_id,
+                    above_amount=item.above_amount,
+                    when_rules=frozenset(item.when_rules),
+                )
+                for item in policy.approval_tiers
+            ),
         )
         for policy in config.policies
     )
@@ -543,7 +602,12 @@ def _policy_content_hash(policy: PolicySnapshotConfig) -> str:
         payload.pop("currency", None)
     # 同样的道理，后加的三个维度只有**写了**才进哈希：没写的旧快照哈希一位不变，
     # 否则升级代码那一刻所有在途任务都会被"政策内容变了"拦下来。
-    for name in ("min_advance_booking_days", "hotel_seasonal_caps", "cost_center_budgets"):
+    for name in (
+        "min_advance_booking_days",
+        "hotel_seasonal_caps",
+        "cost_center_budgets",
+        "approval_tiers",
+    ):
         if name not in policy.model_fields_set:
             payload.pop(name, None)
     canonical = json.dumps(

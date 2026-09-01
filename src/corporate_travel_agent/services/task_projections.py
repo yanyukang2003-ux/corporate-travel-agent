@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Any
 
-from corporate_travel_agent.domain.enums import TaskState
+from corporate_travel_agent.domain.enums import ApprovalStatus, TaskState
 from corporate_travel_agent.domain.models import TripTask
 from corporate_travel_agent.services.provider_resilience import PROVIDER_RETRY_METADATA_KEY
 from corporate_travel_agent.services.serialization import SCHEMA_VERSION
@@ -32,6 +32,18 @@ class TaskSummary:
     option_count: int = 0
     request_version: int | None = None
     failure: str | None = None
+    #: 现在轮到谁批。只有 WAITING_FOR_APPROVAL 且审批单还挂着时才有值。
+    pending_approver_id: str | None = None
+
+
+def pending_approver_id(task: TripTask) -> str | None:
+    """当前该批的人；不在等审批就是 None。分级审批走到第二级时这里跟着换。"""
+    approval = task.approval
+    if task.state is not TaskState.WAITING_FOR_APPROVAL or approval is None:
+        return None
+    if approval.status is not ApprovalStatus.PENDING:
+        return None
+    return approval.approver_id
 
 
 def projection_fields(task: TripTask) -> dict[str, Any]:
@@ -54,6 +66,7 @@ def projection_fields(task: TripTask) -> dict[str, Any]:
         "retry_lease_until": _as_datetime(retry.get("lease_until")),
         "retry_attempt_token": retry.get("attempt_token"),
         "payload_schema_version": SCHEMA_VERSION,
+        "pending_approver_id": pending_approver_id(task),
     }
 
 
@@ -82,6 +95,7 @@ def summarize_task(
         option_count=len(task.options),
         request_version=task.request.version if task.request else None,
         failure=task.failure,
+        pending_approver_id=fields["pending_approver_id"],
     )
 
 

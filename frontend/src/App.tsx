@@ -1913,7 +1913,14 @@ function ApprovalsView({ onToast }: { onToast: (text: string) => void }) {
       <section className="approval-queue"><div className="queue-title"><b>待我审批</b></div>{inbox.map((item) => <button key={item.task_id} data-testid={`approval-item-${item.task_id}`} className={activeId === item.task_id ? 'active' : ''} onClick={() => setActiveId(item.task_id)}><span className="avatar warm">{item.employee_id.slice(0, 2)}</span><span><b>{item.employee_id}</b><small>{item.task_id}</small><em>{item.state}</em></span></button>)}</section>
       <section className="approval-detail">
         {detail && selected ? <>
-          <div className="approval-title"><div><div className="section-kicker">{detail.task_id}</div><h2>{selected.outbound.origin} → {selected.outbound.destination}</h2><p>{detail.approval?.employee_snapshot_id ?? '申请人'} · 直属经理 {detail.approval?.approver_id}</p></div><Badge tone="orange">{getStateMeta(detail.state).label}</Badge></div>
+          <div className="approval-title"><div><div className="section-kicker">{detail.task_id}</div><h2>{selected.outbound.origin} → {selected.outbound.destination}</h2><p>{detail.approval?.employee_snapshot_id ?? '申请人'} · 当前待批 {detail.approval?.approver_id}</p></div><Badge tone="orange">{getStateMeta(detail.state).label}</Badge></div>
+          {(detail.approval?.steps?.length ?? 0) > 1 && <ol className="approval-steps" data-testid="approval-steps">
+            {detail.approval!.steps.map((step, index) => <li key={`${step.approver_id}-${index}`} className={index === detail.approval!.current_step ? 'current' : step.status === 'APPROVED' ? 'done' : ''}>
+              <b>第 {index + 1} 级 · {step.label === 'manager' ? '直属经理' : step.label}</b>
+              <span>{step.approver_id} · {step.status === 'APPROVED' ? '已批' : step.status === 'REJECTED' ? '已拒' : index === detail.approval!.current_step ? '待批' : '等前一级'}</span>
+              {step.reason && <em>“{step.reason}”</em>}
+            </li>)}
+          </ol>}
           <div className="approval-route"><div><small>出发</small><b>{selected.outbound.origin}</b><span>{travelTimeText(selected.outbound.depart_at)}</span></div><span><Icon name={selected.outbound.mode === 'TRAIN' ? 'train' : 'plane'} /><i /></span><div><small>到达</small><b>{selected.outbound.destination}</b><span>{travelTimeText(selected.outbound.arrive_at)}</span></div><div className="approval-cost"><small>申请总额</small><b>{amountText(selected.total_cost, selected.currency)}</b></div></div>
           <div className="approval-grid"><div><span>业务目的</span><b>{detail.approval?.business_reason || '未填写'}</b></div><div><span>政策结论</span><b>{selected.policy_outcome}</b></div><div><span>库存引用</span><b>{selected.inventory_refs.length} 条</b></div><div><span>审批过期</span><b>{detail.approval?.expires_at ? dateText(detail.approval.expires_at) : '—'}</b></div></div>
           <div className="exception-box"><span><Icon name="info" /></span><div><b>{selected.policy_outcome === 'INSUFFICIENT_EVIDENCE' ? '系统判不了这条，需要你确认' : '政策例外需要你判断'}</b><p>{approvalReasonText(selected)}</p><div className="reason-quote"><span>申请人说明</span>“{detail.approval?.business_reason || '无'}”</div></div></div>

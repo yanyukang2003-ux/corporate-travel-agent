@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 from dataclasses import dataclass, field
 from datetime import UTC, date, datetime
 from decimal import Decimal
@@ -138,6 +139,25 @@ class CostCenterBudget:
 
 
 @dataclass(frozen=True, slots=True)
+class ApprovalTier:
+    """审批链上追加的一级：什么情况下要多一个人批、由谁批。
+
+    两种触发条件，满足其一即追加：方案总价超过 `above_amount`；或者违规/判不了的规则里
+    有 `when_rules` 中的任何一条（比如预算超支永远要财务看一眼）。
+    """
+
+    label: str
+    approver_id: str
+    above_amount: Decimal | None = None
+    when_rules: frozenset[str] = frozenset()
+
+    def applies(self, price: Decimal, rule_ids: Iterable[str]) -> bool:
+        if self.above_amount is not None and price > self.above_amount:
+            return True
+        return bool(self.when_rules.intersection(rule_ids))
+
+
+@dataclass(frozen=True, slots=True)
 class PolicySnapshot:
     """差旅政策版本快照（职级规则、酒店上限、到达缓冲等）。"""
 
@@ -157,6 +177,8 @@ class PolicySnapshot:
     hotel_seasonal_caps: tuple[SeasonalHotelCap, ...] = ()
     #: 成本中心 → 预算。为空就没有预算规则。
     cost_center_budgets: dict[str, CostCenterBudget] = field(default_factory=dict)
+    #: 直属经理之后追加的审批级别，按配置顺序。为空就只有经理一级。
+    approval_tiers: tuple[ApprovalTier, ...] = ()
 
     def seasonal_cap_for(self, city: str, day: date) -> SeasonalHotelCap | None:
         """入住日 ``day`` 在 ``city`` 适用哪条淡旺季上限；没有就是 None。
@@ -655,8 +677,24 @@ class TravelOptionVersion:
 
 
 @dataclass(slots=True)
+class ApprovalStep:
+    """分级审批里的一级：谁来批、批了没有。"""
+
+    approver_id: str
+    label: str
+    status: ApprovalStatus = ApprovalStatus.PENDING
+    decided_at: datetime | None = None
+    reason: str | None = None
+
+
+@dataclass(slots=True)
 class ApprovalRequest:
-    """例外审批请求（绑定方案哈希与违规规则）。"""
+    """例外审批请求（绑定方案哈希与违规规则）。
+
+    `steps` 是审批链：第一级永远是直属经理，后面按政策的 `approval_tiers` 追加
+    （金额超过某档、或者触发了某条规则）。`approver_id` 始终是**当前**该批的那个人——
+    投影、收件箱和前端都读它，旧任务没有 `steps` 时它就是唯一一级。
+    """
 
     approval_id: str
     subject_hash: str
@@ -673,6 +711,22 @@ class ApprovalRequest:
     expires_at: datetime
     status: ApprovalStatus = ApprovalStatus.PENDING
     decision_reason: str | None = None
+    steps: tuple[ApprovalStep, ...] = ()
+    current_step: int = 0
+
+    @property
+    def pending_step(self) -> ApprovalStep | None:
+        """当前该批的那一级；没有分级信息（旧任务）时为 None，此时看 `approver_id`。"""
+        if not self.steps or self.current_step >= len(self.steps):
+            return None
+        return self.steps[self.current_step]
+
+    @property
+    def remaining_steps(self) -> int:
+        """当前这一级之后还有几级。"""
+        if not self.steps:
+            return 0
+        return max(len(self.steps) - self.current_step - 1, 0)
 
 
 @dataclass(frozen=True, slots=True)

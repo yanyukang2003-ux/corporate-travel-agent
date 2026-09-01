@@ -711,3 +711,12 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px
   .handoff-form-row { grid-template-columns: 1fr; }
   .metric-row { grid-template-columns: repeat(2, 1fr); }
 }
+
+/* 分级审批链 */
+.approval-steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 8px; margin: 0 0 14px; padding: 0; list-style: none; }
+.approval-steps li { padding: 10px 12px; border: 1px solid var(--line); background: #fbfcf9; }
+.approval-steps li.current { border-color: var(--accent); background: #fff6ef; }
+.approval-steps li.done { border-color: #9dbba9; background: #eef6f1; }
+.approval-steps b { display: block; margin-bottom: 4px; font-size: 11px; color: var(--ink); }
+.approval-steps span { display: block; font-size: 9px; color: var(--muted); }
+.approval-steps em { display: block; margin-top: 4px; font-size: 9px; font-style: normal; color: #5d4a38; }
