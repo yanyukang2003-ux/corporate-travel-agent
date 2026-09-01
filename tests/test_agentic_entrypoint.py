@@ -344,3 +344,180 @@ def test_the_agentic_entrypoint_gets_its_own_budget() -> None:
 
     assert agentic.tool_call_limit == 20
     assert workflow.max_tool_calls == 12
+
+
+# ---------------------------------------------------------------------------
+# 交付契约：要求跟着方案走；没货和越界各有各的落点
+# ---------------------------------------------------------------------------
+
+
+def _search_beijing_shanghai() -> tuple[str, dict[str, Any]]:
+    return (
+        "search_transport",
+        {
+            "origin": "北京",
+            "destination": "上海",
+            "arrive_by": "2026-08-05T10:00:00+08:00",
+            "date_evidence": "8月5日上午10点前到",
+        },
+    )
+
+
+def test_a_declared_hard_constraint_is_enforced_by_the_planner() -> None:
+    """此前循环写出来的请求一条要求都不带："只坐高铁"到了规划器就没了。"""
+    script = [
+        _search_beijing_shanghai(),
+        (
+            "propose_options",
+            {
+                "transport_refs": "__FOUND__",
+                "summary": "只看高铁",
+                "hard_constraints": ["train_only"],
+            },
+        ),
+    ]
+    workflow, _ = _workflow(script)
+    task = workflow.create_task_from_agentic_message(
+        "8月5号从北京去上海，8月5日上午10点前到，只坐高铁，不住酒店", traveler_id="E1001"
+    )
+
+    # 时间窗里只有飞机：要求被真的执行了，结果就是没有可行方案，而不是把飞机端上来。
+    assert task.state is TaskState.NO_FEASIBLE_OPTION
+    assert task.request is not None
+    assert task.request.hard_constraints == ("train_only",)
+    assert task.request.scoped_hard_constraints[0].whole_journey
+
+
+def test_a_declared_preference_changes_the_ranking_penalty() -> None:
+    def run(soft: list[str]):
+        script = [
+            _search_beijing_shanghai(),
+            (
+                "propose_options",
+                {"transport_refs": "__FOUND__", "summary": "x", "soft_preferences": soft},
+            ),
+        ]
+        workflow, _ = _workflow(script)
+        return workflow.create_task_from_agentic_message(READY, traveler_id="E1001")
+
+    plain = run([])
+    avoiding_early = run(["avoid_early_departure"])
+
+    assert plain.request is not None and plain.request.soft_preferences == ()
+    assert avoiding_early.request is not None
+    assert avoiding_early.request.soft_preferences == ("avoid_early_departure",)
+    early = {
+        option.outbound.ref_id: option.preference_penalty for option in avoiding_early.options
+    }
+    assert early["MU-EARLY"] > 0
+    assert all(option.preference_penalty == 0 for option in plain.options)
+    # 候选池和政策结论一个字不变——偏好只改排序。
+    assert {o.option_id for o in plain.options} == {o.option_id for o in avoiding_early.options}
+
+
+def test_an_unknown_requirement_name_is_refused_and_recoverable() -> None:
+    script = [
+        _search_beijing_shanghai(),
+        (
+            "propose_options",
+            {"transport_refs": "__FOUND__", "summary": "x", "hard_constraints": ["no_red_eye"]},
+        ),
+        (
+            "propose_options",
+            {
+                "transport_refs": "__FOUND__",
+                "summary": "x",
+                "open_questions": ["系统做不到「不要红眼航班」这个要求，方案里可能有晚班"],
+            },
+        ),
+    ]
+    workflow, _ = _workflow(script)
+    task = workflow.create_task_from_agentic_message(READY, traveler_id="E1001")
+
+    assert task.state is TaskState.WAITING_FOR_USER
+    assert task.options
+    assert task.request is not None and task.request.hard_constraints == ()
+    transcript = task.metadata["agentic_transcript"]
+    rejected = [item for item in transcript if item["tool"] == "propose_options" and not item["ok"]]
+    assert len(rejected) == 1
+    assert "不要红眼航班" in (task.clarification_question or "")
+
+
+def test_hotel_required_without_a_hotel_search_is_refused() -> None:
+    script = [
+        _search_beijing_shanghai(),
+        (
+            "propose_options",
+            {"transport_refs": "__FOUND__", "summary": "x", "hard_constraints": ["hotel_required"]},
+        ),
+        ("propose_options", {"transport_refs": "__FOUND__", "summary": "x"}),
+    ]
+    workflow, _ = _workflow(script)
+    task = workflow.create_task_from_agentic_message(READY, traveler_id="E1001")
+
+    assert task.state is TaskState.WAITING_FOR_USER
+    assert task.request is not None and task.request.hard_constraints == ()
+
+
+def test_all_empty_searches_end_in_no_feasible_option_not_a_clarification_round() -> None:
+    message = "8月5号从北京去深圳，8月5日上午10点前到，不住酒店"
+    script = [
+        (
+            "search_transport",
+            {
+                "origin": "北京",
+                "destination": "深圳",
+                "arrive_by": "2026-08-05T10:00:00+08:00",
+                "date_evidence": "8月5日上午10点前到",
+            },
+        ),
+        ("ask_traveler", {"question": "北京到深圳这个时间窗里没有可用交通，要不要换个时间？"}),
+        (
+            "search_transport",
+            {
+                "origin": "北京",
+                "destination": "深圳",
+                "arrive_by": "2026-08-06T10:00:00+08:00",
+                "date_evidence": "8月6号",
+            },
+        ),
+        ("ask_traveler", {"question": "8月6号也没有。"}),
+    ]
+    workflow, _ = _workflow(script)
+    task = workflow.create_task_from_agentic_message(message, traveler_id="E1001")
+
+    assert task.state is TaskState.NO_FEASIBLE_OPTION
+    assert task.clarification_rounds == 0
+    assert task.clarification_question == "北京到深圳这个时间窗里没有可用交通，要不要换个时间？"
+    assert task.messages[-1].role == "assistant"
+    reasons = task.metadata["no_feasible_reasons"]
+    assert any("Beijing→Shenzhen" in item or "北京→深圳" in item for item in reasons)
+    # 搜过的证据留下来：出处和快照都在，"我们搜过、是空的"本身就是溯源的一部分。
+    assert task.searches
+    assert not task.options
+
+    # 这个状态可以接着说话：旅行者换个日期，循环重跑。
+    task = workflow.submit_agentic_message(task.task_id, "那改成8月6号")
+    assert task.state is TaskState.NO_FEASIBLE_OPTION
+    assert task.clarification_rounds == 0
+    assert task.messages[-1].content == "8月6号也没有。"
+
+
+def test_an_out_of_scope_request_lands_in_out_of_scope_and_can_be_reopened() -> None:
+    script = [
+        ("ask_traveler", {"question": "这不是差旅需求；需要安排出差吗？", "out_of_scope": True}),
+        *_SEARCH_AND_PROPOSE,
+    ]
+    workflow, _ = _workflow(script)
+    task = workflow.create_task_from_agentic_message("帮我写一份周报", traveler_id="E1001")
+
+    assert task.state is TaskState.OUT_OF_SCOPE
+    assert task.clarification_rounds == 0
+    assert task.clarification_question == "这不是差旅需求；需要安排出差吗？"
+    assert task.messages[-1].role == "assistant"
+    assert not any(record.tool_kind == "PROVIDER" for record in task.tool_calls)
+
+    # 判错了，旅行者再说一句就回来了。
+    task = workflow.submit_agentic_message(task.task_id, READY)
+    assert task.state is TaskState.WAITING_FOR_USER
+    assert task.options

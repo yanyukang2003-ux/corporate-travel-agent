@@ -34,6 +34,10 @@ from datetime import date, datetime, time, timedelta
 from typing import Any, Protocol
 from zoneinfo import ZoneInfo
 
+from corporate_travel_agent.domain.constraints import (
+    SUPPORTED_HARD_CONSTRAINTS,
+    SUPPORTED_SOFT_PREFERENCES,
+)
 from corporate_travel_agent.domain.models import (
     EmployeeProfileSnapshot,
     HotelOffer,
@@ -150,11 +154,18 @@ class LoopOutcome:
 
     kind: str  # "ask_traveler" | "propose_options"
     question: str | None = None
+    #: 模型判定这条请求根本不是差旅安排。宿主据此落成 OUT_OF_SCOPE，而不是烧掉一轮澄清。
+    #: 只有一段库存都没搜过时才有意义——搜过了就说明它自己也当成差旅在办。
+    out_of_scope: bool = False
     summary: str | None = None
     transport_refs: tuple[str, ...] = ()
     hotel_refs: tuple[str, ...] = ()
     #: 已经排好的部分之外，还需要旅行者回答的事。空表示这趟行程完整了。
     open_questions: tuple[str, ...] = ()
+    #: 旅行者说过的硬要求和偏好，用受支持的名字。**引用本身不带这些**：只交 ref_id
+    #: 的话，"只要直飞"到了规划器就没了，"优先高铁"也不参与排序。
+    hard_constraints: tuple[str, ...] = ()
+    soft_preferences: tuple[str, ...] = ()
     transcript: tuple[ToolExchange, ...] = ()
 
 
@@ -282,7 +293,16 @@ ASK_TRAVELER = ToolSpec(
     ),
     parameters={
         "type": "object",
-        "properties": {"question": {"type": "string", "description": "给旅行者看的问题原文"}},
+        "properties": {
+            "question": {"type": "string", "description": "给旅行者看的问题原文"},
+            "out_of_scope": {
+                "type": "boolean",
+                "description": (
+                    "只在这条请求根本不是差旅安排（写周报、订外卖、问天气）时设为 true，"
+                    "并在 question 里告诉旅行者。缺信息、有歧义都不是越界，不要设。"
+                ),
+            },
+        },
         "required": ["question"],
         "additionalProperties": False,
     },
@@ -312,6 +332,23 @@ PROPOSE_OPTIONS = ToolSpec(
                 "type": "array",
                 "items": {"type": "string"},
                 "description": "这趟行程还没定下来的事，一条一个问题；全定了就留空",
+            },
+            "hard_constraints": {
+                "type": "array",
+                "items": {"type": "string", "enum": sorted(SUPPORTED_HARD_CONSTRAINTS)},
+                "description": (
+                    "旅行者明确提出的硬要求（只要直飞、只坐高铁、必须订酒店……），"
+                    "只能用列表里的名字。规划器按它过滤——ref_id 本身不带这些要求。"
+                    "旅行者要的东西不在列表里，写进 open_questions 或 summary，别静默丢掉。"
+                ),
+            },
+            "soft_preferences": {
+                "type": "array",
+                "items": {"type": "string", "enum": sorted(SUPPORTED_SOFT_PREFERENCES)},
+                "description": (
+                    "旅行者说过的偏好（优先高铁、别太早、越便宜越好……），只能用列表里的名字。"
+                    "规划器按它排序。"
+                ),
             },
         },
         "required": ["transport_refs", "summary"],
@@ -606,6 +643,42 @@ class ToolExecutor:
                 field_name="transport_refs",
             )
         return transport_refs, tuple(str(item) for item in hotel_refs), open_questions
+
+    def requirements_from(
+        self, args: Mapping[str, Any]
+    ) -> tuple[tuple[str, ...], tuple[str, ...]]:
+        """交付时声明的硬要求和偏好：只认词表里的名字，硬要求还得和搜过的东西对得上。
+
+        名字不在词表里就拒绝这一次交付，理由交回模型——它该把那条要求写进
+        open_questions 让旅行者知道系统做不到，而不是换个近义词硬塞进来。
+        """
+        hard = _optional_str_list(args, "hard_constraints")
+        soft = _optional_str_list(args, "soft_preferences")
+        unknown_hard = [item for item in hard if item not in SUPPORTED_HARD_CONSTRAINTS]
+        if unknown_hard:
+            raise ToolInputError(
+                "hard_constraints 里有系统不认识的名字："
+                + "、".join(unknown_hard)
+                + "。支持的只有："
+                + "、".join(sorted(SUPPORTED_HARD_CONSTRAINTS))
+                + "。做不到的要求写进 open_questions 告诉旅行者。",
+                field_name="hard_constraints",
+            )
+        unknown_soft = [item for item in soft if item not in SUPPORTED_SOFT_PREFERENCES]
+        if unknown_soft:
+            raise ToolInputError(
+                "soft_preferences 里有系统不认识的名字："
+                + "、".join(unknown_soft)
+                + "。支持的只有："
+                + "、".join(sorted(SUPPORTED_SOFT_PREFERENCES)),
+                field_name="soft_preferences",
+            )
+        if "hotel_required" in hard and not self.stay_searches:
+            raise ToolInputError(
+                "声明了 hotel_required，却没有搜过酒店；先 search_hotels，或者不要声明它。",
+                field_name="hard_constraints",
+            )
+        return tuple(dict.fromkeys(hard)), tuple(dict.fromkeys(soft))
 
     def _require_quoted_evidence(
         self, args: Mapping[str, Any], name: str, *, resolved: datetime
@@ -902,6 +975,19 @@ def _require_date(args: Mapping[str, Any], name: str) -> date:
         raise ToolInputError(f"{name} 不是 YYYY-MM-DD：{value!r}", field_name=name) from exc
 
 
+def _optional_str_list(args: Mapping[str, Any], name: str) -> tuple[str, ...]:
+    """可不填的字符串列表；填了就得是列表，里面全是非空字符串。"""
+    value = args.get(name)
+    if value is None:
+        return ()
+    if not isinstance(value, (list, tuple)):
+        raise ToolInputError(f"{name} 必须是字符串列表", field_name=name)
+    items = tuple(str(item).strip() for item in value)
+    if any(not item for item in items):
+        raise ToolInputError(f"{name} 里不能有空字符串", field_name=name)
+    return items
+
+
 def _require_str_list(args: Mapping[str, Any], name: str) -> tuple[str, ...]:
     value = args.get(name)
     if not isinstance(value, (list, tuple)):
@@ -1104,9 +1190,15 @@ class ToolLoopRunner:
                         transcript=tuple(transcript),
                     )
                 return LoopOutcome(
-                    kind="ask_traveler", question=question, transcript=tuple(transcript)
+                    kind="ask_traveler",
+                    question=question,
+                    out_of_scope=bool(invocation.arguments.get("out_of_scope", False)),
+                    transcript=tuple(transcript),
                 )
             transport_refs, hotel_refs, open_questions = self.executor.validate_proposal(
+                invocation.arguments
+            )
+            hard_constraints, soft_preferences = self.executor.requirements_from(
                 invocation.arguments
             )
             return LoopOutcome(
@@ -1115,6 +1207,8 @@ class ToolLoopRunner:
                 transport_refs=transport_refs,
                 hotel_refs=hotel_refs,
                 open_questions=open_questions,
+                hard_constraints=hard_constraints,
+                soft_preferences=soft_preferences,
                 transcript=tuple(transcript),
             )
         except ToolInputError as exc:

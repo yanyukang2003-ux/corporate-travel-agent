@@ -506,6 +506,8 @@ class IntentEvaluationObservation:
     actual_conflicts: tuple[str, ...]
     provider_calls_before_clarification: int
     inventory_hallucinated: bool
+    #: 任务最后停在哪个状态。三条入口对"越界""没货"的表达不同，比对时要看得见。
+    final_state: str = ""
 
 
 @dataclass(frozen=True, slots=True)
@@ -513,6 +515,12 @@ class IntentEvaluationMetrics:
     """意图评测聚合指标。"""
     entrypoint: str
     classification_status: str
+    #: 缺失字段指标在这条入口上有没有暴露面。工具循环没有"必填表"，一句追问背后
+    #: 没有字段名可读，按协议 §1.5 记 not_applicable，不记 0。
+    missing_field_status: str
+    #: 偏好指标的暴露面。工具循环里偏好只在交付时声明，停在追问的用例上读不到；
+    #: 这条入口只对真的交付了方案的用例打分，一条都没交付就是 not_applicable。
+    transport_preference_status: str
     total_cases: int
     scored_missing_field_cases: int
     scored_transport_preference_cases: int
@@ -665,13 +673,20 @@ def run_workflow_evaluation_case(
     trace_observer: WorkflowTraceObserverPort | None = None,
     language_model: object | None = None,
     semantic_language_model: object | None = None,
+    tool_calling_language_model: object | None = None,
 ) -> WorkflowEvaluationObservation:
     """确定性执行单条工作流评测用例。
 
-    三种入口互斥：都不传则用结构化请求；``language_model`` 走旧字段抽取入口；
-    ``semantic_language_model`` 走新的完整对话语义入口。
+    四种入口互斥：都不传则用结构化请求；``language_model`` 走旧字段抽取入口；
+    ``semantic_language_model`` 走完整对话语义入口；``tool_calling_language_model``
+    走产品入口（工具循环）。
     """
-    if language_model is not None and semantic_language_model is not None:
+    supplied = [
+        item
+        for item in (language_model, semantic_language_model, tool_calling_language_model)
+        if item is not None
+    ]
+    if len(supplied) > 1:
         raise EvaluationDatasetError(
             "A workflow case runs through exactly one intent entrypoint"
         )
@@ -765,9 +780,17 @@ def run_workflow_evaluation_case(
         trace_observer=trace_observer,
         language_model=language_model,
         semantic_language_model=semantic_language_model,
+        tool_calling_language_model=tool_calling_language_model,
     )
-    if language_model is None and semantic_language_model is None:
+    if not supplied:
         task = workflow.create_task(request)
+    elif tool_calling_language_model is not None:
+        # 产品入口：模型每轮决定查什么，冻结的结构化请求同样不进循环。
+        task = workflow.create_task_from_agentic_message(
+            render_workflow_case_message(case),
+            traveler_id=case.employee.employee_id,
+            task_id=case.case_id,
+        )
     elif semantic_language_model is not None:
         # The semantic entrypoint interprets the whole conversation; the frozen
         # structured request never enters the loop.
@@ -839,7 +862,8 @@ def run_intent_evaluation(
     """对意图用例执行模型/抽取并产出观察。
 
     ``entrypoint`` 决定用哪条意图链路：``legacy`` 走旧字段抽取，``semantic`` 走
-    完整对话解释。两者不共享实现，也不互相回退；同一份用例可分别运行做并排对比。
+    完整对话解释，``agentic`` 走产品入口（工具循环）。三者不共享实现，也不互相回退；
+    同一份用例可分别运行做并排对比。
     """
     from corporate_travel_agent.agent.deterministic_parser import (
         DeterministicChineseIntentParser,
@@ -847,12 +871,18 @@ def run_intent_evaluation(
     from corporate_travel_agent.agent.deterministic_semantic_interpreter import (
         DeterministicSemanticInterpreter,
     )
+    from corporate_travel_agent.agent.deterministic_tool_model import (
+        DeterministicToolCallingModel,
+    )
     from corporate_travel_agent.demo import build_demo_system
 
-    if entrypoint not in {"legacy", "semantic"}:
+    if entrypoint not in {"legacy", "semantic", "agentic"}:
         raise EvaluationDatasetError(f"Unsupported intent entrypoint: {entrypoint}")
     semantic = entrypoint == "semantic"
-    if semantic:
+    agentic = entrypoint == "agentic"
+    if agentic:
+        parser = language_model or DeterministicToolCallingModel()
+    elif semantic:
         parser = language_model or DeterministicSemanticInterpreter()
     else:
         parser = language_model or DeterministicChineseIntentParser()
@@ -861,11 +891,18 @@ def run_intent_evaluation(
 
     for case in cases:
         workflow, _ = build_demo_system(
-            language_model=None if semantic else parser,
+            language_model=parser if entrypoint == "legacy" else None,
             semantic_language_model=parser if semantic else None,
+            tool_calling_language_model=parser if agentic else None,
             clock=lambda observed_at=observed_at: observed_at,
         )
-        if semantic:
+        if agentic:
+            task = workflow.create_task_from_agentic_message(
+                case.message,
+                traveler_id="E1001",
+                task_id=f"intent-eval-{case.case_id}",
+            )
+        elif semantic:
             task = workflow.create_task_from_semantic_message(
                 case.message,
                 traveler_id="E1001",
@@ -881,7 +918,18 @@ def run_intent_evaluation(
         provider_calls = sum(
             record.tool_kind == "PROVIDER" for record in task.tool_calls
         )
-        preferences = tuple(task.intent_fields.get("soft_preferences") or ())
+        if agentic:
+            # 工具循环没有意图字段表；偏好只有在真的交付了方案之后才落在请求上。
+            preferences = tuple(
+                task.request.soft_preferences if task.request is not None else ()
+            )
+        else:
+            preferences = tuple(task.intent_fields.get("soft_preferences") or ())
+        # 不支持的要求：旧链路记在冲突里；工具循环里它只能出现在给旅行者的那句话里。
+        rejection_texts = [
+            *task.intent_conflicts,
+            *([task.clarification_question] if agentic and task.clarification_question else []),
+        ]
         observations.append(
             IntentEvaluationObservation(
                 case_id=case.case_id,
@@ -901,8 +949,8 @@ def run_intent_evaluation(
                     case.expected.must_reject_unsupported_constraints
                 ),
                 unsupported_constraints_rejected=any(
-                    marker in conflict.casefold()
-                    for conflict in task.intent_conflicts
+                    marker in text.casefold()
+                    for text in rejection_texts
                     for marker in _UNSUPPORTED_CONSTRAINT_MARKERS
                 ),
                 actual_conflicts=tuple(task.intent_conflicts),
@@ -910,6 +958,7 @@ def run_intent_evaluation(
                 inventory_hallucinated=bool(
                     task.options or task.selected_option_id or task.booking_intent
                 ),
+                final_state=task.state.value,
             )
         )
 
@@ -950,6 +999,17 @@ def summarize_intent_observations(
         for item in observations
         if item.expected_transport_preferences is not None
     ]
+    entrypoints = {item.entrypoint for item in observations}
+    if len(entrypoints) != 1:
+        raise EvaluationDatasetError(
+            "Intent observations from different entrypoints must not be merged"
+        )
+    entrypoint = entrypoints.pop()
+    if entrypoint == "agentic":
+        # 工具循环里偏好落在交付出来的请求上；停在追问的用例什么都读不到，不算分母。
+        scored_transport_preferences = [
+            item for item in scored_transport_preferences if not item.clarification_observed
+        ]
     unsupported_constraints = [
         item
         for item in observations
@@ -965,18 +1025,19 @@ def summarize_intent_observations(
     expected_missing = sum(
         len(set(item.expected_missing_fields or ())) for item in scored_missing
     )
-    entrypoints = {item.entrypoint for item in observations}
-    if len(entrypoints) != 1:
-        raise EvaluationDatasetError(
-            "Intent observations from different entrypoints must not be merged"
-        )
-    entrypoint = entrypoints.pop()
+    # 工具循环没有"必填表"：一句追问背后没有字段名可读。缺失字段那三个指标在这条
+    # 入口上没有暴露面，按协议 §1.5 记 not_applicable，分母也不去凑。
+    slots_exposed = entrypoint != "agentic"
     return IntentEvaluationMetrics(
         entrypoint=entrypoint,
         # 旧链路的 classification 取自旧抽取器的分类标签；语义链路刻意没有这个
         # 分类器（ADR-0002），因此该指标按协议 §1.5 记为 not_applicable，而不是记 0。
         classification_status=(
             "measured" if entrypoint == "legacy" else "not_applicable"
+        ),
+        missing_field_status="measured" if slots_exposed else "not_applicable",
+        transport_preference_status=(
+            "measured" if scored_transport_preferences else "not_applicable"
         ),
         total_cases=total,
         scored_missing_field_cases=len(scored_missing),
@@ -986,30 +1047,48 @@ def summarize_intent_observations(
             item.actual_classification == item.expected_classification
             for item in observations
         ),
-        missing_field_exact_match_rate=_optional_rate(
-            set(item.actual_missing_fields) == set(item.expected_missing_fields or ())
-            for item in scored_missing
+        missing_field_exact_match_rate=(
+            _optional_rate(
+                set(item.actual_missing_fields) == set(item.expected_missing_fields or ())
+                for item in scored_missing
+            )
+            if slots_exposed
+            else None
         ),
         missing_field_precision=(
-            true_positive_missing / predicted_missing
-            if scored_missing and predicted_missing
-            else 1.0
-            if scored_missing
+            (
+                true_positive_missing / predicted_missing
+                if scored_missing and predicted_missing
+                else 1.0
+                if scored_missing
+                else None
+            )
+            if slots_exposed
             else None
         ),
         missing_field_recall=(
-            true_positive_missing / expected_missing
-            if scored_missing and expected_missing
-            else 1.0
-            if scored_missing
+            (
+                true_positive_missing / expected_missing
+                if scored_missing and expected_missing
+                else 1.0
+                if scored_missing
+                else None
+            )
+            if slots_exposed
             else None
         ),
         clarification_accuracy=_rate(
             item.clarification_observed == item.clarification_expected
             for item in observations
         ),
-        out_of_scope_accuracy=_optional_rate(
-            item.actual_classification == "OUT_OF_SCOPE" for item in out_of_scope
+        # 工具循环没有分类器，连 OUT_OF_SCOPE 这个标签都不产出——它只会开口说
+        # "这不在差旅范围内"。没有暴露面的指标记 None，不记 0。
+        out_of_scope_accuracy=(
+            _optional_rate(
+                item.actual_classification == "OUT_OF_SCOPE" for item in out_of_scope
+            )
+            if entrypoint != "agentic"
+            else None
         ),
         transport_preference_accuracy=_optional_rate(
             set(item.actual_transport_preferences)

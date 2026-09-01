@@ -128,6 +128,23 @@ ConversationLedger -> ConversationIntentInterpreter -> IntentDecision
 日历、CRM、HR 仍未接入，也**没有预留空端口**——按本仓库"声明即承诺"的规矩，
 没有实现的名字不该存在。
 
+### 3.3 工具循环的交付契约
+
+产品入口里，模型交付方案靠 `propose_options`，收场靠 `ask_traveler`。三条宿主规则：
+
+- **要求跟着方案走。** `propose_options.hard_constraints / soft_preferences` 用受支持的
+  名字声明旅行者说过的要求；`_request_from_tool_loop` 按"管全程"写进请求，规划器据此过滤
+  和排序。ref_id 本身不带这些——此前循环写出来的请求一条要求都不带，"只要直飞"到了规划器
+  就没了，"优先高铁"也不参与排序。词表外的名字被拒绝，理由交回模型，它该把做不到的写进
+  `open_questions`；`hotel_required` 没搜过酒店也被拒绝。
+- **搜过了、每段都空、模型开口问 → `NO_FEASIBLE_OPTION`。** 不是一轮澄清：状态机本来就有
+  这个格子，前端会摆出原因和"重新规划"，不占澄清轮数；空搜的出处和快照照记。
+- **`ask_traveler(out_of_scope=true)` → `OUT_OF_SCOPE`。** 只在一段库存都没搜过时生效；和
+  另外两条入口一样可以重开，也不占澄清轮数。
+
+离线评测用 `agent/deterministic_tool_model.py` 做这条入口的替身（D16，见
+`docs/evaluation-protocol.md` §3.2）。
+
 ## 4. 状态与暂停点
 
 ```mermaid

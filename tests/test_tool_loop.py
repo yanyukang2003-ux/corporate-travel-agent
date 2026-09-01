@@ -854,3 +854,33 @@ def test_a_refused_search_leaves_no_assumption_behind() -> None:
             }
         )
     assert executor.assumptions == []
+
+
+def test_declared_requirements_must_use_the_supported_vocabulary(executor: ToolExecutor) -> None:
+    hard, soft = executor.requirements_from(
+        {"hard_constraints": ["direct_only", "direct_only"], "soft_preferences": ["prefer_train"]}
+    )
+    assert hard == ("direct_only",)
+    assert soft == ("prefer_train",)
+    assert executor.requirements_from({}) == ((), ())
+    with pytest.raises(ToolInputError) as unknown_hard:
+        executor.requirements_from({"hard_constraints": ["no_red_eye"]})
+    assert unknown_hard.value.field_name == "hard_constraints"
+    with pytest.raises(ToolInputError) as unknown_soft:
+        executor.requirements_from({"soft_preferences": ["window_seat"]})
+    assert unknown_soft.value.field_name == "soft_preferences"
+    with pytest.raises(ToolInputError):
+        executor.requirements_from({"hard_constraints": "direct_only"})
+
+
+def test_hotel_required_needs_a_hotel_search_first(executor: ToolExecutor) -> None:
+    with pytest.raises(ToolInputError) as refused:
+        executor.requirements_from({"hard_constraints": ["hotel_required"]})
+    assert refused.value.field_name == "hard_constraints"
+    executor.search_hotels(
+        {"city": "Shanghai", "check_in": "2026-08-05", "check_out": "2026-08-06"}
+    )
+    assert executor.requirements_from({"hard_constraints": ["hotel_required"]}) == (
+        ("hotel_required",),
+        (),
+    )

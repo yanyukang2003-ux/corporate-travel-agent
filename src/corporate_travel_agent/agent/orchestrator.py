@@ -57,6 +57,7 @@ from corporate_travel_agent.domain.models import (
     PolicyDecision,
     PolicySnapshot,
     ProfilePreference,
+    ScopedRequirement,
     SearchProvenance,
     ToolCallRecord,
     TransportOffer,
@@ -828,6 +829,13 @@ class TripWorkflowOrchestrator:
             for exchange in outcome.transcript
         ]
         if outcome.kind == "ask_traveler":
+            if outcome.out_of_scope and not executor.leg_searches and not executor.stay_searches:
+                return self._stop_for_out_of_scope(task, outcome.question)
+            if executor.leg_searches and not executor.seen_transport:
+                # 真的去搜了、每一段都是空的、模型于是开口问：这不是"还没问清"，
+                # 是"没有可行方案"。状态机本来就有这个格子，用它——前端会摆出原因和
+                # "重新规划"，也不占澄清轮数。问题原文留着，那是给旅行者看的解释。
+                return self._stop_for_empty_inventory(task, executor, outcome.question)
             return self._pause_for_agentic_question(task, outcome.question)
         return self._plan_from_tool_loop(task, executor, outcome, policy)
 
@@ -858,6 +866,68 @@ class TripWorkflowOrchestrator:
             ],
             "assumptions": list(dict.fromkeys(executor.assumptions)),
         }
+
+    def _stop_for_out_of_scope(self, task: TripTask, question: str | None) -> TripTask:
+        """模型说这根本不是差旅请求：和另外两条入口一样落成 OUT_OF_SCOPE。
+
+        这条状态是可以重开的（`submit_agentic_message` 接受它）——判错了，旅行者
+        再说一句话就回到 DRAFT。它不占澄清轮数：越界不是"没问清"。
+        """
+        task.request = None
+        task.options = []
+        task.selected_option_id = None
+        task.booking_intent = None
+        task.approval = None
+        task.missing_required_fields = ()
+        task.intent_conflicts = ()
+        task.failure = "The request is outside the corporate travel planning scope"
+        task.clarification_question = question
+        if question:
+            task.messages.append(ConversationMessage(role="assistant", content=question))
+        self._transition(task, TaskState.OUT_OF_SCOPE)
+        self._audit(task, "AGENTIC_OUT_OF_SCOPE", None, question)
+        return task
+
+    def _stop_for_empty_inventory(
+        self, task: TripTask, executor: Any, question: str | None
+    ) -> TripTask:
+        """循环搜过、每一段都空、模型开口问：落成 NO_FEASIBLE_OPTION，而不是一轮澄清。
+
+        搜索的出处和快照照记——"我们搜过这条航线、结果是空的"本身就是证据。
+        """
+        empty = [
+            f"{query.origin}→{query.destination}" for query, _ in executor.leg_searches
+        ]
+        reasons = tuple(
+            dict.fromkeys(
+                [
+                    *(
+                        f"no inventory matched {route} in the requested time window"
+                        for route in empty
+                    ),
+                    *([question] if question else []),
+                ]
+            )
+        )
+        self._record_searches(task, executor.searches)
+        self._transition(task, TaskState.SEARCHING)
+        self._audit_snapshots(task, list(executor.captured_snapshots))
+        self._transition(task, TaskState.PLANNING)
+        task.request = None
+        task.options = []
+        task.selected_option_id = None
+        task.booking_intent = None
+        task.approval = None
+        task.missing_required_fields = ()
+        task.intent_conflicts = ()
+        task.metadata["no_feasible_reasons"] = reasons
+        task.failure = "; ".join(reasons)
+        task.clarification_question = question
+        if question:
+            task.messages.append(ConversationMessage(role="assistant", content=question))
+        self._transition(task, TaskState.NO_FEASIBLE_OPTION)
+        self._audit(task, "NO_FEASIBLE_OPTION", {"searched_legs": empty}, reasons)
+        return task
 
     def _pause_for_agentic_question(self, task: TripTask, question: str | None) -> TripTask:
         """模型主动调用 `ask_traveler` 收的场。
@@ -928,7 +998,12 @@ class TripWorkflowOrchestrator:
 
         version = task.request.version + 1 if task.request is not None else 1
         task.request = self._request_from_tool_loop(
-            task, settled, executor.stay_searches, version=version
+            task,
+            settled,
+            executor.stay_searches,
+            version=version,
+            hard_constraints=outcome.hard_constraints,
+            soft_preferences=outcome.soft_preferences,
         )
         task.missing_required_fields = ()
         task.intent_conflicts = ()
@@ -1050,10 +1125,17 @@ class TripWorkflowOrchestrator:
         stay_searches: Sequence[Any],
         *,
         version: int,
+        hard_constraints: Sequence[str] = (),
+        soft_preferences: Sequence[str] = (),
     ) -> TripRequestVersion:
         """把循环实际搜到货的段与站写成一个请求版本。
 
         **段数是数出来的**：数有库存的段，空搜不进规划器。
+
+        硬要求和偏好来自交付时的声明（`propose_options.hard_constraints /
+        soft_preferences`）。此前这里一个都不带——"只要直飞"到了规划器就没了，
+        "优先高铁"也不参与排序，模型在提示词里被告知的那两张词表根本没有出口。
+        声明按"管全程"落到请求上；分段作用域工具循环今天表达不了，不假装。
         """
         legs = tuple(
             TripLeg(
@@ -1072,6 +1154,8 @@ class TripWorkflowOrchestrator:
         )
         first = legs[0]
         last = legs[-1]
+        hard = tuple(dict.fromkeys(hard_constraints))
+        soft = tuple(dict.fromkeys(soft_preferences))
         return TripRequestVersion(
             task_id=task.task_id,
             version=version,
@@ -1084,6 +1168,10 @@ class TripWorkflowOrchestrator:
             return_before=last.arrive_before if len(legs) > 1 else None,
             hotel_check_in=stays[0].check_in if stays else None,
             hotel_check_out=stays[0].check_out if stays else None,
+            hard_constraints=hard,
+            soft_preferences=soft,
+            scoped_hard_constraints=tuple(ScopedRequirement(name=item) for item in hard),
+            scoped_soft_preferences=tuple(ScopedRequirement(name=item) for item in soft),
             booking_scope=(
                 BookingScope.ROUND_TRIP if len(legs) > 1 else BookingScope.OUTBOUND_ONLY
             ),

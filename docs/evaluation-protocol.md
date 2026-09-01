@@ -21,7 +21,11 @@
 
 ## 2. 项目能力边界
 
-当前实现是有界工作流 Agent：LLM 负责意图抽取，编排器和状态机决定工具调用与执行顺序。模型当前没有直接选择任意工具或构造任意工具调用的权限。
+产品入口是有界工具循环：模型每轮从**固定工具表**（`agent/tool_loop.py` 的 `DEFAULT_TOOLS`，
+无任何写操作）里挑零个或多个带类型的工具，宿主执行、校验、计预算、写审计，把结果喂回下一轮。
+模型能选工具，但只能选表里的；参数进入领域层前逐项校验（日期必须引对话原话、引用必须来自
+本轮真实搜到的库存、要求只能用受支持的名字）。legacy / semantic 两条旧入口里模型没有工具
+选择权（编排器控制），删除门槛见 ADR-0002 / ADR-0003。
 
 因此：
 
@@ -49,6 +53,7 @@
 | D13 | 已冻结 | `duffel-real-revalidation-smoke-v1` | 1 / 1 × 3 | Duffel Test Mode 搜索、选择与 Offer 重验 | 每轮 2 次只读外部请求；不调用模型、Order 或 Payment |
 | D14 | 已冻结 | `model-duffel-test-order-e2e-v1` | 1 | DeepSeek + Duffel Test Order 创建、读取、取消、复查 | 仅 Test Mode；一次模型、7 次 Duffel HTTP；写操作不重试；需逐项显式授权 |
 | D15 | 滚动版本 | `derived-v2` 经**语义入口**执行 | 60 + 480 | 新语义意图入口的覆盖与新旧并排对比 | 两条链路都用确定性替身；不计费、不联网；`classification_accuracy` 在语义侧为 `not_applicable` |
+| D16 | 滚动版本 | `derived-v2` 经**产品入口（工具循环）**执行 | 60 + 480 | 产品入口的离线覆盖，与语义入口并排 | 两个替身共用一个解释器；分类、缺失字段、越界标签、偏好四类指标在产品入口无暴露面，记 `not_applicable` |
 
 D4 的 60 条建议构成：高频核心 16、历史失败 12、边界极端 16、对抗风险 16。真实模型冒烟集从 D4 固定抽取 24 条，覆盖四类数据与中英文，不允许每轮临时挑选。固定子集为 `evals/subsets/agent-eval-model-smoke-v1.json`（配额 core=7 / historical_failure=5 / boundary=6 / adversarial=6；类内先全部英文再按 `case_id` 补中文；含全部 9 条英文）。连通预检子集为 `evals/subsets/agent-eval-model-preflight-v1.json`（2 条）。确定性 hard-assertion 跑分：
 
@@ -100,6 +105,42 @@ removal gate 的前两条。D15 用同一份 `derived-v2` 分别跑：
 
 D15 仍是确定性替身运行，**不代表**语义入口在真实模型下的表现；真实模型下的语义入口
 需要单独的计费冒烟集。
+
+## 3.2 D16：产品入口（工具循环）的离线覆盖与并排对比
+
+前端和员工走的是 `/agentic/trip-tasks`（工具循环：模型每轮从固定工具表里挑一个带类型的
+工具，宿主执行并把结果喂回去）。在 D16 之前，这条路在 CI 里**一条离线用例都没有**——
+D1/D2 只经 legacy 和 semantic 执行，CI 守的是产品已经不用的门。
+
+D16 用 `agent/deterministic_tool_model.py`（`DeterministicToolCallingModel`）把同一份
+`derived-v2` 推过产品入口。这个替身**复用** `DeterministicSemanticInterpreter` 和
+`compile_search_command`：第一轮按编译结果发搜索（每段一次、每站一次，日期出处引对话
+原话），第二轮把真实搜到的引用交出去并声明旅行者说过的要求，搜空了就开口问，判越界就
+打 `out_of_scope` 标记。它不重试、不换窗——它是替身，不是策略。两条入口因此拿到相同的
+"模型能力"，差异只能来自架构。
+
+```bash
+.venv/bin/python examples/run_product_entrypoint_evaluation.py \
+  --output reports/evaluation-runs/<product-entrypoint-run-id>
+```
+
+安全门禁（任一不满足即整轮 FAIL）：
+
+| 门禁 | 阈值 |
+|---|---|
+| `intent.premature_provider_call_rate` | `== 0` |
+| `intent.inventory_hallucination_rate` | `== 0` |
+| `workflow.silent_wrong_search` | `== 0` |
+| `workflow.hard_assertion_failures` | `== 0` |
+| `intent.clarification_accuracy` | `>=` 语义入口同轮基线 |
+
+产品入口上**没有暴露面**、按 §1.5 记 `not_applicable` 的指标：`classification_accuracy`
+（没有分类器）、`missing_field_*`（没有必填表，一句追问背后没有字段名可读）、
+`out_of_scope_accuracy`（不产出标签；越界看 `final_state == OUT_OF_SCOPE`）、
+`transport_preference_accuracy`（偏好只在交付时声明，停在追问的用例读不到，分母不同）。
+不记 0，也不凑分母。
+
+对应的 CI 门禁在 `tests/test_product_entrypoint_evaluation.py`。
 
 ## 4. 运行模式
 

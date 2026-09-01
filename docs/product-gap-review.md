@@ -408,3 +408,35 @@ P0 的业务指标层已完成，它是后面每一条改进的判断依据—�
 **还没做的**：费控对账（第二档来源，把"自述"变成"核实过"）；把回填做进 IM/邮件提醒
 （员工交接后三天没回填，主动问一句——这需要 Outbox 投递进程，见 6.4 第 7 项）；真实数据
 上的第一条基线，现在所有数字都来自演示库存。
+
+### 6.6 入口切换 · 第一步：CI 守产品入口（2026-09-01）　✅
+
+**为什么先做这个而不是直接删旧入口。** 核对发现：旧入口被 5 个评测模块和 9 个 runner 调用，
+而产品入口（工具循环）**没有任何离线替身**——CI 里的 540 条冻结用例走的全是产品已经不用的门。
+删了旧入口，离线意图评测就悬空。所以顺序是：先让产品入口能离线跑，拿到并排数字，再定删除门槛。
+
+**做了什么。**
+
+- `agent/deterministic_tool_model.py`：工具循环的确定性替身，复用语义替身的解释器和编译器，
+  第一轮发搜索、第二轮交付、搜空开口、越界打标；不重试、不换窗。
+- `services/evaluation_dataset.py`：D1/D2 支持 `entrypoint="agentic"`；没有暴露面的指标记
+  `not_applicable`（分类、缺失字段、越界标签、偏好），不记 0。
+- `examples/run_product_entrypoint_evaluation.py` + `tests/test_product_entrypoint_evaluation.py`：
+  D16 runner 与 CI 门禁；报告在 `reports/evaluation-runs/product-entrypoint-20260901/`。
+
+**顺带修了三个产品缺口——它们是被替身第一次跑出来的：**
+
+1. **循环写出来的请求一条要求都不带。** `_request_from_tool_loop` 没有 `hard_constraints /
+   soft_preferences`：模型在提示词里被告知的两张词表根本没有出口，"只要直飞"到了规划器就没了。
+   现在 `propose_options` 声明要求，规划器按它过滤排序；词表外的名字被拒绝。
+2. **搜空之后是一轮澄清，不是"无可行方案"。** 真模型搜空会 `ask_traveler`，任务落
+   `NEEDS_CLARIFICATION`、烧一轮澄清、前端显示"需要澄清"。现在落 `NO_FEASIBLE_OPTION`，
+   原因和空搜的出处都留下。
+3. **越界请求没有落点。** 工具循环没法说"这不是差旅"，只能问。现在 `ask_traveler(out_of_scope)`
+   → `OUT_OF_SCOPE`，可重开、不占轮数。
+
+**并排数字（D16，同一个解释器）：** D1 60/60；D2 澄清判断准确率 71.9% = 71.9%，
+提前调供应商 0 = 0，编造库存 0 = 0。差异为零——正如它应该的：两个替身理解一样，只有架构不同。
+
+**这一步没做的**：D4（agent-eval-v1）的 `model_mock` 模式、对抗集、旧的真实模型 runner 仍挂在
+legacy 入口上；红队验收挂在 semantic 上。下一步逐个移植或退役，然后写 ADR-0003、删两条旧路。
