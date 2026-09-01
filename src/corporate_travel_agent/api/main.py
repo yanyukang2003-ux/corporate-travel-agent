@@ -195,6 +195,18 @@ def _configured_trip_repository(task_repository: TaskRepository):
     return SQLAlchemyTripRepository(engine)
 
 
+def _configured_provider_circuit_store(task_repository: TaskRepository):
+    """熔断状态存储：和任务仓储同一个引擎，多实例共用；内存仓储时每个进程一份。"""
+    engine = getattr(task_repository, "engine", None)
+    if engine is None:
+        return None
+    from corporate_travel_agent.services.sqlalchemy_repository import (
+        SQLAlchemyProviderCircuitStore,
+    )
+
+    return SQLAlchemyProviderCircuitStore(engine)
+
+
 def _configured_expense_store():
     """费控记录存储：和任务仓储同一个引擎；内存仓储时用内存。"""
     from corporate_travel_agent.services.expense_reconciliation import InMemoryExpenseRecordStore
@@ -321,6 +333,7 @@ workflow, _provider = build_demo_system(
     policy_configuration=policy_configuration,
     provider=configured_travel_provider,
     provider_circuit_open_seconds=provider_circuit_open_seconds,
+    provider_circuit_store=_configured_provider_circuit_store(task_repository),
     max_delayed_provider_attempts=max_delayed_provider_attempts,
     delayed_provider_retry_seconds=delayed_provider_retry_seconds,
     max_concurrent_llm_calls=int(os.getenv("MAX_CONCURRENT_LLM_CALLS", "8")),

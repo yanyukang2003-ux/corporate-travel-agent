@@ -61,6 +61,8 @@ def build_demo_system(
     retry_sleep: Callable[[float], None] | None = None,
     retry_jitter: Callable[[], float] | None = None,
     provider_circuit_open_seconds: float = DEFAULT_CIRCUIT_OPEN_SECONDS,
+    #: 多实例共享的熔断状态存储；API 按 DATABASE_URL 换成 SQL，默认每个进程一份。
+    provider_circuit_store: object | None = None,
     max_delayed_provider_attempts: int = DEFAULT_MAX_DELAYED_PROVIDER_ATTEMPTS,
     delayed_provider_retry_seconds: tuple[float, ...] = (DEFAULT_DELAYED_PROVIDER_RETRY_SECONDS),
     max_concurrent_llm_calls: int = 8,
@@ -212,6 +214,7 @@ def build_demo_system(
         retry_sleep=retry_sleep,
         retry_jitter=retry_jitter,
         provider_circuit_open_seconds=provider_circuit_open_seconds,
+        provider_circuit_store=provider_circuit_store,  # type: ignore[arg-type]
         max_delayed_provider_attempts=max_delayed_provider_attempts,
         delayed_provider_retry_seconds=delayed_provider_retry_seconds,
         max_concurrent_llm_calls=max_concurrent_llm_calls,

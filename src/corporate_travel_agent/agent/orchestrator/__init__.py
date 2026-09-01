@@ -54,6 +54,7 @@ from corporate_travel_agent.services.provider_resilience import (
     DEFAULT_DELAYED_PROVIDER_RETRY_SECONDS,
     DEFAULT_MAX_DELAYED_PROVIDER_ATTEMPTS,
     ProviderCircuitBreaker,
+    ProviderCircuitStateStore,
     ProviderDelayedRetryPolicy,
 )
 from corporate_travel_agent.services.repositories import (
@@ -144,6 +145,8 @@ class TripWorkflowOrchestrator(
         retry_sleep: Callable[[float], None] | None = None,
         retry_jitter: Callable[[], float] | None = None,
         provider_circuit_open_seconds: float = DEFAULT_CIRCUIT_OPEN_SECONDS,
+        #: 多实例共享的熔断状态存储。None 就是每个进程一份（单进程、单测、演示）。
+        provider_circuit_store: ProviderCircuitStateStore | None = None,
         max_delayed_provider_attempts: int = DEFAULT_MAX_DELAYED_PROVIDER_ATTEMPTS,
         delayed_provider_retry_seconds: tuple[
             float, ...
@@ -225,6 +228,7 @@ class TripWorkflowOrchestrator(
         self.provider_circuit_breaker = ProviderCircuitBreaker(
             clock=self.clock,
             open_seconds=provider_circuit_open_seconds,
+            store=provider_circuit_store,
         )
         self.city_normalizer = city_normalizer or CityNormalizer()
         self.trace_observer = trace_observer

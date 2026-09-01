@@ -41,6 +41,7 @@ from corporate_travel_agent.services.provider_quote_context import (
     ProviderQuoteContextExpiredError,
     ProviderQuoteContextMissingError,
 )
+from corporate_travel_agent.services.provider_resilience import CircuitRecord, CircuitState
 from corporate_travel_agent.services.repositories import (
     ConcurrentUpdateError,
     NotFoundError,
@@ -284,6 +285,18 @@ class TripRow(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
 
+class ProviderCircuitStateRow(Base):
+    """供应商熔断状态：所有实例共用一行，`circuit_key` 区分供应商。"""
+
+    __tablename__ = "provider_circuit_state"
+
+    circuit_key: Mapped[str] = mapped_column(String(64), primary_key=True)
+    state: Mapped[str] = mapped_column(String(16), nullable=False)
+    opened_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    open_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
 class ExpenseRecordRow(Base):
     """导入过的费控记录及其对账结果。渠道外预订率从这张表算。"""
 
@@ -306,6 +319,39 @@ class ExpenseRecordRow(Base):
     matched_task_id: Mapped[str | None] = mapped_column(String(64))
     note: Mapped[str | None] = mapped_column(String(500))
     imported_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
+class SQLAlchemyProviderCircuitStore:
+    """熔断状态的数据库存储：和任务表同一个引擎，多实例部署共用。"""
+
+    backend_name = "sqlalchemy"
+
+    def __init__(self, engine: Engine) -> None:
+        self.engine = engine
+
+    def load(self, key: str) -> CircuitRecord | None:
+        with Session(self.engine) as session:
+            row = session.get(ProviderCircuitStateRow, key)
+            if row is None:
+                return None
+            return CircuitRecord(
+                state=CircuitState(row.state),
+                opened_at=_database_aware(row.opened_at) if row.opened_at else None,
+                open_until=_database_aware(row.open_until) if row.open_until else None,
+                updated_at=_database_aware(row.updated_at),
+            )
+
+    def save(self, key: str, record: CircuitRecord) -> None:
+        with Session(self.engine) as session, session.begin():
+            session.merge(
+                ProviderCircuitStateRow(
+                    circuit_key=key,
+                    state=record.state.value,
+                    opened_at=record.opened_at,
+                    open_until=record.open_until,
+                    updated_at=record.updated_at,
+                )
+            )
 
 
 class SQLAlchemyExpenseRecordStore:
@@ -390,6 +436,7 @@ class SQLAlchemyTaskRepository:
             "outbox_events",
             "expense_records",
             "trips",
+            "provider_circuit_state",
         }
         available = set(inspect(self.engine).get_table_names())
         missing = sorted(required - available)
