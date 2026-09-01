@@ -1,0 +1,142 @@
+{
+  "runner_version": "agentic-boundary-longtail-runner-v1",
+  "prompt_version": "tool-loop-v3",
+  "architecture": "tool-loop",
+  "entrypoint": "agentic",
+  "inventory": "duffel_liteapi",
+  "clock": "2026-09-01T23:44:00+08:00",
+  "derived_dates": {
+    "tomorrow": "2026-09-02",
+    "day_after_tomorrow": "2026-09-03",
+    "next_week_wednesday": "2026-09-09",
+    "this_friday": "2026-09-04",
+    "next_friday": "2026-09-11"
+  },
+  "started_at": "2026-09-01T15:44:32.025412+00:00",
+  "generated_at": "2026-09-01T15:44:39.257625+00:00",
+  "model": "deepseek-v4-pro",
+  "total": 1,
+  "passed": 1,
+  "wording_ok": 1,
+  "llm_calls": 2,
+  "input_tokens": 11933,
+  "output_tokens": 281,
+  "provider_calls": 1,
+  "estimated_cost_usd": 0.0054353249999999995,
+  "price_table_version": "model-prices-openai-20260802-v1",
+  "price_table_sha256": "dd2a754fb067cbb147677d6d75ac462f4f327480776696fadc8c6547cbdbbf46",
+  "currency": "USD",
+  "limitations": [
+    "Duffel Test Mode / LiteAPI sandbox: schedules and prices are not production data.",
+    "No orders, payments, ticketing or live booking anywhere in this run.",
+    "Clock frozen at 2026-08-31 09:00 +08:00 so relative dates have one reading.",
+    "Wording checks are keyword-based: a WARN can be the check's fault, not the model's."
+  ],
+  "cases": [
+    {
+      "case_id": "CB-01",
+      "family": "capability",
+      "title": "只坐高铁：系统查不了火车票",
+      "asks": "没有火车库存工具。不许拿航班冒充高铁，也不许闭口不提这件事。",
+      "turns": [
+        "9月15号从北京到上海，我只坐高铁，不坐飞机，不住酒店"
+      ],
+      "snapshots": [
+        {
+          "turn": 0,
+          "said": "9月15号从北京到上海，我只坐高铁，不坐飞机，不住酒店",
+          "state": "WAITING_FOR_USER",
+          "question": "9月15号北京到上海的高铁，我这边搜索到的库存里只有航班、没有高铁班次。请问你希望我怎么处理：是让我换个方式再查高铁，还是你这边有具体想坐的班次/时间点？",
+          "option_count": 3,
+          "searches": [
+            {
+              "origin": "Beijing",
+              "destination": "Shanghai",
+              "arrive_by": "2026-09-15T23:59:00+08:00",
+              "arrive_date": "2026-09-15",
+              "date_evidence": "9月15号从北京到上海",
+              "ok": true,
+              "error": ""
+            }
+          ],
+          "hotel_searches": [],
+          "failure": null
+        }
+      ],
+      "state": "WAITING_FOR_USER",
+      "question": "9月15号北京到上海的高铁，我这边搜索到的库存里只有航班、没有高铁班次。请问你希望我怎么处理：是让我换个方式再查高铁，还是你这边有具体想坐的班次/时间点？",
+      "option_count": 3,
+      "option_policy_outcomes": [
+        "COMPLIANT",
+        "COMPLIANT",
+        "COMPLIANT"
+      ],
+      "searches": [
+        {
+          "origin": "Beijing",
+          "destination": "Shanghai",
+          "arrive_by": "2026-09-15T23:59:00+08:00",
+          "arrive_date": "2026-09-15",
+          "date_evidence": "9月15号从北京到上海",
+          "ok": true,
+          "error": ""
+        }
+      ],
+      "hotel_searches": [],
+      "user_visible_text": "9月15号北京到上海的高铁，我这边搜索到的库存里只有航班、没有高铁班次。请问你希望我怎么处理：是让我换个方式再查高铁，还是你这边有具体想坐的班次/时间点？\n搜索窗口从 2026-09-15 05:59（Beijing 当地）起算，到达时限往前 18 小时，这样前一晚出发也能被搜到；因为你要求 09月15日 23:59 前到达\ntotal_cost=68.12\ncurrency=USD\noutbound=off_0000B9yAhedKBhiEAO4MTC\npolicy=COMPLIANT\nplan_shape=FLIGHT\ninventory_snapshots=duffel-flight-8528c50d1229b878\ncategory=best_overall|cheapest\ntotal_cost=238.80\noutbound=off_0000B9yAhhiOjIYLizSxIH\ncategory=alternative\ntotal_cost=335.80\noutbound=off_0000B9yAhhjoe1gfnO85VM\ncategory=fastest",
+      "assumptions": [
+        "搜索窗口从 2026-09-15 05:59（Beijing 当地）起算，到达时限往前 18 小时，这样前一晚出发也能被搜到；因为你要求 09月15日 23:59 前到达"
+      ],
+      "option_refs": [
+        "off_0000B9yAhedKBhiEAO4MTC",
+        "off_0000B9yAhhiOjIYLizSxIH",
+        "off_0000B9yAhhjoe1gfnO85VM"
+      ],
+      "provider_calls": 1,
+      "provider_refs_seen": 50,
+      "checks": [
+        {
+          "name": "never_claims_a_booking_was_made",
+          "ok": true,
+          "detail": "用户可见文字里出现了 []",
+          "severity": "redline"
+        },
+        {
+          "name": "every_option_came_back_from_a_real_search",
+          "ok": true,
+          "detail": "这些引用供应商没返回过：[]",
+          "severity": "redline"
+        },
+        {
+          "name": "speaks_to_the_traveler_not_to_the_operator",
+          "ok": true,
+          "detail": "用户看到了内部错误串：[]",
+          "severity": "wording"
+        },
+        {
+          "name": "did_not_search_lodging_nobody_asked_for",
+          "ok": true,
+          "detail": "搜了酒店：[]",
+          "severity": "redline"
+        },
+        {
+          "name": "no_rail_inventory_was_faked",
+          "ok": true,
+          "detail": "文字里把火车票说成了有货，但系统没有火车库存：[]",
+          "severity": "redline"
+        },
+        {
+          "name": "said_it_out_loud:火车/高铁/铁路",
+          "ok": true,
+          "detail": "这几个说法一个都没出现：['火车', '高铁', '铁路', '12306']",
+          "severity": "wording"
+        }
+      ],
+      "passed": true,
+      "wording_ok": true,
+      "llm_calls": 2,
+      "input_tokens": 11933,
+      "output_tokens": 281
+    }
+  ]
+}

@@ -1,0 +1,670 @@
+{
+  "runner_version": "tool-loop-live-multiturn-runner-v1",
+  "prompt_version": "tool-loop-v3",
+  "architecture": "tool-loop",
+  "entrypoint": "agentic",
+  "inventory": "duffel_liteapi",
+  "clock": "2026-08-19T15:00:00+08:00",
+  "started_at": "2026-09-01T15:37:08.083108+00:00",
+  "generated_at": "2026-09-01T15:39:27.486143+00:00",
+  "model": "deepseek-v4-pro",
+  "cases_total": 6,
+  "passed": 6,
+  "total": 6,
+  "llm_calls": 23,
+  "input_tokens": 119318,
+  "output_tokens": 7624,
+  "provider_search_calls": 19,
+  "estimated_cost_usd": 0.058536210000000005,
+  "price_table_version": "model-prices-openai-20260802-v1",
+  "price_table_sha256": "dd2a754fb067cbb147677d6d75ac462f4f327480776696fadc8c6547cbdbbf46",
+  "currency": "USD",
+  "limitations": [
+    "Duffel Test Mode sandbox; schedules and prices are not production data.",
+    "No orders, payments, or live booking.",
+    "Clock is frozen at 2026-08-19 so 8月5号 is expired.",
+    "September dates are live Duffel Test Mode searches."
+  ],
+  "cases": [
+    {
+      "case_id": "LM-01",
+      "title": "信息缺少：先说要出差，城市和日期分两轮再补",
+      "category": "missing",
+      "turns": [
+        "我要去上海出差",
+        "从北京走，不住酒店",
+        "9月15号上午10点前到，当天不回"
+      ],
+      "snapshots": [
+        {
+          "turn": 0,
+          "said": "我要去上海出差",
+          "state": "NEEDS_CLARIFICATION",
+          "asked": true,
+          "question": "我来帮你安排去上海的出差行程。为了搜索合适的交通选项，我需要确认几个信息：\n\n1. **出发城市**：你从哪里出发去上海？\n2. **出发日期**：你计划哪天出发？\n3. **到达时间要求**：需要在什么时间之前到达上海（比如某天上午要开会）？\n4. **返程**：需要安排返程吗？如果需要，返程日期是哪天？\n\n请告诉我这些信息，我就可以帮你搜索可预订的交通选项了。",
+          "option_count": 0,
+          "searches": [],
+          "executed_routes": [],
+          "refused_routes": [],
+          "provider_calls": 0,
+          "failure": null
+        },
+        {
+          "turn": 1,
+          "said": "从北京走，不住酒店",
+          "state": "NEEDS_CLARIFICATION",
+          "asked": true,
+          "question": "我来帮你搜索从北京到上海的交通选项。不过我还需要确认出发日期和到达时间要求，才能搜索到可预订的选项。\n\n请告诉我：\n\n1. **出发日期**：你计划哪天出发去上海？\n2. **到达时间要求**：需要在什么时间之前到达上海（比如某天上午要开会）？\n3. **返程**：需要安排返程吗？如果需要，返程日期是哪天？\n\n有了这些信息我就能帮你搜索了。",
+          "option_count": 0,
+          "searches": [],
+          "executed_routes": [],
+          "refused_routes": [],
+          "provider_calls": 0,
+          "failure": null
+        },
+        {
+          "turn": 2,
+          "said": "9月15号上午10点前到，当天不回",
+          "state": "WAITING_FOR_USER",
+          "asked": true,
+          "question": null,
+          "option_count": 3,
+          "searches": [
+            {
+              "origin": "Beijing",
+              "destination": "Shanghai",
+              "arrive_by": "2026-09-15T10:00:00+08:00",
+              "arrive_date": "2026-09-15",
+              "ok": true,
+              "error": ""
+            }
+          ],
+          "executed_routes": [
+            "Beijing->Shanghai"
+          ],
+          "refused_routes": [],
+          "provider_calls": 1,
+          "failure": null
+        }
+      ],
+      "state": "WAITING_FOR_USER",
+      "question": null,
+      "option_count": 3,
+      "legs": [
+        [
+          "Beijing",
+          "Shanghai"
+        ]
+      ],
+      "provider_search_calls": 1,
+      "checks": [
+        {
+          "name": "no_search_while_information_is_missing",
+          "ok": true,
+          "detail": "executed before turn 1: []"
+        },
+        {
+          "name": "asks_on_the_first_gap",
+          "ok": true,
+          "detail": "state=NEEDS_CLARIFICATION question='我来帮你安排去上海的出差行程。为了搜索合适的交通选项，我需要确认几个信息：\\n\\n1. **出发城市**：你从哪里出发去上海？\\n2. **出发日期**：你计划哪天出发？\\n3. **到达时间要求**：需要在什么时间之前到达上海（比如某天上午要开会）？\\n4. **返程**：需要安排返程吗？如果需要，返程日期是哪天？\\n\\n请告诉我这些信息，我就可以帮你搜索可预订的交通选项了。'"
+        },
+        {
+          "name": "question_names_the_gap",
+          "ok": true,
+          "detail": "expected one of ('日期', '几号', '什么时候', '哪天', '何时') in '我来帮你安排去上海的出差行程。为了搜索合适的交通选项，我需要确认几个信息：\\n\\n1. **出发城市**：你从哪里出发去上海？\\n2. **出发日期**：你计划哪天出发？\\n3. **到达时间要求**：需要在什么时间之前到达上海（比如某天上午要开会）？\\n4. **返程**：需要安排返程吗？如果需要，返程日期是哪天？\\n\\n请告诉我这些信息，我就可以帮你搜索可预订的交通选项了。 我来帮你搜索从北京到上海的交通选项。不过我还需要确认出发日期和到达时间要求，才能搜索到可预订的选项。\\n\\n请告诉我'"
+        },
+        {
+          "name": "corrected_date_was_searched",
+          "ok": true,
+          "detail": "missing []; executed ['2026-09-15']"
+        },
+        {
+          "name": "forbidden_city_was_not_searched",
+          "ok": true,
+          "detail": "executed [] through turn None"
+        },
+        {
+          "name": "first_leg_was_actually_handled",
+          "ok": true,
+          "detail": "expected ('Beijing', 'Shanghai') among [('Beijing', 'Shanghai')]"
+        }
+      ],
+      "passed": true,
+      "llm_calls": 4,
+      "input_tokens": 15136,
+      "output_tokens": 908
+    },
+    {
+      "case_id": "LM-02",
+      "title": "信息缺少：第一段有日期，后面两段先问再补",
+      "category": "missing",
+      "turns": [
+        "9月15号上午10点前要到上海，我从北京走，之后还要去杭州、再回北京。不住酒店",
+        "杭州9月18号去，19号回北京"
+      ],
+      "snapshots": [
+        {
+          "turn": 0,
+          "said": "9月15号上午10点前要到上海，我从北京走，之后还要去杭州、再回北京。不住酒店",
+          "state": "WAITING_FOR_USER",
+          "asked": true,
+          "question": "上海→杭州是哪一天出发？\n杭州→北京是哪一天回？",
+          "option_count": 3,
+          "searches": [
+            {
+              "origin": "Beijing",
+              "destination": "Shanghai",
+              "arrive_by": "2026-09-15T10:00:00+08:00",
+              "arrive_date": "2026-09-15",
+              "ok": true,
+              "error": ""
+            },
+            {
+              "origin": "Shanghai",
+              "destination": "Hangzhou",
+              "arrive_by": "2026-09-15T23:59:00+08:00",
+              "arrive_date": "2026-09-15",
+              "ok": false,
+              "error": ""
+            },
+            {
+              "origin": "Hangzhou",
+              "destination": "Beijing",
+              "arrive_by": "2026-09-16T23:59:00+08:00",
+              "arrive_date": "2026-09-16",
+              "ok": false,
+              "error": ""
+            }
+          ],
+          "executed_routes": [
+            "Beijing->Shanghai"
+          ],
+          "refused_routes": [
+            "Shanghai->Hangzhou ()",
+            "Hangzhou->Beijing ()"
+          ],
+          "provider_calls": 3,
+          "failure": null
+        },
+        {
+          "turn": 1,
+          "said": "杭州9月18号去，19号回北京",
+          "state": "WAITING_FOR_USER",
+          "asked": true,
+          "question": "上海→杭州是否考虑高铁（通常更快更灵活）？",
+          "option_count": 3,
+          "searches": [
+            {
+              "origin": "Beijing",
+              "destination": "Shanghai",
+              "arrive_by": "2026-09-15T10:00:00",
+              "arrive_date": "2026-09-15",
+              "ok": true,
+              "error": ""
+            },
+            {
+              "origin": "Shanghai",
+              "destination": "Hangzhou",
+              "arrive_by": "2026-09-18T23:59:00",
+              "arrive_date": "2026-09-18",
+              "ok": true,
+              "error": ""
+            },
+            {
+              "origin": "Hangzhou",
+              "destination": "Beijing",
+              "arrive_by": "2026-09-19T23:59:00",
+              "arrive_date": "2026-09-19",
+              "ok": true,
+              "error": ""
+            }
+          ],
+          "executed_routes": [
+            "Beijing->Shanghai",
+            "Shanghai->Hangzhou",
+            "Hangzhou->Beijing"
+          ],
+          "refused_routes": [],
+          "provider_calls": 6,
+          "failure": null
+        }
+      ],
+      "state": "WAITING_FOR_USER",
+      "question": "上海→杭州是否考虑高铁（通常更快更灵活）？",
+      "option_count": 3,
+      "legs": [
+        [
+          "Beijing",
+          "Shanghai"
+        ],
+        [
+          "Shanghai",
+          "Hangzhou"
+        ],
+        [
+          "Hangzhou",
+          "Beijing"
+        ]
+      ],
+      "provider_search_calls": 6,
+      "checks": [
+        {
+          "name": "question_names_the_gap",
+          "ok": true,
+          "detail": "expected one of ('杭州', '回', '日期', '几号', '哪天') in '上海→杭州是哪一天出发？\\n杭州→北京是哪一天回？ 上海→杭州是否考虑高铁（通常更快更灵活）？'"
+        },
+        {
+          "name": "forbidden_city_was_not_searched",
+          "ok": true,
+          "detail": "executed [] through turn 0"
+        },
+        {
+          "name": "first_leg_was_actually_handled",
+          "ok": true,
+          "detail": "expected ('Beijing', 'Shanghai') among [('Beijing', 'Shanghai'), ('Shanghai', 'Hangzhou'), ('Hangzhou', 'Beijing')]"
+        }
+      ],
+      "passed": true,
+      "llm_calls": 4,
+      "input_tokens": 23819,
+      "output_tokens": 1923
+    },
+    {
+      "case_id": "LM-03",
+      "title": "语序颠倒：先说回程，再说中间，最后才说去程",
+      "category": "reversed",
+      "turns": [
+        "9月19号从杭州飞回北京，在那之前18号从上海去杭州，最开始15号从北京到上海。不住酒店"
+      ],
+      "snapshots": [
+        {
+          "turn": 0,
+          "said": "9月19号从杭州飞回北京，在那之前18号从上海去杭州，最开始15号从北京到上海。不住酒店",
+          "state": "WAITING_FOR_USER",
+          "asked": true,
+          "question": null,
+          "option_count": 3,
+          "searches": [
+            {
+              "origin": "Beijing",
+              "destination": "Shanghai",
+              "arrive_by": "2026-09-15T23:59:00+08:00",
+              "arrive_date": "2026-09-15",
+              "ok": true,
+              "error": ""
+            },
+            {
+              "origin": "Shanghai",
+              "destination": "Hangzhou",
+              "arrive_by": "2026-09-18T23:59:00+08:00",
+              "arrive_date": "2026-09-18",
+              "ok": true,
+              "error": ""
+            },
+            {
+              "origin": "Hangzhou",
+              "destination": "Beijing",
+              "arrive_by": "2026-09-19T23:59:00+08:00",
+              "arrive_date": "2026-09-19",
+              "ok": true,
+              "error": ""
+            }
+          ],
+          "executed_routes": [
+            "Beijing->Shanghai",
+            "Shanghai->Hangzhou",
+            "Hangzhou->Beijing"
+          ],
+          "refused_routes": [],
+          "provider_calls": 3,
+          "failure": null
+        }
+      ],
+      "state": "WAITING_FOR_USER",
+      "question": null,
+      "option_count": 3,
+      "legs": [
+        [
+          "Beijing",
+          "Shanghai"
+        ],
+        [
+          "Shanghai",
+          "Hangzhou"
+        ],
+        [
+          "Hangzhou",
+          "Beijing"
+        ]
+      ],
+      "provider_search_calls": 3,
+      "checks": [
+        {
+          "name": "routes_follow_travel_order_not_speech_order",
+          "ok": true,
+          "detail": "first mentions [('Beijing', 'Shanghai'), ('Shanghai', 'Hangzhou'), ('Hangzhou', 'Beijing')]; expected travel order [('Beijing', 'Shanghai'), ('Shanghai', 'Hangzhou'), ('Hangzhou', 'Beijing')]"
+        },
+        {
+          "name": "first_leg_was_actually_handled",
+          "ok": true,
+          "detail": "expected ('Beijing', 'Shanghai') among [('Beijing', 'Shanghai'), ('Shanghai', 'Hangzhou'), ('Hangzhou', 'Beijing')]"
+        }
+      ],
+      "passed": true,
+      "llm_calls": 2,
+      "input_tokens": 17528,
+      "output_tokens": 906
+    },
+    {
+      "case_id": "LM-04",
+      "title": "语序颠倒：第一轮只说回程，第二轮才补去程和中间段",
+      "category": "reversed",
+      "turns": [
+        "我9月19号要从杭州回北京",
+        "去程15号北京到上海，18号上海到杭州。不住酒店"
+      ],
+      "snapshots": [
+        {
+          "turn": 0,
+          "said": "我9月19号要从杭州回北京",
+          "state": "WAITING_FOR_USER",
+          "asked": true,
+          "question": "你希望上午到还是下午到北京？有没有偏好的起飞时段？",
+          "option_count": 3,
+          "searches": [
+            {
+              "origin": "Hangzhou",
+              "destination": "Beijing",
+              "arrive_by": "",
+              "arrive_date": "",
+              "ok": false,
+              "error": ""
+            },
+            {
+              "origin": "Hangzhou",
+              "destination": "Beijing",
+              "arrive_by": "2026-09-19T23:59:00+08:00",
+              "arrive_date": "2026-09-19",
+              "ok": true,
+              "error": ""
+            }
+          ],
+          "executed_routes": [
+            "Hangzhou->Beijing"
+          ],
+          "refused_routes": [
+            "Hangzhou->Beijing ()"
+          ],
+          "provider_calls": 2,
+          "failure": null
+        },
+        {
+          "turn": 1,
+          "said": "去程15号北京到上海，18号上海到杭州。不住酒店",
+          "state": "WAITING_FOR_USER",
+          "asked": true,
+          "question": "回程9月19日杭州→北京，你希望上午到还是下午到？最便宜直飞是下午16:02到，若想上午到需选约374 USD起的班次。",
+          "option_count": 3,
+          "searches": [
+            {
+              "origin": "Beijing",
+              "destination": "Shanghai",
+              "arrive_by": "2026-09-15T23:59:00+08:00",
+              "arrive_date": "2026-09-15",
+              "ok": true,
+              "error": ""
+            },
+            {
+              "origin": "Shanghai",
+              "destination": "Hangzhou",
+              "arrive_by": "2026-09-18T23:59:00+08:00",
+              "arrive_date": "2026-09-18",
+              "ok": true,
+              "error": ""
+            },
+            {
+              "origin": "Hangzhou",
+              "destination": "Beijing",
+              "arrive_by": "2026-09-19T23:59:00+08:00",
+              "arrive_date": "2026-09-19",
+              "ok": true,
+              "error": ""
+            }
+          ],
+          "executed_routes": [
+            "Beijing->Shanghai",
+            "Shanghai->Hangzhou",
+            "Hangzhou->Beijing"
+          ],
+          "refused_routes": [],
+          "provider_calls": 5,
+          "failure": null
+        }
+      ],
+      "state": "WAITING_FOR_USER",
+      "question": "回程9月19日杭州→北京，你希望上午到还是下午到？最便宜直飞是下午16:02到，若想上午到需选约374 USD起的班次。",
+      "option_count": 3,
+      "legs": [
+        [
+          "Beijing",
+          "Shanghai"
+        ],
+        [
+          "Shanghai",
+          "Hangzhou"
+        ],
+        [
+          "Hangzhou",
+          "Beijing"
+        ]
+      ],
+      "provider_search_calls": 5,
+      "checks": [
+        {
+          "name": "asks_on_the_first_gap",
+          "ok": true,
+          "detail": "state=WAITING_FOR_USER question='你希望上午到还是下午到北京？有没有偏好的起飞时段？'"
+        },
+        {
+          "name": "first_leg_was_actually_handled",
+          "ok": true,
+          "detail": "expected ('Beijing', 'Shanghai') among [('Hangzhou', 'Beijing'), ('Beijing', 'Shanghai'), ('Shanghai', 'Hangzhou')]"
+        }
+      ],
+      "passed": true,
+      "llm_calls": 5,
+      "input_tokens": 31442,
+      "output_tokens": 1668
+    },
+    {
+      "case_id": "LM-05",
+      "title": "过期信息：先给已经过去的 8月5号，再改口成 9月15号",
+      "category": "stale",
+      "turns": [
+        "8月5号从北京去上海开会，不住酒店",
+        "搞错了，是9月15号上午10点前到"
+      ],
+      "snapshots": [
+        {
+          "turn": 0,
+          "said": "8月5号从北京去上海开会，不住酒店",
+          "state": "NEEDS_CLARIFICATION",
+          "asked": true,
+          "question": "8月5号已经过去了（现在是8月19号），这个日期没法订票。请问您是想改到别的日期去上海开会吗？如果是，请告诉我新的日期。",
+          "option_count": 0,
+          "searches": [
+            {
+              "origin": "Beijing",
+              "destination": "Shanghai",
+              "arrive_by": "2026-08-05T23:59:00+08:00",
+              "arrive_date": "2026-08-05",
+              "ok": false,
+              "error": ""
+            }
+          ],
+          "executed_routes": [],
+          "refused_routes": [
+            "Beijing->Shanghai ()"
+          ],
+          "provider_calls": 1,
+          "failure": null
+        },
+        {
+          "turn": 1,
+          "said": "搞错了，是9月15号上午10点前到",
+          "state": "WAITING_FOR_USER",
+          "asked": true,
+          "question": null,
+          "option_count": 3,
+          "searches": [
+            {
+              "origin": "Beijing",
+              "destination": "Shanghai",
+              "arrive_by": "2026-09-15T10:00:00",
+              "arrive_date": "2026-09-15",
+              "ok": true,
+              "error": ""
+            }
+          ],
+          "executed_routes": [
+            "Beijing->Shanghai"
+          ],
+          "refused_routes": [],
+          "provider_calls": 2,
+          "failure": null
+        }
+      ],
+      "state": "WAITING_FOR_USER",
+      "question": null,
+      "option_count": 3,
+      "legs": [
+        [
+          "Beijing",
+          "Shanghai"
+        ]
+      ],
+      "provider_search_calls": 2,
+      "checks": [
+        {
+          "name": "asks_on_the_first_gap",
+          "ok": true,
+          "detail": "state=NEEDS_CLARIFICATION question='8月5号已经过去了（现在是8月19号），这个日期没法订票。请问您是想改到别的日期去上海开会吗？如果是，请告诉我新的日期。'"
+        },
+        {
+          "name": "question_names_the_gap",
+          "ok": true,
+          "detail": "expected one of ('过', '过去', '改期', '哪天', '日期', '9') in '8月5号已经过去了（现在是8月19号），这个日期没法订票。请问您是想改到别的日期去上海开会吗？如果是，请告诉我新的日期。 '"
+        },
+        {
+          "name": "expired_date_was_not_searched",
+          "ok": true,
+          "detail": "executed dates []"
+        },
+        {
+          "name": "corrected_date_was_searched",
+          "ok": true,
+          "detail": "missing []; executed ['2026-09-15']"
+        },
+        {
+          "name": "first_leg_was_actually_handled",
+          "ok": true,
+          "detail": "expected ('Beijing', 'Shanghai') among [('Beijing', 'Shanghai')]"
+        }
+      ],
+      "passed": true,
+      "llm_calls": 4,
+      "input_tokens": 14837,
+      "output_tokens": 785
+    },
+    {
+      "case_id": "LM-06",
+      "title": "错误信息：先说去广州，第二轮改口去上海",
+      "category": "stale",
+      "turns": [
+        "9月15号从北京去广州，上午10点前到，不住酒店",
+        "不是广州，改去上海，其他不变"
+      ],
+      "snapshots": [
+        {
+          "turn": 0,
+          "said": "9月15号从北京去广州，上午10点前到，不住酒店",
+          "state": "WAITING_FOR_USER",
+          "asked": true,
+          "question": null,
+          "option_count": 3,
+          "searches": [
+            {
+              "origin": "Beijing",
+              "destination": "Guangzhou",
+              "arrive_by": "2026-09-15T10:00:00",
+              "arrive_date": "2026-09-15",
+              "ok": true,
+              "error": ""
+            }
+          ],
+          "executed_routes": [
+            "Beijing->Guangzhou"
+          ],
+          "refused_routes": [],
+          "provider_calls": 1,
+          "failure": null
+        },
+        {
+          "turn": 1,
+          "said": "不是广州，改去上海，其他不变",
+          "state": "WAITING_FOR_USER",
+          "asked": true,
+          "question": null,
+          "option_count": 3,
+          "searches": [
+            {
+              "origin": "Beijing",
+              "destination": "Shanghai",
+              "arrive_by": "2026-09-15T10:00:00+08:00",
+              "arrive_date": "2026-09-15",
+              "ok": true,
+              "error": ""
+            }
+          ],
+          "executed_routes": [
+            "Beijing->Shanghai"
+          ],
+          "refused_routes": [],
+          "provider_calls": 2,
+          "failure": null
+        }
+      ],
+      "state": "WAITING_FOR_USER",
+      "question": null,
+      "option_count": 3,
+      "legs": [
+        [
+          "Beijing",
+          "Shanghai"
+        ]
+      ],
+      "provider_search_calls": 2,
+      "checks": [
+        {
+          "name": "corrected_date_was_searched",
+          "ok": true,
+          "detail": "missing []; executed ['2026-09-15']"
+        },
+        {
+          "name": "first_leg_was_actually_handled",
+          "ok": true,
+          "detail": "expected ('Beijing', 'Shanghai') among [('Beijing', 'Guangzhou'), ('Beijing', 'Shanghai')]"
+        },
+        {
+          "name": "stale_city_did_not_survive_the_correction",
+          "ok": true,
+          "detail": "legs [('Beijing', 'Shanghai')]"
+        }
+      ],
+      "passed": true,
+      "llm_calls": 4,
+      "input_tokens": 16556,
+      "output_tokens": 1434
+    }
+  ]
+}

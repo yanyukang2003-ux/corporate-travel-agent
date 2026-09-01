@@ -1,0 +1,196 @@
+{
+  "schema_version": 1,
+  "run_id": "duffel-liteapi-full-chain-20260901-run2",
+  "evaluation_mode": "deterministic_live_duffel_liteapi_full_chain",
+  "provider": "duffel+liteapi",
+  "provider_mode": "test+sandbox-read-only",
+  "dataset": {
+    "id": "duffel-liteapi-real-full-chain-v2",
+    "version": "2.0.0",
+    "sha256": "dd9ef5cda03ad5c20868e67f320d4b64014b7e13a136be7d954c515a2482b3be",
+    "case_id": "real-lhr-jfk-flight-hotel-select-revalidate-handoff"
+  },
+  "code_revision": null,
+  "started_at": "2026-09-01T15:39:58.432595+00:00",
+  "completed_at": "2026-09-01T15:40:06.289676+00:00",
+  "duration_ms": 7861.08,
+  "request": {
+    "origin": "LHR",
+    "destination": "JFK",
+    "departure_after": "2026-09-15T00:00:00+00:00",
+    "arrive_by": "2026-09-17T00:00:00+00:00",
+    "hotel_check_in": "2026-09-15",
+    "hotel_check_out": "2026-09-17",
+    "currency": "USD"
+  },
+  "external_calls": {
+    "total": 4,
+    "duffel": 2,
+    "liteapi": 2,
+    "base": 4,
+    "maximum": 12
+  },
+  "external_requests_by_provider": {
+    "duffel": [
+      {
+        "provider": "duffel",
+        "method": "POST",
+        "path": "/air/offer_requests"
+      },
+      {
+        "provider": "duffel",
+        "method": "GET",
+        "path": "/air/offers/off_0000B9yAIBzY9PLUkO2gmA"
+      }
+    ],
+    "liteapi": [
+      {
+        "provider": "liteapi",
+        "method": "POST",
+        "path": "/hotels/rates"
+      },
+      {
+        "provider": "liteapi",
+        "method": "POST",
+        "path": "/hotels/rates"
+      }
+    ]
+  },
+  "provider_tool_calls": [
+    "provider.search_transport.outbound",
+    "provider.search_hotels",
+    "provider.revalidate"
+  ],
+  "successful_provider_tool_calls": [
+    "provider.search_transport.outbound",
+    "provider.search_hotels",
+    "provider.revalidate"
+  ],
+  "provider_tool_call_records": [
+    {
+      "sequence": 1,
+      "tool_name": "provider.search_transport.outbound",
+      "status": "SUCCEEDED",
+      "retryable": null,
+      "retry_of": null,
+      "reason_code": null,
+      "error_code": null,
+      "error_layer": null
+    },
+    {
+      "sequence": 2,
+      "tool_name": "provider.search_hotels",
+      "status": "SUCCEEDED",
+      "retryable": null,
+      "retry_of": null,
+      "reason_code": null,
+      "error_code": null,
+      "error_layer": null
+    },
+    {
+      "sequence": 3,
+      "tool_name": "provider.revalidate",
+      "status": "SUCCEEDED",
+      "retryable": null,
+      "retry_of": null,
+      "reason_code": null,
+      "error_code": null,
+      "error_layer": null
+    }
+  ],
+  "retry_policy": {
+    "max_provider_attempts": 3,
+    "backoff_base_seconds": 0.5,
+    "provider_retries": 0,
+    "failed_provider_attempts": 0
+  },
+  "task_state": "RECONFIRMATION_REQUIRED",
+  "task_failure": null,
+  "option_count": 3,
+  "selection_error": null,
+  "unexpected_error": null,
+  "selected_option": {
+    "option_id": "opt-off_0000B9yAIBzY9PLUkO2gmA-litehotel_e408aa8d6e01bab1894cc0cb",
+    "flight_ref": "off_0000B9yAIBzY9PLUkO2gmA",
+    "flight_price": "214.57",
+    "hotel_ref": "litehotel_e408aa8d6e01bab1894cc0cb",
+    "hotel_name": "Margaritaville Resort Times Square",
+    "hotel_nightly_price": "540.97",
+    "hotel_nights": 2,
+    "total_cost": "1296.51",
+    "currency": "USD",
+    "policy_outcome": "COMPLIANT"
+  },
+  "revalidation": {
+    "status": "PRICE_CHANGED",
+    "checked_at": "2026-09-01T15:40:00.604531+00:00",
+    "current_prices": {
+      "off_0000B9yAIBzY9PLUkO2gmA": "214.57",
+      "litehotel_e408aa8d6e01bab1894cc0cb": "538.74"
+    },
+    "warnings": [
+      "litehotel_e408aa8d6e01bab1894cc0cb: LiteAPI rotated the offer token during quote refresh"
+    ]
+  },
+  "handoff": null,
+  "snapshots": [
+    {
+      "snapshot_id": "duffel-flight-ea0991572e3e091c",
+      "provider": "duffel",
+      "source_type": "AUTHORIZED_API",
+      "item_count": 44,
+      "raw_payload_sha256": "ea5e773045ea5fc436d9a8eda1c4a65ebd86def9da8a1f2f85ddf74c77a84f56",
+      "raw_response_archived": true,
+      "warnings": [
+        "Duffel Test Mode sandbox inventory; schedules and prices are not production data",
+        "Duffel offer index 5 was skipped: filtered_by_arrive_before",
+        "Duffel offer index 8 was skipped: filtered_by_arrive_before",
+        "Duffel offer index 11 was skipped: filtered_by_arrive_before",
+        "Duffel offer index 12 was skipped: filtered_by_arrive_before",
+        "Duffel offer index 14 was skipped: filtered_by_arrive_before",
+        "Duffel offer index 18 was skipped: filtered_by_arrive_before",
+        "Duffel response was capped at 50 normalized offers"
+      ]
+    },
+    {
+      "snapshot_id": "liteapi-hotel-d195b87a82cdbe4c",
+      "provider": "liteapi",
+      "source_type": "AUTHORIZED_API",
+      "item_count": 10,
+      "raw_payload_sha256": "1eb3d33a654982fa2c48f3eda75d2011183b47d66553bdcb561d0f6780d11490",
+      "raw_response_archived": true,
+      "warnings": [
+        "LiteAPI/Nuitee Connect Sandbox hotel rates; availability and prices are test data",
+        "LiteAPI hotel rates are search quotes only; no prebook, booking, or payment was created",
+        "LiteAPI does not provide client-office commute time; commute_minutes=1440 marks this evidence as unknown"
+      ]
+    }
+  ],
+  "checks": {
+    "workflow_completed_without_exception": true,
+    "selection_succeeded": true,
+    "default_retry_policy_applied": true,
+    "external_call_budget_respected": true,
+    "duffel_call_budget_respected": true,
+    "liteapi_call_budget_respected": true,
+    "provider_retry_contract_valid": true,
+    "duffel_search_then_revalidate": true,
+    "liteapi_search_then_quote_refresh": true,
+    "flight_snapshot_authorized": true,
+    "hotel_snapshot_authorized": true,
+    "minimum_combined_options": true,
+    "selected_option_has_both_providers": true,
+    "selected_prices_use_policy_currency": true,
+    "selected_option_policy_compliant": true,
+    "both_quotes_revalidated": true,
+    "allowed_revalidation_status": true,
+    "expected_provider_tool_sequence": true,
+    "conditional_final_state": true,
+    "conditional_booking_intent": true,
+    "unchanged_handoff_covers_flight_and_hotel": true,
+    "search_and_revalidation_archived": true,
+    "no_booking_payment_or_order_http": true,
+    "provider_secrets_not_archived": true
+  },
+  "passed": true
+}

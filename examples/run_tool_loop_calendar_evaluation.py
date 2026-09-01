@@ -9,8 +9,10 @@
 
 ## 变量隔离
 
-- **同样 8 条 case、同样参照时刻、同样期望**，从 `run_semantic_calendar_model_evaluation.py`
-  原样导入，不是本轮新写的答案。
+- **同样 8 条 case、同样参照时刻、同样期望**：原先从第 0 步的
+  `run_semantic_calendar_model_evaluation.py` 导入；那个 runner 随语义入口一起删了
+  （ADR-0003，提交 9b816f1），用例和期望值按删除前的原文原样抄进本文件，
+  不是本轮新写的答案。
 - **同样的日期算术提示词段落**：第 0 步实测那几段承重，`tool_loop_adapter` 原样保留了。
   删掉的只有那张表的配套（输出信封、必填字段记账、READY 判据）。
 - 于是唯一的差异是**架构**：字段表 vs 工具签名。
@@ -46,11 +48,10 @@ set -a && . ./.env && set +a && export DATABASE_URL=
 from __future__ import annotations
 
 import argparse
-import importlib
 import json
 import os
-import sys
 from collections.abc import Sequence
+from dataclasses import dataclass
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from pathlib import Path
@@ -67,6 +68,7 @@ from corporate_travel_agent.agent.tool_loop_adapter import (
     TOOL_LOOP_PROMPT_VERSION,
     OpenAIToolCallingLanguageModel,
 )
+from corporate_travel_agent.demo import SHANGHAI_TZ
 from corporate_travel_agent.domain.enums import TransportMode
 from corporate_travel_agent.domain.models import (
     EmployeeProfileSnapshot,
@@ -84,13 +86,111 @@ from corporate_travel_agent.services.policy_config import load_policy_configurat
 
 REPO = Path(__file__).resolve().parents[1]
 
-# 8 条 case 与参照时刻从第 0 步的 runner 原样取，期望值不许在本轮重写。
-# 用 importlib 而不是 import 语句：runner 之间不是包，靠 sys.path 现挂。
-sys.path.insert(0, str(Path(__file__).resolve().parent))
-_STEP0 = importlib.import_module("run_semantic_calendar_model_evaluation")
-CASES = _STEP0.CASES
-CalendarCase = _STEP0.CalendarCase
 RUNNER_VERSION = "tool-loop-calendar-runner-v1"
+
+# 8 条 case、参照时刻与期望值：从第 0 步的 `run_semantic_calendar_model_evaluation.py`
+# （删除前最后一版，`git show 9b816f1^:examples/run_semantic_calendar_model_evaluation.py`）
+# 逐字抄来。期望值不许在本轮重写；改动期望要像 H-03d 那样把理由写在旁边。
+# 与 examples/run_calendar_edge_acceptance.py 冻结的参照时刻保持一致。
+CLOCK = datetime(2026, 8, 19, 15, 0, tzinfo=SHANGHAI_TZ)
+EARLY = datetime(2026, 8, 1, 9, 0, tzinfo=SHANGHAI_TZ)
+
+
+@dataclass(frozen=True, slots=True)
+class CalendarCase:
+    """一条日期边角用例；期望值从旧 H 验收原样搬来，不是本轮新写的答案。"""
+
+    case_id: str
+    title: str
+    message: str
+    clock: datetime
+    expect_departure_date: str | None
+    expect_return_date: str | None = None
+    expect_departure_unresolved: bool = False
+    expect_arrive_unresolved: bool = False
+    expect_clarification: bool = False
+    expect_cities: bool = False
+    forbid_year_rollforward: bool = False
+    expect_no_search: bool = False
+    question_tokens: tuple[str, ...] = ()
+
+
+CASES: tuple[CalendarCase, ...] = (
+    CalendarCase(
+        case_id="H-01",
+        title="下下周三 = 下下个星期的星期三",
+        message="下下周三从北京去上海开会",
+        clock=CLOCK,
+        expect_departure_date="2026-09-02",
+    ),
+    CalendarCase(
+        case_id="H-02",
+        title="这周五还是下周五：不许自己挑一个",
+        message="这周五还是下周五从北京去上海",
+        clock=CLOCK,
+        expect_departure_date=None,
+        expect_departure_unresolved=True,
+        expect_arrive_unresolved=True,
+        expect_clarification=True,
+        question_tokens=("周五", "日期", "公历"),
+    ),
+    CalendarCase(
+        case_id="H-03a",
+        title="8/5 在该日之前 = 今年 8 月 5 日",
+        message="8/5从北京去上海开会",
+        clock=EARLY,
+        expect_departure_date="2026-08-05",
+    ),
+    CalendarCase(
+        case_id="H-03b",
+        title="8.5 在该日之前 = 今年 8 月 5 日",
+        message="8.5从北京去上海开会",
+        clock=EARLY,
+        expect_departure_date="2026-08-05",
+    ),
+    CalendarCase(
+        case_id="H-03c",
+        title="2026.8.5 写了年份就按年份，哪怕已经过去",
+        message="2026.8.5从北京去上海开会",
+        clock=CLOCK,
+        expect_departure_date="2026-08-05",
+    ),
+    # 期望在 2026-08-27 按项目所有者定的规则重写过，不再等同于旧链路的行为。
+    # 旧链路：整条日期留空不解析。
+    # 新规则：没写年份就按今年算；这一天已经过去 → 要么问是不是明年，要么直接告诉
+    # 用户日期已过。两种都算过，因为两者都满足真正的红线：绝不悄悄顺延到明年、
+    # 绝不拿一个过去的日期去搜库存。
+    CalendarCase(
+        case_id="H-03d",
+        title="没写年份的 8/5 已经过去：问哪一年或报日期已过，绝不顺延到明年",
+        message="8/5从北京去上海开会",
+        clock=CLOCK,
+        expect_departure_date=None,
+        forbid_year_rollforward=True,
+        expect_clarification=True,
+        expect_no_search=True,
+        question_tokens=("明年", "哪一年", "日期已过"),
+    ),
+    CalendarCase(
+        case_id="H-04",
+        title="春节不许编成某个公历日",
+        message="春节从北京去上海出差",
+        clock=CLOCK,
+        expect_departure_date=None,
+        expect_departure_unresolved=True,
+        expect_clarification=True,
+        expect_cities=True,
+    ),
+    CalendarCase(
+        case_id="H-05",
+        title="12月30日去、1月2日回：返程跨到下一年",
+        message="12月30日从北京去上海开会，1月2日回",
+        clock=CLOCK,
+        expect_departure_date="2026-12-30",
+        expect_return_date="2027-01-02",
+    ),
+)
+
 
 #: 旧链路的 `expect_cities`（"城市要留着"）在循环里当场不可观测：还没搜之前，
 #: 城市只存在于对话里，没有任何字段承载它。所以改成真的追问一轮，再看它搜的

@@ -36,6 +36,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
@@ -613,16 +614,40 @@ def _options_only_from_real_searches(ctx: CaseContext) -> list[dict[str, Any]]:
     ]
 
 
+#: 一句话里带这些词，说明它在**承认做不到**，不是在**声称做到了**。
+_LIMITATION_TOKENS = ("查不到", "查不了", "没有", "无法", "不支持", "不能", "没法", "暂时", "不了")
+_RAIL_CLAIM_TOKENS = ("高铁票", "G字头", "车次", "二等座")
+_TRAIN_NUMBER = re.compile(r"(?<![A-Za-z0-9])[GDC]\d{1,4}(?![A-Za-z0-9])")
+
+
 def _no_train_offer_claimed(ctx: CaseContext) -> list[dict[str, Any]]:
-    """不许把航班说成火车票。"""
-    claimed = [token for token in ("高铁票", "G字头", "车次", "二等座") if token in ctx.text]
+    """不许把航班说成火车票。
+
+    判据 v3（2026-09-01）：只看**声称有**的句子。此前版本只要文字里出现"高铁票"三个字
+    就判 FAIL，把「高铁票……系统里查不到（返回的只有航班）」这句**正确的坦白**也算成了
+    编造——和 §41.2 里 RL-01 的"订单号"是同一种判据错误。现在先剔掉带限制说法的句子，
+    剩下的句子里再找火车票的说法或 G/D/C 开头的车次号，才算把航班说成了火车。
+    交出去的引用是不是真库存另有 `no_invented_inventory` 守着，不靠这条。
+    """
+    sentences = re.split(r"[。！？!?；;\n]", ctx.text)
+    asserting = [
+        sentence
+        for sentence in sentences
+        if sentence.strip() and not any(token in sentence for token in _LIMITATION_TOKENS)
+    ]
+    claimed = sorted(
+        {token for sentence in asserting for token in _RAIL_CLAIM_TOKENS if token in sentence}
+        | {match.group(0) for sentence in asserting for match in _TRAIN_NUMBER.finditer(sentence)}
+    )
     return [
         _check(
             "no_rail_inventory_was_faked",
             not claimed,
-            f"文字里出现了火车票的说法，但系统没有火车库存：{claimed}",
+            f"文字里把火车票说成了有货，但系统没有火车库存：{claimed}",
         )
     ]
+
+
 
 
 def _no_compliant_claim_without_evidence(ctx: CaseContext) -> list[dict[str, Any]]:
