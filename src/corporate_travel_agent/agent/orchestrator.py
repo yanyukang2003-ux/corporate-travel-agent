@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from collections.abc import Callable, Sequence
 from dataclasses import asdict, replace
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from random import random
 from threading import BoundedSemaphore, RLock
@@ -46,6 +46,7 @@ from corporate_travel_agent.domain.models import (
     ApprovalRequest,
     BookingConfirmation,
     BookingIntent,
+    BudgetSnapshot,
     ConversationMessage,
     EmployeeTravelProfileSnapshot,
     HotelOffer,
@@ -80,6 +81,10 @@ from corporate_travel_agent.providers.base import (
     TravelInventoryProvider,
 )
 from corporate_travel_agent.services.audit import new_audit_event, stable_hash
+from corporate_travel_agent.services.budget_ledger import (
+    BudgetLedgerPort,
+    derive_budget_snapshot,
+)
 from corporate_travel_agent.services.locations import CityNormalizer
 from corporate_travel_agent.services.provenance import (
     option_provenance,
@@ -218,6 +223,9 @@ class TripWorkflowOrchestrator:
         #: 要打开就传一个 `TripHistoryPort`（`services/travel_profile.py` 里有
         #: 读任务仓储的现成适配器），并且新开一个报告目录重跑基线。
         trip_history: TripHistoryPort | None = None,
+        #: 预算账本。None 表示没接：政策给员工的成本中心配了预算时，规划会把预算规则
+        #: 判成"判不了"（请人定），而不是当作没超。演示系统和 API 默认接仓储账本。
+        budget_ledger: BudgetLedgerPort | None = None,
         state_machine: StateMachine | None = None,
         clock: Callable[[], datetime] | None = None,
         timezone_name: str = "Asia/Shanghai",
@@ -288,6 +296,7 @@ class TripWorkflowOrchestrator:
         self.llm_runtime_status = "unknown"
         self.planner = planner or ItineraryPlanner()
         self.trip_history = trip_history
+        self.budget_ledger = budget_ledger
         self.state_machine = state_machine or StateMachine()
         self.clock = clock or (lambda: datetime.now(UTC))
         self.timezone_name = timezone_name
@@ -761,6 +770,7 @@ class TripWorkflowOrchestrator:
             leg_offers=[self._transports(item) for item in leg_snapshots],
             hotel_offers=[self._hotels(item) for item in hotel_snapshots],
             profile=self._travel_profile(task),
+            budget=self._budget_snapshot(task),
             now=self.clock(),
         )
         if not task.options:
@@ -1463,6 +1473,7 @@ class TripWorkflowOrchestrator:
             journey_fares=_fares_from(self._transports(journey_snapshot)),
             hotel_offers=[self._hotels(item) for item in hotel_snapshots],
             profile=self._travel_profile(task),
+            budget=self._budget_snapshot(task),
             now=self.clock(),
         )
         if not task.options:
@@ -1640,7 +1651,7 @@ class TripWorkflowOrchestrator:
                     key = f"feasibility:{reason}"
                     counts[key] = counts.get(key, 0) + 1
                 continue
-            decision = engine.evaluate(employee, policy, transports, hotels)
+            decision = engine.evaluate(employee, policy, transports, hotels, now=self.clock())
             if decision.outcome in {
                 PolicyOutcome.FORBIDDEN,
                 PolicyOutcome.INSUFFICIENT_EVIDENCE,
@@ -2539,6 +2550,36 @@ class TripWorkflowOrchestrator:
         )
         return profile
 
+    def _budget_snapshot(self, task: TripTask) -> BudgetSnapshot | None:
+        """这趟任务规划时的预算余额；没接账本、没成本中心或政策没配预算都是 None。
+
+        **算出来就钉进任务**（`task.metadata["budget_snapshot"]`），和习惯画像同一个
+        道理：别人下一秒确认了一单、余额变了，这趟"当初为什么这么判"仍然答得上来。
+        算不出来（账本读失败）不让任务失败——那一刻规则判成"判不了"，请人定。
+        """
+        pinned = task.metadata.get("budget_snapshot")
+        if pinned is not None:
+            return _budget_snapshot_from_metadata(pinned)
+        if self.budget_ledger is None:
+            return None
+        try:
+            snapshot = derive_budget_snapshot(
+                task.employee, self._policy_for(task), self.budget_ledger, now=self.clock()
+            )
+        except Exception:  # noqa: BLE001 — 见 docstring：账本失败不该拖垮任务
+            self._audit(task, "BUDGET_SNAPSHOT_UNAVAILABLE", task.employee.employee_id, None)
+            return None
+        if snapshot is None:
+            return None
+        task.metadata["budget_snapshot"] = asdict(snapshot)
+        self._audit(
+            task,
+            "BUDGET_SNAPSHOT_PINNED",
+            snapshot.snapshot_id,
+            {"remaining": str(snapshot.remaining), "currency": snapshot.currency},
+        )
+        return snapshot
+
     def _policy_for(self, task: TripTask) -> PolicySnapshot:
         """加载任务绑定的政策快照。"""
         try:
@@ -2834,6 +2875,21 @@ class TripWorkflowOrchestrator:
         if snapshot is None:
             return []
         return [item for item in snapshot.items if isinstance(item, HotelOffer)]
+
+
+def _budget_snapshot_from_metadata(payload: dict) -> BudgetSnapshot:
+    """从任务元数据里把钉住的预算快照读回来（金额和日期在 JSON 里是字符串）。"""
+    return BudgetSnapshot(
+        snapshot_id=str(payload["snapshot_id"]),
+        cost_center=str(payload["cost_center"]),
+        currency=str(payload["currency"]),
+        limit=Decimal(str(payload["limit"])),
+        spent=Decimal(str(payload["spent"])),
+        period_from=date.fromisoformat(str(payload["period_from"])),
+        period_to=date.fromisoformat(str(payload["period_to"])),
+        computed_at=datetime.fromisoformat(str(payload["computed_at"])),
+        source=str(payload.get("source", "booking_confirmations")),
+    )
 
 
 def _travel_profile_from_metadata(payload: dict) -> EmployeeTravelProfileSnapshot:

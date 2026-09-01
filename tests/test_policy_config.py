@@ -32,10 +32,16 @@ def test_bundled_configuration_builds_domain_snapshots_and_city_aliases() -> Non
     loaded = load_policy_configuration()
 
     assert loaded.source_type == "bundled"
-    assert loaded.config.config_version == "demo-config-v1"
+    assert loaded.config.config_version == "demo-config-v2"
     assert loaded.employee_snapshots[0].home_city == "Beijing"
+    assert loaded.employee_snapshots[0].cost_center == "CC-SALES-CN"
     assert loaded.active_policy.hotel_city_caps.get("Shanghai") == Decimal("600")
     assert loaded.active_policy.content_hash
+    # v2 的三个新维度都读进了领域快照。
+    assert loaded.active_policy.min_advance_booking_days == 3
+    assert {item.city for item in loaded.active_policy.hotel_seasonal_caps} == {"New York", "Tokyo"}
+    assert loaded.active_policy.cost_center_budgets["CC-SALES-CN"].amount == Decimal("20000")
+    assert loaded.active_policy.cost_center_budgets["CC-SALES-CN"].currency == "USD"
     assert loaded.city_aliases["北京市"] == "Beijing"
     # International city aliases for Duffel-oriented demo routes.
     assert loaded.city_aliases["纽约"] == "New York"
@@ -51,7 +57,10 @@ def test_external_configuration_controls_policy_and_approval_path(tmp_path: Path
     employees[0]["manager_id"] = "M3001"
     policies = payload["policies"]
     assert isinstance(policies, list)
-    policies[0]["hotel_city_caps"]["CN-SHA"] = "800"
+    # 改的是**当前生效**的那份快照；v1 留档不动。
+    active_id = payload["active_policy_snapshot_id"]
+    active = next(item for item in policies if item["snapshot_id"] == active_id)
+    active["hotel_city_caps"]["CN-SHA"] = "800"
 
     loaded = _load_external(tmp_path, payload)
     workflow, _ = build_demo_system(policy_configuration=loaded, clock=lambda: DEMO_CLOCK)
@@ -195,3 +204,83 @@ def test_set_fields_are_sorted_before_hashing() -> None:
     shuffled = {**payload, "exception_allowed_rule_ids": list(reversed(rule_ids))}
     assert _canonicalize_sets(policy, shuffled)["exception_allowed_rule_ids"] == rule_ids
     assert _policy_content_hash(policy) == _policy_content_hash(policy)
+
+
+#: 演示政策 v1 在追加 v2 之前的内容哈希。v2 是**追加**的：v1 一个字没改，所以它的哈希
+#: 不许变——变了就说明后加的可选字段漏进了旧快照的哈希，在途任务会被拦下来。
+POLICY_V1_CONTENT_HASH = "078458af0c0475849acb4b1c31b749a21176fad8f958ae3c71e3a21aa22875c7"
+
+
+def test_appending_policy_v2_did_not_change_the_v1_hash() -> None:
+    from corporate_travel_agent.services.policy_config import _policy_content_hash
+
+    loaded = load_policy_configuration()
+    v1 = next(
+        item for item in loaded.config.policies if item.snapshot_id == "policy-travel-v1-20260801"
+    )
+    assert _policy_content_hash(v1) == POLICY_V1_CONTENT_HASH
+    assert loaded.active_policy.snapshot_id == "policy-travel-v2-20260901"
+    # 旧快照没有新维度：None / 空，不是默认成某个数。
+    v1_snapshot = next(
+        item for item in loaded.policy_snapshots if item.snapshot_id == v1.snapshot_id
+    )
+    assert v1_snapshot.min_advance_booking_days is None
+    assert v1_snapshot.hotel_seasonal_caps == ()
+    assert v1_snapshot.cost_center_budgets == {}
+
+
+@pytest.mark.parametrize(
+    ("mutate", "message"),
+    [
+        (
+            lambda payload: payload["policies"][1]["hotel_seasonal_caps"].append(
+                {
+                    "city_code": "CN-XXX",
+                    "label": "nowhere",
+                    "season_from": "2026-01-01",
+                    "season_to": "2026-01-31",
+                    "nightly_cap": "100",
+                }
+            ),
+            "seasonal hotel caps reference unknown city codes",
+        ),
+        (
+            lambda payload: payload["policies"][1]["hotel_seasonal_caps"].append(
+                {
+                    "city_code": "US-NYC",
+                    "label": "backwards",
+                    "season_from": "2026-02-01",
+                    "season_to": "2026-01-01",
+                    "nightly_cap": "100",
+                }
+            ),
+            "season_to cannot be earlier than season_from",
+        ),
+        (
+            lambda payload: payload["policies"][1]["cost_center_budgets"].append(
+                {
+                    "cost_center": "CC-SALES-CN",
+                    "amount": "1",
+                    "period_from": "2026-01-01",
+                    "period_to": "2026-12-31",
+                }
+            ),
+            "at most one budget",
+        ),
+        (
+            lambda payload: payload["policies"][1]["cost_center_budgets"][0].update(
+                {"amount": "-5"}
+            ),
+            "invalid amount",
+        ),
+        (
+            lambda payload: payload["policies"][1].update({"min_advance_booking_days": 400}),
+            "less than or equal to 365",
+        ),
+    ],
+)
+def test_new_policy_dimensions_fail_closed(tmp_path: Path, mutate, message: str) -> None:
+    payload = _payload()
+    mutate(payload)
+    with pytest.raises(PolicyConfigurationError, match=message):
+        _load_external(tmp_path, payload)

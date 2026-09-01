@@ -756,6 +756,28 @@ def active_policy(identity: CurrentIdentity) -> dict[str, Any]:
             for city, cap in sorted(snapshot.hotel_city_caps.items())
         ],
         "exception_allowed_rule_ids": sorted(snapshot.exception_allowed_rule_ids),
+        # 后加的三个维度。None / 空列表就是"这版政策没有这条规则"。
+        "min_advance_booking_days": snapshot.min_advance_booking_days,
+        "hotel_seasonal_caps": [
+            {
+                "city": item.city,
+                "label": item.label,
+                "season_from": item.season_from.isoformat(),
+                "season_to": item.season_to.isoformat(),
+                "nightly_cap": str(item.nightly_cap),
+            }
+            for item in snapshot.hotel_seasonal_caps
+        ],
+        "cost_center_budgets": [
+            {
+                "cost_center": item.cost_center,
+                "amount": str(item.amount),
+                "currency": item.currency,
+                "period_from": item.period_from.isoformat(),
+                "period_to": item.period_to.isoformat(),
+            }
+            for item in sorted(snapshot.cost_center_budgets.values(), key=lambda b: b.cost_center)
+        ],
     }
 
 
@@ -1086,6 +1108,8 @@ def _public_task(task: TripTask) -> dict[str, Any]:
         # 摆出来是必须的：画像会改排序，改了排序就得说得出理由。员工问"你凭什么
         # 觉得我要坐高铁"，答案就在每条的 `evidence` 里。没接历史来源时是 null。
         "travel_profile": task.metadata.get("travel_profile"),
+        # 规划那一刻钉住的预算余额；没接账本、没成本中心或政策没配预算时是 null。
+        "budget_snapshot": task.metadata.get("budget_snapshot"),
         "agentic_proposal": task.metadata.get("agentic_proposal"),
         "extract_failure": task.metadata.get("extract_failure"),
         "model_fallback": task.metadata.get("model_fallback"),

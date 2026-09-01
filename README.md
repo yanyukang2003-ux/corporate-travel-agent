@@ -31,6 +31,7 @@
 - 业务结果指标层：交接完成率、平均耗时、提前预订天数和超标发生率，只读任务聚合与审计事件，不调模型和供应商；管理员端点 `GET /metrics/business`；
 - 产品入口可离线评测（D16）：`DeterministicToolCallingModel` 让 60 条工作流和 480 条意图冻结用例经工具循环逐条执行，并与语义入口并排；`tests/test_product_entrypoint_evaluation.py` 是 CI 门禁；
 - 工具循环的交付契约：`propose_options` 声明旅行者的硬要求与偏好（此前一条都不到规划器）；搜空落 `NO_FEASIBLE_OPTION`，越界落 `OUT_OF_SCOPE`，都不占澄清轮数；
+- 政策四个维度：夜费基础上限之外，淡旺季上限（按城市 × 日期窗口）、提前预订天数、成本中心预算余额；预算的"用掉多少"来自员工回填的下单确认，规划时钉成 `BudgetSnapshot`，账本没接就判"判不了"而不是当作没超；
 - 下单确认回流：交接之后员工回填订单号和实付金额（`POST /trip-tasks/{id}/booking-confirmation`），任务进入 `BOOKING_CONFIRMED`；指标层由此得到确认预订率、真实下单时刻的提前预订天数和实付偏差。**是自述不是回执**——系统核不了订单号，来源固定标为 `SELF_REPORTED`；一个任务一条，写了不改；
 - FastAPI 外壳以及 887 个测试；另有 540 条版本化派生评测案例：60 条逐条运行完整工作流，480 条逐条运行真实意图编排入口并按来源、场景和 cohort 输出质量与安全指标。
 

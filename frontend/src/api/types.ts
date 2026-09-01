@@ -415,6 +415,7 @@ export interface TripTask {
   approval: ApprovalInfo | null
   booking_intent: BookingIntent | null
   booking_confirmation: BookingConfirmation | null
+  budget_snapshot: BudgetSnapshot | null
   summary: false
 }
 
@@ -456,6 +457,41 @@ export interface ActivePolicy {
   level_rules: PolicyLevelRule[]
   hotel_city_caps: PolicyHotelCap[]
   exception_allowed_rule_ids: string[]
+  /** 至少提前几天订；null 是这版政策没有这条规则。 */
+  min_advance_booking_days: number | null
+  /** 淡旺季夜费上限：入住日落在窗口内就替代基础上限。 */
+  hotel_seasonal_caps: PolicySeasonalCap[]
+  /** 成本中心预算上限；用掉多少见任务上的 budget_snapshot。 */
+  cost_center_budgets: PolicyCostCenterBudget[]
+}
+
+export interface PolicySeasonalCap {
+  city: string
+  label: string
+  season_from: string
+  season_to: string
+  nightly_cap: string
+}
+
+export interface PolicyCostCenterBudget {
+  cost_center: string
+  amount: string
+  currency: string
+  period_from: string
+  period_to: string
+}
+
+/** 规划那一刻钉住的预算余额快照；没接账本、没成本中心或政策没配预算时任务上是 null。 */
+export interface BudgetSnapshot {
+  snapshot_id: string
+  cost_center: string
+  currency: string
+  limit: string
+  spent: string
+  period_from: string
+  period_to: string
+  computed_at: string
+  source: string
 }
 
 /** 结构化创建时可用的硬约束枚举。 */

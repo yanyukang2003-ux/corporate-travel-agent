@@ -9,12 +9,13 @@ class PolicyEvidenceTests(unittest.TestCase):
     def test_every_decision_has_versioned_rule_evidence(self) -> None:
         workflow, _ = build_demo_system(clock=lambda: DEMO_CLOCK)
         task = workflow.create_task(make_demo_request(task_id="trip-policy-evidence"))
+        active_version = workflow.policies.current().policy_version
 
         for option in task.options:
             self.assertTrue(option.policy_decision.evidence)
             for evidence in option.policy_decision.evidence:
                 self.assertTrue(evidence.rule_id)
-                self.assertEqual(evidence.policy_version, "travel-policy-v1")
+                self.assertEqual(evidence.policy_version, active_version)
                 self.assertTrue(evidence.actual)
                 self.assertTrue(evidence.threshold)
 

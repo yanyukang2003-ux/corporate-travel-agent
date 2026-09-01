@@ -24,6 +24,7 @@ from itertools import product
 from corporate_travel_agent.domain.enums import PolicyOutcome, TransportMode
 from corporate_travel_agent.domain.models import (
     COMMUTE_UNKNOWN_MINUTES,
+    BudgetSnapshot,
     EmployeeProfileSnapshot,
     EmployeeTravelProfileSnapshot,
     HotelOffer,
@@ -154,8 +155,13 @@ class ItineraryPlanner:
         journey_fares: Sequence[Sequence[TransportOffer]] = (),
         profile: EmployeeTravelProfileSnapshot | None = None,
         now: datetime,
+        budget: BudgetSnapshot | None = None,
     ) -> list[TravelOptionVersion]:
         """产出最多 ``limit`` 条**互不相同的**方案，外加需要说明的被挡方案。
+
+        ``budget`` 是规划那一刻钉住的预算余额快照；整条方案的总价拿它判
+        ``budget.cost_center.remaining``。None 表示账本没接上——政策配了预算时，
+        引擎会把这条判成"判不了"，而不是当作没超。
 
         ``leg_offers`` 按航段顺序给：第 i 项是第 i 段的报价。段数由请求自己说了算
         （`planned_leg_count`），少给的段按"没货"处理。此前这里是
@@ -206,6 +212,7 @@ class ItineraryPlanner:
                 limit,
                 profile=profile,
                 now=now,
+                budget=budget,
             )
         )
         for shape in _enumerate_shapes(pools, stay_pools):
@@ -221,6 +228,7 @@ class ItineraryPlanner:
                     limit,
                     profile=profile,
                     now=now,
+                    budget=budget,
                 )
             )
 
@@ -240,6 +248,7 @@ class ItineraryPlanner:
         *,
         profile: EmployeeTravelProfileSnapshot | None = None,
         now: datetime,
+        budget: BudgetSnapshot | None = None,
     ) -> list[tuple[PlanShape, TravelOptionVersion]]:
         """整票各自评成方案。**一张整票是一个不可拆的候选。**
 
@@ -294,6 +303,7 @@ class ItineraryPlanner:
                     minutes_per_unit,
                     profile=profile,
                     now=now,
+                    budget=budget,
                 )
                 if option is not None:
                     results.append((shape, option))
@@ -393,6 +403,7 @@ class ItineraryPlanner:
         *,
         profile: EmployeeTravelProfileSnapshot | None = None,
         now: datetime,
+        budget: BudgetSnapshot | None = None,
     ) -> list[tuple[PlanShape, TravelOptionVersion]]:
         """这种走法值得摆出来的几条方案。
 
@@ -440,6 +451,7 @@ class ItineraryPlanner:
                 minutes_per_unit,
                 profile=profile,
                 now=now,
+                budget=budget,
             )
             if option is not None:
                 results.append((shape, option))
@@ -457,6 +469,7 @@ class ItineraryPlanner:
         *,
         profile: EmployeeTravelProfileSnapshot | None = None,
         now: datetime,
+        budget: BudgetSnapshot | None = None,
     ) -> TravelOptionVersion | None:
         """把一种走法的一组具体报价评成一条方案；不可行则返回 None。"""
         stays = tuple(stays)
@@ -469,7 +482,10 @@ class ItineraryPlanner:
         # 政策只做标注，不在这里过滤。被禁的方案也要带着理由留在结果里——
         # 否则旅行者只会看到一份莫名偏贵的列表，永远不知道最便宜那个是被政策禁的。
         # 要不要展示给用户，是展示层的决定，不是规划层的决定。
-        decision = self.policy_engine.evaluate(employee, policy, transports, stays)
+        # 整条方案在这里判：提前天数要 now，预算要整趟总价——逐项分档那一步谈不上它们。
+        decision = self.policy_engine.evaluate(
+            employee, policy, transports, stays, now=now, budget=budget, assess_budget=True
+        )
 
         total_cost = sum((item.price for item in transports), Decimal("0"))
         total_cost += sum((stay.total_price for stay in stays), Decimal("0"))

@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 from collections.abc import Iterable
-from datetime import date, timedelta
+from datetime import UTC, date, datetime, timedelta
+from decimal import Decimal
 
 from corporate_travel_agent.domain.enums import PolicyOutcome, TransportMode
 from corporate_travel_agent.domain.models import (
+    BudgetSnapshot,
     EmployeeProfileSnapshot,
     HotelOffer,
     PolicyDecision,
@@ -80,11 +82,25 @@ class PolicyEngine:
         policy: PolicySnapshot,
         transports: Iterable[TransportOffer],
         stays: Iterable[HotelOffer] | HotelOffer | None,
+        *,
+        now: datetime | None = None,
+        budget: BudgetSnapshot | None = None,
+        assess_budget: bool = False,
     ) -> PolicyDecision:
-        """评估职级舱位、币种、酒店上限与政策生效窗口，聚合为 PolicyDecision。
+        """评估职级舱位、币种、酒店上限、生效窗口、提前预订、淡旺季与预算，聚合为 PolicyDecision。
 
         ``stays`` 收的是**整串住宿**：多城行程一站一处，每处各判自己那座城市的
         夜费上限。它仍接受单个酒店或 ``None``，既有调用方一个字都不用改。
+
+        三条后加的规则各自有"没有暴露面就不判"的口径，**不判和判不了是两回事**：
+
+        - 提前预订天数（``booking.advance_days``）需要 ``now``。调用方没给（只想看
+          一张报价本身合不合规的诊断调用）就不产这条证据；政策没配这条规则也不产。
+        - 淡旺季上限（``hotel.city.seasonal_cap``）在入住日落进某个窗口时**替代**基础上限。
+        - 预算（``budget.cost_center.remaining``）判的是**整趟**的总价，逐张报价的调用
+          谈不上它，所以要调用方用 ``assess_budget=True`` 明确要求。要求了却没有
+          ``budget``（账本没接上）才是"判不了"。政策没给这位员工的成本中心配预算，
+          同样不产证据。
         """
         transports = tuple(transports)
         hotels = _as_hotels(stays)
@@ -154,10 +170,18 @@ class PolicyEngine:
                 )
             )
 
+        advance_evidence = self._advance_days_evidence(policy, transports, now)
+        if advance_evidence is not None:
+            evidence.append(advance_evidence)
+
         # 一站一条证据。规则名不变——同一个 rule_id 出现多次是既有做法
         # （每段交通各产一条 seat_class），聚合照旧取最差的一档。
         for hotel in hotels:
             if hotel.currency != policy.currency:
+                continue
+            season = policy.seasonal_cap_for(hotel.city, hotel.check_in)
+            if season is not None:
+                evidence.append(self._seasonal_cap_evidence(policy, hotel, season))
                 continue
             cap = policy.hotel_city_caps.get(hotel.city)
             rule_id = "hotel.city.nightly_cap"
@@ -205,7 +229,141 @@ class PolicyEngine:
                     )
                 )
 
+        if assess_budget:
+            budget_evidence = self._budget_evidence(
+                employee, policy, transports, hotels, budget
+            )
+            if budget_evidence is not None:
+                evidence.append(budget_evidence)
+
         return PolicyDecision(self._aggregate(item.outcome for item in evidence), tuple(evidence))
+
+    @classmethod
+    def _advance_days_evidence(
+        cls,
+        policy: PolicySnapshot,
+        transports: tuple[TransportOffer, ...],
+        now: datetime | None,
+    ) -> RuleEvidence | None:
+        """至少提前几天订：按**出发地当地的日历日**数，不按 24 小时整段数。
+
+        "8 月 1 日晚上订 8 月 4 日早上的票"是提前 3 天，哪怕不足 72 小时——
+        差标写的是"天"，人也是这么理解的。
+        """
+        minimum = policy.min_advance_booking_days
+        if minimum is None or now is None or not transports:
+            return None
+        first = min(transports, key=lambda item: item.depart_at)
+        # 报价的出发时刻带着出发地时区（Provider 契约）；万一是裸时间就按 UTC 数，不猜。
+        zone = first.depart_at.tzinfo or UTC
+        booked_day = now.astimezone(zone).date()
+        days = (first.depart_at.date() - booked_day).days
+        rule_id = "booking.advance_days"
+        compliant = days >= minimum
+        outcome = PolicyOutcome.COMPLIANT if compliant else cls._exception_outcome(rule_id, policy)
+        return RuleEvidence(
+            rule_id=rule_id,
+            actual=f"{days} days",
+            threshold=f">= {minimum} days",
+            policy_version=policy.policy_version,
+            outcome=outcome,
+            message=(
+                f"{first.ref_id}: booked {days} days ahead, at least {minimum} required."
+                if compliant
+                else f"{first.ref_id}: booked only {days} days ahead; policy requires "
+                f"at least {minimum}."
+            ),
+            exception_allowed=outcome is PolicyOutcome.REQUIRES_APPROVAL,
+        )
+
+    @classmethod
+    def _seasonal_cap_evidence(
+        cls, policy: PolicySnapshot, hotel: HotelOffer, season
+    ) -> RuleEvidence:
+        rule_id = "hotel.city.seasonal_cap"
+        compliant = hotel.nightly_price <= season.nightly_cap
+        outcome = PolicyOutcome.COMPLIANT if compliant else cls._exception_outcome(rule_id, policy)
+        window = f"{season.season_from.isoformat()}..{season.season_to.isoformat()}"
+        return RuleEvidence(
+            rule_id=rule_id,
+            actual=str(hotel.nightly_price),
+            threshold=f"{season.nightly_cap} ({season.label}, {window})",
+            policy_version=policy.policy_version,
+            outcome=outcome,
+            message=(
+                f"{hotel.name}: nightly price {hotel.nightly_price} is within the "
+                f"{season.label} cap {season.nightly_cap}."
+                if compliant
+                else f"{hotel.name}: nightly price {hotel.nightly_price} exceeds the "
+                f"{season.label} cap {season.nightly_cap} ({window})."
+            ),
+            exception_allowed=outcome is PolicyOutcome.REQUIRES_APPROVAL,
+            actual_amount=hotel.nightly_price,
+            threshold_amount=season.nightly_cap,
+            amount_currency=policy.currency,
+        )
+
+    @classmethod
+    def _budget_evidence(
+        cls,
+        employee: EmployeeProfileSnapshot,
+        policy: PolicySnapshot,
+        transports: tuple[TransportOffer, ...],
+        hotels: tuple[HotelOffer, ...],
+        budget: BudgetSnapshot | None,
+    ) -> RuleEvidence | None:
+        """整趟总价对成本中心剩余预算。
+
+        只在政策给这位员工的成本中心配了预算时才判。配了却拿不到账本快照，是
+        "判不了"，摆出来请人定——不是当作没超。
+        """
+        cost_center = employee.cost_center
+        if cost_center is None:
+            return None
+        configured = policy.cost_center_budgets.get(cost_center)
+        if configured is None:
+            return None
+        rule_id = "budget.cost_center.remaining"
+        if budget is None or budget.cost_center != cost_center:
+            return RuleEvidence(
+                rule_id=rule_id,
+                actual="budget ledger unavailable",
+                threshold=f"{configured.amount} {configured.currency} per period",
+                policy_version=policy.policy_version,
+                outcome=PolicyOutcome.INSUFFICIENT_EVIDENCE,
+                message=(
+                    f"A budget is configured for cost center {cost_center} but no budget "
+                    "snapshot was available at planning time."
+                ),
+                exception_allowed=False,
+            )
+        priced = (*transports, *hotels)
+        if any(item.currency != budget.currency for item in priced):
+            # 币种不一致已经由 pricing.currency 判成"判不了"，这里不再叠一条。
+            return None
+        total = sum((item.price for item in transports), Decimal("0"))
+        total += sum((hotel.total_price for hotel in hotels), Decimal("0"))
+        remaining = budget.remaining
+        compliant = total <= remaining
+        outcome = PolicyOutcome.COMPLIANT if compliant else cls._exception_outcome(rule_id, policy)
+        return RuleEvidence(
+            rule_id=rule_id,
+            actual=str(total),
+            threshold=f"{remaining} remaining of {budget.limit}",
+            policy_version=policy.policy_version,
+            outcome=outcome,
+            message=(
+                f"Trip total {total} fits the remaining budget {remaining} of "
+                f"cost center {cost_center}."
+                if compliant
+                else f"Trip total {total} exceeds the remaining budget {remaining} of "
+                f"cost center {cost_center} (limit {budget.limit}, spent {budget.spent})."
+            ),
+            exception_allowed=outcome is PolicyOutcome.REQUIRES_APPROVAL,
+            actual_amount=total,
+            threshold_amount=max(remaining, Decimal("0")),
+            amount_currency=budget.currency,
+        )
 
     @staticmethod
     def _travel_service_dates(

@@ -17,9 +17,11 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator, model_validator
 
 from corporate_travel_agent.domain.models import (
+    CostCenterBudget,
     EmployeeProfileSnapshot,
     LevelTravelRule,
     PolicySnapshot,
+    SeasonalHotelCap,
 )
 from corporate_travel_agent.services.city_registry import city_registry
 
@@ -29,6 +31,9 @@ KNOWN_EXCEPTION_RULE_IDS = frozenset(
         "transport.flight.seat_class",
         "transport.train.seat_class",
         "hotel.city.nightly_cap",
+        "hotel.city.seasonal_cap",
+        "booking.advance_days",
+        "budget.cost_center.remaining",
     }
 )
 
@@ -78,6 +83,57 @@ class EmployeeConfig(StrictConfigModel):
     department: str = Field(min_length=1, max_length=100)
     home_city_code: str = Field(pattern=r"^[A-Z]{2}-[A-Z0-9]{2,8}$")
     manager_id: str = Field(pattern=r"^[A-Za-z0-9._-]{1,64}$")
+    #: 成本中心。不填就没有预算规则；填了但政策没给它配预算，同样没有。
+    cost_center: str | None = Field(default=None, pattern=r"^[A-Za-z0-9._-]{1,64}$")
+
+
+def _safe_money(value: Decimal, label: str) -> Decimal:
+    if value.is_nan() or value.is_infinite() or value <= 0 or value > Decimal("1000000000"):
+        raise ValueError(f"invalid amount for {label}")
+    if value.as_tuple().exponent < -2:
+        raise ValueError(f"amount for {label} has more than two decimals")
+    return value
+
+
+class SeasonalHotelCapConfig(StrictConfigModel):
+    """某城市在某日期窗口内的夜费上限（旺季/会展季）。"""
+
+    city_code: str = Field(pattern=r"^[A-Z]{2}-[A-Z0-9]{2,8}$")
+    label: str = Field(min_length=1, max_length=60)
+    season_from: date
+    season_to: date
+    nightly_cap: Decimal
+
+    @field_validator("nightly_cap")
+    @classmethod
+    def cap_is_safe(cls, value: Decimal) -> Decimal:
+        return _safe_money(value, "seasonal hotel cap")
+
+    @model_validator(mode="after")
+    def window_is_ordered(self) -> SeasonalHotelCapConfig:
+        if self.season_to < self.season_from:
+            raise ValueError("season_to cannot be earlier than season_from")
+        return self
+
+
+class CostCenterBudgetConfig(StrictConfigModel):
+    """一个成本中心在一个预算期内的差旅预算上限；币种跟政策快照走。"""
+
+    cost_center: str = Field(pattern=r"^[A-Za-z0-9._-]{1,64}$")
+    amount: Decimal
+    period_from: date
+    period_to: date
+
+    @field_validator("amount")
+    @classmethod
+    def amount_is_safe(cls, value: Decimal) -> Decimal:
+        return _safe_money(value, "cost center budget")
+
+    @model_validator(mode="after")
+    def period_is_ordered(self) -> CostCenterBudgetConfig:
+        if self.period_to < self.period_from:
+            raise ValueError("period_to cannot be earlier than period_from")
+        return self
 
 
 class LevelTravelRuleConfig(StrictConfigModel):
@@ -111,6 +167,21 @@ class PolicySnapshotConfig(StrictConfigModel):
     level_rules: dict[str, LevelTravelRuleConfig] = Field(min_length=1, max_length=100)
     hotel_city_caps: dict[str, Decimal] = Field(default_factory=dict, max_length=1000)
     exception_allowed_rule_ids: frozenset[str] = Field(default_factory=frozenset)
+    # 后加的三个维度。都是可选的：旧配置一个字不改仍然合法，内容哈希也不变
+    # （见 `_policy_content_hash`）——这是"配置升级只追加快照"那条规矩的前提。
+    min_advance_booking_days: int | None = Field(default=None, ge=0, le=365)
+    hotel_seasonal_caps: tuple[SeasonalHotelCapConfig, ...] = Field(default=(), max_length=1000)
+    cost_center_budgets: tuple[CostCenterBudgetConfig, ...] = Field(default=(), max_length=10000)
+
+    @field_validator("cost_center_budgets")
+    @classmethod
+    def budgets_name_distinct_cost_centers(
+        cls, values: tuple[CostCenterBudgetConfig, ...]
+    ) -> tuple[CostCenterBudgetConfig, ...]:
+        names = [item.cost_center for item in values]
+        if len(names) != len(set(names)):
+            raise ValueError("each cost center may have at most one budget per policy")
+        return values
 
     @field_validator("level_rules")
     @classmethod
@@ -223,6 +294,14 @@ class EnterpriseTravelPolicyConfig(StrictConfigModel):
                 raise ValueError(
                     "hotel caps reference unknown city codes: "
                     + ", ".join(sorted(unknown_cities))
+                )
+            unknown_seasonal = {
+                item.city_code for item in policy.hotel_seasonal_caps
+            } - city_codes
+            if unknown_seasonal:
+                raise ValueError(
+                    "seasonal hotel caps reference unknown city codes: "
+                    + ", ".join(sorted(unknown_seasonal))
                 )
         return self
 
@@ -381,6 +460,7 @@ def _parse_policy_configuration(
             home_city=cities[employee.home_city_code],
             manager_id=employee.manager_id,
             profile_version=employee.profile_version,
+            cost_center=employee.cost_center,
         )
         for employee in config.employees
     )
@@ -405,6 +485,27 @@ def _parse_policy_configuration(
             effective_to=policy.effective_to,
             content_hash=_policy_content_hash(policy),
             currency=policy.currency,
+            min_advance_booking_days=policy.min_advance_booking_days,
+            hotel_seasonal_caps=tuple(
+                SeasonalHotelCap(
+                    city=cities[item.city_code],
+                    season_from=item.season_from,
+                    season_to=item.season_to,
+                    nightly_cap=item.nightly_cap,
+                    label=item.label,
+                )
+                for item in policy.hotel_seasonal_caps
+            ),
+            cost_center_budgets={
+                item.cost_center: CostCenterBudget(
+                    cost_center=item.cost_center,
+                    amount=item.amount,
+                    period_from=item.period_from,
+                    period_to=item.period_to,
+                    currency=policy.currency,
+                )
+                for item in policy.cost_center_budgets
+            },
         )
         for policy in config.policies
     )
@@ -440,6 +541,11 @@ def _policy_content_hash(policy: PolicySnapshotConfig) -> str:
     # currency is part of the immutable policy content.
     if "currency" not in policy.model_fields_set:
         payload.pop("currency", None)
+    # 同样的道理，后加的三个维度只有**写了**才进哈希：没写的旧快照哈希一位不变，
+    # 否则升级代码那一刻所有在途任务都会被"政策内容变了"拦下来。
+    for name in ("min_advance_booking_days", "hotel_seasonal_caps", "cost_center_budgets"):
+        if name not in policy.model_fields_set:
+            payload.pop(name, None)
     canonical = json.dumps(
         _canonicalize_sets(policy, payload),
         ensure_ascii=False,

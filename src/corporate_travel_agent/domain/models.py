@@ -37,6 +37,9 @@ class EmployeeProfileSnapshot:
     home_city: str
     manager_id: str
     profile_version: int = 1
+    #: 成本中心。预算规则按它找这位员工的预算，下单确认按它扣减。
+    #: None 是"档案里没填"，规则不会因此凭空判——它只是不判预算这一条。
+    cost_center: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -102,6 +105,39 @@ class LevelTravelRule:
 
 
 @dataclass(frozen=True, slots=True)
+class SeasonalHotelCap:
+    """某座城市在某个日期窗口内的夜费上限（旺季比平时高，或者会展季比平时低）。
+
+    入住日落在 ``[season_from, season_to]`` 里，这一条就**替代**基础上限——
+    一晚只有一个上限说了算，不会同时判两次。
+    """
+
+    city: str
+    season_from: date
+    season_to: date
+    nightly_cap: Decimal
+    label: str
+
+    def covers(self, day: date) -> bool:
+        return self.season_from <= day <= self.season_to
+
+
+@dataclass(frozen=True, slots=True)
+class CostCenterBudget:
+    """一个成本中心在一个预算期内的差旅预算上限。
+
+    上限写在政策快照里（它是公司的规则）；**用掉多少不在这里**——那来自员工回填的
+    下单确认，由 `services/budget_ledger.py` 在规划那一刻算出来，钉成 `BudgetSnapshot`。
+    """
+
+    cost_center: str
+    amount: Decimal
+    period_from: date
+    period_to: date
+    currency: str
+
+
+@dataclass(frozen=True, slots=True)
 class PolicySnapshot:
     """差旅政策版本快照（职级规则、酒店上限、到达缓冲等）。"""
 
@@ -115,6 +151,55 @@ class PolicySnapshot:
     effective_to: date | None = None
     content_hash: str = ""
     currency: str = "USD"
+    #: 至少提前几天订。None 是"这版政策没有这条规则"，不是 0。
+    min_advance_booking_days: int | None = None
+    #: 淡旺季夜费上限，按城市和日期窗口。为空就只有基础上限。
+    hotel_seasonal_caps: tuple[SeasonalHotelCap, ...] = ()
+    #: 成本中心 → 预算。为空就没有预算规则。
+    cost_center_budgets: dict[str, CostCenterBudget] = field(default_factory=dict)
+
+    def seasonal_cap_for(self, city: str, day: date) -> SeasonalHotelCap | None:
+        """入住日 ``day`` 在 ``city`` 适用哪条淡旺季上限；没有就是 None。
+
+        窗口重叠时取上限**最低**的那条：两条都说自己适用，就按更严的判——
+        放宽是审批人的事，不是引擎替公司做的决定。
+        """
+        matches = [
+            item
+            for item in self.hotel_seasonal_caps
+            if item.city == city and item.covers(day)
+        ]
+        if not matches:
+            return None
+        return min(matches, key=lambda item: (item.nightly_cap, item.label))
+
+
+@dataclass(frozen=True, slots=True)
+class BudgetSnapshot:
+    """规划那一刻，这位员工的成本中心还剩多少预算。
+
+    和政策快照、习惯画像一样是**快照**：算出来钉进任务，此后这趟任务再规划多少次都
+    用同一份。别人下一秒确认了一单、余额变了，这趟任务"当初为什么这么判"仍然答得上来。
+
+    `spent` 来自员工回填的下单确认（`BookingConfirmation`），**是自述，不是费控回执**；
+    费控对账接上之前，这个数的可信度和确认记录一样。
+    """
+
+    snapshot_id: str
+    cost_center: str
+    currency: str
+    limit: Decimal
+    spent: Decimal
+    period_from: date
+    period_to: date
+    computed_at: datetime
+    #: 用掉的数从哪来。今天只有一种：本系统里回填的下单确认。
+    source: str = "booking_confirmations"
+
+    @property
+    def remaining(self) -> Decimal:
+        """还能花多少；超支了就是负数，不截断——负数本身就是信息。"""
+        return self.limit - self.spent
 
 
 @dataclass(frozen=True, slots=True)

@@ -19,6 +19,7 @@ from corporate_travel_agent.domain.enums import TransportMode
 from corporate_travel_agent.domain.models import HotelOffer, TransportOffer, TripRequestVersion
 from corporate_travel_agent.providers.base import TravelInventoryProvider
 from corporate_travel_agent.providers.mock import MockProvider
+from corporate_travel_agent.services.budget_ledger import RepositoryTripBudgetLedger
 from corporate_travel_agent.services.locations import CityNormalizer
 from corporate_travel_agent.services.object_storage import RawResponseObjectStore
 from corporate_travel_agent.services.policy_config import (
@@ -76,6 +77,8 @@ def build_demo_system(
     #: 员工习惯画像的历史来源。默认 None——这一层默认关着，理由见
     #: `TripWorkflowOrchestrator.__init__` 上的说明。
     trip_history: object | None = None,
+    #: 预算账本。默认读同一个任务仓储里回填过的下单确认；政策没配预算就不会有规则。
+    budget_ledger: object | None = None,
 ) -> tuple[TripWorkflowOrchestrator, TravelInventoryProvider]:
     """构建演示系统：返回 (Orchestrator, Provider)，便于本地/API 冒烟。"""
     effective_clock = clock or (lambda: datetime.now(UTC))
@@ -184,8 +187,9 @@ def build_demo_system(
             raw_response_store=raw_response_store,
             raw_response_retention_days=raw_response_retention_days,
         )
+    tasks = task_repository or InMemoryTaskRepository()
     workflow = TripWorkflowOrchestrator(
-        tasks=task_repository or InMemoryTaskRepository(),
+        tasks=tasks,
         employees=InMemoryEmployeeDirectory(list(policy_configuration.employee_snapshots)),
         policies=InMemoryPolicyRepository(
             policy_configuration.policy_snapshots,
@@ -193,6 +197,7 @@ def build_demo_system(
         ),
         provider=provider,
         trip_history=trip_history,
+        budget_ledger=budget_ledger or RepositoryTripBudgetLedger(tasks),
         tool_calling_language_model=tool_calling_language_model,
         agentic_tool_call_limit=agentic_tool_call_limit,
         clock=effective_clock,

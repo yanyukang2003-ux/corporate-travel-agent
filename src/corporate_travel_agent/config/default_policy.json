@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
-  "config_version": "demo-config-v1",
+  "config_version": "demo-config-v2",
   "timezone_name": "Asia/Shanghai",
-  "active_policy_snapshot_id": "policy-travel-v1-20260801",
+  "active_policy_snapshot_id": "policy-travel-v2-20260901",
   "cities": [
     {
       "code": "CN-BJS",
@@ -231,7 +231,8 @@
       "level": "L3",
       "department": "Sales",
       "home_city_code": "CN-BJS",
-      "manager_id": "M2001"
+      "manager_id": "M2001",
+      "cost_center": "CC-SALES-CN"
     }
   ],
   "policies": [
@@ -267,6 +268,68 @@
       "exception_allowed_rule_ids": [
         "transport.flight.seat_class",
         "hotel.city.nightly_cap"
+      ]
+    },
+    {
+      "snapshot_id": "policy-travel-v2-20260901",
+      "policy_version": "travel-policy-v2",
+      "currency": "USD",
+      "effective_from": "2026-08-01",
+      "effective_to": null,
+      "arrival_buffer_minutes": 60,
+      "level_rules": {
+        "L3": {
+          "allowed_flight_classes": [
+            "ECONOMY"
+          ],
+          "allowed_train_classes": [
+            "SECOND_CLASS"
+          ]
+        }
+      },
+      "hotel_city_caps": {
+        "CN-SHA": "600",
+        "US-NYC": "350",
+        "US-PHL": "280",
+        "US-LAX": "300",
+        "US-SFO": "320",
+        "GB-LON": "320",
+        "FR-PAR": "300",
+        "JP-TYO": "280",
+        "SG-SIN": "260",
+        "HK-HKG": "300"
+      },
+      "exception_allowed_rule_ids": [
+        "booking.advance_days",
+        "budget.cost_center.remaining",
+        "hotel.city.nightly_cap",
+        "hotel.city.seasonal_cap",
+        "transport.flight.seat_class"
+      ],
+      "min_advance_booking_days": 3,
+      "hotel_seasonal_caps": [
+        {
+          "city_code": "US-NYC",
+          "label": "year-end peak",
+          "season_from": "2026-11-20",
+          "season_to": "2026-12-31",
+          "nightly_cap": "450"
+        },
+        {
+          "city_code": "JP-TYO",
+          "label": "cherry blossom season",
+          "season_from": "2027-03-20",
+          "season_to": "2027-04-10",
+          "nightly_cap": "380"
+        }
+      ],
+      "cost_center_budgets": [
+        {
+          "cost_center": "CC-SALES-CN",
+          "amount": "20000",
+          "period_from": "2026-01-01",
+          "period_to": "2026-12-31"
+        }
       ]
     }
   ]

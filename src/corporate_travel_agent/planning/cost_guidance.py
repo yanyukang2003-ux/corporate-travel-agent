@@ -181,9 +181,13 @@ def _overage_from(evidence: RuleEvidence) -> PolicyOverage | None:
     return PolicyOverage(
         rule_id=evidence.rule_id,
         amount=amount,
-        # 今天只有夜费上限一条数值规则，它判的是每晚。多一条规则就在这里多一个分支，
-        # 而不是让读的人默认所有金额都是同一个单位。
-        unit="per_night" if evidence.rule_id == "hotel.city.nightly_cap" else "total",
+        # 夜费上限（基础和淡旺季）判的是每晚；预算判的是整趟。多一条规则就在这里
+        # 多一个分支，而不是让读的人默认所有金额都是同一个单位。
+        unit=(
+            "per_night"
+            if evidence.rule_id in {"hotel.city.nightly_cap", "hotel.city.seasonal_cap"}
+            else "total"
+        ),
         currency=evidence.amount_currency,
         exception_allowed=evidence.exception_allowed,
     )
