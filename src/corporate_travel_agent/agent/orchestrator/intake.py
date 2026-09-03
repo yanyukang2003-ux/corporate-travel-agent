@@ -317,9 +317,10 @@ class IntakeMixin(OrchestratorState):
         # 适配器的 exchanges 是跨任务累计的，先记下起点，结束后只切走本轮的那一段。
         exchanges_before = len(model.exchanges) if isinstance(model, ExchangeRecordingModel) else 0
         run_started_at = self.clock()
-        # 循环期间**留在 DRAFT**。它把"理解"和"搜索"交织在一起做，现有状态机里
-        # 没有一个格子正好对应这件事；进 SEARCHING 会让"最后决定提问"变成非法迁移。
-        # 状态标签在这里比循环实际做的事粗——真实经过在 tool_calls 和审计里。
+        # 循环有自己的格子：AGENT_RUNNING（ADR-0009）。理解和搜索在里面交织进行，收场时按
+        # 终局动作迁出——问、越界、空库存、失败各有各的出边；搜到了东西才进 PLANNING。
+        # 此前循环期间留在 DRAFT，事后补 SEARCHING → PLANNING 两次迁移只为让边合法。
+        self.recorder.transition(task, TaskState.AGENT_RUNNING)
         try:
             outcome = runner.run(ledger.render(), context=context)
         except ToolBudgetExceeded:
@@ -409,8 +410,6 @@ class IntakeMixin(OrchestratorState):
             )
             task.failure = str(exc)
             task.options = []
-            # 先记 SEARCHING 再记失败：库存确实去要过了，状态机也只从这里通往 PROVIDER_FAILED。
-            self.recorder.transition(task, TaskState.SEARCHING)
             self.recorder.transition(task, TaskState.PROVIDER_FAILED)
             self.recorder.audit(
                 task, "AGENTIC_PROVIDER_FAILED", {"turns": len(ledger.turns)}, task.failure
@@ -599,9 +598,7 @@ class IntakeMixin(OrchestratorState):
             )
         )
         self.recorder.record_searches(task, executor.searches)
-        self.recorder.transition(task, TaskState.SEARCHING)
         self._audit_snapshots(task, list(executor.captured_snapshots))
-        self.recorder.transition(task, TaskState.PLANNING)
         task.request = None
         task.options = []
         task.selected_option_id = None
@@ -677,7 +674,6 @@ class IntakeMixin(OrchestratorState):
         # 搜索出处从执行器抄到任务上。**抄全部，不只抄用上的那几次**：
         # "我们还搜过这条航线、结果是空的"本身就是溯源的一部分。
         self.recorder.record_searches(task, executor.searches)
-        self.recorder.transition(task, TaskState.SEARCHING)
         invalid = self._invalid_snapshot_ids([*leg_snapshots, *hotel_snapshots])
         if invalid:
             task.failure = "provider returned expired or invalid inventory snapshots: " + ", ".join(

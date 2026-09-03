@@ -155,12 +155,18 @@ Provider 明确返回无库存，不做模型猜测。库存为空时，`NO_FEAS
 ```mermaid
 stateDiagram-v2
     [*] --> DRAFT
-    DRAFT --> NEEDS_CLARIFICATION: 缺字段或冲突
+    DRAFT --> AGENT_RUNNING: 自然语言，工具循环开始
+    DRAFT --> SEARCHING: 结构化请求
+    DRAFT --> NEEDS_STRUCTURED_INPUT: 重启恢复
+    DRAFT --> TOOL_BUDGET_EXHAUSTED: 搜索前预算不足
+    AGENT_RUNNING --> NEEDS_CLARIFICATION: 模型决定追问
+    AGENT_RUNNING --> NEEDS_STRUCTURED_INPUT: 五轮耗尽、循环没收敛或模型失败
+    AGENT_RUNNING --> OUT_OF_SCOPE: 非差旅范围请求
+    AGENT_RUNNING --> TOOL_BUDGET_EXHAUSTED: 预算耗尽
+    AGENT_RUNNING --> NO_FEASIBLE_OPTION: 搜过、每段都空
+    AGENT_RUNNING --> PROVIDER_FAILED: 供应商失败或快照无效
+    AGENT_RUNNING --> PLANNING: 交出方案，规划器接手
     NEEDS_CLARIFICATION --> DRAFT: 用户补充
-    DRAFT --> NEEDS_STRUCTURED_INPUT: 五轮耗尽或模型失败
-    DRAFT --> OUT_OF_SCOPE: 非差旅范围请求
-    DRAFT --> TOOL_BUDGET_EXHAUSTED: LLM 预算不足
-    DRAFT --> SEARCHING
     SEARCHING --> WAITING_FOR_PROVIDER: 可重试异常且即时尝试耗尽
     SEARCHING --> PROVIDER_FAILED: 不可重试异常
     SEARCHING --> TOOL_BUDGET_EXHAUSTED: 查询预算不足
@@ -191,6 +197,11 @@ stateDiagram-v2
 ```
 
 状态变化只能经过 `StateMachine.transition`。审批路径不存在到 `READY_FOR_HANDOFF` 的直达边，因此无法绕过重验。
+
+`AGENT_RUNNING`（2026-09-03 起，ADR-0009）是工具循环自己的格子：模型在里面读对话、挑工具、搜库存，收场时按终局
+动作迁出。此前循环期间留在 `DRAFT`，结束后补 `SEARCHING → PLANNING` 两次迁移只为让边合法，审计里会出现同一毫秒的
+三次迁移。现在只有真的跑了确定性规划器才进 `PLANNING`。重启恢复把只有模型调用在途的 `AGENT_RUNNING` 任务交给表单，
+供应商调用在途的一律先对账（`PROVIDER_FAILED`）。
 
 ### 4.1 交接之后：下单确认回流
 

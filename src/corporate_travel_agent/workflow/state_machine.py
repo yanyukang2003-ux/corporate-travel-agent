@@ -10,13 +10,27 @@ class InvalidTransition(ValueError):
 
 
 _ALLOWED: dict[TaskState, frozenset[TaskState]] = {
+    # DRAFT 只有两条出路：结构化请求直接进搜索；自然语言进工具循环。
+    # NEEDS_STRUCTURED_INPUT 是重启恢复的落点；预算耗尽在搜索前就可能发生。
     TaskState.DRAFT: frozenset(
         {
-            TaskState.NEEDS_CLARIFICATION,
+            TaskState.AGENT_RUNNING,
             TaskState.NEEDS_STRUCTURED_INPUT,
             TaskState.SEARCHING,
             TaskState.TOOL_BUDGET_EXHAUSTED,
+        }
+    ),
+    # 工具循环的格子：理解和搜索交织，收场时按终局动作迁出。搜到了东西才进 PLANNING
+    # （确定性规划器真的会跑）；问、越界、空库存、失败各有各的出边，不再借道 SEARCHING。
+    TaskState.AGENT_RUNNING: frozenset(
+        {
+            TaskState.NEEDS_CLARIFICATION,
+            TaskState.NEEDS_STRUCTURED_INPUT,
             TaskState.OUT_OF_SCOPE,
+            TaskState.TOOL_BUDGET_EXHAUSTED,
+            TaskState.NO_FEASIBLE_OPTION,
+            TaskState.PROVIDER_FAILED,
+            TaskState.PLANNING,
         }
     ),
     TaskState.NEEDS_CLARIFICATION: frozenset({TaskState.DRAFT}),

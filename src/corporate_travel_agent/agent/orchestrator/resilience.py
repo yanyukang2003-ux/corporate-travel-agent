@@ -344,6 +344,7 @@ class ResilienceMixin(OrchestratorState):
         常是冻结的），两者混用会在冻结时钟下把真正的候选筛掉。时间判断留在下面按活动时间做。
         """
         states = (
+            TaskState.AGENT_RUNNING.value,
             TaskState.SEARCHING.value,
             TaskState.PLANNING.value,
             TaskState.REVALIDATING.value,
@@ -361,6 +362,7 @@ class ResilienceMixin(OrchestratorState):
                 record for record in task.tool_calls if record.status is ToolCallStatus.STARTED
             ]
             transient_state = task.state in {
+                TaskState.AGENT_RUNNING,
                 TaskState.SEARCHING,
                 TaskState.PLANNING,
                 TaskState.REVALIDATING,
@@ -424,9 +426,14 @@ class ResilienceMixin(OrchestratorState):
                 "failed_leg": leg_recon.get("recovery", {}).get("failed_leg"),
                 "will_auto_retry": False,
             }
+            # 草稿和只有模型调用在途的工具循环：交给表单；供应商调用在途的一律先对账。
+            provider_in_flight = any(record.tool_kind == "PROVIDER" for record in started_calls)
+            loop_without_provider = (
+                task.state is TaskState.AGENT_RUNNING and not provider_in_flight
+            )
             target = (
                 TaskState.NEEDS_STRUCTURED_INPUT
-                if task.state is TaskState.DRAFT
+                if task.state is TaskState.DRAFT or loop_without_provider
                 else TaskState.PROVIDER_FAILED
             )
             self.recorder.transition(task, target)

@@ -6,6 +6,7 @@
 /** 差旅任务在后端状态机中的全部可能状态。 */
 export type TaskState =
   | 'DRAFT'
+  | 'AGENT_RUNNING'
   | 'NEEDS_CLARIFICATION'
   | 'NEEDS_STRUCTURED_INPUT'
   | 'SEARCHING'

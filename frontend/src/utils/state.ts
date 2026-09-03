@@ -27,6 +27,12 @@ const STATE_META: Record<TaskState, StateMeta> = {
     tone: 'neutral',
     phase: 'intake',
   },
+  AGENT_RUNNING: {
+    label: '助手处理中',
+    description: '助手正在读需求、查库存，决定是追问还是给方案',
+    tone: 'info',
+    phase: 'intake',
+  },
   NEEDS_CLARIFICATION: {
     label: '需要澄清',
     description: '缺少必填信息或存在冲突，请补充说明',
@@ -294,6 +300,7 @@ export function shortId(id: string, keep = 8): string {
  */
 export function shouldPoll(state: TaskState): boolean {
   return (
+    state === 'AGENT_RUNNING' ||
     state === 'SEARCHING' ||
     state === 'PLANNING' ||
     state === 'REVALIDATING' ||

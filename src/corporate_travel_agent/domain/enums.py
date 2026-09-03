@@ -7,6 +7,9 @@ class TaskState(StrEnum):
     """差旅任务状态机状态（Orchestrator 按此分支）。"""
 
     DRAFT = "DRAFT"
+    #: 工具循环正在跑：模型在读对话、挑工具、搜库存、决定问还是交。理解和搜索交织在一起，
+    #: 所以它既不是 DRAFT 也不是 SEARCHING；循环收场时按终局动作迁出（ADR-0009）。
+    AGENT_RUNNING = "AGENT_RUNNING"
     NEEDS_CLARIFICATION = "NEEDS_CLARIFICATION"
     NEEDS_STRUCTURED_INPUT = "NEEDS_STRUCTURED_INPUT"
     SEARCHING = "SEARCHING"
