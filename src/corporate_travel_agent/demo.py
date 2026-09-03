@@ -55,52 +55,18 @@ SHANGHAI_TZ = ZoneInfo("Asia/Shanghai")
 DEMO_CLOCK = datetime(2026, 8, 1, 9, 0, tzinfo=SHANGHAI_TZ)
 
 
-def build_demo_system(
+def build_demo_provider(
     *,
-    tool_calling_language_model: object | None = None,
     clock: Callable[[], datetime] | None = None,
-    max_tool_calls: int = 12,
-    agentic_tool_call_limit: int = 20,
-    max_provider_attempts: int = MAX_PROVIDER_ATTEMPTS,
-    max_llm_attempts: int = 2,
-    retry_backoff_base_seconds: float = 0.5,
-    retry_sleep: Callable[[float], None] | None = None,
-    retry_jitter: Callable[[], float] | None = None,
-    provider_circuit_open_seconds: float = DEFAULT_CIRCUIT_OPEN_SECONDS,
-    #: 多实例共享的熔断状态存储；API 按 DATABASE_URL 换成 SQL，默认每个进程一份。
-    provider_circuit_store: ProviderCircuitStateStore | None = None,
-    max_delayed_provider_attempts: int = DEFAULT_MAX_DELAYED_PROVIDER_ATTEMPTS,
-    delayed_provider_retry_seconds: tuple[float, ...] = (DEFAULT_DELAYED_PROVIDER_RETRY_SECONDS),
-    max_concurrent_llm_calls: int = 8,
-    max_concurrent_provider_calls: int = 16,
-    tool_acquire_timeout_seconds: float = 5.0,
-    interrupted_task_stale_seconds: float = 30.0,
-    provider_retry_worker_id: str | None = None,
-    provider_retry_lease_seconds: float = 900.0,
-    task_repository: TaskRepository | None = None,
     raw_response_store: RawResponseObjectStore | None = None,
     raw_response_retention_days: int = 90,
-    policy_configuration: LoadedPolicyConfiguration | None = None,
-    trace_observer: WorkflowTraceObserverPort | None = None,
-    provider: TravelInventoryProvider | None = None,
-    #: 员工习惯画像的历史来源。默认 None——这一层默认关着，理由见
-    #: `TripWorkflowOrchestrator.__init__` 上的说明。
-    trip_history: TripHistoryPort | None = None,
-    #: 预算账本。默认读同一个任务仓储里回填过的下单确认；政策没配预算就不会有规则。
-    budget_ledger: BudgetLedgerPort | None = None,
-    #: 差旅聚合仓储。默认内存；API 按 DATABASE_URL 换成 SQL。
-    trip_repository: TripRepository | None = None,
-    #: 航班动态源。默认没接；API 按 FLIGHT_STATUS_SOURCE 装配。
-    flight_status_source: FlightStatusPort | None = None,
-    trip_watch_worker_id: str | None = None,
-    trip_watch_lease_seconds: float = 300.0,
-    trip_watch_lookahead_hours: int = 48,
-    min_connection_minutes: int = 60,
-    delay_notice_minutes: int = 15,
-) -> tuple[TripWorkflowOrchestrator, TravelInventoryProvider]:
-    """构建演示系统：返回 (Orchestrator, Provider)，便于本地/API 冒烟。"""
+) -> MockProvider:
+    """演示库存：北京—上海 2026-08-05 前后的几班机票 / 高铁和两家酒店，冻结不变。
+
+    没配外部供应商时，API 运行时（`api/runtime.py`）也从这里借这份库存；这是演示装配
+    留给产品代码的唯一入口，编排器本身不再经 `build_demo_system` 装。
+    """
     effective_clock = clock or (lambda: datetime.now(UTC))
-    policy_configuration = policy_configuration or load_policy_configuration()
     transports = [
         _transport(
             "CA-EVE",
@@ -197,10 +163,63 @@ def build_demo_system(
             commute_minutes=42,
         ),
     ]
+    return MockProvider(
+        transports,
+        hotels,
+        clock=effective_clock,
+        raw_response_store=raw_response_store,
+        raw_response_retention_days=raw_response_retention_days,
+    )
+
+
+def build_demo_system(
+    *,
+    tool_calling_language_model: object | None = None,
+    clock: Callable[[], datetime] | None = None,
+    max_tool_calls: int = 12,
+    agentic_tool_call_limit: int = 20,
+    max_provider_attempts: int = MAX_PROVIDER_ATTEMPTS,
+    max_llm_attempts: int = 2,
+    retry_backoff_base_seconds: float = 0.5,
+    retry_sleep: Callable[[float], None] | None = None,
+    retry_jitter: Callable[[], float] | None = None,
+    provider_circuit_open_seconds: float = DEFAULT_CIRCUIT_OPEN_SECONDS,
+    #: 多实例共享的熔断状态存储；API 按 DATABASE_URL 换成 SQL，默认每个进程一份。
+    provider_circuit_store: ProviderCircuitStateStore | None = None,
+    max_delayed_provider_attempts: int = DEFAULT_MAX_DELAYED_PROVIDER_ATTEMPTS,
+    delayed_provider_retry_seconds: tuple[float, ...] = (DEFAULT_DELAYED_PROVIDER_RETRY_SECONDS),
+    max_concurrent_llm_calls: int = 8,
+    max_concurrent_provider_calls: int = 16,
+    tool_acquire_timeout_seconds: float = 5.0,
+    interrupted_task_stale_seconds: float = 30.0,
+    provider_retry_worker_id: str | None = None,
+    provider_retry_lease_seconds: float = 900.0,
+    task_repository: TaskRepository | None = None,
+    raw_response_store: RawResponseObjectStore | None = None,
+    raw_response_retention_days: int = 90,
+    policy_configuration: LoadedPolicyConfiguration | None = None,
+    trace_observer: WorkflowTraceObserverPort | None = None,
+    provider: TravelInventoryProvider | None = None,
+    #: 员工习惯画像的历史来源。默认 None——这一层默认关着，理由见
+    #: `TripWorkflowOrchestrator.__init__` 上的说明。
+    trip_history: TripHistoryPort | None = None,
+    #: 预算账本。默认读同一个任务仓储里回填过的下单确认；政策没配预算就不会有规则。
+    budget_ledger: BudgetLedgerPort | None = None,
+    #: 差旅聚合仓储。默认内存；API 按 DATABASE_URL 换成 SQL。
+    trip_repository: TripRepository | None = None,
+    #: 航班动态源。默认没接；API 按 FLIGHT_STATUS_SOURCE 装配。
+    flight_status_source: FlightStatusPort | None = None,
+    trip_watch_worker_id: str | None = None,
+    trip_watch_lease_seconds: float = 300.0,
+    trip_watch_lookahead_hours: int = 48,
+    min_connection_minutes: int = 60,
+    delay_notice_minutes: int = 15,
+) -> tuple[TripWorkflowOrchestrator, TravelInventoryProvider]:
+    """构建演示系统：返回 (Orchestrator, Provider)，便于本地/API 冒烟。"""
+    effective_clock = clock or (lambda: datetime.now(UTC))
+    policy_configuration = policy_configuration or load_policy_configuration()
     if provider is None:
-        provider = MockProvider(
-            transports,
-            hotels,
+        provider = build_demo_provider(
             clock=effective_clock,
             raw_response_store=raw_response_store,
             raw_response_retention_days=raw_response_retention_days,

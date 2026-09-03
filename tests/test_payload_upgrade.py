@@ -208,8 +208,9 @@ def test_the_api_lists_around_an_incompatible_row_and_names_it_on_direct_read(tm
             text("UPDATE trip_tasks SET payload = :p WHERE task_id = 'bad-row'"),
             {"p": json.dumps({"schema_version": 1, "task": {"task_id": "bad-row"}})},
         )
-    previous = api_main.workflow
-    api_main.workflow = workflow
+    # 路由只认 app.state.runtime：换编排器要改运行时上的属性，不是重绑模块名字。
+    previous = api_main.runtime.workflow
+    api_main.runtime.workflow = workflow
     try:
         client = TestClient(api_main.app)
         listed = client.get("/trip-tasks?summary=false&limit=10")
@@ -221,4 +222,4 @@ def test_the_api_lists_around_an_incompatible_row_and_names_it_on_direct_read(tm
         assert direct.status_code == 500
         assert "upgrade_task_payloads" in direct.json()["detail"]
     finally:
-        api_main.workflow = previous
+        api_main.runtime.workflow = previous

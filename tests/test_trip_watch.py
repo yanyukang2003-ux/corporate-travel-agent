@@ -14,7 +14,6 @@ from __future__ import annotations
 import hashlib
 import hmac
 import json
-import os
 import unittest
 from collections.abc import Mapping, Sequence
 from datetime import datetime, timedelta
@@ -648,7 +647,7 @@ class TripWatchApiTests(unittest.TestCase):
         from corporate_travel_agent.api.main import _current_identity
 
         self.app.dependency_overrides.pop(_current_identity, None)
-        os.environ.pop("FLIGHT_STATUS_WEBHOOK_SECRET", None)
+        self.api_main.runtime.flight_status_webhook_secret = None
 
     def _as_employee(self, employee_id: str) -> None:
         from corporate_travel_agent.api.main import _current_identity
@@ -746,7 +745,7 @@ class TripWatchApiTests(unittest.TestCase):
         self.assertEqual(
             self.client.post("/flight-status/webhook", content=payload).status_code, 503
         )
-        os.environ["FLIGHT_STATUS_WEBHOOK_SECRET"] = "s3cret"
+        self.api_main.runtime.flight_status_webhook_secret = "s3cret"
         bad = self.client.post(
             "/flight-status/webhook",
             content=payload,

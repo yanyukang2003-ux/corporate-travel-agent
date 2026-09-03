@@ -118,6 +118,20 @@ class TravelInventoryProvider(Protocol):
 
 
 @runtime_checkable
+class Closeable(Protocol):
+    """可选能力：持有连接池 / HTTP 客户端的供应商，进程退出时要关。"""
+
+    def close(self) -> None: ...
+
+
+@runtime_checkable
+class ModeReporting(Protocol):
+    """可选能力：真实供应商报告自己跑在哪种模式（沙箱只读 / 只读）；健康检查照抄。"""
+
+    provider_mode: str
+
+
+@runtime_checkable
 class MultiCityInventoryProvider(Protocol):
     """可选能力：一次请求问完整条多段行程，返回整票报价。
 

@@ -37,6 +37,12 @@ flowchart LR
 `domain` 不依赖 FastAPI、数据库或供应商 SDK。当前可在内存与 PostgreSQL 仓储之间切换；把 Mock 替换为正式 TMC API 也不需要重写规划和政策核心。
 `providers` 依赖 `services` 里的三个基础设施模块（原文对象存储、报价上下文存储、城市登记表），不依赖 `agent` 和 `api`。
 
+**API 层**（2026-09-03 起，ADR-0007）：`api/settings.py` 把环境变量读成一个 `ApiSettings`；`api/runtime.py` 的
+`build_runtime` 按它装配编排器、仓储、发件箱和两个后台调度器；`api/app.py` 的 `create_app` 把运行时挂到
+`app.state.runtime` 并按资源挂载 `api/routers/` 下的路由；`api/schemas.py` 是请求与响应模型，每个序列化
+字典和它的模型逐键对齐（`tests/test_api_schemas.py`）。`api/main.py` 只剩 `create_app()` 和几个给脚本读的兼容
+名字。同一个进程可以装配两套互不相干的应用。
+
 **两道机器守卫**（2026-09-03 起）：`tests/test_architecture_layers.py` 解析 `src/` 里的每一条 import，按上图核对依赖方向，
 表外的边测试失败；已知的债写在测试的 `KNOWN_DEBTS` 里，每条注明由哪一步还清，还清了不删也失败。`mypy`（`pyproject.toml`
 `[tool.mypy]`）对全部源码做默认检查，对 `domain`、`workflow`、`policy`、`services/repositories.py`、`agent/orchestrator`

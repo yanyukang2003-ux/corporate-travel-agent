@@ -84,7 +84,7 @@ def _demo_clock():
 
 @pytest.fixture
 def secured_client(monkeypatch) -> TestClient:
-    monkeypatch.setattr(api_main, "auth_service", _auth_service())
+    monkeypatch.setattr(api_main.runtime, "auth_service", _auth_service())
     return TestClient(api_main.app)
 
 
