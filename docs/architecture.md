@@ -346,6 +346,11 @@ stateDiagram-v2
 
 ## 5. 证据与版本
 
+请求（`TripRequestVersion`）以**有序航段和住宿站为唯一真源**（2026-09-03，ADR-0010）：`journey` / `stays` /
+`scoped_*` 是仅有的存储字段，`origin`、`arrive_by`、`hotel_check_in`、`hard_constraints` 这些扁平名字是从它们
+派生的只读属性；扁平输入只在 `TripRequestVersion.from_flat` 一处转换成航段。持久化载荷 `schema_version` 升到 3，
+旧行按升级链自动改写。
+
 每个候选方案绑定：
 
 - `TripRequestVersion`；

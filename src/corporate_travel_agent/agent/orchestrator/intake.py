@@ -842,31 +842,19 @@ class IntakeMixin(OrchestratorState):
             TripStay(city=query.city, check_in=query.check_in, check_out=query.check_out)
             for query, _ in stay_searches
         )
-        first = legs[0]
-        last = legs[-1]
         hard = tuple(dict.fromkeys(hard_constraints))
         soft = tuple(dict.fromkeys(soft_preferences))
         return TripRequestVersion(
             task_id=task.task_id,
             version=version,
             traveler_id=task.employee.employee_id,
-            origin=first.origin,
-            destination=first.destination,
-            departure_after=first.depart_after,
-            arrive_by=first.arrive_before,
-            return_after=last.depart_after if len(legs) > 1 else None,
-            return_before=last.arrive_before if len(legs) > 1 else None,
-            hotel_check_in=stays[0].check_in if stays else None,
-            hotel_check_out=stays[0].check_out if stays else None,
-            hard_constraints=hard,
-            soft_preferences=soft,
+            journey=legs,
+            stays=stays,
             scoped_hard_constraints=tuple(ScopedRequirement(name=item) for item in hard),
             scoped_soft_preferences=tuple(ScopedRequirement(name=item) for item in soft),
             booking_scope=(
                 BookingScope.ROUND_TRIP if len(legs) > 1 else BookingScope.OUTBOUND_ONLY
             ),
-            journey=legs,
-            stays=stays,
             created_at=self.clock(),
         )
 
@@ -940,8 +928,6 @@ class IntakeMixin(OrchestratorState):
         canonical = self.city_normalizer.canonicalize
         return replace(
             request,
-            origin=canonical(request.origin),
-            destination=canonical(request.destination),
             journey=tuple(
                 replace(
                     leg,

@@ -10,6 +10,7 @@
 | 版本 | 变化 | 升级 |
 |---|---|---|
 | 1 → 2 | `TravelOptionVersion.outbound/inbound/hotel` → `legs/stays` | `_upgrade_v1_to_v2` |
+| 2 → 3 | 请求的扁平字段并入 `journey/stays/scoped_*`（ADR-0010） | `_upgrade_v2_to_v3` |
 
 升级只改形状，不补业务事实；升不上去的载荷抛 `PayloadIncompatible`，API 层给明确的错误而
 不是 500，`examples/upgrade_task_payloads.py` 把库里的旧行批量改写成当前版本。
@@ -25,7 +26,7 @@ from pydantic import TypeAdapter, ValidationError
 
 from corporate_travel_agent.domain.models import AuditEvent, InventorySnapshot, Trip, TripTask
 
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
 
 _TASK_ADAPTER = TypeAdapter(TripTask)
 _AUDIT_ADAPTER = TypeAdapter(AuditEvent)
@@ -86,8 +87,101 @@ def _upgrade_v1_to_v2(payload: dict[str, Any]) -> dict[str, Any]:
     return payload
 
 
+_FLAT_REQUEST_FIELDS = (
+    "origin",
+    "destination",
+    "departure_after",
+    "arrive_by",
+    "return_after",
+    "return_before",
+    "hotel_check_in",
+    "hotel_check_out",
+    "hard_constraints",
+    "soft_preferences",
+)
+
+
+def _upgrade_v2_to_v3(payload: dict[str, Any]) -> dict[str, Any]:
+    """2 → 3：请求的扁平字段并入 `journey / stays / scoped_*`，然后删掉（ADR-0010）。
+
+    推导规则和旧的 `transport_legs()` / `lodging_stays()` 一字不差：单程一段；预订范围是往返
+    （显式，或没写但有返程窗口）且给了返程窗口才有第二段；住宿只在目的地住一次；要求按管全程。
+    只动任务载荷里的 `request`；审计、快照、差旅在这两版之间形状没变，只升版本号。
+    """
+    task = payload.get("task")
+    if isinstance(task, dict) and isinstance(task.get("request"), dict):
+        request = dict(task["request"])
+        scope = request.get("booking_scope")
+        if not request.get("journey"):
+            if scope is None:
+                scope = (
+                    "ROUND_TRIP"
+                    if request.get("return_after") is not None
+                    or request.get("return_before") is not None
+                    else "OUTBOUND_ONLY"
+                )
+            legs = [
+                {
+                    "role": "RETURN" if scope == "RETURN_ONLY" else "OUTBOUND",
+                    "origin": request.get("origin"),
+                    "destination": request.get("destination"),
+                    "depart_after": request.get("departure_after"),
+                    "arrive_before": request.get("arrive_by"),
+                }
+            ]
+            if (
+                scope == "ROUND_TRIP"
+                and request.get("return_after") is not None
+                and request.get("return_before") is not None
+            ):
+                legs.append(
+                    {
+                        "role": "RETURN",
+                        "origin": request.get("destination"),
+                        "destination": request.get("origin"),
+                        "depart_after": request.get("return_after"),
+                        "arrive_before": request.get("return_before"),
+                    }
+                )
+            request["journey"] = legs
+        if not request.get("stays"):
+            request["stays"] = (
+                [
+                    {
+                        "city": request.get("destination"),
+                        "check_in": request.get("hotel_check_in"),
+                        "check_out": request.get("hotel_check_out"),
+                    }
+                ]
+                if request.get("hotel_check_in") is not None
+                and request.get("hotel_check_out") is not None
+                else []
+            )
+        for flat, scoped in (
+            ("hard_constraints", "scoped_hard_constraints"),
+            ("soft_preferences", "scoped_soft_preferences"),
+        ):
+            if not request.get(scoped):
+                request[scoped] = [
+                    {"name": name, "leg_index": None}
+                    for name in dict.fromkeys(request.get(flat) or [])
+                ]
+        for key in _FLAT_REQUEST_FIELDS:
+            request.pop(key, None)
+        task = dict(task)
+        task["request"] = request
+        payload = dict(payload)
+        payload["task"] = task
+    payload = dict(payload)
+    payload["schema_version"] = 3
+    return payload
+
+
 #: 从版本 N 升到 N+1 的函数；读取时按顺序走到 `SCHEMA_VERSION`。
-_UPGRADES: dict[int, Callable[[dict[str, Any]], dict[str, Any]]] = {1: _upgrade_v1_to_v2}
+_UPGRADES: dict[int, Callable[[dict[str, Any]], dict[str, Any]]] = {
+    1: _upgrade_v1_to_v2,
+    2: _upgrade_v2_to_v3,
+}
 
 
 def upgrade_payload(payload: dict[str, Any]) -> tuple[dict[str, Any], bool]:

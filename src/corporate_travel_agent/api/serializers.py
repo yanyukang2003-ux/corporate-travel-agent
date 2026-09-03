@@ -30,7 +30,7 @@ from corporate_travel_agent.services.task_projections import TaskSummary
 
 def to_request(payload: TripCreate, *, task_id: str, version: int) -> TripRequestVersion:
     """把 TripCreate 载荷转为 TripRequestVersion。"""
-    return TripRequestVersion(
+    return TripRequestVersion.from_flat(
         task_id=task_id,
         version=version,
         traveler_id=payload.traveler_id,

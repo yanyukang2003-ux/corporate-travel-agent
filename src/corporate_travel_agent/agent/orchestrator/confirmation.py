@@ -326,22 +326,29 @@ class ConfirmationMixin(OrchestratorState):
                 moved = depart_after + shift if shift is not None else depart_after
                 return moved if moved < new_arrive_by else new_arrive_by - timedelta(hours=24)
 
-            def _shifted(depart_after: datetime | None) -> datetime | None:
-                return None if depart_after is None else _shift(depart_after)
-
-            if request.journey:
-                journey = list(request.journey)
-                leg = journey[index]
-                journey[index] = replace(
-                    leg, arrive_before=new_arrive_by, depart_after=_shift(leg.depart_after)
+            if index >= len(legs):
+                raise ValueError(
+                    f"leg_index {index} is out of range for a {len(legs)}-leg journey"
                 )
-                values["journey"] = tuple(journey)
-            if index == 0:
-                values["arrive_by"] = new_arrive_by
-                values["departure_after"] = _shifted(request.departure_after)
-            elif index == 1 and not request.journey and request.return_before is not None:
-                values["return_before"] = new_arrive_by
-                values["return_after"] = _shifted(request.return_after)
+            journey = list(legs)
+            leg = journey[index]
+            journey[index] = replace(
+                leg, arrive_before=new_arrive_by, depart_after=_shift(leg.depart_after)
+            )
+            if shift is not None and shift > timedelta(0):
+                # 会议推迟得太多，后面某段的到达时限已经早于前一段最早出发——那段行程说不通了，
+                # 按同样的时间差顺延它；窗口只是重叠（当天早到、当天晚回）就不动，规划器自己会挑。
+                # 住宿站不动：住哪几天是人的决定。
+                for later in range(index + 1, len(journey)):
+                    item = journey[later]
+                    if item.arrive_before > journey[later - 1].depart_after:
+                        break
+                    journey[later] = replace(
+                        item,
+                        depart_after=item.depart_after + shift,
+                        arrive_before=item.arrive_before + shift,
+                    )
+            values["journey"] = tuple(journey)
         return replace(request, **values)
 
     def reconcile_expense(

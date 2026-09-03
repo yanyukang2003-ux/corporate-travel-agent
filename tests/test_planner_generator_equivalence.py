@@ -215,7 +215,7 @@ def _request(rng: random.Random, *, round_trip: bool, lodging: bool) -> TripRequ
                      "lowest_cost", "shortest_duration", "compare_train_and_flight")
         if rng.random() > 0.72
     ]
-    return TripRequestVersion(
+    return TripRequestVersion.from_flat(
         task_id="equiv-task",
         version=1,
         traveler_id="E-EQ",

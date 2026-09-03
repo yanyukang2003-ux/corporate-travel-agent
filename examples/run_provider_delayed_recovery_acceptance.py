@@ -415,7 +415,7 @@ def _run_exhaust(output: Path) -> dict[str, Any]:
         max_delayed_provider_attempts=3,
         max_tool_calls=20,
     )
-    request = TripRequestVersion(
+    request = TripRequestVersion.from_flat(
         task_id="delayed-exhaust-acceptance",
         version=1,
         traveler_id="E1001",
@@ -500,7 +500,7 @@ def _run_circuit(output: Path) -> dict[str, Any]:
         provider_circuit_open_seconds=60.0,
     )
     def _simple_request(task_id: str) -> TripRequestVersion:
-        return TripRequestVersion(
+        return TripRequestVersion.from_flat(
             task_id=task_id,
             version=1,
             traveler_id="E1001",
@@ -561,7 +561,7 @@ def _require_test_credentials() -> tuple[str, str]:
 
 
 def _request_from_case(case: dict[str, Any]) -> TripRequestVersion:
-    return TripRequestVersion(
+    return TripRequestVersion.from_flat(
         task_id=f"{case['case_id']}-delayed-recover",
         version=1,
         traveler_id=case["traveler_id"],

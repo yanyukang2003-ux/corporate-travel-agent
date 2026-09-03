@@ -152,27 +152,28 @@ def compile_search_command(
     scoped_soft = _scoped_from(
         intent.soft_preferences, intent.leg_scoped_soft_preferences, len(journey)
     )
+    # 住宿站：模型给了两处以上就用它的；否则那一对日期就是"在第一段的目的地住一次"，
+    # 和以前扁平字段的推导一字不差。要订房却没有日期的情况在上面已经判成 missing。
+    stays: tuple[TripStay, ...] = ()
+    if lodging_required:
+        stays = _stays_from_model(intent, city_normalizer)
+        if not stays and hotel_check_in is not None and hotel_check_out is not None:
+            stays = (
+                TripStay(
+                    city=journey[0].destination,
+                    check_in=hotel_check_in,
+                    check_out=hotel_check_out,
+                ),
+            )
     request = TripRequestVersion(
         task_id=task_id,
         version=version,
         traveler_id=traveler_id,
-        origin=origin,
-        destination=destination,
-        departure_after=intent.departure_after,
-        arrive_by=intent.arrive_by,
-        return_after=intent.return_after,
-        return_before=intent.return_before,
-        hotel_check_in=hotel_check_in,
-        hotel_check_out=hotel_check_out,
-        hard_constraints=_requirement_names(scoped_hard),
-        soft_preferences=_requirement_names(scoped_soft),
         scoped_hard_constraints=scoped_hard,
         scoped_soft_preferences=scoped_soft,
         booking_scope=intent.booking_scope,
         journey=journey,
-        stays=(
-            _stays_from_model(intent, city_normalizer) if lodging_required else ()
-        ),
+        stays=stays,
         commitments=_commitments_from(intent, hard_constraints),
         client_location=intent.client_location,
         created_at=created_at,
@@ -276,10 +277,6 @@ def _lodging_dates_question(intent: Any) -> OpenQuestion | None:
         ),
     )
 
-
-def _requirement_names(scoped: tuple[ScopedRequirement, ...]) -> tuple[str, ...]:
-    """带作用域的要求对应的扁平名字视图（去重，保留首次出现顺序）。"""
-    return tuple(dict.fromkeys(item.name for item in scoped))
 
 
 def _legs_from_model(

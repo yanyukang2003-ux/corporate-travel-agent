@@ -372,7 +372,7 @@ def model_inputs(
     employee_value = world["employee"]
     policy_value = world["policy"]
     inventory = world["inventory"]
-    request = TripRequestVersion(
+    request = TripRequestVersion.from_flat(
         task_id="review",
         version=1,
         traveler_id=employee_value["employee_id"],

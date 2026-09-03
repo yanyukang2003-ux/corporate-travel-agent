@@ -143,7 +143,7 @@ def _request(task_id: str, **overrides: object) -> TripRequestVersion:
         "stays": STAYS,
     }
     payload.update(overrides)
-    return TripRequestVersion(**payload)  # type: ignore[arg-type]
+    return TripRequestVersion.from_flat(**payload)  # type: ignore[arg-type]
 
 
 def _system(
@@ -443,12 +443,11 @@ class StayValidationTests(unittest.TestCase):
             self._conflicts(stays=too_many),
         )
 
-    def test_the_two_views_must_say_the_same_thing(self) -> None:
-        """第一站就是扁平字段说的那一次住宿，两边不许讲不同的话。"""
-        self.assertIn(
-            "stays[0] check-in disagrees with hotel_check_in",
-            self._conflicts(hotel_check_in=date(2026, 9, 14)),
-        )
+    def test_the_flat_view_is_derived_from_the_first_stay(self) -> None:
+        """扁平的那对日期只是第一站的只读视图：传什么都盖不过住宿站，两边不可能讲不同的话。"""
+        request = _request("stays-view", hotel_check_in=date(2026, 9, 14))
+        self.assertEqual(request.hotel_check_in, STAYS[0].check_in)
+        self.assertEqual(request.hotel_check_out, STAYS[0].check_out)
 
 
 if __name__ == "__main__":

@@ -10,6 +10,7 @@ from corporate_travel_agent.domain.enums import (
     BookingScope,
     PolicyOutcome,
     TaskState,
+    TripLegRole,
 )
 from corporate_travel_agent.workflow.state_machine import InvalidTransition, StateMachine
 
@@ -31,13 +32,12 @@ class WorkflowTests(unittest.TestCase):
         self.assertTrue(all(option.inventory_snapshot_ids for option in task.options))
 
     def test_return_only_search_uses_the_declared_leg_without_reversing_again(self) -> None:
+        demo = make_demo_request(task_id="trip-return-only")
         request = replace(
-            make_demo_request(task_id="trip-return-only"),
+            demo,
             booking_scope=BookingScope.RETURN_ONLY,
-            return_after=None,
-            return_before=None,
-            hotel_check_in=None,
-            hotel_check_out=None,
+            journey=(replace(demo.journey[0], role=TripLegRole.RETURN),),
+            stays=(),
         )
 
         task = self.workflow.create_task(request)
@@ -126,7 +126,9 @@ class WorkflowTests(unittest.TestCase):
             task.task_id, option.option_id, business_reason="Business need"
         )
         old_approval = task.approval
-        revised = replace(make_demo_request(task_id=task.task_id, version=2), soft_preferences=())
+        revised = replace(
+            make_demo_request(task_id=task.task_id, version=2), scoped_soft_preferences=()
+        )
 
         task = self.workflow.revise_request(task.task_id, revised)
 
@@ -143,10 +145,14 @@ class WorkflowTests(unittest.TestCase):
         self.assertIn("timed out", task.failure)
 
     def test_structured_chinese_city_aliases_are_canonicalized(self) -> None:
+        demo = make_demo_request(task_id="trip-chinese-cities")
         request = replace(
-            make_demo_request(task_id="trip-chinese-cities"),
-            origin="北京",
-            destination="上海",
+            demo,
+            journey=(
+                replace(demo.journey[0], origin="北京", destination="上海"),
+                replace(demo.journey[1], origin="上海", destination="北京"),
+            ),
+            stays=(replace(demo.stays[0], city="上海"),),
         )
 
         task = self.workflow.create_task(request)
@@ -156,13 +162,12 @@ class WorkflowTests(unittest.TestCase):
         self.assertEqual(task.request.destination, "Shanghai")
 
     def test_no_feasible_option_reports_which_inventory_is_missing(self) -> None:
+        demo = make_demo_request(task_id="trip-no-inventory")
         request = replace(
-            make_demo_request(task_id="trip-no-inventory"),
-            destination="Guangzhou",
-            return_after=None,
-            return_before=None,
-            hotel_check_in=None,
-            hotel_check_out=None,
+            demo,
+            booking_scope=BookingScope.OUTBOUND_ONLY,
+            journey=(replace(demo.journey[0], destination="Guangzhou"),),
+            stays=(),
         )
 
         task = self.workflow.create_task(request)

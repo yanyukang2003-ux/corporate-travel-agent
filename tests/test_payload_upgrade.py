@@ -56,9 +56,60 @@ def _task_with_options():
     return workflow.create_task(make_demo_request(task_id="upgrade-me"))
 
 
-def test_current_version_is_two_and_new_payloads_carry_it() -> None:
-    assert SCHEMA_VERSION == 2
-    assert serialize_task(_task_with_options())["schema_version"] == 2
+def test_current_version_is_three_and_new_payloads_carry_it() -> None:
+    assert SCHEMA_VERSION == 3
+    assert serialize_task(_task_with_options())["schema_version"] == 3
+
+
+def _v2_payload(task) -> dict:
+    """把一份当前载荷降回版本 2：请求只有扁平字段，没有 journey / stays / scoped_*。"""
+    payload = serialize_task(task)
+    request = dict(payload["task"]["request"])
+    legs = request.pop("journey")
+    stays = request.pop("stays")
+    hard = request.pop("scoped_hard_constraints")
+    soft = request.pop("scoped_soft_preferences")
+    request.update(
+        {
+            "origin": legs[0]["origin"],
+            "destination": legs[0]["destination"],
+            "departure_after": legs[0]["depart_after"],
+            "arrive_by": legs[0]["arrive_before"],
+            "return_after": legs[-1]["depart_after"] if len(legs) > 1 else None,
+            "return_before": legs[-1]["arrive_before"] if len(legs) > 1 else None,
+            "hotel_check_in": stays[0]["check_in"] if stays else None,
+            "hotel_check_out": stays[0]["check_out"] if stays else None,
+            "hard_constraints": [item["name"] for item in hard],
+            "soft_preferences": [item["name"] for item in soft],
+        }
+    )
+    payload["task"]["request"] = request
+    payload["schema_version"] = 2
+    return payload
+
+
+def test_a_version_two_request_is_rebuilt_from_its_flat_fields() -> None:
+    task = _task_with_options()
+    v2 = _v2_payload(task)
+    assert "journey" not in v2["task"]["request"] and "origin" in v2["task"]["request"]
+
+    upgraded, changed = upgrade_payload(v2)
+    assert changed and upgraded["schema_version"] == 3
+    request = upgraded["task"]["request"]
+    assert "origin" not in request and "hard_constraints" not in request
+    assert [leg["origin"] for leg in request["journey"]] == ["Beijing", "Shanghai"]
+    assert request["stays"][0]["city"] == "Shanghai"
+    assert [item["name"] for item in request["scoped_hard_constraints"]] == [
+        "arrive_before_meeting"
+    ]
+
+    restored = deserialize_task(v2)
+    assert restored.request is not None
+    assert restored.request.journey == task.request.journey
+    assert restored.request.stays == task.request.stays
+    assert restored.request.hard_constraints == task.request.hard_constraints
+    # 派生的扁平视图和升级前的值一致。
+    assert restored.request.origin == "Beijing" and restored.request.return_after is not None
 
 
 def test_a_version_one_task_payload_is_upgraded_on_read() -> None:
@@ -67,7 +118,7 @@ def test_a_version_one_task_payload_is_upgraded_on_read() -> None:
     assert "outbound" in v1["task"]["options"][0]
 
     upgraded, changed = upgrade_payload(v1)
-    assert changed and upgraded["schema_version"] == 2
+    assert changed and upgraded["schema_version"] == SCHEMA_VERSION
     first = upgraded["task"]["options"][0]
     assert "outbound" not in first and "hotel" not in first
     assert [leg["ref_id"] for leg in first["legs"]] == [leg.ref_id for leg in task.options[0].legs]

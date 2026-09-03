@@ -395,7 +395,7 @@ class WeightTests(unittest.TestCase):
         # 没有声明它的请求来单独看画像的分量。
         from dataclasses import replace
 
-        bare = replace(request, soft_preferences=(), scoped_soft_preferences=())
+        bare = replace(request, scoped_soft_preferences=())
 
         penalties = [
             leg_penalty(

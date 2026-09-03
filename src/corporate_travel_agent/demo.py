@@ -270,7 +270,7 @@ def build_demo_system(
 
 def make_demo_request(*, task_id: str | None = None, version: int = 1) -> TripRequestVersion:
     """构造与演示库存对齐的示例 TripRequestVersion（北京→上海）。"""
-    return TripRequestVersion(
+    return TripRequestVersion.from_flat(
         task_id=task_id or str(uuid4()),
         version=version,
         traveler_id="E1001",

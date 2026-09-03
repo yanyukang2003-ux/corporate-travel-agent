@@ -1126,7 +1126,7 @@ def _build_fixture(base_case: WorkflowEvaluationCase, task_id: str) -> _Fixture:
         effective_from=base_case.policy.effective_from,
         currency=base_case.policy.currency,
     )
-    request = TripRequestVersion(
+    request = TripRequestVersion.from_flat(
         task_id=task_id,
         version=1,
         traveler_id=base_case.employee.employee_id,

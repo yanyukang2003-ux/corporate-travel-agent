@@ -85,7 +85,7 @@ def _employee() -> EmployeeProfileSnapshot:
 
 
 def _request(*, lodging: bool) -> TripRequestVersion:
-    return TripRequestVersion(
+    return TripRequestVersion.from_flat(
         task_id="measure-task",
         version=1,
         traveler_id="E-M",

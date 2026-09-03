@@ -251,8 +251,12 @@ class MultiCitySemanticsTests(unittest.TestCase):
         )
         assert compiled.command is not None
 
-        self.assertEqual(compiled.command.request.stays, ())
-        # 扁平字段那一处住宿仍在——退回去的是"多站"，不是"住宿"。
+        # 退回去的是"多站"，不是"住宿"：那一对日期推成在第一段目的地住一次——
+        # 航段和住宿站是唯一真源，以前 `lodging_stays()` 推出来的那一条现在就在 stays 里。
+        self.assertEqual(len(compiled.command.request.stays), 1)
+        self.assertEqual(
+            compiled.command.request.stays[0].city, compiled.command.request.destination
+        )
         self.assertEqual(compiled.command.request.hotel_check_in, date(2026, 9, 15))
 
 

@@ -68,7 +68,7 @@ def _employee(level: str = "L1") -> EmployeeProfileSnapshot:
 
 
 def _request() -> TripRequestVersion:
-    return TripRequestVersion(
+    return TripRequestVersion.from_flat(
         task_id="gap-task",
         version=1,
         traveler_id="E-GAP",

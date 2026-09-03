@@ -254,7 +254,15 @@ class TripLifecycleTests(unittest.TestCase):
         self.workflow.revise_request(
             change.task_id,
             replace(
-                change.request, version=2, arrive_by=change.request.arrive_by + timedelta(hours=2)
+                change.request,
+                version=2,
+                journey=(
+                    replace(
+                        change.request.journey[0],
+                        arrive_before=change.request.arrive_by + timedelta(hours=2),
+                    ),
+                    *change.request.journey[1:],
+                ),
             ),
         )
         revised = self.workflow.tasks.get(change.task_id)

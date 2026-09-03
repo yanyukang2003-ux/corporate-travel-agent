@@ -22,6 +22,7 @@ from corporate_travel_agent.domain.models import (
     EmployeeProfileSnapshot,
     LevelTravelRule,
     PolicySnapshot,
+    ScopedRequirement,
     ToolCallRecord,
     TransportOffer,
     TripRequestVersion,
@@ -96,11 +97,11 @@ def _offer(
 
 def test_structured_hotel_requirement_cannot_silently_drop_the_hotel() -> None:
     workflow, _ = build_demo_system(clock=lambda: FIXED_NOW)
+    # 要订房却没有住宿站：扁平的那对日期只是派生视图，拿掉住宿站它们就是 None。
     request = replace(
         make_demo_request(task_id="edge-hotel-required"),
-        hotel_check_in=None,
-        hotel_check_out=None,
-        hard_constraints=("hotel_required",),
+        stays=(),
+        scoped_hard_constraints=(ScopedRequirement(name="hotel_required"),),
     )
 
     with pytest.raises(TripRequestValidationError, match="hotel_check_in"):
@@ -133,7 +134,7 @@ def test_train_and_direct_only_are_enforced_by_the_real_workflow() -> None:
         provider=MockProvider(offers, [], clock=lambda: FIXED_NOW),
         clock=lambda: FIXED_NOW,
     )
-    request = TripRequestVersion(
+    request = TripRequestVersion.from_flat(
         task_id="edge-train-direct",
         version=1,
         traveler_id=employee.employee_id,
@@ -168,7 +169,7 @@ def test_prefer_flight_is_not_silently_ignored() -> None:
         provider=MockProvider(offers, [], clock=lambda: FIXED_NOW),
         clock=lambda: FIXED_NOW,
     )
-    request = TripRequestVersion(
+    request = TripRequestVersion.from_flat(
         task_id="edge-prefer-flight",
         version=1,
         traveler_id=employee.employee_id,
@@ -262,7 +263,7 @@ def test_no_feasible_reports_mixed_inventory_currency_gap() -> None:
     )
     workflow.policies = InMemoryPolicyRepository((policy,), current_snapshot_id=policy.snapshot_id)
 
-    request = TripRequestVersion(
+    request = TripRequestVersion.from_flat(
         task_id="trip-mixed-fx",
         version=1,
         traveler_id="E1001",
@@ -302,7 +303,7 @@ def test_policy_outside_effective_window_is_insufficient_evidence() -> None:
 
 
 def test_cross_timezone_feasibility_compares_absolute_instants() -> None:
-    request = TripRequestVersion(
+    request = TripRequestVersion.from_flat(
         task_id="edge-timezones",
         version=1,
         traveler_id="EDGE-L1",
@@ -330,7 +331,7 @@ def test_cross_timezone_feasibility_compares_absolute_instants() -> None:
 
 def test_arrival_buffer_only_applies_to_meeting_constraint() -> None:
     arrive_by = datetime.fromisoformat("2026-08-20T10:00:00-07:00")
-    base_request = TripRequestVersion(
+    base_request = TripRequestVersion.from_flat(
         task_id="edge-arrival-deadline",
         version=1,
         traveler_id="EDGE-L1",
@@ -355,7 +356,10 @@ def test_arrival_buffer_only_applies_to_meeting_constraint() -> None:
         base_request, [offer], None, 60, now=pacific_now
     )
     meeting_arrival = validator.validate(
-        replace(base_request, hard_constraints=("arrive_before_meeting",)),
+        replace(
+            base_request,
+            scoped_hard_constraints=(ScopedRequirement(name="arrive_before_meeting"),),
+        ),
         [offer],
         None,
         60,

@@ -246,8 +246,8 @@ MAX_JOURNEY_LEGS = 6
 def _journey_conflicts(journey: Any) -> list[str]:
     """校验显式给出的航段序列：段数、串接、时序。
 
-    这是多段行程唯一的确定性守门人。串接检查（上一段落地必须早于下一段起飞）
-    在只有两段时不需要——返程窗口由用户自己给——但段数一多就成了正确性的关键。
+    这是多段行程唯一的确定性守门人。顺序检查只拦整段颠倒的窗口（下一段的到达时限早于
+    上一段最早出发）；班次之间接不接得上由可行性校验按实际报价判。
     """
     if not journey:
         return []
@@ -286,11 +286,14 @@ def _journey_conflicts(journey: Any) -> list[str]:
         if index == 0:
             continue
         previous = legs[index - 1]
-        previous_arrival = getattr(previous, "arrive_before", None)
-        if isinstance(previous_arrival, datetime) and _timezone_aware(previous_arrival):
-            if depart_after < previous_arrival:
+        previous_departure = getattr(previous, "depart_after", None)
+        # 窗口是搜索窗口，不是实际班次：去程"最晚 7 号 10 点到"和返程"最早 6 号 17 点走"可以
+        # 同时成立（6 号早上到、6 号晚上回）。真正说不通的是**整段颠倒**——下一段必须到达的
+        # 时限，早于上一段最早出发的时刻；班次之间接不接得上由可行性校验按实际报价判。
+        if isinstance(previous_departure, datetime) and _timezone_aware(previous_departure):
+            if arrive_before <= previous_departure:
                 problems.append(
-                    f"journey leg {index} departs before leg {index - 1} is due to arrive"
+                    f"journey leg {index} must arrive before leg {index - 1} can even depart"
                 )
     return problems
 

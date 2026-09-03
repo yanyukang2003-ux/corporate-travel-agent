@@ -76,7 +76,7 @@ def _round_trip(**overrides: object) -> TripRequestVersion:
         "booking_scope": BookingScope.ROUND_TRIP,
     }
     payload.update(overrides)
-    return TripRequestVersion(**payload)  # type: ignore[arg-type]
+    return TripRequestVersion.from_flat(**payload)  # type: ignore[arg-type]
 
 
 def _out(

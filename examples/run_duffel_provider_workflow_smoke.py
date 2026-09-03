@@ -347,7 +347,7 @@ def _policy_configuration_for_currency(currency: str, *, dataset_id: str):
 
 
 def _request_from_case(case: dict[str, Any]) -> TripRequestVersion:
-    return TripRequestVersion(
+    return TripRequestVersion.from_flat(
         task_id=f"{case['case_id']}-attempt-1",
         version=1,
         traveler_id=case["traveler_id"],

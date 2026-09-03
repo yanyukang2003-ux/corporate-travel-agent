@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Iterable
+from collections.abc import Iterable, Sequence
 from dataclasses import dataclass, field
 from datetime import UTC, date, datetime
 from decimal import Decimal
@@ -293,114 +293,204 @@ class Commitment:
 
 @dataclass(frozen=True, slots=True)
 class TripRequestVersion:
-    """一次行程请求的不可变版本（预订范围、航段、住宿与偏好）。"""
+    """一次行程请求的不可变版本：有序航段、住宿站、带作用域的要求与偏好。
+
+    **航段列表是唯一真源**（ADR-0010）。此前 ``origin / destination / departure_after / arrive_by /
+    return_after / return_before / hotel_check_in / hotel_check_out / hard_constraints /
+    soft_preferences`` 是构造字段，和 ``journey / stays / scoped_*`` 并存，注释里的理由都是"冻结
+    评测数据"——两套视图讲不同的话时读哪一个全凭运气。现在扁平名字仍然读得到，但它们是从航段
+    和住宿站**派生**的只读属性；扁平输入只在 :meth:`from_flat` 一处转换成航段。
+    """
 
     task_id: str
     version: int
     traveler_id: str
-    origin: str
-    destination: str
-    departure_after: datetime
-    arrive_by: datetime
-    return_after: datetime | None
-    return_before: datetime | None
-    hotel_check_in: date | None
-    hotel_check_out: date | None
-    hard_constraints: tuple[str, ...] = ()
-    soft_preferences: tuple[str, ...] = ()
-    # 同样这些要求，但**带上它们管到哪一段**。为空表示按扁平字段理解成"管全程"
-    # （兼容既有载荷与冻结评测数据）；给了就以它为准，扁平字段退化成同一批名字的去重视图。
+    #: 有序航段：单程 1 段、往返 2 段、多城 N 段——行程类型是数出来的，不是声明的。至少一段。
+    journey: tuple[TripLeg, ...]
+    #: 有序住宿站：一站一条；这趟不住店时为空。
+    stays: tuple[TripStay, ...] = ()
+    #: 要求与偏好，带作用域（``leg_index`` 为 None 表示管全程）。
     scoped_hard_constraints: tuple[ScopedRequirement, ...] = ()
     scoped_soft_preferences: tuple[ScopedRequirement, ...] = ()
-    # None 仅用于兼容旧持久化载荷；新请求必须显式写入。
+    #: 显式的预订范围；None 按航段形状推：单段且角色是 RETURN 就是只订返程，两段以上算往返。
     booking_scope: BookingScope | None = None
-    # 旅行者要到场的事。空元组表示这趟行程没有记录到任何到场要求。
-    # 有序航段列表：单程 1 段、往返 2 段、多城 N 段——**行程类型是数出来的，不是声明的**。
-    # 为空表示按旧的扁平字段推导（兼容既有载荷与冻结评测数据）。给了就以它为准。
-    journey: tuple[TripLeg, ...] = ()
-    # 有序住宿列表：一站一条。为空表示按旧的扁平字段推导（兼容既有载荷与冻结评测
-    # 数据）——推导只能表达"在目的地住一次"，多城的每站住宿必须显式给 ``stays``。
-    stays: tuple[TripStay, ...] = ()
+    #: 旅行者要到场的事。空元组表示这趟行程没有记录到任何到场要求。
     commitments: tuple[Commitment, ...] = ()
-    # 会面地点。此前语义层抽出来后在编译成请求时被丢掉，规划器与政策引擎从未见过它。
+    #: 会面地点。
     client_location: str | None = None
     created_at: datetime = field(default_factory=lambda: datetime.now(UTC))
 
+    def __post_init__(self) -> None:
+        if not self.journey:
+            raise ValueError("a trip request needs at least one transport leg")
+
+    @classmethod
+    def from_flat(
+        cls,
+        *,
+        task_id: str,
+        version: int,
+        traveler_id: str,
+        origin: str,
+        destination: str,
+        departure_after: datetime,
+        arrive_by: datetime,
+        return_after: datetime | None = None,
+        return_before: datetime | None = None,
+        hotel_check_in: date | None = None,
+        hotel_check_out: date | None = None,
+        hard_constraints: Sequence[str] = (),
+        soft_preferences: Sequence[str] = (),
+        scoped_hard_constraints: Sequence[ScopedRequirement] = (),
+        scoped_soft_preferences: Sequence[ScopedRequirement] = (),
+        booking_scope: BookingScope | None = None,
+        journey: Sequence[TripLeg] = (),
+        stays: Sequence[TripStay] = (),
+        commitments: Sequence[Commitment] = (),
+        client_location: str | None = None,
+        created_at: datetime | None = None,
+    ) -> TripRequestVersion:
+        """从扁平字段构造：结构化入口、演示、评测用例文件和旧脚本都走这一条路。
+
+        推导规则和以前 ``transport_legs()`` / ``lodging_stays()`` 的一字不差：单程一段；预订
+        范围是往返且给了返程窗口才有第二段（原路返回）；住宿只在目的地住一次。给了
+        ``journey`` / ``stays`` / ``scoped_*`` 就直接用，扁平字段只当默认值。
+        """
+        legs = tuple(journey)
+        if not legs:
+            scope = booking_scope
+            if scope is None:
+                scope = (
+                    BookingScope.ROUND_TRIP
+                    if return_after is not None or return_before is not None
+                    else BookingScope.OUTBOUND_ONLY
+                )
+            primary_role = (
+                TripLegRole.RETURN if scope is BookingScope.RETURN_ONLY else TripLegRole.OUTBOUND
+            )
+            built = [
+                TripLeg(
+                    role=primary_role,
+                    origin=origin,
+                    destination=destination,
+                    depart_after=departure_after,
+                    arrive_before=arrive_by,
+                )
+            ]
+            if (
+                scope is BookingScope.ROUND_TRIP
+                and return_after is not None
+                and return_before is not None
+            ):
+                built.append(
+                    TripLeg(
+                        role=TripLegRole.RETURN,
+                        origin=destination,
+                        destination=origin,
+                        depart_after=return_after,
+                        arrive_before=return_before,
+                    )
+                )
+            legs = tuple(built)
+        stops = tuple(stays)
+        if not stops and hotel_check_in is not None and hotel_check_out is not None:
+            stops = (
+                TripStay(city=destination, check_in=hotel_check_in, check_out=hotel_check_out),
+            )
+        scoped_hard = tuple(scoped_hard_constraints) or tuple(
+            ScopedRequirement(name=name) for name in dict.fromkeys(hard_constraints)
+        )
+        scoped_soft = tuple(scoped_soft_preferences) or tuple(
+            ScopedRequirement(name=name) for name in dict.fromkeys(soft_preferences)
+        )
+        extra: dict[str, Any] = {} if created_at is None else {"created_at": created_at}
+        return cls(
+            task_id=task_id,
+            version=version,
+            traveler_id=traveler_id,
+            journey=legs,
+            stays=stops,
+            scoped_hard_constraints=scoped_hard,
+            scoped_soft_preferences=scoped_soft,
+            booking_scope=booking_scope,
+            commitments=tuple(commitments),
+            client_location=client_location,
+            **extra,
+        )
+
+    # -- 扁平视图：只读，全部从航段和住宿站派生 --------------------------------
+
+    @property
+    def origin(self) -> str:
+        """第一段出发的城市。"""
+        return self.journey[0].origin
+
+    @property
+    def destination(self) -> str:
+        """第一段到达的城市。多城行程后面几站只在 ``journey`` 里。"""
+        return self.journey[0].destination
+
+    @property
+    def departure_after(self) -> datetime:
+        return self.journey[0].depart_after
+
+    @property
+    def arrive_by(self) -> datetime:
+        return self.journey[0].arrive_before
+
+    @property
+    def return_after(self) -> datetime | None:
+        """最后一段的出发窗口；单程为 None。"""
+        return self.journey[-1].depart_after if len(self.journey) > 1 else None
+
+    @property
+    def return_before(self) -> datetime | None:
+        return self.journey[-1].arrive_before if len(self.journey) > 1 else None
+
+    @property
+    def hotel_check_in(self) -> date | None:
+        """第一处住宿的入住日；不住店为 None。"""
+        return self.stays[0].check_in if self.stays else None
+
+    @property
+    def hotel_check_out(self) -> date | None:
+        return self.stays[0].check_out if self.stays else None
+
+    @property
+    def hard_constraints(self) -> tuple[str, ...]:
+        """硬要求的名字（去重），不带作用域。"""
+        return tuple(dict.fromkeys(item.name for item in self.scoped_hard_constraints))
+
+    @property
+    def soft_preferences(self) -> tuple[str, ...]:
+        return tuple(dict.fromkeys(item.name for item in self.scoped_soft_preferences))
+
     @property
     def resolved_booking_scope(self) -> BookingScope:
-        """返回有效预订范围；旧载荷按是否存在返程窗口推导。"""
+        """有效预订范围：显式给了就用它，否则按航段形状推。"""
         if self.booking_scope is not None:
             return self.booking_scope
-        if self.return_after is not None or self.return_before is not None:
+        if len(self.journey) > 1:
             return BookingScope.ROUND_TRIP
+        if self.journey[0].role is TripLegRole.RETURN:
+            return BookingScope.RETURN_ONLY
         return BookingScope.OUTBOUND_ONLY
 
     def transport_legs(self) -> tuple[TripLeg, ...]:
-        """本次行程要执行的航段序列。
-
-        给了 ``journey`` 就直接用它；没给才从扁平字段推导——推导只能表达
-        单程和**原路**往返，所以“去上海、从杭州回”这类行程必须显式给 ``journey``。
-        """
-        if self.journey:
-            return self.journey
-        scope = self.resolved_booking_scope
-        primary_role = (
-            TripLegRole.RETURN if scope is BookingScope.RETURN_ONLY else TripLegRole.OUTBOUND
-        )
-        legs = [
-            TripLeg(
-                role=primary_role,
-                origin=self.origin,
-                destination=self.destination,
-                depart_after=self.departure_after,
-                arrive_before=self.arrive_by,
-            )
-        ]
-        if (
-            scope is BookingScope.ROUND_TRIP
-            and self.return_after is not None
-            and self.return_before is not None
-        ):
-            legs.append(
-                TripLeg(
-                    role=TripLegRole.RETURN,
-                    origin=self.destination,
-                    destination=self.origin,
-                    depart_after=self.return_after,
-                    arrive_before=self.return_before,
-                )
-            )
-        return tuple(legs)
+        """本次行程要执行的航段序列。"""
+        return self.journey
 
     def lodging_stays(self) -> tuple[TripStay, ...]:
-        """本次行程要订的住宿序列；这趟不住店时为空。
-
-        给了 ``stays`` 就直接用它；没给才从扁平字段推导，推出来的那一条
-        **和改动之前逐字一致**：目的地那座城市，那一对日期。
-        """
-        if self.stays:
-            return self.stays
-        if self.hotel_check_in is None or self.hotel_check_out is None:
-            return ()
-        return (
-            TripStay(
-                city=self.destination,
-                check_in=self.hotel_check_in,
-                check_out=self.hotel_check_out,
-            ),
-        )
+        """本次行程要订的住宿序列；这趟不住店时为空。"""
+        return self.stays
 
     def scoped_constraints(self) -> tuple[ScopedRequirement, ...]:
-        """硬要求的完整视图；没写作用域的旧请求一律按"管全程"理解。"""
-        if self.scoped_hard_constraints:
-            return self.scoped_hard_constraints
-        return tuple(ScopedRequirement(name=name) for name in self.hard_constraints)
+        """硬要求的完整视图。"""
+        return self.scoped_hard_constraints
 
     def scoped_preferences(self) -> tuple[ScopedRequirement, ...]:
-        """软偏好的完整视图；没写作用域的旧请求一律按"管全程"理解。"""
-        if self.scoped_soft_preferences:
-            return self.scoped_soft_preferences
-        return tuple(ScopedRequirement(name=name) for name in self.soft_preferences)
+        """软偏好的完整视图。"""
+        return self.scoped_soft_preferences
 
     def constraints_for_leg(self, leg_index: int) -> frozenset[str]:
         """管到第 ``leg_index`` 段的硬要求（含管全程的那些）。"""

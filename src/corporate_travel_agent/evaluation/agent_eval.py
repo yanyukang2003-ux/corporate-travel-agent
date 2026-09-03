@@ -470,7 +470,7 @@ def _world_models(
     request_value = world.get("request_oracle")
     if request_value is None:
         return None, employee, policy, transports, hotels
-    request = TripRequestVersion(
+    request = TripRequestVersion.from_flat(
         task_id="d4-eval",
         version=1,
         traveler_id=employee.employee_id,
@@ -1101,7 +1101,7 @@ def _drive_post_search(
         and request is not None
     ):
         try:
-            revised = TripRequestVersion(
+            revised = TripRequestVersion.from_flat(
                 task_id=task.task_id,
                 version=2,
                 traveler_id=employee.employee_id,
@@ -1362,7 +1362,7 @@ def run_live_observation(
     )
     try:
         task = workflow.create_task(
-            TripRequestVersion(
+            TripRequestVersion.from_flat(
                 task_id=case["case_id"],
                 version=1,
                 traveler_id=employee.employee_id,

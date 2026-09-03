@@ -87,7 +87,7 @@ alembic current
 
 ## 3.1 载荷版本与升级
 
-每条 JSON 载荷带 `schema_version`（当前 2）。**模型改了形状必须同时在
+每条 JSON 载荷带 `schema_version`（当前 3）。**模型改了形状必须同时在
 `services/serialization.py` 加一级升级函数**，读取时旧载荷逐级升到当前版本；写入永远是当前版本。
 版本 1 → 2 是 2026-08-29 方案从 `outbound/inbound/hotel` 改成 `legs/stays`。
 

@@ -746,7 +746,7 @@ def run_workflow_evaluation_case(
         effective_from=case.policy.effective_from,
         currency=case.policy.currency,
     )
-    request = TripRequestVersion(
+    request = TripRequestVersion.from_flat(
         task_id=case.case_id,
         version=1,
         traveler_id=case.employee.employee_id,

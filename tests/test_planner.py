@@ -61,7 +61,7 @@ def _request(**overrides: object) -> TripRequestVersion:
         "soft_preferences": ("hotel_near_client",),
     }
     payload.update(overrides)
-    return TripRequestVersion(**payload)  # type: ignore[arg-type]
+    return TripRequestVersion.from_flat(**payload)  # type: ignore[arg-type]
 
 
 def _flight(ref_id: str, *, hour: int = 14, price: str = "35") -> TransportOffer:

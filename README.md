@@ -370,7 +370,7 @@ export DATABASE_URL='postgresql+psycopg://travel_agent:travel_agent_dev@127.0.0.
 
 `DATABASE_AUTO_CREATE=true` 仅适合临时开发环境；`ENVIRONMENT=production|staging` 时会被拒绝。正常环境应使用 Alembic 迁移。
 
-载荷带 `schema_version`（当前 2），旧版本读取时自动升级；批量改写用
+载荷带 `schema_version`（当前 3），旧版本读取时自动升级；批量改写用
 `examples/upgrade_task_payloads.py`（先 `pg_dump`）。只有 Postgres 才有的行为（`SKIP LOCKED`、
 JSONB、联合写入）由 `tests/test_postgres_live.py` 在 `TEST_DATABASE_URL` 指向一次性测试库时覆盖。
 分阶段能力与运维说明见 **[docs/postgres-operations.md](docs/postgres-operations.md)**：
