@@ -1,0 +1,137 @@
+{
+  "runs": [
+    "reports/evaluation-runs/external-longtail-multiturn-live-r1-20260902",
+    "reports/evaluation-runs/external-longtail-multiturn-live-r2-20260902",
+    "reports/evaluation-runs/external-longtail-multiturn-live-r3-20260902"
+  ],
+  "cases": 185,
+  "completable": 150,
+  "completion_at_1": 0.8844444444444445,
+  "completion_power_3": 0.84,
+  "completion_at_3": 0.92,
+  "mixed_completion_rate": 0.08,
+  "outcome_consistent_cases": 172,
+  "honest_failure_all_runs_unmappable": 34,
+  "per_run": [
+    {
+      "run": "external-longtail-multiturn-live-r1-20260902",
+      "completion_rate": 0.8667,
+      "red_line_gate_v2": 185,
+      "dates_match_fact_sheet_rate": 0.8741,
+      "cost_usd": 1.08580263
+    },
+    {
+      "run": "external-longtail-multiturn-live-r2-20260902",
+      "completion_rate": 0.8867,
+      "red_line_gate_v2": 184,
+      "dates_match_fact_sheet_rate": 0.9653,
+      "cost_usd": 1.096832925
+    },
+    {
+      "run": "external-longtail-multiturn-live-r3-20260902",
+      "completion_rate": 0.9,
+      "red_line_gate_v2": 185,
+      "dates_match_fact_sheet_rate": 0.9586,
+      "cost_usd": 1.061753655
+    }
+  ],
+  "mixed_cases": [
+    [
+      "ad-val-0032",
+      [
+        "completed",
+        "honest_failure",
+        "completed"
+      ]
+    ],
+    [
+      "ad-val-0036",
+      [
+        "out_of_scope",
+        "completed",
+        "out_of_scope"
+      ]
+    ],
+    [
+      "ct-human-h20241029143455115600",
+      [
+        "out_of_scope",
+        "out_of_scope",
+        "completed"
+      ]
+    ],
+    [
+      "ct-human-h20241029143508251643",
+      [
+        "out_of_scope",
+        "completed",
+        "completed"
+      ]
+    ],
+    [
+      "ct-human-h20241029143512507336",
+      [
+        "honest_failure",
+        "completed",
+        "completed"
+      ]
+    ],
+    [
+      "ct-human-h20241029143606240237",
+      [
+        "honest_failure",
+        "completed",
+        "completed"
+      ]
+    ],
+    [
+      "ct-human-h20241029143630351554",
+      [
+        "honest_failure",
+        "completed",
+        "completed"
+      ]
+    ],
+    [
+      "ct-human-h20241029143657365639",
+      [
+        "completed",
+        "completed",
+        "honest_failure"
+      ]
+    ],
+    [
+      "ct-human-h20241029143709097610",
+      [
+        "completed",
+        "honest_failure",
+        "completed"
+      ]
+    ],
+    [
+      "ct-human-h20241029143722458026",
+      [
+        "completed",
+        "honest_failure",
+        "honest_failure"
+      ]
+    ],
+    [
+      "ct-human-h20241029143732290071",
+      [
+        "honest_failure",
+        "honest_failure",
+        "completed"
+      ]
+    ],
+    [
+      "ct-human-h20241029143735439292",
+      [
+        "out_of_scope",
+        "completed",
+        "completed"
+      ]
+    ]
+  ],
+  "total_cost_usd": 3.24438921
+}

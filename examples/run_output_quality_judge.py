@@ -82,6 +82,12 @@ def main() -> None:
     parser.add_argument("--judge-id", default=None)
     parser.add_argument("--limit", type=int, default=None)
     parser.add_argument(
+        "--request-timeout-seconds",
+        type=float,
+        default=60.0,
+        help="单次 Judge 请求超时；一次超时会中断整轮，供应商慢时调大（上限 600）。",
+    )
+    parser.add_argument(
         "--confirm-billable-judge-calls",
         action="store_true",
         help="Required before any billed judge call is made.",
@@ -155,6 +161,7 @@ def main() -> None:
         model=args.model,
         judge_id=args.judge_id,
         reasoning_effort=args.reasoning_effort,
+        request_timeout_seconds=args.request_timeout_seconds,
     )
     verdicts, call_metadata = score_judge_inputs(
         judge_inputs,

@@ -61,6 +61,10 @@ class DeterministicUserOutput(QualityModel):
     booking_handoff_available: bool
     booking_boundary_notice: str
     claims: tuple[OutputClaim, ...]
+    #: 真实原话的多轮评测才填：旅行者说过的每一句（按先后）和系统最后一句可见回复。
+    #: 结构化工作流用例没有这两样，留空；旧的 judge-inputs.jsonl 不带这两个键也照常加载。
+    traveler_messages: tuple[str, ...] = ()
+    assistant_reply: str | None = None
 
     @property
     def output_hash(self) -> str:

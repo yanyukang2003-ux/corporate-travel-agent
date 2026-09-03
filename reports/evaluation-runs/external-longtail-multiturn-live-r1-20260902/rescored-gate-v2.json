@@ -1,0 +1,28 @@
+{
+  "note": "从问题描述文本回推（r1 记录未存搜索参数）；gate-v2 判据下的近似值。",
+  "original_red_line_passed": 177,
+  "gate_v2_red_line_passed": 185,
+  "total": 185,
+  "flipped_to_pass_lookback_artifact": [
+    "ad-val-0002",
+    "ad-val-0005",
+    "ad-val-0013",
+    "ad-val-0017",
+    "ad-val-0029",
+    "ad-val-0033",
+    "ad-val-0034",
+    "ad-val-0039"
+  ],
+  "still_failing": [],
+  "fact_sheet_date_mismatch_original": 18,
+  "fact_sheet_date_mismatch_gate_v2_real": [
+    "ct-human-h20241029143522848652",
+    "ct-human-h20241029143602442546",
+    "ct-human-h20241029143630351554",
+    "ct-human-h20241029143639901784",
+    "ct-human-h20241029143730769592",
+    "ct-human-h20241029143818664124"
+  ],
+  "dates_match_fact_sheet_rate_gate_v2": 0.958,
+  "with_transport_search": 143
+}

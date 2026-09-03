@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "packet_id": "external-longtail-multiturn-live-r1-20260902-annotations",
+  "status": "unlabeled",
+  "created_at": "2026-09-02T19:07:19.758131+00:00",
+  "source_run_directory": "reports/evaluation-runs/external-longtail-multiturn-live-r1-20260902",
+  "judge_inputs_sha256": "0af70ad785bc2c8b669a0c20ba7215c48dad585ff8561c15a7fe8f591e23945c",
+  "available": 185,
+  "sampled": 100,
+  "by_state": {
+    "WAITING_FOR_USER": 45,
+    "OUT_OF_SCOPE": 7,
+    "NO_FEASIBLE_OPTION": 13,
+    "PROVIDER_FAILED": 34,
+    "NEEDS_CLARIFICATION": 1
+  },
+  "annotators": [
+    "human-01",
+    "human-02"
+  ],
+  "round": 1,
+  "files": {
+    "to-label/output-quality-human-01.jsonl": "e8e4d227ffd09ec97480348af8c6d2a513be376f085b0edd62e6a8445dfd3635",
+    "to-label/output-quality-human-02.jsonl": "3e41c49d36f1dd806f190cce73470eac605351f077e980943846466f06ad930d",
+    "private/source-id-map.jsonl": "eeb4d972a16dd3ae09960cdf9347b6da0c313be53f7bec306966c0257d5d9b51"
+  }
+}

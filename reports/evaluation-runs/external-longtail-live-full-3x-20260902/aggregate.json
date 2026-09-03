@@ -1,0 +1,98 @@
+{
+  "runs": [
+    "reports/evaluation-runs/external-longtail-live-full-3x-r1-20260902",
+    "reports/evaluation-runs/external-longtail-live-full-3x-r2-20260902",
+    "reports/evaluation-runs/external-longtail-live-full-3x-r3-20260902"
+  ],
+  "cases": 300,
+  "pass_at_1": 0.9933333333333333,
+  "pass_power_3": 0.99,
+  "pass_at_3": 0.9966666666666667,
+  "mixed_run_rate": 0.006666666666666667,
+  "state_consistent_cases": 290,
+  "state_mixed_cases": [
+    [
+      "ct-human-h20241029143455115600",
+      [
+        "OUT_OF_SCOPE",
+        "OUT_OF_SCOPE",
+        "NEEDS_CLARIFICATION"
+      ]
+    ],
+    [
+      "ct-human-h20241029143508251643",
+      [
+        "OUT_OF_SCOPE",
+        "NEEDS_CLARIFICATION",
+        "NEEDS_CLARIFICATION"
+      ]
+    ],
+    [
+      "ct-human-h20241029143542560410",
+      [
+        "NEEDS_CLARIFICATION",
+        "WAITING_FOR_USER",
+        "NEEDS_CLARIFICATION"
+      ]
+    ],
+    [
+      "ct-human-h20241029143546424651",
+      [
+        "NEEDS_CLARIFICATION",
+        "NEEDS_CLARIFICATION",
+        "OUT_OF_SCOPE"
+      ]
+    ],
+    [
+      "ct-human-h20241029143630351554",
+      [
+        "WAITING_FOR_USER",
+        "WAITING_FOR_USER",
+        "NEEDS_STRUCTURED_INPUT"
+      ]
+    ],
+    [
+      "ct-human-h20241029143732290071",
+      [
+        "OUT_OF_SCOPE",
+        "NEEDS_CLARIFICATION",
+        "NEEDS_CLARIFICATION"
+      ]
+    ],
+    [
+      "ct-human-h20241029143735439292",
+      [
+        "NEEDS_CLARIFICATION",
+        "NEEDS_CLARIFICATION",
+        "OUT_OF_SCOPE"
+      ]
+    ],
+    [
+      "ct-human-h20241029143738057260",
+      [
+        "PROVIDER_FAILED",
+        "PROVIDER_FAILED",
+        "NEEDS_CLARIFICATION"
+      ]
+    ],
+    [
+      "ct-human-h20241029143818664124",
+      [
+        "WAITING_FOR_USER",
+        "NO_FEASIBLE_OPTION",
+        "NO_FEASIBLE_OPTION"
+      ]
+    ],
+    [
+      "cw-10351",
+      [
+        "OUT_OF_SCOPE",
+        "NEEDS_CLARIFICATION",
+        "OUT_OF_SCOPE"
+      ]
+    ]
+  ],
+  "errors": [],
+  "estimated_cost_usd": 1.76111751,
+  "llm_calls": 1225
+}

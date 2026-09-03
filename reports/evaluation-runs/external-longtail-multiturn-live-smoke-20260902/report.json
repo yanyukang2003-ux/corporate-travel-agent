@@ -1,0 +1,400 @@
+{
+  "runner_version": "external-longtail-multiturn-v1",
+  "mode": "model_live_provider",
+  "dataset_id": "external-longtail-v1",
+  "dataset_version": "2",
+  "cases_sha256": "74f4429d92f8889c092effe5a22777de1d95f89215feb0c2af499b9c77009579",
+  "reference_date": "2026-09-02",
+  "max_follow_ups": 3,
+  "generated_at": "2026-09-02T18:00:04.398549+00:00",
+  "total": 6,
+  "completable": 5,
+  "unmappable": 1,
+  "red_line_passed": 5,
+  "crashed": 0,
+  "completion_rate": 0.8,
+  "completed": 4,
+  "completed_by_follow_ups": {
+    "1": 4
+  },
+  "honest_failure_rate_on_unmappable": 1.0,
+  "outcome_distribution": {
+    "honest_failure": 1,
+    "completed": 4,
+    "out_of_scope": 1
+  },
+  "outcome_distribution_completable": {
+    "completed": 4,
+    "out_of_scope": 1
+  },
+  "with_transport_search": 4,
+  "dates_match_fact_sheet_rate": 0.75,
+  "weak_truth_gates_triggered": 4,
+  "weak_truth_gate_failures": 1,
+  "llm_calls": 19,
+  "by_source": {
+    "LAMDA-NeSy/ChinaTravel": {
+      "cases": 3,
+      "completable": 2,
+      "completed": 1,
+      "outcomes": {
+        "honest_failure": 1,
+        "completed": 1,
+        "out_of_scope": 1
+      }
+    },
+    "google/air_dialogue": {
+      "cases": 3,
+      "completable": 3,
+      "completed": 3,
+      "outcomes": {
+        "completed": 3
+      }
+    }
+  },
+  "limitations": [
+    "模拟旅行者是脚本：只交事实表里的日期和路线，不回答别的；系统问了别的就得不到答案。",
+    "事实表的日期是固定推出来的，不是原话里的；弱真值只核对月/日与来源声明一致。",
+    "完成率的分母只算两家沙箱供应商都能映射的路线；苏州这类只量诚实失败。"
+  ],
+  "results": [
+    {
+      "case_id": "ct-human-h20241029143447759844",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "PROVIDER_FAILED",
+      "option_count": 0,
+      "clarification": false,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true,
+        "searched_dates_match_fact_sheet": true
+      },
+      "passed": true,
+      "search_count": 0,
+      "fact_sheet": {
+        "origin": "上海",
+        "destination": "苏州",
+        "depart_date": "2026-09-23",
+        "return_date": "2026-09-25",
+        "same_day": false,
+        "completable": false,
+        "reason": "unmappable_city:苏州"
+      },
+      "expected_completable": false,
+      "turns": [
+        {
+          "turn": 0,
+          "said": "[当前位置上海,目标位置苏州,旅行人数2,旅行天数3] 我要带着我大儿子从上海出发去苏州玩三天，要轻快自由行，不要特种兵出行。帮我规划一下。",
+          "state": "NEEDS_CLARIFICATION",
+          "question": "您计划哪天从上海出发去苏州？玩三天的话，出发日期定了我就能帮您查车票。",
+          "option_count": 0,
+          "search_count": 0,
+          "failure": null
+        },
+        {
+          "turn": 1,
+          "said": "出发日期是2026年9月23日，2026年9月25日返回，从上海到苏州。住宿我自己安排，不用订酒店。",
+          "state": "PROVIDER_FAILED",
+          "question": null,
+          "option_count": 0,
+          "search_count": 0,
+          "failure": "No verified Duffel IATA mapping is configured for location '苏州'"
+        }
+      ],
+      "follow_ups_used": 1,
+      "outcome": "honest_failure",
+      "llm_calls": 3,
+      "input_tokens": 9000,
+      "output_tokens": 437
+    },
+    {
+      "case_id": "ct-human-h20241029143450090032",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "WAITING_FOR_USER",
+      "option_count": 3,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true,
+        "searched_dates_match_fact_sheet": true
+      },
+      "passed": true,
+      "search_count": 2,
+      "fact_sheet": {
+        "origin": "上海",
+        "destination": "重庆",
+        "depart_date": "2026-09-23",
+        "return_date": "2026-09-25",
+        "same_day": false,
+        "completable": true,
+        "reason": null
+      },
+      "expected_completable": true,
+      "turns": [
+        {
+          "turn": 0,
+          "said": "[当前位置上海,目标位置重庆,旅行人数2,旅行天数3] 我要和女朋友从上海出发去重庆玩，大概三天。市内交通要求最省时间，预算4000的差旅费，帮我规划行程。",
+          "state": "NEEDS_CLARIFICATION",
+          "question": "你们打算哪天从上海出发去重庆？（给个具体日期，比如 9月10号，我就能查往返票和安排三天行程）",
+          "option_count": 0,
+          "search_count": 0,
+          "failure": null
+        },
+        {
+          "turn": 1,
+          "said": "出发日期是2026年9月23日，2026年9月25日返回，从上海到重庆。住宿我自己安排，不用订酒店。",
+          "state": "WAITING_FOR_USER",
+          "question": "去程是否愿意多花约1900元选11:05早班（14:00到，下午即可开始游玩），还是严格卡预算选17:01最省班？",
+          "option_count": 3,
+          "search_count": 2,
+          "failure": null
+        }
+      ],
+      "follow_ups_used": 1,
+      "outcome": "completed",
+      "llm_calls": 4,
+      "input_tokens": 15122,
+      "output_tokens": 1355
+    },
+    {
+      "case_id": "ct-human-h20241029143451793119",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "OUT_OF_SCOPE",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true,
+        "searched_dates_match_fact_sheet": true
+      },
+      "passed": true,
+      "search_count": 0,
+      "fact_sheet": {
+        "origin": "南京",
+        "destination": "重庆",
+        "depart_date": "2026-09-23",
+        "return_date": "2026-09-26",
+        "same_day": false,
+        "completable": true,
+        "reason": null
+      },
+      "expected_completable": true,
+      "turns": [
+        {
+          "turn": 0,
+          "said": "[当前位置南京,目标位置重庆,旅行人数4,旅行天数4] 我想去重庆吃有当地特色，实惠且好吃的美食，有没有推荐",
+          "state": "OUT_OF_SCOPE",
+          "question": "您这条请求是让我推荐重庆当地特色、实惠又好吃的美食，属于美食推荐，不是差旅安排（订交通/酒店）。我这边只能帮您查交通和住宿，没法做美食攻略。请问您需要我帮您安排南京往返重庆的交通或酒店吗？",
+          "option_count": 0,
+          "search_count": 0,
+          "failure": "The request is outside the corporate travel planning scope"
+        }
+      ],
+      "follow_ups_used": 0,
+      "outcome": "out_of_scope",
+      "llm_calls": 1,
+      "input_tokens": 2887,
+      "output_tokens": 123
+    },
+    {
+      "case_id": "ad-val-0000",
+      "language": "en",
+      "source": "google/air_dialogue",
+      "state": "WAITING_FOR_USER",
+      "option_count": 3,
+      "clarification": false,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true,
+        "searched_dates_match_fact_sheet": true
+      },
+      "passed": true,
+      "search_count": 2,
+      "fact_sheet": {
+        "origin": "DFW",
+        "destination": "IAD",
+        "depart_date": "2027-06-12",
+        "return_date": "2027-06-14",
+        "same_day": false,
+        "completable": true,
+        "reason": null
+      },
+      "expected_completable": true,
+      "turns": [
+        {
+          "turn": 0,
+          "said": "My name is Emily Edwards.",
+          "state": "NEEDS_CLARIFICATION",
+          "question": "I'm Emily's travel assistant. What trip can I help you plan?",
+          "option_count": 0,
+          "search_count": 0,
+          "failure": null
+        },
+        {
+          "turn": 1,
+          "said": "I'm departing DFW for IAD on June 12, 2027, returning on June 14, 2027. No hotel needed.",
+          "state": "WAITING_FOR_USER",
+          "question": null,
+          "option_count": 3,
+          "search_count": 2,
+          "failure": null
+        }
+      ],
+      "follow_ups_used": 1,
+      "outcome": "completed",
+      "llm_calls": 3,
+      "input_tokens": 10327,
+      "output_tokens": 627
+    },
+    {
+      "case_id": "ad-val-0002",
+      "language": "en",
+      "source": "google/air_dialogue",
+      "state": "WAITING_FOR_USER",
+      "option_count": 3,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true,
+        "searched_dates_match_fact_sheet": true
+      },
+      "passed": true,
+      "search_count": 2,
+      "fact_sheet": {
+        "origin": "DEN",
+        "destination": "LGA",
+        "depart_date": "2026-10-05",
+        "return_date": "2026-10-07",
+        "same_day": false,
+        "completable": true,
+        "reason": null
+      },
+      "expected_completable": true,
+      "turns": [
+        {
+          "turn": 0,
+          "said": "I need to attend a marriage at New York, can you please help me in booking a flight ticket from DEN to LGA?",
+          "state": "NEEDS_CLARIFICATION",
+          "question": "What date is the wedding, and do you need to arrive by a specific time (for example, the day before, or by a certain hour on the wedding day)?",
+          "option_count": 0,
+          "search_count": 0,
+          "failure": null
+        },
+        {
+          "turn": 1,
+          "said": "I'm departing DEN for LGA on October 5, 2026, returning on October 7, 2026. No hotel needed.",
+          "state": "WAITING_FOR_USER",
+          "question": "回程 LGA→DEN 在 10月7日当天查不到任何航班，是否改到 10月8日，或换机场（如 JFK/EWR）再查？\nLGA→DEN 这段没有可用机票。短途通常更适合高铁；系统目前查不了火车票，这一段需要你自己安排，或者告诉我换一个日期再搜。",
+          "option_count": 3,
+          "search_count": 2,
+          "failure": null
+        }
+      ],
+      "follow_ups_used": 1,
+      "outcome": "completed",
+      "llm_calls": 4,
+      "input_tokens": 14374,
+      "output_tokens": 799
+    },
+    {
+      "case_id": "ad-val-0003",
+      "language": "en",
+      "source": "google/air_dialogue",
+      "state": "WAITING_FOR_USER",
+      "option_count": 3,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": false,
+        "searched_dates_match_fact_sheet": false
+      },
+      "passed": false,
+      "date_problems": [
+        "搜索日期 [(9, 11)] 不在声明日期 [(9, 10), (9, 12)] 里"
+      ],
+      "search_count": 4,
+      "fact_sheet": {
+        "origin": "PHX",
+        "destination": "PHL",
+        "depart_date": "2026-09-10",
+        "return_date": "2026-09-12",
+        "same_day": false,
+        "completable": true,
+        "reason": null
+      },
+      "expected_completable": true,
+      "turns": [
+        {
+          "turn": 0,
+          "said": "Hello, I am Charles Johnson.",
+          "state": "NEEDS_CLARIFICATION",
+          "question": "Hello Charles! I'm here to help you plan your corporate travel. Where are you headed, and what are the details — dates, destinations, and any preferences (like direct flights only, or a preference for train vs. flight)?",
+          "option_count": 0,
+          "search_count": 0,
+          "failure": null
+        },
+        {
+          "turn": 1,
+          "said": "I'm departing PHX for PHL on September 10, 2026, returning on September 12, 2026. No hotel needed.",
+          "state": "WAITING_FOR_USER",
+          "question": "The only Sep 12 return departs 8:30 AM — is that early enough, or would you prefer to return Sep 11 instead?",
+          "option_count": 3,
+          "search_count": 4,
+          "failure": null
+        }
+      ],
+      "follow_ups_used": 1,
+      "outcome": "completed",
+      "fact_sheet_date_problems": [
+        "arrive_by=2026-09-11 不在事实表日期 ['2026-09-10', '2026-09-12'] 内"
+      ],
+      "llm_calls": 4,
+      "input_tokens": 15310,
+      "output_tokens": 899
+    }
+  ],
+  "started_at": "2026-09-02T17:58:36.186586+00:00",
+  "model": "deepseek-v4-pro",
+  "prompt_version": "tool-loop-v4",
+  "live_artifacts": {
+    "traces_file": "traces.jsonl",
+    "traces_sha256": "45d19ceb27b63d6cf61e1daf575b006867ceb0c6f6f3ff60e3b8b58524e2787d",
+    "trace_count": 6,
+    "cost_ledger_file": "cost-ledger.jsonl",
+    "cost_ledger_sha256": "ec51f3ef2267cef23e621131a3c684f3a9565c003585e2b7917ea336b7dff96f",
+    "cost_summary_file": "cost-summary.json",
+    "cost_summary_sha256": "734cb9975c3edb6e64db9547b22d81948d295d69aad55c78cb7d928dd8f84b2d",
+    "retry_cap_check_file": "retry-cap-check.json",
+    "retry_cap_check_sha256": "4b9701947812a0c6192598fe5b52a4def558b92d5d7454e8b78bca7b323d56d4",
+    "estimated_cost_usd": 0.0328425,
+    "cost_complete": true,
+    "retry_cap_passed": true
+  }
+}

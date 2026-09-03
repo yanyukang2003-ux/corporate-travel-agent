@@ -1,0 +1,25 @@
+{
+  "by_language": {
+    "en": 46,
+    "zh": 254
+  },
+  "by_source": {
+    "LAMDA-NeSy/ChinaTravel": 154,
+    "google/air_dialogue": 46,
+    "thu-coai/CrossWOZ": 100
+  },
+  "cases_sha256": "74f4429d92f8889c092effe5a22777de1d95f89215feb0c2af499b9c77009579",
+  "classification": "EXTERNAL_DERIVED",
+  "created_at": "2026-09-01T23:57:48.277044+00:00",
+  "dataset_id": "external-longtail-v1",
+  "dataset_version": "2",
+  "expectation": "host_invariants_only",
+  "license_note": "含 CC BY-NC-SA 4.0 派生内容，仅评测使用；详见 NOTICE.md",
+  "raw_source_sha256": {
+    "airdialogue_val_0.json": "5c374f44a370fa7c2cb36fa6ffbe193fde5a411fdbd7165f8c6f47275672e5cb",
+    "chinatravel_human_0.json": "45043ca1cfd7ff921b4dba39efdc916ec3738096750de5b9d08b4ffb502932d6",
+    "chinatravel_human_1.json": "a05ff03333da0fd3a4461316805197c87f3ac7cf8ccff704d69540188aada0ab",
+    "crosswoz_test.json.zip": "e57703894995211bba8638f130dc7df81e8992b71f3c05c10022ad23d6ca5310"
+  },
+  "records": 300
+}

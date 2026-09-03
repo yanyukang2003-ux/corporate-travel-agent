@@ -1,0 +1,5434 @@
+{
+  "runner_version": "external-longtail-probe-v2",
+  "dataset_id": "external-longtail-v1",
+  "dataset_version": "2",
+  "cases_sha256": "74f4429d92f8889c092effe5a22777de1d95f89215feb0c2af499b9c77009579",
+  "generated_at": "2026-09-01T23:57:48.556304+00:00",
+  "total": 300,
+  "passed": 300,
+  "crashed": 0,
+  "state_distribution": {
+    "NEEDS_CLARIFICATION": 297,
+    "OUT_OF_SCOPE": 3
+  },
+  "by_source_state": {
+    "LAMDA-NeSy/ChinaTravel": {
+      "NEEDS_CLARIFICATION": 151,
+      "OUT_OF_SCOPE": 3
+    },
+    "thu-coai/CrossWOZ": {
+      "NEEDS_CLARIFICATION": 100
+    },
+    "google/air_dialogue": {
+      "NEEDS_CLARIFICATION": 46
+    }
+  },
+  "with_options": 0,
+  "with_searches": 0,
+  "limitations": [
+    "离线确定性替身：量的是宿主红线和理解层的稳健性，不是真模型的表现。",
+    "终态分布是测量不是门禁——这些问法多数本来就不是企业差旅。"
+  ],
+  "results": [
+    {
+      "case_id": "ct-human-h20241029143447759844",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ct-human-h20241029143450090032",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ct-human-h20241029143451793119",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ct-human-h20241029143453343691",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ct-human-h20241029143455115600",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ct-human-h20241029143456235562",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ct-human-h20241029143457494209",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ct-human-h20241029143458760702",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ct-human-h20241029143500599951",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ct-human-h20241029143502525564",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ct-human-h20241029143504074288",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ct-human-h20241029143506461809",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ct-human-h20241029143508251643",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ct-human-h20241029143509607671",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ct-human-h20241029143510880048",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ct-human-h20241029143512507336",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ct-human-h20241029143514054328",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ct-human-h20241029143515190249",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ct-human-h20241029143518931601",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ct-human-h20241029143520277982",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ct-human-h20241029143521646393",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ct-human-h20241029143522848652",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "OUT_OF_SCOPE",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ct-human-h20241029143524548106",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ct-human-h20241029143526214076",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ct-human-h20241029143528503277",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ct-human-h20241029143530430866",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ct-human-h20241029143532210869",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ct-human-h20241029143533982475",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ct-human-h20241029143536587211",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ct-human-h20241029143538018046",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ct-human-h20241029143539603238",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ct-human-h20241029143541319291",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ct-human-h20241029143542560410",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ct-human-h20241029143543943871",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ct-human-h20241029143546424651",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ct-human-h20241029143547722063",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ct-human-h20241029143549773288",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ct-human-h20241029143551657496",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ct-human-h20241029143553510979",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ct-human-h20241029143554849031",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ct-human-h20241029143556181559",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ct-human-h20241029143558223472",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ct-human-h20241029143602442546",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ct-human-h20241029143604280402",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ct-human-h20241029143606240237",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ct-human-h20241029143608049345",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ct-human-h20241029143609292913",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ct-human-h20241029143611928866",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ct-human-h20241029143613424655",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ct-human-h20241029143614813545",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ct-human-h20241029143616010079",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ct-human-h20241029143617975256",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ct-human-h20241029143619654143",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ct-human-h20241029143620980391",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ct-human-h20241029143622387332",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ct-human-h20241029143623982133",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ct-human-h20241029143625307702",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ct-human-h20241029143627200710",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ct-human-h20241029143628653733",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ct-human-h20241029143630351554",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ct-human-h20241029143632058747",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ct-human-h20241029143633338303",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ct-human-h20241029143636163145",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ct-human-h20241029143637732099",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "OUT_OF_SCOPE",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ct-human-h20241029143639901784",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ct-human-h20241029143641719716",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ct-human-h20241029143644154862",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ct-human-h20241029143645157524",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ct-human-h20241029143646523600",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ct-human-h20241029143648613072",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ct-human-h20241029143650282919",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ct-human-h20241029143652031792",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ct-human-h20241029143653372872",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ct-human-h20241029143656081463",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ct-human-h20241029143657365639",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ct-human-h20241029143658659295",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ct-human-h20241029143659983667",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ct-human-h20241029143701815147",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ct-human-h20241029143704161138",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ct-human-h20241029143706437033",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ct-human-h20241029143709097610",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ct-human-h20241029143711334809",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ct-human-h20241029143714502665",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ct-human-h20241029143718654427",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ct-human-h20241029143720725398",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ct-human-h20241029143722458026",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ct-human-h20241029143724478281",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ct-human-h20241029143727719855",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ct-human-h20241029143729369677",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ct-human-h20241029143730769592",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ct-human-h20241029143732290071",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "OUT_OF_SCOPE",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ct-human-h20241029143733781691",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ct-human-h20241029143735439292",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ct-human-h20241029143736524841",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ct-human-h20241029143738057260",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ct-human-h20241029143739523099",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ct-human-h20241029143741942032",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ct-human-h20241029143743586105",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ct-human-h20241029143745264225",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ct-human-h20241029143747397251",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ct-human-h20241029143749478632",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ct-human-h20241029143750930343",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ct-human-h20241029143752714587",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ct-human-h20241029143754236194",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ct-human-h20241029143759740039",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ct-human-h20241029143803188730",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ct-human-h20241029143804839319",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ct-human-h20241029143806507479",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ct-human-h20241029143807949268",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ct-human-h20241029143809635485",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ct-human-h20241029143811168339",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ct-human-h20241029143812547929",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ct-human-h20241029143814437710",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ct-human-h20241029143816266519",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ct-human-h20241029143818664124",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ct-human-h20241029143820591758",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ct-human-h20241029143823020071",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ct-human-h20241029143824748448",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ct-human-h20241029143826541906",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ct-human-h20241029143828857993",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ct-human-h20241029143830714886",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ct-human-h20241029143832205713",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ct-human-h20241029143834377206",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ct-human-h20241029143835520306",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ct-human-h20241029143837173547",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ct-human-h20241029143839056472",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ct-human-h20241029143840382242",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ct-human-h20241029143842373194",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ct-human-h20241029143844076573",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ct-human-h20241029143845365386",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ct-human-h20241029143846901147",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ct-human-h20241029143848307913",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ct-human-h20241029143850298727",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ct-human-h20241029143851561679",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ct-human-h20241029143853055859",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ct-human-h20241029143854711129",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ct-human-h20241029143857404500",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ct-human-h20241029143858969810",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ct-human-h20241029143900796443",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ct-human-h20241029143902858522",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ct-human-h20241029143904148477",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ct-human-h20241029143906048411",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ct-human-h20241029143908194169",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ct-human-h20241029143909714190",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ct-human-h20241029143911770965",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ct-human-h20241029143913181191",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ct-human-h20241029143915014327",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ct-human-h20241029143916604779",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ct-human-h20241029143918467169",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ct-human-h20241029143920003060",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ct-human-h20241029143921648851",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ct-human-h20241029143923769644",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ct-human-h20241029143925294432",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ct-human-h20241029143926788464",
+      "language": "zh",
+      "source": "LAMDA-NeSy/ChinaTravel",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "cw-10",
+      "language": "zh",
+      "source": "thu-coai/CrossWOZ",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "cw-10049",
+      "language": "zh",
+      "source": "thu-coai/CrossWOZ",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "cw-10083",
+      "language": "zh",
+      "source": "thu-coai/CrossWOZ",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "cw-10113",
+      "language": "zh",
+      "source": "thu-coai/CrossWOZ",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "cw-10156",
+      "language": "zh",
+      "source": "thu-coai/CrossWOZ",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "cw-10189",
+      "language": "zh",
+      "source": "thu-coai/CrossWOZ",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "cw-10234",
+      "language": "zh",
+      "source": "thu-coai/CrossWOZ",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "cw-10253",
+      "language": "zh",
+      "source": "thu-coai/CrossWOZ",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "cw-10351",
+      "language": "zh",
+      "source": "thu-coai/CrossWOZ",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "cw-10413",
+      "language": "zh",
+      "source": "thu-coai/CrossWOZ",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "cw-10427",
+      "language": "zh",
+      "source": "thu-coai/CrossWOZ",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "cw-10463",
+      "language": "zh",
+      "source": "thu-coai/CrossWOZ",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "cw-10497",
+      "language": "zh",
+      "source": "thu-coai/CrossWOZ",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "cw-10635",
+      "language": "zh",
+      "source": "thu-coai/CrossWOZ",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "cw-10662",
+      "language": "zh",
+      "source": "thu-coai/CrossWOZ",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "cw-10722",
+      "language": "zh",
+      "source": "thu-coai/CrossWOZ",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "cw-10737",
+      "language": "zh",
+      "source": "thu-coai/CrossWOZ",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "cw-10757",
+      "language": "zh",
+      "source": "thu-coai/CrossWOZ",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "cw-10781",
+      "language": "zh",
+      "source": "thu-coai/CrossWOZ",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "cw-10784",
+      "language": "zh",
+      "source": "thu-coai/CrossWOZ",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "cw-10838",
+      "language": "zh",
+      "source": "thu-coai/CrossWOZ",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "cw-10909",
+      "language": "zh",
+      "source": "thu-coai/CrossWOZ",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "cw-10916",
+      "language": "zh",
+      "source": "thu-coai/CrossWOZ",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "cw-10987",
+      "language": "zh",
+      "source": "thu-coai/CrossWOZ",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "cw-11026",
+      "language": "zh",
+      "source": "thu-coai/CrossWOZ",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "cw-11033",
+      "language": "zh",
+      "source": "thu-coai/CrossWOZ",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "cw-11035",
+      "language": "zh",
+      "source": "thu-coai/CrossWOZ",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "cw-11106",
+      "language": "zh",
+      "source": "thu-coai/CrossWOZ",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "cw-11185",
+      "language": "zh",
+      "source": "thu-coai/CrossWOZ",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "cw-11245",
+      "language": "zh",
+      "source": "thu-coai/CrossWOZ",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "cw-11292",
+      "language": "zh",
+      "source": "thu-coai/CrossWOZ",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "cw-11303",
+      "language": "zh",
+      "source": "thu-coai/CrossWOZ",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "cw-11326",
+      "language": "zh",
+      "source": "thu-coai/CrossWOZ",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "cw-11409",
+      "language": "zh",
+      "source": "thu-coai/CrossWOZ",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "cw-11475",
+      "language": "zh",
+      "source": "thu-coai/CrossWOZ",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "cw-11588",
+      "language": "zh",
+      "source": "thu-coai/CrossWOZ",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "cw-11630",
+      "language": "zh",
+      "source": "thu-coai/CrossWOZ",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "cw-11635",
+      "language": "zh",
+      "source": "thu-coai/CrossWOZ",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "cw-11639",
+      "language": "zh",
+      "source": "thu-coai/CrossWOZ",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "cw-11676",
+      "language": "zh",
+      "source": "thu-coai/CrossWOZ",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "cw-11723",
+      "language": "zh",
+      "source": "thu-coai/CrossWOZ",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "cw-11725",
+      "language": "zh",
+      "source": "thu-coai/CrossWOZ",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "cw-11732",
+      "language": "zh",
+      "source": "thu-coai/CrossWOZ",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "cw-11788",
+      "language": "zh",
+      "source": "thu-coai/CrossWOZ",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "cw-11802",
+      "language": "zh",
+      "source": "thu-coai/CrossWOZ",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "cw-11945",
+      "language": "zh",
+      "source": "thu-coai/CrossWOZ",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "cw-11950",
+      "language": "zh",
+      "source": "thu-coai/CrossWOZ",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "cw-12037",
+      "language": "zh",
+      "source": "thu-coai/CrossWOZ",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "cw-12061",
+      "language": "zh",
+      "source": "thu-coai/CrossWOZ",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "cw-12084",
+      "language": "zh",
+      "source": "thu-coai/CrossWOZ",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "cw-12109",
+      "language": "zh",
+      "source": "thu-coai/CrossWOZ",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "cw-12117",
+      "language": "zh",
+      "source": "thu-coai/CrossWOZ",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "cw-12126",
+      "language": "zh",
+      "source": "thu-coai/CrossWOZ",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "cw-12187",
+      "language": "zh",
+      "source": "thu-coai/CrossWOZ",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "cw-12266",
+      "language": "zh",
+      "source": "thu-coai/CrossWOZ",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "cw-12278",
+      "language": "zh",
+      "source": "thu-coai/CrossWOZ",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "cw-12332",
+      "language": "zh",
+      "source": "thu-coai/CrossWOZ",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "cw-12391",
+      "language": "zh",
+      "source": "thu-coai/CrossWOZ",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "cw-12457",
+      "language": "zh",
+      "source": "thu-coai/CrossWOZ",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "cw-1547",
+      "language": "zh",
+      "source": "thu-coai/CrossWOZ",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "cw-1568",
+      "language": "zh",
+      "source": "thu-coai/CrossWOZ",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "cw-1664",
+      "language": "zh",
+      "source": "thu-coai/CrossWOZ",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "cw-1829",
+      "language": "zh",
+      "source": "thu-coai/CrossWOZ",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "cw-1945",
+      "language": "zh",
+      "source": "thu-coai/CrossWOZ",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "cw-2108",
+      "language": "zh",
+      "source": "thu-coai/CrossWOZ",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "cw-2175",
+      "language": "zh",
+      "source": "thu-coai/CrossWOZ",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "cw-221",
+      "language": "zh",
+      "source": "thu-coai/CrossWOZ",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "cw-2414",
+      "language": "zh",
+      "source": "thu-coai/CrossWOZ",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "cw-2465",
+      "language": "zh",
+      "source": "thu-coai/CrossWOZ",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "cw-2467",
+      "language": "zh",
+      "source": "thu-coai/CrossWOZ",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "cw-2491",
+      "language": "zh",
+      "source": "thu-coai/CrossWOZ",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "cw-251",
+      "language": "zh",
+      "source": "thu-coai/CrossWOZ",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "cw-2524",
+      "language": "zh",
+      "source": "thu-coai/CrossWOZ",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "cw-253",
+      "language": "zh",
+      "source": "thu-coai/CrossWOZ",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "cw-2877",
+      "language": "zh",
+      "source": "thu-coai/CrossWOZ",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "cw-290",
+      "language": "zh",
+      "source": "thu-coai/CrossWOZ",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "cw-2979",
+      "language": "zh",
+      "source": "thu-coai/CrossWOZ",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "cw-3066",
+      "language": "zh",
+      "source": "thu-coai/CrossWOZ",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "cw-307",
+      "language": "zh",
+      "source": "thu-coai/CrossWOZ",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "cw-309",
+      "language": "zh",
+      "source": "thu-coai/CrossWOZ",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "cw-343",
+      "language": "zh",
+      "source": "thu-coai/CrossWOZ",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "cw-3472",
+      "language": "zh",
+      "source": "thu-coai/CrossWOZ",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "cw-3486",
+      "language": "zh",
+      "source": "thu-coai/CrossWOZ",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "cw-362",
+      "language": "zh",
+      "source": "thu-coai/CrossWOZ",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "cw-3639",
+      "language": "zh",
+      "source": "thu-coai/CrossWOZ",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "cw-364",
+      "language": "zh",
+      "source": "thu-coai/CrossWOZ",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "cw-367",
+      "language": "zh",
+      "source": "thu-coai/CrossWOZ",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "cw-3700",
+      "language": "zh",
+      "source": "thu-coai/CrossWOZ",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "cw-386",
+      "language": "zh",
+      "source": "thu-coai/CrossWOZ",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "cw-3878",
+      "language": "zh",
+      "source": "thu-coai/CrossWOZ",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "cw-3903",
+      "language": "zh",
+      "source": "thu-coai/CrossWOZ",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "cw-4327",
+      "language": "zh",
+      "source": "thu-coai/CrossWOZ",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "cw-443",
+      "language": "zh",
+      "source": "thu-coai/CrossWOZ",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "cw-4635",
+      "language": "zh",
+      "source": "thu-coai/CrossWOZ",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "cw-4666",
+      "language": "zh",
+      "source": "thu-coai/CrossWOZ",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "cw-4768",
+      "language": "zh",
+      "source": "thu-coai/CrossWOZ",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "cw-5338",
+      "language": "zh",
+      "source": "thu-coai/CrossWOZ",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "cw-5496",
+      "language": "zh",
+      "source": "thu-coai/CrossWOZ",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "cw-5613",
+      "language": "zh",
+      "source": "thu-coai/CrossWOZ",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "cw-5673",
+      "language": "zh",
+      "source": "thu-coai/CrossWOZ",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ad-val-0000",
+      "language": "en",
+      "source": "google/air_dialogue",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ad-val-0001",
+      "language": "en",
+      "source": "google/air_dialogue",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ad-val-0002",
+      "language": "en",
+      "source": "google/air_dialogue",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ad-val-0003",
+      "language": "en",
+      "source": "google/air_dialogue",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ad-val-0004",
+      "language": "en",
+      "source": "google/air_dialogue",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ad-val-0005",
+      "language": "en",
+      "source": "google/air_dialogue",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ad-val-0006",
+      "language": "en",
+      "source": "google/air_dialogue",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ad-val-0007",
+      "language": "en",
+      "source": "google/air_dialogue",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ad-val-0008",
+      "language": "en",
+      "source": "google/air_dialogue",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ad-val-0009",
+      "language": "en",
+      "source": "google/air_dialogue",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ad-val-0010",
+      "language": "en",
+      "source": "google/air_dialogue",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ad-val-0011",
+      "language": "en",
+      "source": "google/air_dialogue",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ad-val-0012",
+      "language": "en",
+      "source": "google/air_dialogue",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ad-val-0013",
+      "language": "en",
+      "source": "google/air_dialogue",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ad-val-0014",
+      "language": "en",
+      "source": "google/air_dialogue",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ad-val-0015",
+      "language": "en",
+      "source": "google/air_dialogue",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ad-val-0016",
+      "language": "en",
+      "source": "google/air_dialogue",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ad-val-0017",
+      "language": "en",
+      "source": "google/air_dialogue",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ad-val-0018",
+      "language": "en",
+      "source": "google/air_dialogue",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ad-val-0019",
+      "language": "en",
+      "source": "google/air_dialogue",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ad-val-0020",
+      "language": "en",
+      "source": "google/air_dialogue",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ad-val-0021",
+      "language": "en",
+      "source": "google/air_dialogue",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ad-val-0022",
+      "language": "en",
+      "source": "google/air_dialogue",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ad-val-0023",
+      "language": "en",
+      "source": "google/air_dialogue",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ad-val-0024",
+      "language": "en",
+      "source": "google/air_dialogue",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ad-val-0025",
+      "language": "en",
+      "source": "google/air_dialogue",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ad-val-0026",
+      "language": "en",
+      "source": "google/air_dialogue",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ad-val-0027",
+      "language": "en",
+      "source": "google/air_dialogue",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ad-val-0028",
+      "language": "en",
+      "source": "google/air_dialogue",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ad-val-0029",
+      "language": "en",
+      "source": "google/air_dialogue",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ad-val-0030",
+      "language": "en",
+      "source": "google/air_dialogue",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ad-val-0031",
+      "language": "en",
+      "source": "google/air_dialogue",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ad-val-0032",
+      "language": "en",
+      "source": "google/air_dialogue",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ad-val-0033",
+      "language": "en",
+      "source": "google/air_dialogue",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ad-val-0034",
+      "language": "en",
+      "source": "google/air_dialogue",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ad-val-0035",
+      "language": "en",
+      "source": "google/air_dialogue",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ad-val-0036",
+      "language": "en",
+      "source": "google/air_dialogue",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ad-val-0037",
+      "language": "en",
+      "source": "google/air_dialogue",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ad-val-0038",
+      "language": "en",
+      "source": "google/air_dialogue",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ad-val-0039",
+      "language": "en",
+      "source": "google/air_dialogue",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ad-val-0040",
+      "language": "en",
+      "source": "google/air_dialogue",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ad-val-0041",
+      "language": "en",
+      "source": "google/air_dialogue",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ad-val-0042",
+      "language": "en",
+      "source": "google/air_dialogue",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ad-val-0043",
+      "language": "en",
+      "source": "google/air_dialogue",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ad-val-0044",
+      "language": "en",
+      "source": "google/air_dialogue",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    },
+    {
+      "case_id": "ad-val-0045",
+      "language": "en",
+      "source": "google/air_dialogue",
+      "state": "NEEDS_CLARIFICATION",
+      "option_count": 0,
+      "clarification": true,
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": true,
+        "searched_dates_match_declaration": true
+      },
+      "passed": true,
+      "search_count": 0
+    }
+  ]
+}

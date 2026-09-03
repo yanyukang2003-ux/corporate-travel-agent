@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "mode": "llm_judge",
+  "generated_at": "2026-09-02T19:34:33.139861+00:00",
+  "run_directory": "reports/evaluation-runs/external-longtail-multiturn-live-r1-20260902",
+  "rubric_id": "output-quality-v1",
+  "rubric_sha256": "9ed4721a38738ad4a6ad1141b47baf113b142297802410e462cf02547b310096",
+  "judge_id": "output-quality-judge-v1:deepseek-v4-pro",
+  "judge_prompt_version": "output-quality-judge-v1",
+  "judged_runs": 185,
+  "abstentions": 20,
+  "hard_rule_failed_runs": 0,
+  "mean_judge_quality_score": 4.003636363636364,
+  "calibration_status": "insufficient_samples",
+  "exact_agreement_rate": null,
+  "adjacent_agreement_rate": null,
+  "target_agreement": 0.9,
+  "human_double_rated": false,
+  "model_calls": 185,
+  "total_tokens": 458039,
+  "limitations": [
+    "The judge never overrides deterministic hard assertions.",
+    "Abstentions are excluded from the mean, never scored as 0.",
+    "A judge score is uncalibrated until calibration_status is 'passed'."
+  ]
+}

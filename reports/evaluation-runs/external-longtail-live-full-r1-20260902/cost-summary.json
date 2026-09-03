@@ -1,0 +1,1815 @@
+{
+  "complete": false,
+  "currency": "USD",
+  "estimated_cost_usd": 0.419693655,
+  "input_tokens": 885981,
+  "llm_calls": 397,
+  "model": "deepseek-v4-pro",
+  "note": "Cached-input discounts are not modelled; the estimate is an upper bound.",
+  "output_tokens": 39416,
+  "per_case": {
+    "ad-val-0000": {
+      "cost_usd": 0.0,
+      "input_tokens": 0,
+      "llm_calls": 1,
+      "output_tokens": 0
+    },
+    "ad-val-0001": {
+      "cost_usd": 0.0,
+      "input_tokens": 0,
+      "llm_calls": 1,
+      "output_tokens": 0
+    },
+    "ad-val-0002": {
+      "cost_usd": 0.0,
+      "input_tokens": 0,
+      "llm_calls": 1,
+      "output_tokens": 0
+    },
+    "ad-val-0003": {
+      "cost_usd": 0.0,
+      "input_tokens": 0,
+      "llm_calls": 1,
+      "output_tokens": 0
+    },
+    "ad-val-0004": {
+      "cost_usd": 0.0,
+      "input_tokens": 0,
+      "llm_calls": 1,
+      "output_tokens": 0
+    },
+    "ad-val-0005": {
+      "cost_usd": 0.0,
+      "input_tokens": 0,
+      "llm_calls": 1,
+      "output_tokens": 0
+    },
+    "ad-val-0006": {
+      "cost_usd": 0.0,
+      "input_tokens": 0,
+      "llm_calls": 1,
+      "output_tokens": 0
+    },
+    "ad-val-0007": {
+      "cost_usd": 0.0,
+      "input_tokens": 0,
+      "llm_calls": 1,
+      "output_tokens": 0
+    },
+    "ad-val-0008": {
+      "cost_usd": 0.0,
+      "input_tokens": 0,
+      "llm_calls": 1,
+      "output_tokens": 0
+    },
+    "ad-val-0009": {
+      "cost_usd": 0.0,
+      "input_tokens": 0,
+      "llm_calls": 1,
+      "output_tokens": 0
+    },
+    "ad-val-0010": {
+      "cost_usd": 0.0,
+      "input_tokens": 0,
+      "llm_calls": 1,
+      "output_tokens": 0
+    },
+    "ad-val-0011": {
+      "cost_usd": 0.0,
+      "input_tokens": 0,
+      "llm_calls": 1,
+      "output_tokens": 0
+    },
+    "ad-val-0012": {
+      "cost_usd": 0.0,
+      "input_tokens": 0,
+      "llm_calls": 1,
+      "output_tokens": 0
+    },
+    "ad-val-0013": {
+      "cost_usd": 0.0,
+      "input_tokens": 0,
+      "llm_calls": 1,
+      "output_tokens": 0
+    },
+    "ad-val-0014": {
+      "cost_usd": 0.0,
+      "input_tokens": 0,
+      "llm_calls": 1,
+      "output_tokens": 0
+    },
+    "ad-val-0015": {
+      "cost_usd": 0.0,
+      "input_tokens": 0,
+      "llm_calls": 1,
+      "output_tokens": 0
+    },
+    "ad-val-0016": {
+      "cost_usd": 0.0,
+      "input_tokens": 0,
+      "llm_calls": 1,
+      "output_tokens": 0
+    },
+    "ad-val-0017": {
+      "cost_usd": 0.0,
+      "input_tokens": 0,
+      "llm_calls": 1,
+      "output_tokens": 0
+    },
+    "ad-val-0018": {
+      "cost_usd": 0.0,
+      "input_tokens": 0,
+      "llm_calls": 1,
+      "output_tokens": 0
+    },
+    "ad-val-0019": {
+      "cost_usd": 0.0,
+      "input_tokens": 0,
+      "llm_calls": 1,
+      "output_tokens": 0
+    },
+    "ad-val-0020": {
+      "cost_usd": 0.0,
+      "input_tokens": 0,
+      "llm_calls": 1,
+      "output_tokens": 0
+    },
+    "ad-val-0021": {
+      "cost_usd": 0.0,
+      "input_tokens": 0,
+      "llm_calls": 1,
+      "output_tokens": 0
+    },
+    "ad-val-0022": {
+      "cost_usd": 0.0,
+      "input_tokens": 0,
+      "llm_calls": 1,
+      "output_tokens": 0
+    },
+    "ad-val-0023": {
+      "cost_usd": 0.0,
+      "input_tokens": 0,
+      "llm_calls": 1,
+      "output_tokens": 0
+    },
+    "ad-val-0024": {
+      "cost_usd": 0.0,
+      "input_tokens": 0,
+      "llm_calls": 1,
+      "output_tokens": 0
+    },
+    "ad-val-0025": {
+      "cost_usd": 0.0,
+      "input_tokens": 0,
+      "llm_calls": 1,
+      "output_tokens": 0
+    },
+    "ad-val-0026": {
+      "cost_usd": 0.0,
+      "input_tokens": 0,
+      "llm_calls": 1,
+      "output_tokens": 0
+    },
+    "ad-val-0027": {
+      "cost_usd": 0.0,
+      "input_tokens": 0,
+      "llm_calls": 1,
+      "output_tokens": 0
+    },
+    "ad-val-0028": {
+      "cost_usd": 0.0,
+      "input_tokens": 0,
+      "llm_calls": 1,
+      "output_tokens": 0
+    },
+    "ad-val-0029": {
+      "cost_usd": 0.0,
+      "input_tokens": 0,
+      "llm_calls": 1,
+      "output_tokens": 0
+    },
+    "ad-val-0030": {
+      "cost_usd": 0.0,
+      "input_tokens": 0,
+      "llm_calls": 1,
+      "output_tokens": 0
+    },
+    "ad-val-0031": {
+      "cost_usd": 0.0,
+      "input_tokens": 0,
+      "llm_calls": 1,
+      "output_tokens": 0
+    },
+    "ad-val-0032": {
+      "cost_usd": 0.0,
+      "input_tokens": 0,
+      "llm_calls": 1,
+      "output_tokens": 0
+    },
+    "ad-val-0033": {
+      "cost_usd": 0.0,
+      "input_tokens": 0,
+      "llm_calls": 1,
+      "output_tokens": 0
+    },
+    "ad-val-0034": {
+      "cost_usd": 0.0,
+      "input_tokens": 0,
+      "llm_calls": 1,
+      "output_tokens": 0
+    },
+    "ad-val-0035": {
+      "cost_usd": 0.0,
+      "input_tokens": 0,
+      "llm_calls": 1,
+      "output_tokens": 0
+    },
+    "ad-val-0036": {
+      "cost_usd": 0.0,
+      "input_tokens": 0,
+      "llm_calls": 1,
+      "output_tokens": 0
+    },
+    "ad-val-0037": {
+      "cost_usd": 0.0,
+      "input_tokens": 0,
+      "llm_calls": 1,
+      "output_tokens": 0
+    },
+    "ad-val-0038": {
+      "cost_usd": 0.0,
+      "input_tokens": 0,
+      "llm_calls": 1,
+      "output_tokens": 0
+    },
+    "ad-val-0039": {
+      "cost_usd": 0.0,
+      "input_tokens": 0,
+      "llm_calls": 1,
+      "output_tokens": 0
+    },
+    "ad-val-0040": {
+      "cost_usd": 0.0,
+      "input_tokens": 0,
+      "llm_calls": 1,
+      "output_tokens": 0
+    },
+    "ad-val-0041": {
+      "cost_usd": 0.0,
+      "input_tokens": 0,
+      "llm_calls": 1,
+      "output_tokens": 0
+    },
+    "ad-val-0042": {
+      "cost_usd": 0.0,
+      "input_tokens": 0,
+      "llm_calls": 1,
+      "output_tokens": 0
+    },
+    "ad-val-0043": {
+      "cost_usd": 0.0,
+      "input_tokens": 0,
+      "llm_calls": 1,
+      "output_tokens": 0
+    },
+    "ad-val-0044": {
+      "cost_usd": 0.0,
+      "input_tokens": 0,
+      "llm_calls": 1,
+      "output_tokens": 0
+    },
+    "ad-val-0045": {
+      "cost_usd": 0.0,
+      "input_tokens": 0,
+      "llm_calls": 1,
+      "output_tokens": 0
+    },
+    "ct-human-h20241029143447759844": {
+      "cost_usd": 0.00279183,
+      "input_tokens": 6024,
+      "llm_calls": 2,
+      "output_tokens": 197
+    },
+    "ct-human-h20241029143450090032": {
+      "cost_usd": 0.00302586,
+      "input_tokens": 6276,
+      "llm_calls": 2,
+      "output_tokens": 340
+    },
+    "ct-human-h20241029143451793119": {
+      "cost_usd": 0.001363725,
+      "input_tokens": 2887,
+      "llm_calls": 1,
+      "output_tokens": 124
+    },
+    "ct-human-h20241029143453343691": {
+      "cost_usd": 0.001391565,
+      "input_tokens": 2907,
+      "llm_calls": 1,
+      "output_tokens": 146
+    },
+    "ct-human-h20241029143455115600": {
+      "cost_usd": 0.00131718,
+      "input_tokens": 2876,
+      "llm_calls": 1,
+      "output_tokens": 76
+    },
+    "ct-human-h20241029143456235562": {
+      "cost_usd": 0.00287361,
+      "input_tokens": 5986,
+      "llm_calls": 2,
+      "output_tokens": 310
+    },
+    "ct-human-h20241029143457494209": {
+      "cost_usd": 0.003249885,
+      "input_tokens": 6873,
+      "llm_calls": 2,
+      "output_tokens": 299
+    },
+    "ct-human-h20241029143458760702": {
+      "cost_usd": 0.00141897,
+      "input_tokens": 2906,
+      "llm_calls": 1,
+      "output_tokens": 178
+    },
+    "ct-human-h20241029143500599951": {
+      "cost_usd": 0.00134067,
+      "input_tokens": 2900,
+      "llm_calls": 1,
+      "output_tokens": 91
+    },
+    "ct-human-h20241029143502525564": {
+      "cost_usd": 0.00279357,
+      "input_tokens": 6022,
+      "llm_calls": 2,
+      "output_tokens": 200
+    },
+    "ct-human-h20241029143504074288": {
+      "cost_usd": 0.001523805,
+      "input_tokens": 2909,
+      "llm_calls": 1,
+      "output_tokens": 297
+    },
+    "ct-human-h20241029143506461809": {
+      "cost_usd": 0.00133893,
+      "input_tokens": 2892,
+      "llm_calls": 1,
+      "output_tokens": 93
+    },
+    "ct-human-h20241029143508251643": {
+      "cost_usd": 0.001347195,
+      "input_tokens": 2887,
+      "llm_calls": 1,
+      "output_tokens": 105
+    },
+    "ct-human-h20241029143509607671": {
+      "cost_usd": 0.0014007,
+      "input_tokens": 2896,
+      "llm_calls": 1,
+      "output_tokens": 162
+    },
+    "ct-human-h20241029143510880048": {
+      "cost_usd": 0.00277182,
+      "input_tokens": 5998,
+      "llm_calls": 2,
+      "output_tokens": 187
+    },
+    "ct-human-h20241029143512507336": {
+      "cost_usd": 0.00280314,
+      "input_tokens": 6028,
+      "llm_calls": 2,
+      "output_tokens": 208
+    },
+    "ct-human-h20241029143514054328": {
+      "cost_usd": 0.00136068,
+      "input_tokens": 2878,
+      "llm_calls": 1,
+      "output_tokens": 125
+    },
+    "ct-human-h20241029143515190249": {
+      "cost_usd": 0.00283098,
+      "input_tokens": 6024,
+      "llm_calls": 2,
+      "output_tokens": 242
+    },
+    "ct-human-h20241029143518931601": {
+      "cost_usd": 0.00275181,
+      "input_tokens": 6000,
+      "llm_calls": 2,
+      "output_tokens": 163
+    },
+    "ct-human-h20241029143520277982": {
+      "cost_usd": 0.00277965,
+      "input_tokens": 5976,
+      "llm_calls": 2,
+      "output_tokens": 207
+    },
+    "ct-human-h20241029143521646393": {
+      "cost_usd": 0.00277182,
+      "input_tokens": 5994,
+      "llm_calls": 2,
+      "output_tokens": 189
+    },
+    "ct-human-h20241029143522848652": {
+      "cost_usd": 0.0032277,
+      "input_tokens": 6274,
+      "llm_calls": 2,
+      "output_tokens": 573
+    },
+    "ct-human-h20241029143524548106": {
+      "cost_usd": 0.001440285,
+      "input_tokens": 2901,
+      "llm_calls": 1,
+      "output_tokens": 205
+    },
+    "ct-human-h20241029143526214076": {
+      "cost_usd": 0.00284316,
+      "input_tokens": 6046,
+      "llm_calls": 2,
+      "output_tokens": 245
+    },
+    "ct-human-h20241029143528503277": {
+      "cost_usd": 0.00288666,
+      "input_tokens": 6070,
+      "llm_calls": 2,
+      "output_tokens": 283
+    },
+    "ct-human-h20241029143530430866": {
+      "cost_usd": 0.00280662,
+      "input_tokens": 6022,
+      "llm_calls": 2,
+      "output_tokens": 215
+    },
+    "ct-human-h20241029143532210869": {
+      "cost_usd": 0.00280053,
+      "input_tokens": 6010,
+      "llm_calls": 2,
+      "output_tokens": 214
+    },
+    "ct-human-h20241029143533982475": {
+      "cost_usd": 0.00162603,
+      "input_tokens": 2916,
+      "llm_calls": 1,
+      "output_tokens": 411
+    },
+    "ct-human-h20241029143536587211": {
+      "cost_usd": 0.00278487,
+      "input_tokens": 6014,
+      "llm_calls": 2,
+      "output_tokens": 194
+    },
+    "ct-human-h20241029143538018046": {
+      "cost_usd": 0.001346325,
+      "input_tokens": 2891,
+      "llm_calls": 1,
+      "output_tokens": 102
+    },
+    "ct-human-h20241029143539603238": {
+      "cost_usd": 0.00278052,
+      "input_tokens": 6004,
+      "llm_calls": 2,
+      "output_tokens": 194
+    },
+    "ct-human-h20241029143541319291": {
+      "cost_usd": 0.001331535,
+      "input_tokens": 2879,
+      "llm_calls": 1,
+      "output_tokens": 91
+    },
+    "ct-human-h20241029143542560410": {
+      "cost_usd": 0.00136938,
+      "input_tokens": 2888,
+      "llm_calls": 1,
+      "output_tokens": 130
+    },
+    "ct-human-h20241029143543943871": {
+      "cost_usd": 0.001415925,
+      "input_tokens": 2897,
+      "llm_calls": 1,
+      "output_tokens": 179
+    },
+    "ct-human-h20241029143546424651": {
+      "cost_usd": 0.00135894,
+      "input_tokens": 2884,
+      "llm_calls": 1,
+      "output_tokens": 120
+    },
+    "ct-human-h20241029143547722063": {
+      "cost_usd": 0.00280923,
+      "input_tokens": 6028,
+      "llm_calls": 2,
+      "output_tokens": 215
+    },
+    "ct-human-h20241029143549773288": {
+      "cost_usd": 0.00279096,
+      "input_tokens": 6014,
+      "llm_calls": 2,
+      "output_tokens": 201
+    },
+    "ct-human-h20241029143551657496": {
+      "cost_usd": 0.00302151,
+      "input_tokens": 6254,
+      "llm_calls": 2,
+      "output_tokens": 346
+    },
+    "ct-human-h20241029143553510979": {
+      "cost_usd": 0.00279009,
+      "input_tokens": 6024,
+      "llm_calls": 2,
+      "output_tokens": 195
+    },
+    "ct-human-h20241029143554849031": {
+      "cost_usd": 0.00137025,
+      "input_tokens": 2896,
+      "llm_calls": 1,
+      "output_tokens": 127
+    },
+    "ct-human-h20241029143556181559": {
+      "cost_usd": 0.003256845,
+      "input_tokens": 6913,
+      "llm_calls": 2,
+      "output_tokens": 287
+    },
+    "ct-human-h20241029143558223472": {
+      "cost_usd": 0.00278052,
+      "input_tokens": 6004,
+      "llm_calls": 2,
+      "output_tokens": 194
+    },
+    "ct-human-h20241029143602442546": {
+      "cost_usd": 0.008661285,
+      "input_tokens": 18393,
+      "llm_calls": 5,
+      "output_tokens": 759
+    },
+    "ct-human-h20241029143604280402": {
+      "cost_usd": 0.00279618,
+      "input_tokens": 5992,
+      "llm_calls": 2,
+      "output_tokens": 218
+    },
+    "ct-human-h20241029143606240237": {
+      "cost_usd": 0.001309785,
+      "input_tokens": 2907,
+      "llm_calls": 1,
+      "output_tokens": 52
+    },
+    "ct-human-h20241029143608049345": {
+      "cost_usd": 0.001409835,
+      "input_tokens": 2893,
+      "llm_calls": 1,
+      "output_tokens": 174
+    },
+    "ct-human-h20241029143609292913": {
+      "cost_usd": 0.001441155,
+      "input_tokens": 2897,
+      "llm_calls": 1,
+      "output_tokens": 208
+    },
+    "ct-human-h20241029143611928866": {
+      "cost_usd": 0.0027927,
+      "input_tokens": 6018,
+      "llm_calls": 2,
+      "output_tokens": 201
+    },
+    "ct-human-h20241029143613424655": {
+      "cost_usd": 0.00139635,
+      "input_tokens": 2900,
+      "llm_calls": 1,
+      "output_tokens": 155
+    },
+    "ct-human-h20241029143614813545": {
+      "cost_usd": 0.00279009,
+      "input_tokens": 6018,
+      "llm_calls": 2,
+      "output_tokens": 198
+    },
+    "ct-human-h20241029143616010079": {
+      "cost_usd": 0.00279357,
+      "input_tokens": 6014,
+      "llm_calls": 2,
+      "output_tokens": 204
+    },
+    "ct-human-h20241029143617975256": {
+      "cost_usd": 0.00277356,
+      "input_tokens": 6000,
+      "llm_calls": 2,
+      "output_tokens": 188
+    },
+    "ct-human-h20241029143619654143": {
+      "cost_usd": 0.00277008,
+      "input_tokens": 6000,
+      "llm_calls": 2,
+      "output_tokens": 184
+    },
+    "ct-human-h20241029143620980391": {
+      "cost_usd": 0.00279096,
+      "input_tokens": 6030,
+      "llm_calls": 2,
+      "output_tokens": 193
+    },
+    "ct-human-h20241029143622387332": {
+      "cost_usd": 0.00297714,
+      "input_tokens": 6238,
+      "llm_calls": 2,
+      "output_tokens": 303
+    },
+    "ct-human-h20241029143623982133": {
+      "cost_usd": 0.001336755,
+      "input_tokens": 2885,
+      "llm_calls": 1,
+      "output_tokens": 94
+    },
+    "ct-human-h20241029143625307702": {
+      "cost_usd": 0.00280227,
+      "input_tokens": 6046,
+      "llm_calls": 2,
+      "output_tokens": 198
+    },
+    "ct-human-h20241029143627200710": {
+      "cost_usd": 0.00134763,
+      "input_tokens": 2900,
+      "llm_calls": 1,
+      "output_tokens": 99
+    },
+    "ct-human-h20241029143628653733": {
+      "cost_usd": 0.00134154,
+      "input_tokens": 2908,
+      "llm_calls": 1,
+      "output_tokens": 88
+    },
+    "ct-human-h20241029143630351554": {
+      "cost_usd": 0.00367749,
+      "input_tokens": 7138,
+      "llm_calls": 2,
+      "output_tokens": 658
+    },
+    "ct-human-h20241029143632058747": {
+      "cost_usd": 0.00287883,
+      "input_tokens": 6012,
+      "llm_calls": 2,
+      "output_tokens": 303
+    },
+    "ct-human-h20241029143633338303": {
+      "cost_usd": 0.00276312,
+      "input_tokens": 5982,
+      "llm_calls": 2,
+      "output_tokens": 185
+    },
+    "ct-human-h20241029143636163145": {
+      "cost_usd": 0.001334145,
+      "input_tokens": 2885,
+      "llm_calls": 1,
+      "output_tokens": 91
+    },
+    "ct-human-h20241029143637732099": {
+      "cost_usd": 0.00134937,
+      "input_tokens": 2898,
+      "llm_calls": 1,
+      "output_tokens": 102
+    },
+    "ct-human-h20241029143639901784": {
+      "cost_usd": 0.006138285,
+      "input_tokens": 12793,
+      "llm_calls": 3,
+      "output_tokens": 659
+    },
+    "ct-human-h20241029143641719716": {
+      "cost_usd": 0.00328425,
+      "input_tokens": 6924,
+      "llm_calls": 2,
+      "output_tokens": 313
+    },
+    "ct-human-h20241029143644154862": {
+      "cost_usd": 0.00278835,
+      "input_tokens": 5994,
+      "llm_calls": 2,
+      "output_tokens": 208
+    },
+    "ct-human-h20241029143645157524": {
+      "cost_usd": 0.001344585,
+      "input_tokens": 2895,
+      "llm_calls": 1,
+      "output_tokens": 98
+    },
+    "ct-human-h20241029143646523600": {
+      "cost_usd": 0.00347304,
+      "input_tokens": 6868,
+      "llm_calls": 2,
+      "output_tokens": 558
+    },
+    "ct-human-h20241029143648613072": {
+      "cost_usd": 0.00321639,
+      "input_tokens": 6888,
+      "llm_calls": 2,
+      "output_tokens": 253
+    },
+    "ct-human-h20241029143650282919": {
+      "cost_usd": 0.003249015,
+      "input_tokens": 6903,
+      "llm_calls": 2,
+      "output_tokens": 283
+    },
+    "ct-human-h20241029143652031792": {
+      "cost_usd": 0.00277965,
+      "input_tokens": 6004,
+      "llm_calls": 2,
+      "output_tokens": 193
+    },
+    "ct-human-h20241029143653372872": {
+      "cost_usd": 0.00325554,
+      "input_tokens": 6902,
+      "llm_calls": 2,
+      "output_tokens": 291
+    },
+    "ct-human-h20241029143656081463": {
+      "cost_usd": 0.0015399,
+      "input_tokens": 2890,
+      "llm_calls": 1,
+      "output_tokens": 325
+    },
+    "ct-human-h20241029143657365639": {
+      "cost_usd": 0.00134067,
+      "input_tokens": 2894,
+      "llm_calls": 1,
+      "output_tokens": 94
+    },
+    "ct-human-h20241029143658659295": {
+      "cost_usd": 0.00277791,
+      "input_tokens": 6008,
+      "llm_calls": 2,
+      "output_tokens": 189
+    },
+    "ct-human-h20241029143659983667": {
+      "cost_usd": 0.00299628,
+      "input_tokens": 6256,
+      "llm_calls": 2,
+      "output_tokens": 316
+    },
+    "ct-human-h20241029143701815147": {
+      "cost_usd": 0.003247275,
+      "input_tokens": 6913,
+      "llm_calls": 2,
+      "output_tokens": 276
+    },
+    "ct-human-h20241029143704161138": {
+      "cost_usd": 0.00296061,
+      "input_tokens": 6244,
+      "llm_calls": 2,
+      "output_tokens": 281
+    },
+    "ct-human-h20241029143706437033": {
+      "cost_usd": 0.00287709,
+      "input_tokens": 6080,
+      "llm_calls": 2,
+      "output_tokens": 267
+    },
+    "ct-human-h20241029143709097610": {
+      "cost_usd": 0.00299802,
+      "input_tokens": 6252,
+      "llm_calls": 2,
+      "output_tokens": 320
+    },
+    "ct-human-h20241029143711334809": {
+      "cost_usd": 0.00360702,
+      "input_tokens": 7182,
+      "llm_calls": 2,
+      "output_tokens": 555
+    },
+    "ct-human-h20241029143714502665": {
+      "cost_usd": 0.00300063,
+      "input_tokens": 6276,
+      "llm_calls": 2,
+      "output_tokens": 311
+    },
+    "ct-human-h20241029143718654427": {
+      "cost_usd": 0.003251625,
+      "input_tokens": 6903,
+      "llm_calls": 2,
+      "output_tokens": 286
+    },
+    "ct-human-h20241029143720725398": {
+      "cost_usd": 0.00278313,
+      "input_tokens": 6028,
+      "llm_calls": 2,
+      "output_tokens": 185
+    },
+    "ct-human-h20241029143722458026": {
+      "cost_usd": 0.00360876,
+      "input_tokens": 7128,
+      "llm_calls": 2,
+      "output_tokens": 584
+    },
+    "ct-human-h20241029143724478281": {
+      "cost_usd": 0.00338952,
+      "input_tokens": 7018,
+      "llm_calls": 2,
+      "output_tokens": 387
+    },
+    "ct-human-h20241029143727719855": {
+      "cost_usd": 0.001407225,
+      "input_tokens": 2899,
+      "llm_calls": 1,
+      "output_tokens": 168
+    },
+    "ct-human-h20241029143729369677": {
+      "cost_usd": 0.00278139,
+      "input_tokens": 5932,
+      "llm_calls": 2,
+      "output_tokens": 231
+    },
+    "ct-human-h20241029143730769592": {
+      "cost_usd": 0.004891575,
+      "input_tokens": 10141,
+      "llm_calls": 3,
+      "output_tokens": 552
+    },
+    "ct-human-h20241029143732290071": {
+      "cost_usd": 0.00134676,
+      "input_tokens": 2900,
+      "llm_calls": 1,
+      "output_tokens": 98
+    },
+    "ct-human-h20241029143733781691": {
+      "cost_usd": 0.00301542,
+      "input_tokens": 6234,
+      "llm_calls": 2,
+      "output_tokens": 349
+    },
+    "ct-human-h20241029143735439292": {
+      "cost_usd": 0.00294582,
+      "input_tokens": 6150,
+      "llm_calls": 2,
+      "output_tokens": 311
+    },
+    "ct-human-h20241029143736524841": {
+      "cost_usd": 0.00304413,
+      "input_tokens": 6294,
+      "llm_calls": 2,
+      "output_tokens": 352
+    },
+    "ct-human-h20241029143738057260": {
+      "cost_usd": 0.00296409,
+      "input_tokens": 6144,
+      "llm_calls": 2,
+      "output_tokens": 335
+    },
+    "ct-human-h20241029143739523099": {
+      "cost_usd": 0.001366335,
+      "input_tokens": 2899,
+      "llm_calls": 1,
+      "output_tokens": 121
+    },
+    "ct-human-h20241029143741942032": {
+      "cost_usd": 0.001401135,
+      "input_tokens": 2897,
+      "llm_calls": 1,
+      "output_tokens": 162
+    },
+    "ct-human-h20241029143743586105": {
+      "cost_usd": 0.00278922,
+      "input_tokens": 6018,
+      "llm_calls": 2,
+      "output_tokens": 197
+    },
+    "ct-human-h20241029143745264225": {
+      "cost_usd": 0.00321291,
+      "input_tokens": 6832,
+      "llm_calls": 2,
+      "output_tokens": 277
+    },
+    "ct-human-h20241029143747397251": {
+      "cost_usd": 0.003351675,
+      "input_tokens": 6873,
+      "llm_calls": 2,
+      "output_tokens": 416
+    },
+    "ct-human-h20241029143749478632": {
+      "cost_usd": 0.0015312,
+      "input_tokens": 2894,
+      "llm_calls": 1,
+      "output_tokens": 313
+    },
+    "ct-human-h20241029143750930343": {
+      "cost_usd": 0.001515105,
+      "input_tokens": 2901,
+      "llm_calls": 1,
+      "output_tokens": 291
+    },
+    "ct-human-h20241029143752714587": {
+      "cost_usd": 0.00280053,
+      "input_tokens": 6002,
+      "llm_calls": 2,
+      "output_tokens": 218
+    },
+    "ct-human-h20241029143754236194": {
+      "cost_usd": 0.0028362,
+      "input_tokens": 6030,
+      "llm_calls": 2,
+      "output_tokens": 245
+    },
+    "ct-human-h20241029143759740039": {
+      "cost_usd": 0.00135198,
+      "input_tokens": 2900,
+      "llm_calls": 1,
+      "output_tokens": 104
+    },
+    "ct-human-h20241029143803188730": {
+      "cost_usd": 0.00298758,
+      "input_tokens": 6268,
+      "llm_calls": 2,
+      "output_tokens": 300
+    },
+    "ct-human-h20241029143804839319": {
+      "cost_usd": 0.001377645,
+      "input_tokens": 2899,
+      "llm_calls": 1,
+      "output_tokens": 134
+    },
+    "ct-human-h20241029143806507479": {
+      "cost_usd": 0.00136329,
+      "input_tokens": 2898,
+      "llm_calls": 1,
+      "output_tokens": 118
+    },
+    "ct-human-h20241029143807949268": {
+      "cost_usd": 0.005654565,
+      "input_tokens": 11469,
+      "llm_calls": 3,
+      "output_tokens": 765
+    },
+    "ct-human-h20241029143809635485": {
+      "cost_usd": 0.00282228,
+      "input_tokens": 5972,
+      "llm_calls": 2,
+      "output_tokens": 258
+    },
+    "ct-human-h20241029143811168339": {
+      "cost_usd": 0.00284316,
+      "input_tokens": 6044,
+      "llm_calls": 2,
+      "output_tokens": 246
+    },
+    "ct-human-h20241029143812547929": {
+      "cost_usd": 0.0014355,
+      "input_tokens": 2906,
+      "llm_calls": 1,
+      "output_tokens": 197
+    },
+    "ct-human-h20241029143814437710": {
+      "cost_usd": 0.005477085,
+      "input_tokens": 11341,
+      "llm_calls": 3,
+      "output_tokens": 625
+    },
+    "ct-human-h20241029143816266519": {
+      "cost_usd": 0.00137547,
+      "input_tokens": 2902,
+      "llm_calls": 1,
+      "output_tokens": 130
+    },
+    "ct-human-h20241029143818664124": {
+      "cost_usd": 0.004156425,
+      "input_tokens": 8013,
+      "llm_calls": 2,
+      "output_tokens": 771
+    },
+    "ct-human-h20241029143820591758": {
+      "cost_usd": 0.0013746,
+      "input_tokens": 2906,
+      "llm_calls": 1,
+      "output_tokens": 127
+    },
+    "ct-human-h20241029143823020071": {
+      "cost_usd": 0.001368945,
+      "input_tokens": 2897,
+      "llm_calls": 1,
+      "output_tokens": 125
+    },
+    "ct-human-h20241029143824748448": {
+      "cost_usd": 0.00135546,
+      "input_tokens": 2894,
+      "llm_calls": 1,
+      "output_tokens": 111
+    },
+    "ct-human-h20241029143826541906": {
+      "cost_usd": 0.00281097,
+      "input_tokens": 6050,
+      "llm_calls": 2,
+      "output_tokens": 206
+    },
+    "ct-human-h20241029143828857993": {
+      "cost_usd": 0.001412445,
+      "input_tokens": 2913,
+      "llm_calls": 1,
+      "output_tokens": 167
+    },
+    "ct-human-h20241029143830714886": {
+      "cost_usd": 0.00279618,
+      "input_tokens": 6058,
+      "llm_calls": 2,
+      "output_tokens": 185
+    },
+    "ct-human-h20241029143832205713": {
+      "cost_usd": 0.00291972,
+      "input_tokens": 6018,
+      "llm_calls": 2,
+      "output_tokens": 347
+    },
+    "ct-human-h20241029143834377206": {
+      "cost_usd": 0.00275616,
+      "input_tokens": 5980,
+      "llm_calls": 2,
+      "output_tokens": 178
+    },
+    "ct-human-h20241029143835520306": {
+      "cost_usd": 0.00138591,
+      "input_tokens": 2898,
+      "llm_calls": 1,
+      "output_tokens": 144
+    },
+    "ct-human-h20241029143837173547": {
+      "cost_usd": 0.001376775,
+      "input_tokens": 2899,
+      "llm_calls": 1,
+      "output_tokens": 133
+    },
+    "ct-human-h20241029143839056472": {
+      "cost_usd": 0.00133458,
+      "input_tokens": 2884,
+      "llm_calls": 1,
+      "output_tokens": 92
+    },
+    "ct-human-h20241029143840382242": {
+      "cost_usd": 0.001362855,
+      "input_tokens": 2887,
+      "llm_calls": 1,
+      "output_tokens": 123
+    },
+    "ct-human-h20241029143842373194": {
+      "cost_usd": 0.00143289,
+      "input_tokens": 2908,
+      "llm_calls": 1,
+      "output_tokens": 193
+    },
+    "ct-human-h20241029143844076573": {
+      "cost_usd": 0.005544075,
+      "input_tokens": 11253,
+      "llm_calls": 3,
+      "output_tokens": 746
+    },
+    "ct-human-h20241029143845365386": {
+      "cost_usd": 0.00138504,
+      "input_tokens": 2888,
+      "llm_calls": 1,
+      "output_tokens": 148
+    },
+    "ct-human-h20241029143846901147": {
+      "cost_usd": 0.001324575,
+      "input_tokens": 2897,
+      "llm_calls": 1,
+      "output_tokens": 74
+    },
+    "ct-human-h20241029143848307913": {
+      "cost_usd": 0.001351545,
+      "input_tokens": 2901,
+      "llm_calls": 1,
+      "output_tokens": 103
+    },
+    "ct-human-h20241029143850298727": {
+      "cost_usd": 0.00279096,
+      "input_tokens": 5998,
+      "llm_calls": 2,
+      "output_tokens": 209
+    },
+    "ct-human-h20241029143851561679": {
+      "cost_usd": 0.00147552,
+      "input_tokens": 2908,
+      "llm_calls": 1,
+      "output_tokens": 242
+    },
+    "ct-human-h20241029143853055859": {
+      "cost_usd": 0.001324575,
+      "input_tokens": 2897,
+      "llm_calls": 1,
+      "output_tokens": 74
+    },
+    "ct-human-h20241029143854711129": {
+      "cost_usd": 0.00278922,
+      "input_tokens": 5994,
+      "llm_calls": 2,
+      "output_tokens": 209
+    },
+    "ct-human-h20241029143857404500": {
+      "cost_usd": 0.003223785,
+      "input_tokens": 6833,
+      "llm_calls": 2,
+      "output_tokens": 289
+    },
+    "ct-human-h20241029143858969810": {
+      "cost_usd": 0.00284142,
+      "input_tokens": 6068,
+      "llm_calls": 2,
+      "output_tokens": 232
+    },
+    "ct-human-h20241029143900796443": {
+      "cost_usd": 0.001378515,
+      "input_tokens": 2903,
+      "llm_calls": 1,
+      "output_tokens": 133
+    },
+    "ct-human-h20241029143902858522": {
+      "cost_usd": 0.00279009,
+      "input_tokens": 6016,
+      "llm_calls": 2,
+      "output_tokens": 199
+    },
+    "ct-human-h20241029143904148477": {
+      "cost_usd": 0.001373295,
+      "input_tokens": 2903,
+      "llm_calls": 1,
+      "output_tokens": 127
+    },
+    "ct-human-h20241029143906048411": {
+      "cost_usd": 0.001351545,
+      "input_tokens": 2899,
+      "llm_calls": 1,
+      "output_tokens": 104
+    },
+    "ct-human-h20241029143908194169": {
+      "cost_usd": 0.00285012,
+      "input_tokens": 6030,
+      "llm_calls": 2,
+      "output_tokens": 261
+    },
+    "ct-human-h20241029143909714190": {
+      "cost_usd": 0.00135111,
+      "input_tokens": 2896,
+      "llm_calls": 1,
+      "output_tokens": 105
+    },
+    "ct-human-h20241029143911770965": {
+      "cost_usd": 0.003248145,
+      "input_tokens": 6911,
+      "llm_calls": 2,
+      "output_tokens": 278
+    },
+    "ct-human-h20241029143913181191": {
+      "cost_usd": 0.00136938,
+      "input_tokens": 2898,
+      "llm_calls": 1,
+      "output_tokens": 125
+    },
+    "ct-human-h20241029143915014327": {
+      "cost_usd": 0.001414185,
+      "input_tokens": 2903,
+      "llm_calls": 1,
+      "output_tokens": 174
+    },
+    "ct-human-h20241029143916604779": {
+      "cost_usd": 0.0014007,
+      "input_tokens": 2900,
+      "llm_calls": 1,
+      "output_tokens": 160
+    },
+    "ct-human-h20241029143918467169": {
+      "cost_usd": 0.003221175,
+      "input_tokens": 6851,
+      "llm_calls": 2,
+      "output_tokens": 277
+    },
+    "ct-human-h20241029143920003060": {
+      "cost_usd": 0.00138678,
+      "input_tokens": 2904,
+      "llm_calls": 1,
+      "output_tokens": 142
+    },
+    "ct-human-h20241029143921648851": {
+      "cost_usd": 0.002721795,
+      "input_tokens": 5909,
+      "llm_calls": 2,
+      "output_tokens": 174
+    },
+    "ct-human-h20241029143923769644": {
+      "cost_usd": 0.001307175,
+      "input_tokens": 2891,
+      "llm_calls": 1,
+      "output_tokens": 57
+    },
+    "ct-human-h20241029143925294432": {
+      "cost_usd": 0.00132066,
+      "input_tokens": 2888,
+      "llm_calls": 1,
+      "output_tokens": 74
+    },
+    "ct-human-h20241029143926788464": {
+      "cost_usd": 0.003228135,
+      "input_tokens": 6855,
+      "llm_calls": 2,
+      "output_tokens": 283
+    },
+    "cw-10": {
+      "cost_usd": 0.001353285,
+      "input_tokens": 2867,
+      "llm_calls": 1,
+      "output_tokens": 122
+    },
+    "cw-10049": {
+      "cost_usd": 0.001307175,
+      "input_tokens": 2871,
+      "llm_calls": 1,
+      "output_tokens": 67
+    },
+    "cw-10083": {
+      "cost_usd": 0.00132675,
+      "input_tokens": 2880,
+      "llm_calls": 1,
+      "output_tokens": 85
+    },
+    "cw-10113": {
+      "cost_usd": 0.00138069,
+      "input_tokens": 2878,
+      "llm_calls": 1,
+      "output_tokens": 148
+    },
+    "cw-10156": {
+      "cost_usd": 0.00132153,
+      "input_tokens": 2882,
+      "llm_calls": 1,
+      "output_tokens": 78
+    },
+    "cw-10189": {
+      "cost_usd": 0.001316745,
+      "input_tokens": 2871,
+      "llm_calls": 1,
+      "output_tokens": 78
+    },
+    "cw-10234": {
+      "cost_usd": 0.00131718,
+      "input_tokens": 2882,
+      "llm_calls": 1,
+      "output_tokens": 73
+    },
+    "cw-10253": {
+      "cost_usd": 0.001340235,
+      "input_tokens": 2883,
+      "llm_calls": 1,
+      "output_tokens": 99
+    },
+    "cw-10351": {
+      "cost_usd": 0.0013746,
+      "input_tokens": 2880,
+      "llm_calls": 1,
+      "output_tokens": 140
+    },
+    "cw-10413": {
+      "cost_usd": 0.00133632,
+      "input_tokens": 2874,
+      "llm_calls": 1,
+      "output_tokens": 99
+    },
+    "cw-10427": {
+      "cost_usd": 0.00137025,
+      "input_tokens": 2874,
+      "llm_calls": 1,
+      "output_tokens": 138
+    },
+    "cw-10463": {
+      "cost_usd": 0.001306305,
+      "input_tokens": 2881,
+      "llm_calls": 1,
+      "output_tokens": 61
+    },
+    "cw-10497": {
+      "cost_usd": 0.001309785,
+      "input_tokens": 2871,
+      "llm_calls": 1,
+      "output_tokens": 70
+    },
+    "cw-10635": {
+      "cost_usd": 0.00131631,
+      "input_tokens": 2878,
+      "llm_calls": 1,
+      "output_tokens": 74
+    },
+    "cw-10662": {
+      "cost_usd": 0.001304565,
+      "input_tokens": 2867,
+      "llm_calls": 1,
+      "output_tokens": 66
+    },
+    "cw-10722": {
+      "cost_usd": 0.0013137,
+      "input_tokens": 2876,
+      "llm_calls": 1,
+      "output_tokens": 72
+    },
+    "cw-10737": {
+      "cost_usd": 0.00135894,
+      "input_tokens": 2872,
+      "llm_calls": 1,
+      "output_tokens": 126
+    },
+    "cw-10757": {
+      "cost_usd": 0.00131283,
+      "input_tokens": 2876,
+      "llm_calls": 1,
+      "output_tokens": 71
+    },
+    "cw-10781": {
+      "cost_usd": 0.001308915,
+      "input_tokens": 2889,
+      "llm_calls": 1,
+      "output_tokens": 60
+    },
+    "cw-10784": {
+      "cost_usd": 0.001289775,
+      "input_tokens": 2871,
+      "llm_calls": 1,
+      "output_tokens": 47
+    },
+    "cw-10838": {
+      "cost_usd": 0.001355025,
+      "input_tokens": 2901,
+      "llm_calls": 1,
+      "output_tokens": 107
+    },
+    "cw-10909": {
+      "cost_usd": 0.00131631,
+      "input_tokens": 2872,
+      "llm_calls": 1,
+      "output_tokens": 77
+    },
+    "cw-10916": {
+      "cost_usd": 0.00130587,
+      "input_tokens": 2880,
+      "llm_calls": 1,
+      "output_tokens": 61
+    },
+    "cw-10987": {
+      "cost_usd": 0.001409835,
+      "input_tokens": 2885,
+      "llm_calls": 1,
+      "output_tokens": 178
+    },
+    "cw-11026": {
+      "cost_usd": 0.00131805,
+      "input_tokens": 2878,
+      "llm_calls": 1,
+      "output_tokens": 76
+    },
+    "cw-11033": {
+      "cost_usd": 0.001329795,
+      "input_tokens": 2877,
+      "llm_calls": 1,
+      "output_tokens": 90
+    },
+    "cw-11035": {
+      "cost_usd": 0.001382865,
+      "input_tokens": 2881,
+      "llm_calls": 1,
+      "output_tokens": 149
+    },
+    "cw-11106": {
+      "cost_usd": 0.00131631,
+      "input_tokens": 2882,
+      "llm_calls": 1,
+      "output_tokens": 72
+    },
+    "cw-11185": {
+      "cost_usd": 0.00136938,
+      "input_tokens": 2884,
+      "llm_calls": 1,
+      "output_tokens": 132
+    },
+    "cw-11245": {
+      "cost_usd": 0.001314135,
+      "input_tokens": 2881,
+      "llm_calls": 1,
+      "output_tokens": 70
+    },
+    "cw-11292": {
+      "cost_usd": 0.001312395,
+      "input_tokens": 2883,
+      "llm_calls": 1,
+      "output_tokens": 67
+    },
+    "cw-11303": {
+      "cost_usd": 0.00136155,
+      "input_tokens": 2902,
+      "llm_calls": 1,
+      "output_tokens": 114
+    },
+    "cw-11326": {
+      "cost_usd": 0.00132414,
+      "input_tokens": 2882,
+      "llm_calls": 1,
+      "output_tokens": 81
+    },
+    "cw-11409": {
+      "cost_usd": 0.00131457,
+      "input_tokens": 2890,
+      "llm_calls": 1,
+      "output_tokens": 66
+    },
+    "cw-11475": {
+      "cost_usd": 0.001374165,
+      "input_tokens": 2877,
+      "llm_calls": 1,
+      "output_tokens": 141
+    },
+    "cw-11588": {
+      "cost_usd": 0.0,
+      "input_tokens": 0,
+      "llm_calls": 1,
+      "output_tokens": 0
+    },
+    "cw-11630": {
+      "cost_usd": 0.0,
+      "input_tokens": 0,
+      "llm_calls": 1,
+      "output_tokens": 0
+    },
+    "cw-11635": {
+      "cost_usd": 0.0,
+      "input_tokens": 0,
+      "llm_calls": 1,
+      "output_tokens": 0
+    },
+    "cw-11639": {
+      "cost_usd": 0.0,
+      "input_tokens": 0,
+      "llm_calls": 1,
+      "output_tokens": 0
+    },
+    "cw-11676": {
+      "cost_usd": 0.0,
+      "input_tokens": 0,
+      "llm_calls": 1,
+      "output_tokens": 0
+    },
+    "cw-11723": {
+      "cost_usd": 0.0,
+      "input_tokens": 0,
+      "llm_calls": 1,
+      "output_tokens": 0
+    },
+    "cw-11725": {
+      "cost_usd": 0.0,
+      "input_tokens": 0,
+      "llm_calls": 1,
+      "output_tokens": 0
+    },
+    "cw-11732": {
+      "cost_usd": 0.0,
+      "input_tokens": 0,
+      "llm_calls": 1,
+      "output_tokens": 0
+    },
+    "cw-11788": {
+      "cost_usd": 0.0,
+      "input_tokens": 0,
+      "llm_calls": 1,
+      "output_tokens": 0
+    },
+    "cw-11802": {
+      "cost_usd": 0.0,
+      "input_tokens": 0,
+      "llm_calls": 1,
+      "output_tokens": 0
+    },
+    "cw-11945": {
+      "cost_usd": 0.0,
+      "input_tokens": 0,
+      "llm_calls": 1,
+      "output_tokens": 0
+    },
+    "cw-11950": {
+      "cost_usd": 0.0,
+      "input_tokens": 0,
+      "llm_calls": 1,
+      "output_tokens": 0
+    },
+    "cw-12037": {
+      "cost_usd": 0.0,
+      "input_tokens": 0,
+      "llm_calls": 1,
+      "output_tokens": 0
+    },
+    "cw-12061": {
+      "cost_usd": 0.0,
+      "input_tokens": 0,
+      "llm_calls": 1,
+      "output_tokens": 0
+    },
+    "cw-12084": {
+      "cost_usd": 0.0,
+      "input_tokens": 0,
+      "llm_calls": 1,
+      "output_tokens": 0
+    },
+    "cw-12109": {
+      "cost_usd": 0.0,
+      "input_tokens": 0,
+      "llm_calls": 1,
+      "output_tokens": 0
+    },
+    "cw-12117": {
+      "cost_usd": 0.0,
+      "input_tokens": 0,
+      "llm_calls": 1,
+      "output_tokens": 0
+    },
+    "cw-12126": {
+      "cost_usd": 0.0,
+      "input_tokens": 0,
+      "llm_calls": 1,
+      "output_tokens": 0
+    },
+    "cw-12187": {
+      "cost_usd": 0.0,
+      "input_tokens": 0,
+      "llm_calls": 1,
+      "output_tokens": 0
+    },
+    "cw-12266": {
+      "cost_usd": 0.0,
+      "input_tokens": 0,
+      "llm_calls": 1,
+      "output_tokens": 0
+    },
+    "cw-12278": {
+      "cost_usd": 0.0,
+      "input_tokens": 0,
+      "llm_calls": 1,
+      "output_tokens": 0
+    },
+    "cw-12332": {
+      "cost_usd": 0.0,
+      "input_tokens": 0,
+      "llm_calls": 1,
+      "output_tokens": 0
+    },
+    "cw-12391": {
+      "cost_usd": 0.0,
+      "input_tokens": 0,
+      "llm_calls": 1,
+      "output_tokens": 0
+    },
+    "cw-12457": {
+      "cost_usd": 0.0,
+      "input_tokens": 0,
+      "llm_calls": 1,
+      "output_tokens": 0
+    },
+    "cw-1547": {
+      "cost_usd": 0.0,
+      "input_tokens": 0,
+      "llm_calls": 1,
+      "output_tokens": 0
+    },
+    "cw-1568": {
+      "cost_usd": 0.0,
+      "input_tokens": 0,
+      "llm_calls": 1,
+      "output_tokens": 0
+    },
+    "cw-1664": {
+      "cost_usd": 0.0,
+      "input_tokens": 0,
+      "llm_calls": 1,
+      "output_tokens": 0
+    },
+    "cw-1829": {
+      "cost_usd": 0.0,
+      "input_tokens": 0,
+      "llm_calls": 1,
+      "output_tokens": 0
+    },
+    "cw-1945": {
+      "cost_usd": 0.0,
+      "input_tokens": 0,
+      "llm_calls": 1,
+      "output_tokens": 0
+    },
+    "cw-2108": {
+      "cost_usd": 0.0,
+      "input_tokens": 0,
+      "llm_calls": 1,
+      "output_tokens": 0
+    },
+    "cw-2175": {
+      "cost_usd": 0.0,
+      "input_tokens": 0,
+      "llm_calls": 1,
+      "output_tokens": 0
+    },
+    "cw-221": {
+      "cost_usd": 0.0,
+      "input_tokens": 0,
+      "llm_calls": 1,
+      "output_tokens": 0
+    },
+    "cw-2414": {
+      "cost_usd": 0.0,
+      "input_tokens": 0,
+      "llm_calls": 1,
+      "output_tokens": 0
+    },
+    "cw-2465": {
+      "cost_usd": 0.0,
+      "input_tokens": 0,
+      "llm_calls": 1,
+      "output_tokens": 0
+    },
+    "cw-2467": {
+      "cost_usd": 0.0,
+      "input_tokens": 0,
+      "llm_calls": 1,
+      "output_tokens": 0
+    },
+    "cw-2491": {
+      "cost_usd": 0.0,
+      "input_tokens": 0,
+      "llm_calls": 1,
+      "output_tokens": 0
+    },
+    "cw-251": {
+      "cost_usd": 0.0,
+      "input_tokens": 0,
+      "llm_calls": 1,
+      "output_tokens": 0
+    },
+    "cw-2524": {
+      "cost_usd": 0.0,
+      "input_tokens": 0,
+      "llm_calls": 1,
+      "output_tokens": 0
+    },
+    "cw-253": {
+      "cost_usd": 0.0,
+      "input_tokens": 0,
+      "llm_calls": 1,
+      "output_tokens": 0
+    },
+    "cw-2877": {
+      "cost_usd": 0.0,
+      "input_tokens": 0,
+      "llm_calls": 1,
+      "output_tokens": 0
+    },
+    "cw-290": {
+      "cost_usd": 0.0,
+      "input_tokens": 0,
+      "llm_calls": 1,
+      "output_tokens": 0
+    },
+    "cw-2979": {
+      "cost_usd": 0.0,
+      "input_tokens": 0,
+      "llm_calls": 1,
+      "output_tokens": 0
+    },
+    "cw-3066": {
+      "cost_usd": 0.0,
+      "input_tokens": 0,
+      "llm_calls": 1,
+      "output_tokens": 0
+    },
+    "cw-307": {
+      "cost_usd": 0.0,
+      "input_tokens": 0,
+      "llm_calls": 1,
+      "output_tokens": 0
+    },
+    "cw-309": {
+      "cost_usd": 0.0,
+      "input_tokens": 0,
+      "llm_calls": 1,
+      "output_tokens": 0
+    },
+    "cw-343": {
+      "cost_usd": 0.0,
+      "input_tokens": 0,
+      "llm_calls": 1,
+      "output_tokens": 0
+    },
+    "cw-3472": {
+      "cost_usd": 0.0,
+      "input_tokens": 0,
+      "llm_calls": 1,
+      "output_tokens": 0
+    },
+    "cw-3486": {
+      "cost_usd": 0.0,
+      "input_tokens": 0,
+      "llm_calls": 1,
+      "output_tokens": 0
+    },
+    "cw-362": {
+      "cost_usd": 0.0,
+      "input_tokens": 0,
+      "llm_calls": 1,
+      "output_tokens": 0
+    },
+    "cw-3639": {
+      "cost_usd": 0.0,
+      "input_tokens": 0,
+      "llm_calls": 1,
+      "output_tokens": 0
+    },
+    "cw-364": {
+      "cost_usd": 0.0,
+      "input_tokens": 0,
+      "llm_calls": 1,
+      "output_tokens": 0
+    },
+    "cw-367": {
+      "cost_usd": 0.0,
+      "input_tokens": 0,
+      "llm_calls": 1,
+      "output_tokens": 0
+    },
+    "cw-3700": {
+      "cost_usd": 0.0,
+      "input_tokens": 0,
+      "llm_calls": 1,
+      "output_tokens": 0
+    },
+    "cw-386": {
+      "cost_usd": 0.0,
+      "input_tokens": 0,
+      "llm_calls": 1,
+      "output_tokens": 0
+    },
+    "cw-3878": {
+      "cost_usd": 0.0,
+      "input_tokens": 0,
+      "llm_calls": 1,
+      "output_tokens": 0
+    },
+    "cw-3903": {
+      "cost_usd": 0.0,
+      "input_tokens": 0,
+      "llm_calls": 1,
+      "output_tokens": 0
+    },
+    "cw-4327": {
+      "cost_usd": 0.0,
+      "input_tokens": 0,
+      "llm_calls": 1,
+      "output_tokens": 0
+    },
+    "cw-443": {
+      "cost_usd": 0.0,
+      "input_tokens": 0,
+      "llm_calls": 1,
+      "output_tokens": 0
+    },
+    "cw-4635": {
+      "cost_usd": 0.0,
+      "input_tokens": 0,
+      "llm_calls": 1,
+      "output_tokens": 0
+    },
+    "cw-4666": {
+      "cost_usd": 0.0,
+      "input_tokens": 0,
+      "llm_calls": 1,
+      "output_tokens": 0
+    },
+    "cw-4768": {
+      "cost_usd": 0.0,
+      "input_tokens": 0,
+      "llm_calls": 1,
+      "output_tokens": 0
+    },
+    "cw-5338": {
+      "cost_usd": 0.0,
+      "input_tokens": 0,
+      "llm_calls": 1,
+      "output_tokens": 0
+    },
+    "cw-5496": {
+      "cost_usd": 0.0,
+      "input_tokens": 0,
+      "llm_calls": 1,
+      "output_tokens": 0
+    },
+    "cw-5613": {
+      "cost_usd": 0.0,
+      "input_tokens": 0,
+      "llm_calls": 1,
+      "output_tokens": 0
+    },
+    "cw-5673": {
+      "cost_usd": 0.0,
+      "input_tokens": 0,
+      "llm_calls": 1,
+      "output_tokens": 0
+    }
+  },
+  "price_table_sha256": "dd2a754fb067cbb147677d6d75ac462f4f327480776696fadc8c6547cbdbbf46",
+  "price_table_version": "model-prices-openai-20260802-v1",
+  "unpriced_calls": 111
+}
