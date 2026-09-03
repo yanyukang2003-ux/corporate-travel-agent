@@ -705,6 +705,13 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px
 .handoff-help { display: flex; align-items: center; gap: 6px; margin: 0; color: var(--muted); font-size: 9px; }
 .handoff-facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 0; margin: 0; }
 .handoff-facts > div { padding: 14px 24px; border-right: 1px solid var(--line-soft); border-bottom: 1px solid var(--line-soft); }
+.watch-panel { border-color: #b7c7c0; }
+.watch-facts dd .badge { margin-left: 6px; vertical-align: middle; }
+.watch-events { margin: 0; padding: 12px 24px; list-style: none; border-bottom: 1px solid var(--line-soft); color: var(--ink); font-size: 11px; line-height: 1.7; }
+.watch-actions { padding: 12px 24px 0; }
+.watch-form-row { grid-template-columns: 1fr 1fr; }
+.handoff-form select { height: 38px; padding: 0 10px; border: 1px solid #bdc9c4; color: var(--ink); background: #fff; font-size: 12px; }
+.watch-cancelled { padding: 14px 24px 18px; }
 .handoff-facts dt { margin-bottom: 4px; color: var(--muted-2); font-size: 8px; font-weight: 800; letter-spacing: .1em; }
 .handoff-facts dd { margin: 0; color: var(--ink); font-size: 12px; font-weight: 700; overflow-wrap: anywhere; }
 .handoff-panel.confirmed .handoff-help { padding: 12px 24px 16px; }
@@ -776,3 +783,6 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px
 .step-raw b { font: 9px ui-monospace, monospace; color: #5b6b66; }
 .step-raw pre { max-height: 320px; overflow: auto; margin: 3px 0 0; padding: 8px 10px; border: 1px solid var(--line); border-radius: 6px; background: #f7f7f3; font-size: 8.5px; line-height: 1.5; white-space: pre-wrap; word-break: break-all; }
 
+/* 流式进展气泡 */
+.chat-bubble.live-progress p { margin: 3px 0 0; color: var(--muted); font-size: 9.5px; }
+.chat-bubble.live-progress p:last-child::after { content: '…'; }

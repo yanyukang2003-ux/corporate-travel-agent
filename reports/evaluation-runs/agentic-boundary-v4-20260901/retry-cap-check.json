@@ -1,0 +1,7 @@
+{
+  "findings": [],
+  "llm_attempt_cap": 2,
+  "passed": true,
+  "provider_attempt_cap": 3,
+  "traces_checked": 28
+}

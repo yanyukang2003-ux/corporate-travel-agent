@@ -6,6 +6,7 @@ V1 只规划与合规校验，不代付、不预订、不退改。
 
 from __future__ import annotations
 
+import json
 import os
 from contextlib import asynccontextmanager
 from dataclasses import asdict
@@ -16,6 +17,7 @@ from uuid import uuid4
 
 from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
@@ -653,15 +655,134 @@ def approval_inbox(
     return [_public_task_summary(item) for item in summaries]
 
 
+@app.post("/agentic/trip-tasks/stream")
+def create_agentic_trip_stream(
+    payload: NaturalLanguageTripCreate,
+    identity: CurrentIdentity,
+) -> StreamingResponse:
+    """流式创建：SSE 一步一步推过程记录，最后给完整任务。
+
+    降低的是**感知**延迟：任务总耗时不变（模型该生成多久还是多久），但用户 1 秒内
+    就能看到"正在搜索北京→上海"这类进展，而不是对着按钮干等 16 秒。
+    事件流：`accepted`（带 task_id）→ 若干 `step`（和 `GET /steps` 同一结构）→
+    `task`（完整任务）或 `error` → `done`。
+    """
+    _require_can_create(identity, payload.traveler_id)
+    requester = _requester_id(identity)
+    task_id = str(uuid4())
+    return StreamingResponse(
+        _agentic_event_stream(
+            task_id,
+            lambda: workflow.create_task_from_agentic_message(
+                payload.message,
+                traveler_id=payload.traveler_id,
+                task_id=task_id,
+                requester_id=requester,
+            ),
+        ),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
+
+
+@app.post("/agentic/trip-tasks/{task_id}/messages/stream")
+def submit_agentic_message_stream(
+    task_id: str,
+    payload: MessageCreate,
+    identity: CurrentIdentity,
+) -> StreamingResponse:
+    """流式跟进：语义同上，作用在已有任务上。"""
+    return StreamingResponse(
+        _agentic_event_stream(
+            task_id, _agentic_message_operation(task_id, payload.message, identity)
+        ),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
+
+
+def _agentic_message_operation(task_id: str, message: str, identity: UserIdentity) -> Any:
+    """跟进消息落到哪条链路：订好之前是工具循环续聊，订好之后是变更意图。
+
+    已回填订单号的任务不能再重跑规划——原任务一个字不动。它上面的聊天读成一条
+    变更请求（会议改期 / 航变自述 / 取消），落到差旅事件；改期时返回的是新开的改期任务。
+    """
+    task = _visible_task(task_id, identity)
+    _require_can_operate(identity, task)
+    return lambda: workflow.submit_agentic_message(task_id, message)
+
+
+def _sse_event(event: str, data: Any) -> str:
+    payload = json.dumps(data, ensure_ascii=False, default=str)
+    return f"event: {event}\ndata: {payload}\n\n"
+
+
+def _live_steps(task_id: str) -> list[dict[str, Any]]:
+    """轮询用：任务还在跑时读它当前的步骤。读不到（还没建/正在写）就给空，下一轮再看。"""
+    try:
+        task = workflow.tasks.get(task_id)
+        return collect_task_steps(
+            task,
+            events=workflow.tasks.events(task_id),
+            snapshots=workflow.tasks.snapshots(task_id),
+        )
+    except Exception:  # noqa: BLE001 - 工作线程正在写任务，读到一半失败是预期内的
+        return []
+
+
+def _agentic_event_stream(task_id: str, operation: Any) -> Any:
+    """把一次编排调用放进工作线程，边跑边把新增步骤推出去。
+
+    步骤靠**轮询任务本身**取得（每次工具调用后任务都会持久化一次），不另起一条
+    事件总线；增量按步骤数量切。工作线程写、这里读，偶尔读到写了一半的状态——
+    `_live_steps` 把那一轮当空处理，下一轮补上，不会丢最终结果。
+    """
+    from threading import Thread
+
+    def generate():
+        box: dict[str, Any] = {}
+
+        def run() -> None:
+            try:
+                box["task"] = operation()
+            except Exception as exc:  # noqa: BLE001 - 原样转成 error 事件
+                box["error"] = exc
+
+        worker = Thread(target=run, daemon=True)
+        worker.start()
+        yield _sse_event("accepted", {"task_id": task_id})
+        sent = 0
+        while True:
+            worker.join(0.25)
+            steps = _live_steps(task_id)
+            for step in steps[sent:]:
+                yield _sse_event("step", step)
+            sent = max(sent, len(steps))
+            if not worker.is_alive():
+                break
+        error = box.get("error")
+        if error is not None:
+            yield _sse_event(
+                "error", {"type": type(error).__name__, "detail": str(error)}
+            )
+        else:
+            yield _sse_event("task", _public_task(box["task"]))
+        yield _sse_event("done", {})
+
+    return generate()
+
+
 @app.post("/agentic/trip-tasks/{task_id}/messages")
 def submit_agentic_message(
     task_id: str,
     payload: MessageCreate,
     identity: CurrentIdentity,
 ) -> dict[str, Any]:
-    """仅向工具循环任务提交跟进消息。"""
-    _require_can_operate(identity, _visible_task(task_id, identity))
-    return _run(lambda: workflow.submit_agentic_message(task_id, payload.message))
+    """向工具循环任务提交跟进消息；已订任务上的消息读成变更请求。
+
+    分流见 `_agentic_message_operation`。
+    """
+    return _run(_agentic_message_operation(task_id, payload.message, identity))
 
 
 @app.post("/trip-tasks/{task_id}/structured-request")

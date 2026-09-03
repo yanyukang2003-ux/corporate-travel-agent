@@ -19,6 +19,8 @@ import type {
   TripTask,
   UserIdentity,
 } from './types'
+import type { TaskStep } from './types'
+import { feedSse } from '../utils/stream'
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? '/api'
 
@@ -107,6 +109,53 @@ async function request<T>(
   }
 
   return body as T
+}
+
+/**
+ * 读取 SSE 流：`step` 事件回调给上层，`task` 事件作为返回值，`error` 事件抛错。
+ * 没降低任务总耗时——降低的是感知延迟：第一步进展 1 秒内就能上屏。
+ */
+async function streamTask(
+  path: string,
+  body: unknown,
+  onStep: (step: TaskStep) => void,
+): Promise<TripTask> {
+  const headers = new Headers({ 'Content-Type': 'application/json' })
+  const token = getToken()
+  if (token) headers.set('Authorization', `Bearer ${token}`)
+  const response = await fetch(`${API_BASE}${path}`, {
+    headers,
+    body: JSON.stringify(body),
+  })
+  if (!response.ok || !response.body) {
+    let parsed: unknown = null
+    try {
+      parsed = await response.json()
+    } catch {
+      parsed = null
+    }
+    throw new ApiError(response.status, formatDetail(parsed), parsed)
+  }
+  const reader = response.body.getReader()
+  const decoder = new TextDecoder()
+  let buffer = ''
+  let task: TripTask | null = null
+  let failure: { type?: string; detail?: string } | null = null
+  for (;;) {
+    const { done, value } = await reader.read()
+    const chunk = done ? '' : decoder.decode(value, { stream: true })
+    const parsedChunk = feedSse(buffer, chunk)
+    buffer = parsedChunk.rest
+    for (const item of parsedChunk.events) {
+      if (item.event === 'step') onStep(item.data as TaskStep)
+      else if (item.event === 'task') task = item.data as TripTask
+      else if (item.event === 'error') failure = item.data as { type?: string; detail?: string }
+    }
+    if (done) break
+  }
+  if (failure) throw new ApiError(0, failure.detail ?? failure.type ?? '任务执行失败', failure)
+  if (!task) throw new ApiError(0, '流结束但没有收到任务结果')
+  return task
 }
 
 /**
@@ -248,6 +297,26 @@ export const api = {
 
   /** 成本中心预算消耗（仅管理员）。 */
   budgets: () => request<BudgetsResponse>('/budgets'),
+
+
+
+
+  /**
+   * 流式创建自然语言任务：`onStep` 逐步收到过程记录，返回值是最终任务。
+   * 后端不支持流式（404/405）时抛 ApiError，调用方退回非流式接口。
+   */
+  createAgenticStream: (
+    message: string,
+    traveler_id: string,
+    onStep: (step: TaskStep) => void,
+  ) => streamTask('/agentic/trip-tasks/stream', { message, traveler_id }, onStep),
+
+  /** 流式跟进消息；语义同上，作用在已有任务上。 */
+  submitAgenticMessageStream: (
+    taskId: string,
+    message: string,
+    onStep: (step: TaskStep) => void,
+  ) => streamTask(`/agentic/trip-tasks/${taskId}/messages/stream`, { message }, onStep),
 
   /** 任务从建到现在的每一步，后端按先后整理好。 */
   taskSteps: (taskId: string) =>

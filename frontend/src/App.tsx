@@ -548,13 +548,15 @@ function ChatBubble({ turn }: { turn: ChatTurn }) {
  * **助手的话不是前端编的**（拼接规则见 utils/chat.ts）。
  */
 function ChatPane({
-  task, turns, pending, busy, error, message, onMessageChange, onSubmit, onNewTrip,
+  task, turns, pending, progress, busy, error, message, onMessageChange, onSubmit, onNewTrip,
   travelerId, travelerOptions, onTravelerChange,
 }: {
   task: TripTask | null
   turns: ChatTurn[]
   /** 刚发出去、后端还没答的那句话。 */
   pending: string
+  /** 流式接口推来的实时进展（步骤标题），任务跑完即清。 */
+  progress: string[]
   busy: boolean
   error: string
   message: string
@@ -574,7 +576,7 @@ function ChatPane({
   useEffect(() => {
     const node = threadRef.current
     if (node) node.scrollTop = node.scrollHeight
-  }, [turns.length, busy, error, pending])
+  }, [turns.length, busy, error, pending, progress.length])
 
   const appendSuggestion = (suggestion: string) => {
     if (message.includes(suggestion)) return
@@ -624,6 +626,15 @@ function ChatPane({
         {turns.map((turn) => <ChatBubble key={turn.key} turn={turn} />)}
         {pending && !turns.some((turn) => turn.content === pending) && (
           <div className="chat-turn user"><div className="chat-bubble">{pending}</div></div>
+        )}
+        {busy && progress.length > 0 && (
+          <div className="chat-turn assistant">
+            <span className="chat-avatar">澄</span>
+            <div className="chat-bubble live-progress">
+              <b className="chat-bubble-label">正在进行</b>
+              {progress.map((line, index) => <p key={`${index}-${line}`}>{line}</p>)}
+            </div>
+          </div>
         )}
         {task && task.assumptions.length > 0 && (
           <div className="chat-note">
@@ -1352,6 +1363,8 @@ function PlanView({ onToast, composerEpoch, onNewTrip }: {
   // 刚发出去、后端还没答的那句话。聊天栏必须立刻显示它——
   // 等真实任务回来才显示的话，用户会以为自己没发出去。
   const [pendingMessage, setPendingMessage] = useState('')
+  // 流式进展：SSE 每来一步就追加标题，只留最近 4 条。任务总耗时没变，变的是看得见。
+  const [liveSteps, setLiveSteps] = useState<string[]>([])
   const composingNewRef = useRef(false)
 
   const updateDraft = (value: string) => {
@@ -1445,6 +1458,7 @@ function PlanView({ onToast, composerEpoch, onNewTrip }: {
     if (!user) return false
     writeComposerDraft(message)
     setPendingMessage(message)
+    setLiveSteps([])
     setApiBusy(true)
     setApiError('')
     try {
@@ -1461,9 +1475,26 @@ function PlanView({ onToast, composerEpoch, onNewTrip }: {
         )
       // 旧入口（legacy / semantic）已删除（ADR-0003）：还停在澄清态的旧任务不能续聊，
       // 只能新建；这里把它当成新任务处理，不再按 intent_entrypoint 分流。
-      const nextTask = continueAgentic
-        ? await api.submitAgenticMessage(task.task_id, message)
-        : await api.createAgenticNaturalLanguage(message, travelerId || (user.employee_id ?? user.user_id))
+      const fallbackTraveler = travelerId || (user.employee_id ?? user.user_id)
+      const onStep = (step: TaskStep) => {
+        setLiveSteps((previous) => [...previous, step.title].slice(-4))
+      }
+      const runTask = async (): Promise<TripTask> => {
+        try {
+          return continueAgentic
+            ? await api.submitAgenticMessageStream(task.task_id, message, onStep)
+            : await api.createAgenticStream(message, fallbackTraveler, onStep)
+        } catch (streamError) {
+          // 只有"后端没有流式路由"（404/405）才回退非流式；其余错误按原样抛给统一处理。
+          if (streamError instanceof ApiError && (streamError.status === 404 || streamError.status === 405)) {
+            return continueAgentic
+              ? api.submitAgenticMessage(task.task_id, message)
+              : api.createAgenticNaturalLanguage(message, fallbackTraveler)
+          }
+          throw streamError
+        }
+      }
+      const nextTask = await runTask()
       setInstruction(message)
       composingNewRef.current = false
       setComposingNew(false)
@@ -1599,6 +1630,7 @@ function PlanView({ onToast, composerEpoch, onNewTrip }: {
         task={task}
         turns={turns}
         pending={pendingMessage}
+        progress={liveSteps}
         busy={apiBusy}
         error={apiError}
         message={draftMessage}

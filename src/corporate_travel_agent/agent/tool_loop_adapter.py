@@ -35,7 +35,12 @@ from .openai_errors import _classified_openai_error
 from .ports import LanguageModelError, LLMCallMetadata
 from .tool_loop import ModelTurn, ToolExchange, ToolInvocation, ToolSpec
 
-TOOL_LOOP_PROMPT_VERSION = "tool-loop-v3"
+# v4（2026-09-01）：系统提示词拆成"静态前缀 + 动态上下文消息"。内容一个字没删，
+# 只是把随任务变化的 reference_time / timezone 从提示词中间挪进第二条 system 消息——
+# DeepSeek 按前缀缓存计费，动态值嵌在中间会把后半段缓存全部打断。
+# 同时工具结果只喂回代表性子集（tool_loop._representative_offers）。
+# **改了提示词：v3 的评测数字不再可比，基线在 *-v4-* 报告目录重跑。**
+TOOL_LOOP_PROMPT_VERSION = "tool-loop-v4"
 
 
 class OpenAIToolCallingLanguageModel:
@@ -101,7 +106,10 @@ class OpenAIToolCallingLanguageModel:
     ) -> ModelTurn:
         started = monotonic()
         messages: list[dict[str, Any]] = [
-            {"role": "system", "content": self._system_prompt(dict(context))},
+            # 静态前缀在最前：所有任务逐字相同，供应商前缀缓存吃满。
+            {"role": "system", "content": _STATIC_SYSTEM_PROMPT},
+            # 随任务变化的值单独一条，短，且排在静态段之后。
+            {"role": "system", "content": self._context_message(dict(context))},
             {"role": "user", "content": conversation},
         ]
         messages.extend(_replay(transcript))
@@ -255,10 +263,32 @@ class OpenAIToolCallingLanguageModel:
         )
 
     @staticmethod
-    def _system_prompt(context: dict[str, Any]) -> str:
-        supported_hard = ", ".join(sorted(SUPPORTED_HARD_CONSTRAINTS))
-        supported_soft = ", ".join(sorted(SUPPORTED_SOFT_PREFERENCES))
-        return (
+    def _context_message(context: dict[str, Any]) -> str:
+        """随任务变化的运行时上下文；静态提示词里指过来。
+
+        `mode=trip_change` 是订好之后的聊天改期：这趟已经订了，只有 request_trip_change 和
+        ask_traveler 两个工具，静态提示词里"去搜、去交方案"那些话在这一轮不适用，得当面说。
+        """
+        text = (
+            f"Runtime context — reference_time={context.get('reference_time')!s}; "
+            f"fallback timezone={context.get('timezone')!s}; "
+            f"clarification_round={context.get('clarification_round')!s}"
+            f"/{context.get('max_clarification_rounds')!s}."
+        )
+        if context.get("mode") == "trip_change":
+            text += (
+                " MODE=trip_change: this trip is ALREADY BOOKED. Do not search or plan. "
+                "Read the traveler's latest message as one change request and call "
+                "request_trip_change, or ask_traveler if it does not say what changed. "
+                "Quote the traveler's own words for any new date."
+            )
+        return text
+
+
+def _build_static_system_prompt() -> str:
+    supported_hard = ", ".join(sorted(SUPPORTED_HARD_CONSTRAINTS))
+    supported_soft = ", ".join(sorted(SUPPORTED_SOFT_PREFERENCES))
+    return (
             "You are planning one corporate trip by calling tools. Each turn you may call "
             "zero, one, or several tools. Independent searches go in the same turn. "
             "**Calling no tools ends the turn**: your message is the answer. "
@@ -319,9 +349,9 @@ class OpenAIToolCallingLanguageModel:
             "a past date forward into another year on your own, and never search inventory for a "
             "date that has passed. A year the traveler stated explicitly is never ambiguous, even "
             "when it is in the past. "
-            "Resolve relative dates against "
-            f"reference_time={context.get('reference_time')!s}; fallback timezone="
-            f"{context.get('timezone')!s}, while using known city-local timezones. "
+            "Resolve relative dates against the reference_time given in the runtime "
+            "context message that follows this one; use known city-local timezones, "
+            "falling back to the timezone given there. "
             # --- 领域契约 ---
             "Search lodging only when the traveler asked for it to be arranged; sleeping "
             "somewhere is a fact about the itinerary, booking a room is their decision. "
@@ -354,6 +384,9 @@ class OpenAIToolCallingLanguageModel:
             "must never do: search every city you read, and let the tools tell you what is "
             "actually bookable."
         )
+
+
+_STATIC_SYSTEM_PROMPT = _build_static_system_prompt()
 
 
 def _parse_arguments(raw: str) -> dict[str, Any]:

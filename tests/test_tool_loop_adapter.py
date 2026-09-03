@@ -111,11 +111,15 @@ def test_prompt_keeps_the_date_rules_step0_proved_load_bearing() -> None:
         tools=DEFAULT_TOOLS,
         context={"reference_time": "2026-08-19T15:00:00+08:00", "timezone": "Asia/Shanghai"},
     )
-    system = client.requests[0]["messages"][0]["content"]
+    messages = client.requests[0]["messages"]
+    system = messages[0]["content"]
     assert "下下周三" in system  # 相对日期自己算
     assert "month-first" in system  # 8/5 是八月五日
     assert "next year" in system  # 跨年规则
-    assert "2026-08-19T15:00:00+08:00" in system  # 参照时刻注进去了
+    # v4：参照时刻不再嵌进静态提示词（嵌进去会打断前缀缓存），单独一条上下文消息
+    assert messages[1]["role"] == "system"
+    assert "2026-08-19T15:00:00+08:00" in messages[1]["content"]
+    assert "2026-08-19T15:00:00+08:00" not in system
     assert "Dropping a city" in system  # 多城不许丢
     assert "Calling no tools ends the turn" in system
     assert "previous evening" in system
@@ -136,10 +140,10 @@ def test_failed_calls_are_replayed_so_the_model_can_see_its_mistake() -> None:
         conversation="x", transcript=transcript, tools=DEFAULT_TOOLS, context={}
     )
     messages = client.requests[0]["messages"]
-    assert [m["role"] for m in messages] == ["system", "user", "assistant", "tool"]
-    assert messages[2]["tool_calls"][0]["function"]["name"] == "search_transport"
-    assert messages[2]["tool_calls"][0]["id"] == messages[3]["tool_call_id"]
-    assert "arrive_by 不是合法时刻" in messages[3]["content"]
+    assert [m["role"] for m in messages] == ["system", "system", "user", "assistant", "tool"]
+    assert messages[3]["tool_calls"][0]["function"]["name"] == "search_transport"
+    assert messages[3]["tool_calls"][0]["id"] == messages[4]["tool_call_id"]
+    assert "arrive_by 不是合法时刻" in messages[4]["content"]
 
 
 def test_one_response_can_carry_two_tool_calls() -> None:
@@ -222,8 +226,9 @@ def test_conversation_text_is_data_not_instructions() -> None:
         conversation=hostile, transcript=(), tools=DEFAULT_TOOLS, context={}
     )
     messages = client.requests[0]["messages"]
-    assert messages[1] == {"role": "user", "content": hostile}
+    assert messages[2] == {"role": "user", "content": hostile}
     assert hostile not in messages[0]["content"]
+    assert hostile not in messages[1]["content"]
     assert "untrusted data" in messages[0]["content"]
 
 
@@ -251,7 +256,7 @@ def test_tool_results_survive_json_round_trip() -> None:
     _model(client).next_turn(
         conversation="x", transcript=transcript, tools=DEFAULT_TOOLS, context={}
     )
-    payload = json.loads(client.requests[0]["messages"][3]["content"])
+    payload = json.loads(client.requests[0]["messages"][4]["content"])
     assert payload["options"][0]["price"] == "950"
 
 

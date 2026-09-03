@@ -1,0 +1,63 @@
+{
+  "complete": true,
+  "currency": "USD",
+  "estimated_cost_usd": 0.02563455,
+  "input_tokens": 52936,
+  "llm_calls": 17,
+  "model": "deepseek-v4-pro",
+  "note": "Cached-input discounts are not modelled; the estimate is an upper bound.",
+  "output_tokens": 2997,
+  "per_case": {
+    "H-01": {
+      "cost_usd": 0.003200295,
+      "input_tokens": 6247,
+      "llm_calls": 2,
+      "output_tokens": 555
+    },
+    "H-02": {
+      "cost_usd": 0.00131631,
+      "input_tokens": 2852,
+      "llm_calls": 1,
+      "output_tokens": 87
+    },
+    "H-03a": {
+      "cost_usd": 0.00320421,
+      "input_tokens": 6248,
+      "llm_calls": 2,
+      "output_tokens": 559
+    },
+    "H-03b": {
+      "cost_usd": 0.00307023,
+      "input_tokens": 6248,
+      "llm_calls": 2,
+      "output_tokens": 405
+    },
+    "H-03c": {
+      "cost_usd": 0.00274311,
+      "input_tokens": 5896,
+      "llm_calls": 2,
+      "output_tokens": 205
+    },
+    "H-03d": {
+      "cost_usd": 0.002721795,
+      "input_tokens": 5887,
+      "llm_calls": 2,
+      "output_tokens": 185
+    },
+    "H-04": {
+      "cost_usd": 0.00440046,
+      "input_tokens": 9320,
+      "llm_calls": 3,
+      "output_tokens": 398
+    },
+    "H-05": {
+      "cost_usd": 0.00497814,
+      "input_tokens": 10238,
+      "llm_calls": 3,
+      "output_tokens": 603
+    }
+  },
+  "price_table_sha256": "dd2a754fb067cbb147677d6d75ac462f4f327480776696fadc8c6547cbdbbf46",
+  "price_table_version": "model-prices-openai-20260802-v1",
+  "unpriced_calls": 0
+}

@@ -29,6 +29,7 @@ from __future__ import annotations
 
 import re
 from collections.abc import Mapping, Sequence
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, replace
 from datetime import date, datetime, time, timedelta
 from typing import Any, Protocol
@@ -545,7 +546,13 @@ class ToolExecutor:
         # 核不上。所以留下来存档的是**每一次真实搜索**，不是合并结果：每条报价
         # 指向真正产出它的那一次，那一次的原始响应里确实有它。
         parts = _window_day_queries(query)
-        captured = [self.provider.search_transport(part) for part in parts]
+        if len(parts) == 1:
+            captured = [self.provider.search_transport(parts[0])]
+        else:
+            # 拆出的每一天是独立的供应商查询，串行纯属浪费：实测两天窗口 2.9s+2.3s。
+            # 并行发出去，`map` 保序，快照顺序和串行完全一致——存档、溯源、合并都不用改。
+            with ThreadPoolExecutor(max_workers=min(len(parts), 4)) as pool:
+                captured = list(pool.map(self.provider.search_transport, parts))
         snapshot = captured[0] if len(captured) == 1 else _merge_transport_snapshots(captured)
         offers = [item for item in snapshot.items if isinstance(item, TransportOffer)]
         for offer in offers:
@@ -581,6 +588,18 @@ class ToolExecutor:
             self._empty_routes.pop(route, None)
         else:
             self._empty_routes[route] = self._empty_routes.get(route, 0) + 1
+        # 喂回模型的只取代表性子集：整页 24–49 条会把下一轮输入撑大一倍还多
+        # （实测第二次调用 6k token 里大半是它）。**全部候选照样进规划器**——
+        # 规划读的是快照，不是这份视图；最终方案里完全可能出现模型没看过的报价。
+        shown = _representative_offers(offers)
+        omitted = len(offers) - len(shown)
+        next_step = _empty_result_advice(len(offers))
+        if omitted > 0:
+            next_step = (
+                f"为控制上下文长度只列出 {len(shown)} 条（最便宜的和最早到的）；"
+                f"另有 {omitted} 条同样进入了规划器，最终方案可能出现其中的报价。"
+                "不要因为没看到某个时刻就重搜。" + (next_step or "")
+            )
         return {
             "origin": origin,
             "destination": destination,
@@ -589,9 +608,11 @@ class ToolExecutor:
             "assumed": note,
             "snapshot_id": snapshot.snapshot_id,
             "valid_until": snapshot.valid_until.isoformat(),
-            "options": [self._transport_view(offer) for offer in offers],
+            "options": [self._transport_view(offer) for offer in shown],
             "option_count": len(offers),
-            "next_step": _empty_result_advice(len(offers)),
+            "options_shown": len(shown),
+            "options_omitted": omitted,
+            "next_step": next_step,
         }
 
     def search_hotels(self, args: Mapping[str, Any]) -> dict[str, Any]:
@@ -633,8 +654,13 @@ class ToolExecutor:
             "check_in": check_in.isoformat(),
             "check_out": check_out.isoformat(),
             "snapshot_id": snapshot.snapshot_id,
-            "options": [self._hotel_view(offer) for offer in offers],
+            "options": [
+                self._hotel_view(offer)
+                for offer in sorted(offers, key=lambda item: item.nightly_price)[:8]
+            ],
             "option_count": len(offers),
+            "options_shown": min(len(offers), 8),
+            "options_omitted": max(len(offers) - 8, 0),
             "next_step": _empty_result_advice(len(offers)),
         }
 
@@ -888,6 +914,25 @@ def _searchable(text: str) -> str:
     return "".join(
         ch for ch in text if not ch.isspace() and ch not in "，,。.、；;：:！!？?“”\"'（）()"
     )
+
+
+#: 喂回模型的交通候选上限。规划器仍然看全部；这里只管模型的上下文。
+_SHOWN_OFFER_LIMIT = 10
+
+
+def _representative_offers(offers: list[TransportOffer]) -> list[TransportOffer]:
+    """从全量候选里挑给模型看的子集：最便宜的 6 条 + 最早到的 4 条，按原顺序排。
+
+    规则是确定性的、可解释的，而且写进了返回值的 `next_step`，模型知道自己看到的
+    不是全部。挑法不追求最优——追求的是"模型要引用时手里有便宜的也有赶得上的"。
+    """
+    if len(offers) <= _SHOWN_OFFER_LIMIT:
+        return list(offers)
+    by_price = sorted(offers, key=lambda item: item.price)[:6]
+    by_arrival = sorted(offers, key=lambda item: item.arrive_at)[:4]
+    chosen = {offer.ref_id for offer in (*by_price, *by_arrival)}
+    picked = [offer for offer in offers if offer.ref_id in chosen]
+    return picked[:_SHOWN_OFFER_LIMIT]
 
 
 #: 同一条航线连着搜空几次就不许再试。2 是有意留的余地：换一个时间窗是合理的

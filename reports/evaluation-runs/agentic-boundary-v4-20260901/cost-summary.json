@@ -1,0 +1,183 @@
+{
+  "complete": true,
+  "currency": "USD",
+  "estimated_cost_usd": 0.10070946,
+  "input_tokens": 202216,
+  "llm_calls": 57,
+  "model": "deepseek-v4-pro",
+  "note": "Cached-input discounts are not modelled; the estimate is an upper bound.",
+  "output_tokens": 14650,
+  "per_case": {
+    "CB-01": {
+      "cost_usd": 0.00822063,
+      "input_tokens": 17608,
+      "llm_calls": 4,
+      "output_tokens": 645
+    },
+    "CB-02": {
+      "cost_usd": 0.00347739,
+      "input_tokens": 7084,
+      "llm_calls": 2,
+      "output_tokens": 455
+    },
+    "CB-03": {
+      "cost_usd": 0.003842355,
+      "input_tokens": 7307,
+      "llm_calls": 2,
+      "output_tokens": 763
+    },
+    "CB-04": {
+      "cost_usd": 0.00350958,
+      "input_tokens": 7098,
+      "llm_calls": 2,
+      "output_tokens": 485
+    },
+    "CB-05": {
+      "cost_usd": 0.005198685,
+      "input_tokens": 10293,
+      "llm_calls": 3,
+      "output_tokens": 829
+    },
+    "CB-06": {
+      "cost_usd": 0.003490875,
+      "input_tokens": 7087,
+      "llm_calls": 2,
+      "output_tokens": 469
+    },
+    "CB-07": {
+      "cost_usd": 0.0034626,
+      "input_tokens": 7080,
+      "llm_calls": 2,
+      "output_tokens": 440
+    },
+    "CB-08": {
+      "cost_usd": 0.00135285,
+      "input_tokens": 2870,
+      "llm_calls": 1,
+      "output_tokens": 120
+    },
+    "CB-09": {
+      "cost_usd": 0.00433521,
+      "input_tokens": 8198,
+      "llm_calls": 2,
+      "output_tokens": 884
+    },
+    "CB-10": {
+      "cost_usd": 0.00137634,
+      "input_tokens": 2870,
+      "llm_calls": 1,
+      "output_tokens": 147
+    },
+    "CB-11": {
+      "cost_usd": 0.0013659,
+      "input_tokens": 2866,
+      "llm_calls": 1,
+      "output_tokens": 137
+    },
+    "CB-12": {
+      "cost_usd": 0.00317811,
+      "input_tokens": 6426,
+      "llm_calls": 2,
+      "output_tokens": 440
+    },
+    "LT-01": {
+      "cost_usd": 0.003700545,
+      "input_tokens": 7307,
+      "llm_calls": 2,
+      "output_tokens": 600
+    },
+    "LT-02": {
+      "cost_usd": 0.003581355,
+      "input_tokens": 7061,
+      "llm_calls": 2,
+      "output_tokens": 586
+    },
+    "LT-03": {
+      "cost_usd": 0.00368358,
+      "input_tokens": 7192,
+      "llm_calls": 2,
+      "output_tokens": 638
+    },
+    "LT-04": {
+      "cost_usd": 0.00368097,
+      "input_tokens": 7052,
+      "llm_calls": 2,
+      "output_tokens": 705
+    },
+    "LT-05": {
+      "cost_usd": 0.00459882,
+      "input_tokens": 8874,
+      "llm_calls": 2,
+      "output_tokens": 849
+    },
+    "LT-06": {
+      "cost_usd": 0.00767253,
+      "input_tokens": 16316,
+      "llm_calls": 5,
+      "output_tokens": 661
+    },
+    "LT-07": {
+      "cost_usd": 0.003757095,
+      "input_tokens": 7179,
+      "llm_calls": 2,
+      "output_tokens": 729
+    },
+    "LT-08": {
+      "cost_usd": 0.003512625,
+      "input_tokens": 7187,
+      "llm_calls": 2,
+      "output_tokens": 444
+    },
+    "LT-09": {
+      "cost_usd": 0.001435065,
+      "input_tokens": 2873,
+      "llm_calls": 1,
+      "output_tokens": 213
+    },
+    "LT-10": {
+      "cost_usd": 0.001302825,
+      "input_tokens": 2863,
+      "llm_calls": 1,
+      "output_tokens": 66
+    },
+    "LT-11": {
+      "cost_usd": 0.0034974,
+      "input_tokens": 7076,
+      "llm_calls": 2,
+      "output_tokens": 482
+    },
+    "LT-12": {
+      "cost_usd": 0.00277095,
+      "input_tokens": 5930,
+      "llm_calls": 2,
+      "output_tokens": 220
+    },
+    "LT-13": {
+      "cost_usd": 0.003754485,
+      "input_tokens": 7197,
+      "llm_calls": 2,
+      "output_tokens": 717
+    },
+    "RL-01": {
+      "cost_usd": 0.00349131,
+      "input_tokens": 7104,
+      "llm_calls": 2,
+      "output_tokens": 461
+    },
+    "RL-02": {
+      "cost_usd": 0.003788415,
+      "input_tokens": 7109,
+      "llm_calls": 2,
+      "output_tokens": 800
+    },
+    "RL-03": {
+      "cost_usd": 0.003670965,
+      "input_tokens": 7109,
+      "llm_calls": 2,
+      "output_tokens": 665
+    }
+  },
+  "price_table_sha256": "dd2a754fb067cbb147677d6d75ac462f4f327480776696fadc8c6547cbdbbf46",
+  "price_table_version": "model-prices-openai-20260802-v1",
+  "unpriced_calls": 0
+}
