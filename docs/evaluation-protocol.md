@@ -54,7 +54,10 @@
 | D14 | 已冻结 | `model-duffel-test-order-e2e-v1` | 1 | DeepSeek + Duffel Test Order 创建、读取、取消、复查 | 仅 Test Mode；一次模型、7 次 Duffel HTTP；写操作不重试；需逐项显式授权；**runner 已随 legacy 入口删除（ADR-0003），报告留档，不再可复跑** |
 | D15 | 已退役 | `derived-v2` 经**语义入口**执行 | 60 + 480 | 语义入口的覆盖与新旧并排（历史） | 语义入口已删除（ADR-0003）；最后一次并排的语义列冻结在 D16 报告里作基线 |
 | D16 | 滚动版本 | `derived-v2` 经**产品入口（工具循环）**执行 | 60 + 480 | 产品入口的离线覆盖，与冻结的语义基线并排 | 替身与原语义替身共用一个解释器；分类、缺失字段、越界标签、偏好四类指标在产品入口无暴露面，记 `not_applicable` |
+| D18 | 已冻结 v2 | `external-longtail-v1`：ChinaTravel human 154 + CrossWOZ 100 + AirDialogue 46 | 300 | 外部**真实用户原话**打产品入口：红线门禁（不崩/不下单/不编引用/不声称已订）+ **弱真值门禁**（若搜索：地点必须落在来源声明或原话里、日期必须与声明一致）+ 终态分布测量 | 弱真值取自来源对**输入本身**的结构化描述（城市/机场/日期），不是答案；含 CC BY-NC-SA 4.0 派生内容仅评测使用；离线替身执行 $0（`run_external_longtail_probe.py`，CI 抽样 30 条门禁 + 合成违例单测） |
 | D17 | 滚动版本 | 对抗集（工具循环版），`services/evaluation_adversarial.py` 内置 5 条 | 5 | 库存文本注入、编造引用、写工具调用、身份替换、用户消息注入，外加三条越权路（不批就交接、自批、外人批） | 剧本模型 + 掺了话的 demo 库存，0 计费 0 外部调用；量的是宿主不变量不是模型；供应商文本到模型是设计使然，记录不判失败。CI 门禁：`tests/test_adversarial_tool_loop.py` |
+| D20 | 滚动版本 | 订好之后的追踪与变更：`examples/run_trip_change_evaluation.py` 内置 14 类 × ≥10 条 | 150 | **被动**：延误只通知 / 小变化不动 / 过时限改期 / 取消改期 / 返程窗口 / 信息性状态 / webhook 门 / worker 领取与租约；**主动**：取消整趟、事件接口（指定段 + 窗口平移）；**聊天**（真模型）：会议改期、取消、航变自述、该问的时候问 | 演示库存 + 钉住的时钟 + 内存仓储；每条各订一趟；确定性类 $0，聊天类每条 1–2 次模型调用；判据在各类函数里；多轮时报告"每轮都过"的条数 |
+| D19 | 滚动版本 | `external-longtail-v1` 多轮续问子集：ChinaTravel 154 + AirDialogue 订票 31 | 185 | **能不能办成**：事实表（来源弱真值 + 固定默认值）由脚本化模拟旅行者在追问时逐轮交出，最多 3 轮；终态分办成 / 诚实失败 / 仍在追问 / 降级 / 越界，红线照 D18，另加"搜的是不是事实表那天"；同时产出盲评输入 `judge-inputs.jsonl` | 完成率分母只算交通供应商能映射的路线（苏州 35 条只量诚实失败）；模拟旅行者只答事实表里的事；离线替身只会要 `arrive_by`，办成率恒为 0，只守红线和输入格式；`run_external_longtail_live_multiturn.py`，CI：`tests/test_external_longtail_multiturn.py` |
 
 D4 的 60 条建议构成：高频核心 16、历史失败 12、边界极端 16、对抗风险 16。真实模型冒烟集从 D4 固定抽取 24 条，覆盖四类数据与中英文，不允许每轮临时挑选。固定子集为 `evals/subsets/agent-eval-model-smoke-v1.json`（配额 core=7 / historical_failure=5 / boundary=6 / adversarial=6；类内先全部英文再按 `case_id` 补中文；含全部 9 条英文）。连通预检子集为 `evals/subsets/agent-eval-model-preflight-v1.json`（2 条）。确定性 hard-assertion 跑分：
 
@@ -116,6 +119,39 @@ D16 用 `agent/deterministic_tool_model.py`（`DeterministicToolCallingModel`）
 不记 0，也不凑分母。
 
 对应的 CI 门禁在 `tests/test_product_entrypoint_evaluation.py`。
+
+## 3.3 D19：多轮续问——把"能不能办成"测出来
+
+D18 的 300 条真实原话几乎都不带日期，不带日期就不搜正是红线要求，于是 900 次运行只有
+15 次真的搜了：红线守住了，"办成没有"几乎没被测到。D19 给每条用例配一张**事实表**——
+旅行者知道但第一句没说的事：ChinaTravel 取出发地 / 目的地 / 天数，出发日定在参照日后
+三周；AirDialogue 取机场码和声明的月 / 日，落到未来最近一次出现。事实表只来自来源对
+**输入**的结构化描述加固定默认值（一人、不订酒店），不借来源的答案。
+
+系统追问时，脚本化的模拟旅行者按轮次回答：第一轮交日期和路线（写成绝对日期，模型能
+逐字抄进 `date_evidence`），第二轮说"没有其他要求"，第三轮催促直接给方案。三轮后仍在
+追问记 `stuck_clarifying`。指标：
+
+| 指标 | 口径 |
+|---|---|
+| `completion_rate` | 可完成用例里，3 轮内走到出方案（`WAITING_FOR_USER` 且方案 ≥ 1）的比例 |
+| `honest_failure_rate_on_unmappable` | 供应商没映射的路线（苏州）里，落到供应商失败 / 无可行方案而不是乱搜的比例 |
+| `completed_by_follow_ups` | 办成的用例用了几轮续问 |
+| `dates_match_fact_sheet_rate` | 真搜了交通的用例里，搜的日期就是事实表那天的比例 |
+| 弱真值门禁触发数 | D18 的两条弱真值门禁这次真的吃上劲了多少次 |
+
+红线判据与 D18 同一份代码；"搜错日子"单独计数，不并入红线。**日期门禁的一处修正
+（gate-v2，2026-09-02）**：交通搜索窗口从到达时限往前开 18 小时，跨日时按天拆成几条
+出处记录，前一天那条的 `arrive_by` 是那天 23:59；旧判据把它当成"搜了没说过的日子"。
+现在以 `requested_window_arrive_by`（旅行者真正给的截止时刻）为准，回看的前一天不算越界。
+修正前的一轮（`external-longtail-multiturn-live-r1-20260902`）保留，附回推重打分；
+修正后的轮次另开目录。每条记录从 gate-v2 起把搜索参数落盘，以后改判据可以原地重打分。
+
+D19 同时把每条任务投影成盲评输入（`judge-inputs.jsonl`）：旅行者说过的每一句、系统最后
+一句可见回复（交付总结或追问）、方案投影和证据引用；`DeterministicUserOutput` 为此多了
+两个可选字段 `traveler_messages` / `assistant_reply`，旧文件不带它们照常加载。
+`examples/build_multiturn_annotation_packet.py` 从中按终态分层抽样，给每位标注者出一份
+评分留空的盲标文件，供 §6.1 的人工校准使用。
 
 ## 4. 运行模式
 

@@ -58,6 +58,14 @@ curl -s http://127.0.0.1:8000/health | python3 -m json.tool
 | `MAX_CONCURRENT_PROVIDER_CALLS` | `16` | 单进程供应商调用舱壁容量 |
 | `TOOL_ACQUIRE_TIMEOUT_SECONDS` | `5` | 等待舱壁槽位的最长秒数 |
 | `INTERRUPTED_TASK_STALE_SECONDS` | `30` | 仅恢复超过该时长的中间态任务，避免启动中的其他 worker 被误判为崩溃 |
+| `FLIGHT_STATUS_SOURCE` | `none` | 航班动态源：`none` 不查；`memory` 进程内表（接推送 / 演示） |
+| `TRIP_WATCH_POLL_SECONDS` | `60` | watch worker 轮询间隔 |
+| `TRIP_WATCH_LEASE_SECONDS` | `300` | 领取一趟差旅的租约；保存即释放 |
+| `TRIP_WATCH_LOOKAHEAD_HOURS` | `48` | 起飞前多少小时开始盯 |
+| `TRIP_CHANGE_MIN_CONNECTION_MINUTES` | `60` | 前一段落地到下一段起飞至少留多久才算接得上 |
+| `FLIGHT_DELAY_NOTICE_MINUTES` | `15` | 延误多少分钟以内不打扰旅行者 |
+| `FLIGHT_STATUS_WEBHOOK_SECRET` | 空 → 不收推送 | `POST /flight-status/webhook` 的 HMAC-SHA256 密钥 |
+| `TRIP_WATCH_WORKER_ID` | 随机 | 多 worker 时区分租约持有者 |
 
 ## 3. 迁移纪律
 
@@ -76,6 +84,35 @@ alembic current
 
 **禁止**：在生产对空库 `create_all` 作为唯一 schema 来源。  
 **测试**：SQLite 可用 `create_schema()`；真 PG 应用 Alembic。
+
+## 3.1 载荷版本与升级
+
+每条 JSON 载荷带 `schema_version`（当前 2）。**模型改了形状必须同时在
+`services/serialization.py` 加一级升级函数**，读取时旧载荷逐级升到当前版本；写入永远是当前版本。
+版本 1 → 2 是 2026-08-29 方案从 `outbound/inbound/hotel` 改成 `legs/stays`。
+
+- 读取：升级后仍不合模型的行抛 `PayloadIncompatible`；`GET /trip-tasks/{id}` 给 500 并说明
+  该跑哪个工具，`GET /trip-tasks?summary=false` 跳过该行并记日志（摘要列表走投影列，不受影响）。
+- 批量改写：`examples/upgrade_task_payloads.py`（默认干跑，`--apply` 真改），四张载荷表都过一遍，
+  `revision` 列不动，任务表同时更新 `payload_schema_version`。**先 `pg_dump`。**
+- 版本比当前代码新（回滚代码之后）一律拒绝读：`UnsupportedPayloadVersion`。
+
+| 迁移 | 内容 |
+|---|---|
+| `0010_trips` … `0011_provider_circuit_state` | 差旅聚合、共享熔断 |
+| `0012_trip_watch_schedule` | 差旅观察排程与租约 |
+| `0013_task_trip_projection` | `trip_tasks.trip_id` 投影 + 回填，差旅按任务反查走索引 |
+
+## 3.2 一笔事务的边界
+
+| 动作 | 同一笔里的东西 |
+|---|---|
+| 建规划 / 改期任务 | 任务行 + 差旅行（新建或乐观锁更新） |
+| 任何状态变化 | 任务行 + 审计行 + 发件箱行 |
+| 下单确认 | 状态迁移 + 确认记录 + 确认审计 + 发件箱通知 + 差旅观察对象（`record_with_trip`，迁移审计作为 `preceding` 同笔） |
+| 航班动态观察 / 取消差旅 | 差旅行 + 被观察任务的审计 + 发件箱 |
+
+两张表共用一个引擎才能一笔；任务在 SQL、差旅在内存（单测常见）时退回两笔。
 
 ## 4. 备份与恢复
 
@@ -176,6 +213,15 @@ uvicorn corporate_travel_agent.api.main:app
 
 任务仍内嵌员工快照；历史任务不随配置变更回写。
 
+## 6.1 差旅观察队列（迁移 0012）
+
+`trips` 表多了 `next_check_at`（投影自载荷里 `watch.next_check_at`）、`watch_lease_owner`、
+`watch_lease_until`，索引 `(status, next_check_at)`。watch worker 领取
+`status IN (BOOKED, REBOOKED) AND next_check_at <= now AND (租约空 OR 已过期)` 的行，Postgres 上
+`FOR UPDATE SKIP LOCKED`，写租约；每次 `save()` 的更新语句重算 `next_check_at` 并清租约。
+`examples/run_trip_watch_worker.py` 单独跑一个进程，或 `PROCESS_ROLE=worker/all` 在进程内起线程。
+迁移前登记的观察对象 `next_check_at` 为空，不会被领取——它们不在动态源接入之前。
+
 ## 7. Outbox（Phase D）
 
 表 `outbox_events`：append-only 业务侧事件，供通知/对账 worker 消费。
@@ -205,6 +251,20 @@ for event in store.list_unpublished(limit=50):
 | 列表看不到旧任务员工 | 旧行投影为空时摘要会回退读 payload；新写入会填列 |
 | 延迟重试不跑 | 查 `state=WAITING_FOR_PROVIDER` 与 `next_retry_at`；看调度线程日志 |
 | 配置 backend=postgres 启动失败 | 先 `import_policy_config.py` 或设 `POLICY_CONFIG_BOOTSTRAP_FILE` |
+
+## 8.1 只有 Postgres 才有的测试
+
+`tests/test_postgres_live.py` 在 `TEST_DATABASE_URL` 指向 Postgres 时才跑，**会清空重建那个库**：
+`SKIP LOCKED` 双 worker 争抢、联合写入的版本列与载荷一致、下单确认整笔回滚、`trip_id` 投影、
+JSONB 旧载荷读取与批量升级。本机：
+
+```bash
+docker exec corporate-travel-agent-postgres-1 psql -U travel_agent -d postgres -c "CREATE DATABASE travel_agent_test"
+TEST_DATABASE_URL=postgresql+psycopg://travel_agent:travel_agent_dev@127.0.0.1:5432/travel_agent_test \
+  PYTHONPATH=src .venv/bin/python -m pytest tests/test_postgres_live.py -q
+```
+
+CI 的 `postgres-smoke` 作业在迁移和 `verify_postgres.py` 之后跑它。
 
 ## 9. CI 期望
 

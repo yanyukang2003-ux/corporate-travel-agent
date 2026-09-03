@@ -32,7 +32,8 @@
 - 产品入口可离线评测（D16）：`DeterministicToolCallingModel` 让 60 条工作流和 480 条意图冻结用例经工具循环逐条执行，并与语义入口并排；`tests/test_product_entrypoint_evaluation.py` 是 CI 门禁；
 - 工具循环的交付契约：`propose_options` 声明旅行者的硬要求与偏好（此前一条都不到规划器）；搜空落 `NO_FEASIBLE_OPTION`，越界落 `OUT_OF_SCOPE`，都不占澄清轮数；
 - 管理端看板：管理员默认视图，三块只读——业务结果指标（`GET /metrics/business`）、谁在哪（`GET /duty-of-care`，只来自确认过的行程）、成本中心预算消耗（`GET /budgets`，区分已确认支出和已交接未回填的在途金额）；
-- 一趟差旅与改期：`Trip` 聚合跨越规划任务和改期任务；下单确认后登记观察对象，航变/会议改期事件（`POST /trips/{id}/events`）开一个新的改期任务挂在同一趟差旅下，原任务不动；指标多了变更场景人工介入率；
+- 一趟差旅与改期：`Trip` 聚合跨越规划任务和改期任务；下单确认后登记观察对象，航变/会议改期事件（`POST /trips/{id}/events`，会议改期可指定 `leg_index`）开一个新的改期任务挂在同一趟差旅下，原任务不动；指标多了变更场景人工介入率；
+- 订好之后的追踪（2026-09-02）：**被动**——watch worker 从起飞前 48 小时起按节奏问航班动态源（`FLIGHT_STATUS_SOURCE`），或企业侧 HMAC 推送到 `POST /flight-status/webhook`；每条动态先过**确定性影响评估**（`services/change_impact.py`）：取消 / 晚于"到场时限 − 安全缓冲" / 接不上下一段才开改期任务，延误但来得及只通知（发件箱 `TRIP_FLIGHT_STATUS_NOTICE`），同样的动态不重复通知。**主动**——已订任务的聊天继续可用，模型把"会议改到周五" / "航司说取消了" / "这趟不去了"读成一条变更请求（日期必须引用旅行者原话），落到同一个事件接口；`POST /trips/{id}/cancel` 取消整趟差旅，观察停止、看板不显示，退改票由人去办；
 - 费控对账：导入费控记录（`POST /expenses/import`），按旅行者 + 订单号和下单确认匹配；对上了自述才算核实过，找不到确认的就是渠道外预订——`off_channel_expense_rate` 第一次有真值；预算账本对过账的用费控的数；
 - 代订：任务记旅行者和发起人两个人，谁能替谁订由员工档案的委托名单决定（演示：助理 `A1002` 可替 `E1001` 订）；差标、审批、预算全看旅行者，助理和高管都看得见、都能操作；
 - 分级审批与事务性发件箱：审批链由政策 `approval_tiers` 决定（金额过档或触发某条规则就多一级），收件箱按"当前待谁批"查；审批各步与下单确认随任务更新同一事务进 `outbox_events`，`examples/run_outbox_worker.py` 或 `POST /outbox/dispatch` 投递到日志 / webhook（HMAC 签名）/ 仓库内模拟的外部审批系统；
@@ -214,6 +215,13 @@ Duffel 报价币种必须与企业政策币种一致，否则政策引擎会因�
 `examples/run_adversarial_tool_loop.py`，0 计费、0 外部调用，也是 CI 门禁
 （`tests/test_adversarial_tool_loop.py`）。
 
+外部真实用户原话（D18/D19，`data/evaluation/external-longtail-v1`：ChinaTravel 154 + CrossWOZ 100 +
+AirDialogue 46）：单轮红线探针 `examples/run_external_longtail_probe.py`（离线 $0）和
+`run_external_longtail_live_sample.py`（真模型），2026-09-02 真模型三轮 300 条 pass^3 99.0%；
+多轮续问 `run_external_longtail_live_multiturn.py` 给每条配事实表由脚本化模拟旅行者逐轮交出，
+量"能不能办成"：185 条三轮 completion^3 84.0%，并产出盲评输入 `judge-inputs.jsonl`
+（`reports/evaluation-runs/external-longtail-*-3x-20260902/`，协议 §3.3）。
+
 D13 继续覆盖真实 Provider 的选择与报价重验路径。它固定执行一次 Duffel Test Mode
 搜索，再对一个合规方案执行一次 `GET /air/offers/{offer_id}`；允许报价保持不变，或在
 涨价时安全进入重新确认，但始终禁止 Order 与 Payment：
@@ -292,6 +300,54 @@ Offer ID、LiteAPI 查询/房型签名、原始价格/币种和供应商有效�
 仍会实时调用供应商，`expires_at` 到期则以稳定错误码拒绝并要求重新搜索。过期记录可按 TTL
 清理，内存实现另有容量上限。
 
+## 订好之后：航班动态、影响评估与变更
+
+下单确认（`BOOKING_CONFIRMED`）之后，差旅进入观察：系统盯着确认方案的每一段，盯到最后一段
+落地后一天。变更有两个来源，落到同一个事件接口，改期任务照常走规划、政策、审批、交接。
+
+**被动（航班取消、延误）。** watch worker 从最早一段起飞前 48 小时起按节奏问航班动态源
+（48–12 小时每 6 小时，12–3 小时每小时，3 小时内每 15 分钟，起飞后每 30 分钟），或者企业侧
+把推送 POST 过来。每条动态先过确定性影响评估，**不是收到就改期**：
+
+| 动态 | 判定 | 系统做什么 |
+|---|---|---|
+| 取消 | `REBOOK_REQUIRED` | 开改期任务，被取消的票不再端上来，事件带评估依据 |
+| 延误，新到达晚于"到场时限 − 安全缓冲"，或接不上下一段 | `REBOOK_REQUIRED` | 同上 |
+| 延误 ≥ 15 分钟但仍来得及 | `NOTIFY_ONLY` | 发件箱 `TRIP_FLIGHT_STATUS_NOTICE`，行程不动 |
+| 按计划 / 变化很小 / 查不到 | `NO_CHANGE` | 只记观察 |
+
+```bash
+export FLIGHT_STATUS_SOURCE=memory          # none（默认，不查）| memory（进程内表，接推送 / 演示）
+export TRIP_WATCH_POLL_SECONDS=60
+export TRIP_WATCH_LEASE_SECONDS=300
+export TRIP_WATCH_LOOKAHEAD_HOURS=48
+export TRIP_CHANGE_MIN_CONNECTION_MINUTES=60
+export FLIGHT_DELAY_NOTICE_MINUTES=15
+export FLIGHT_STATUS_WEBHOOK_SECRET='shared-with-the-tmc'   # 不配就不收推送（503）
+.venv/bin/alembic upgrade head                               # 迁移 0012：trips.next_check_at + 租约
+PROCESS_ROLE=worker .venv/bin/python examples/run_trip_watch_worker.py --interval 60
+```
+
+推送：`POST /flight-status/webhook`，请求体 `{"ref_id":"MU-EARLY","status":"DELAYED",
+"estimated_arrive_at":"2026-08-05T09:05:00+08:00","source":"tmc"}`，头
+`X-Flight-Status-Signature` 是对原始请求体的 HMAC-SHA256；不带 `trip_id` 时对每一趟盯着这张票的
+差旅都算数（同一班航班上可能坐着好几位旅行者）。管理员也可以直接 `POST /trips/{id}/flight-status`；
+`POST /trip-watch/run` 手动跑一轮。真实动态源（VariFlight、AeroDataBox、TMC 查询接口）实现
+`providers/flight_status.FlightStatusPort.status_of` 即可，仓库里不放没有凭证就验不了的适配器。
+
+评测：`examples/run_trip_change_evaluation.py`（协议 D20）把上面每一格各写成 ≥10 条用例，
+`--offline` 只跑确定性的 11 类（$0），不带 `--offline` 再跑 4 类真模型聊天变更；`--runs 3` 出
+"每轮都过"的条数。2026-09-02 首跑 15 类 × 10 条 × 3 轮 450/450
+（`reports/evaluation-runs/trip-change-eval-20260902/`）。离线走一遍完整链路看
+`examples/run_trip_watch_walkthrough.py`。
+
+**主动（会议改期、不去了）。** 已订任务的聊天继续可用：`POST /agentic/trip-tasks/{id}/messages`
+在 `BOOKING_CONFIRMED` 上不重跑规划，而是让模型把话读成一条变更请求——会议改期（哪一段、新的
+最晚到达时刻，**日期必须逐字引用旅行者原话**）、航变自述（指到已订行程里的票号）、取消。读不出
+来就问一句，任务状态不变。表单路径：`POST /trips/{id}/events`（`event_type=MEETING_MOVED`，
+可带 `leg_index`）和 `POST /trips/{id}/cancel`。取消之后观察停止、谁在哪看板不再显示、发件箱
+`TRIP_CANCELLED`；**退票、改签仍由人去官方平台办**，系统记不到退改费。
+
 ## PostgreSQL 持久化
 
 不设置 `DATABASE_URL` 时仍使用内存仓储。启用本地 PostgreSQL：
@@ -314,6 +370,9 @@ export DATABASE_URL='postgresql+psycopg://travel_agent:travel_agent_dev@127.0.0.
 
 `DATABASE_AUTO_CREATE=true` 仅适合临时开发环境；`ENVIRONMENT=production|staging` 时会被拒绝。正常环境应使用 Alembic 迁移。
 
+载荷带 `schema_version`（当前 2），旧版本读取时自动升级；批量改写用
+`examples/upgrade_task_payloads.py`（先 `pg_dump`）。只有 Postgres 才有的行为（`SKIP LOCKED`、
+JSONB、联合写入）由 `tests/test_postgres_live.py` 在 `TEST_DATABASE_URL` 指向一次性测试库时覆盖。
 分阶段能力与运维说明见 **[docs/postgres-operations.md](docs/postgres-operations.md)**：
 
 | 阶段 | 内容 |

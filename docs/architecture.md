@@ -240,9 +240,11 @@ stateDiagram-v2
 
 变更事件（`POST /trips/{id}/events`）有两种：航变 `FLIGHT_CHANGED`（航司/供应商推送，
 管理员身份报，必须对上观察对象里的某张票）和会议改期 `MEETING_MOVED`（旅行者或发起人自己报，
-带新的最晚到达时刻）。事件被接受的条件：差旅处于 `BOOKED`/`REBOOKED`，观察期没过。接受之后
+带新的最晚到达时刻，`leg_index` 指明改的是哪一段，默认第一段）。事件被接受的条件：差旅处于
+`BOOKED`/`REBOOKED`，观察期没过；取消了的、改期进行中的一律拒绝。事件从哪来见 §4.6。接受之后
 **开一个新的改期任务**挂在同一趟差旅下（`parent_task_id`、`change_event_id`），原任务的审计一个
-字不动；改期任务复用原请求，会议改期改最晚到达时刻，航变把被取消的那张票排除在候选之外——
+字不动；改期任务复用原请求，会议改期改那一段的最晚到达时刻并把出发窗口按同样的时间差平移（会议从
+20 号推到 22 号，搜的就是 21 号傍晚到 22 号上午，不是三天宽的窗口），航变把被取消的那张票排除在候选之外——
 这不是改库存，是"航司说这张票没了，就别再端上来"。改期任务同样走规划、政策、审批、交接、
 确认；它确认了，差旅进入 `REBOOKED`。发件箱里多一条 `TRIP_CHANGE_REQUESTED`。
 
@@ -263,6 +265,50 @@ stateDiagram-v2
 | 业务结果 | `GET /metrics/business` | 最近任务的审计事件 + 费控记录，`services/evaluation_business` 同一套口径，附 `labels` | 分母为零不写 0，卡片上写"测不出来" |
 | 谁在哪（duty of care） | `GET /duty-of-care?at=` | 差旅聚合的观察对象：员工回填了下单确认的那份方案的航段，按 `at` 判在途 / 在目的地 / 未出发（`services/duty_of_care.py`） | 没确认的行程不出现——系统不知道人到底订没订，就不假装知道人在哪；观察期过了默认不出现 |
 | 预算消耗 | `GET /budgets` | 政策里的成本中心额度、账本里确认过的支出、已交接还没回填的"在途"金额（选定方案的价格） | 在途不进账本；账本没接时支出显示"账本未接"而不是 0 |
+
+### 4.6 航班动态、影响评估与取消
+
+事件从哪来，2026-09-02 起有四条路，全部落到同一个 `report_trip_event` / `cancel_trip`：
+
+| 路 | 入口 | 谁 | 经过什么 |
+|---|---|---|---|
+| **被动 · 轮询** | watch worker（`process_due_flight_checks`；`examples/run_trip_watch_worker.py`，或 `PROCESS_ROLE=worker/all` 进程内线程） | 航班动态源 `FlightStatusPort`（`providers/flight_status.py`） | 影响评估 |
+| **被动 · 推送** | `POST /flight-status/webhook`（HMAC-SHA256，`FLIGHT_STATUS_WEBHOOK_SECRET`）；`POST /trips/{id}/flight-status`（管理员） | 企业 TMC / 航司推送 | 影响评估 |
+| **主动 · 聊天** | 已订任务（`BOOKING_CONFIRMED`）上的 `POST /agentic/trip-tasks/{id}/messages` → `submit_change_message` | 旅行者 / 发起人 | 变更意图（`agent/change_intent.py`） |
+| **主动 · 表单** | `POST /trips/{id}/events`（会议改期，可指定 `leg_index`）、`POST /trips/{id}/cancel` | 旅行者 / 发起人 | 直接落事件 |
+
+**观察节奏**（`services/change_impact.next_flight_check_at`）：下单确认时把第一次检查排在最早一段
+起飞前 48 小时（`TRIP_WATCH_LOOKAHEAD_HOURS`）；48–12 小时每 6 小时，12–3 小时每小时，
+3 小时内每 15 分钟，起飞到落地每 30 分钟，全部落地后不查。`trips.next_check_at` 是投影列
+（迁移 0012），worker 按它领取，写 `watch_lease_owner/until` 租约，Postgres 上 `SKIP LOCKED`；
+**保存即释放**。没接动态源（`FLIGHT_STATUS_SOURCE=none`，默认）worker 一趟都不领。
+
+**影响评估**（`services/change_impact.assess_flight_change`）是确定性代码，和政策引擎同一类：
+输入是事实（动态源说的状态与预计时刻），输出是可复核的结论，每条带 `reasons`。
+
+| 结论 | 什么时候 | 然后 |
+|---|---|---|
+| `REBOOK_REQUIRED` | 取消；新到达晚于"到场时限 − 安全缓冲"（`arrival_buffer_minutes`，只对留缓冲的那一段）；和下一段接不上（`TRIP_CHANGE_MIN_CONNECTION_MINUTES`） | `report_trip_event(FLIGHT_CHANGED, impact=…)` 开改期任务，事件带评估 |
+| `NOTIFY_ONLY` | 时刻变了、超过 `FLIGHT_DELAY_NOTICE_MINUTES`，但仍来得及 | 发件箱 `TRIP_FLIGHT_STATUS_NOTICE`，行程不动 |
+| `NO_CHANGE` | 按计划、变化在阈值内、已起飞/落地、动态源判不了 | 只记观察 |
+
+每次非重复观察在**被观察任务**上记 `FLIGHT_STATUS_OBSERVED`（这是关于它那张票的事实，不是改它）；
+同一段同样的状态再来一次不再通知、不再记审计。最近一次观察挂在 `TripWatch.observations` 上，
+`GET /trips/{id}` 能看到，前端已订面板按段显示。改期进行中（`CHANGE_REQUESTED`）的差旅不再领取，
+旧票已经在换了。只带票号、不带 `trip_id` 的推送对每一趟盯着这张票的差旅都算数——同一班航班上
+可能坐着好几位旅行者。
+
+**取消**（`cancel_trip`）：差旅进入 `CANCELLED`，事件 `TRIP_CANCELLED`，`next_check_at` 置空，
+发件箱 `TRIP_CANCELLED`，谁在哪看板不再显示，之后的事件和聊天变更一律拒绝。**不动任何任务状态**——
+任务记录的是当时规划了什么。退票、改签仍由人去官方平台办；退改费系统记不到。
+
+**聊天改期**（`submit_change_message`）：模型只有两个终局工具——`request_trip_change` 和
+`ask_traveler`——没有搜索、没有规划。关卡在工具签名上：会议改期必须带 `new_arrive_by`，且
+`date_evidence` 逐字抄旅行者原话、那句话里真的定下这一天（和搜索的日期出处关卡同一条
+`_quote_fixes_date`）；航变自述必须指到已订行程里的票号（事件 note 标"旅行者自述："）；
+取消只要理由。打回去的原因原样喂回模型，最多两轮；读不出来就问一句，任务状态不变。会议改期
+开出的改期任务把这句话带过去（`CHANGE_MESSAGE_CARRIED`）。这次模型调用记审计但**不占**已订任务
+的工具预算。
 
 ## 5. 证据与版本
 

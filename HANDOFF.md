@@ -1,9 +1,9 @@
 # Session Handoff — Corporate Travel Agent
 
-**日期：** 2026-09-01  
+**日期：** 2026-09-02  
 **工作区：** `/Users/yukangyan/Downloads/corporate-travel-agent`  
-**分支：** `semantic-entrypoint-and-judge`（§46–§48 已按主题分 7 次提交到 `f7b6a2c`；§49 过程记录一轮尚未提交）  
-**目的：** 换 session 续作入口。**读 §1、§2、§30、§38、§46 就能接上**，其余章节是历史记录，按需查。
+**分支：** `semantic-entrypoint-and-judge`（§46–§48 已按主题分 7 次提交到 `f7b6a2c`；§49–§55 在工作树里尚未提交）  
+**目的：** 换 session 续作入口。**读 §1、§2、§30、§38、§46、§55 就能接上**，其余章节是历史记录，按需查。
 
 ---
 
@@ -55,6 +55,8 @@
 | 自动下单 / 付款 | ❌ **永远不做**，硬边界 |
 | 儿童票、签证、选座、里程卡、已出票改签、宠物、无障碍 | ❌ 明确的能力边界，会披露且不搜 |
 | **航变 / 会议改期之后重新规划** | ✅ §6.8-5。下单确认后系统盯着每一段；`POST /trips/{id}/events` 开一个改期任务挂在同一趟差旅下，原任务不动，被取消的票不再端上来。**和航司改签仍然不做**——改期任务照样交给人去订 |
+| **航班取消 / 延误自动发现** | ✅ §55。watch worker 从起飞前 48 小时起按节奏问动态源，或 TMC 推送进 `POST /flight-status/webhook`；确定性影响评估：取消 / 赶不上 / 接不上才开改期任务，延误但来得及只通知。**真实动态源适配器没写**——端口在，`FLIGHT_STATUS_SOURCE` 只有 `none` / `memory` |
+| **订好之后在聊天里说"会议改到周五" / "不去了"** | ✅ §55。已订任务的 `/messages` 读成变更请求，日期必须引用原话；`POST /trips/{id}/cancel` 取消整趟 |
 
 ### 1.3 关键路径与入口
 
@@ -4171,11 +4173,459 @@ oxlint                                   全过
 
 ---
 
-*交接更新 2026-09-01（§49）。*
+## 50. 2026-09-01（第六轮）：方案切换和"为什么是它"
 
-**新 session 读五节：§1 现状，§2 本会话六项管控，§30 架构方案，§38 工具循环出口，§46–§48 真实链路复跑、两条修复、四条工程债。**
+**一句话：** 用户实际使用时发现两个前端问题：方案给出后**没法切换**、每条方案**没有理由**。
+两个都是真的：价格列（含"选择方案"按钮）被长航班引用号挤出卡片可视区；卡片脚注显示的是
+`total_cost=238.80` 这类机器键值串。已修，浏览器里实测通过。
+
+### 50.1 修了什么
+
+- **布局**：`.option-body` 第一列 `1fr` → `minmax(0, 1fr)`（1fr 的最小宽度是内容宽度，
+  长引用号会把 126px 的价格列挤出去）；顺带整张卡可点击（之前只有那个看不见的按钮能选）。
+- **理由**：新增 `utils/reasons.ts`——从数据**推导**每条方案的理由，不编内容：
+  类别翻译（综合最合适/最便宜/最快）、比最便宜贵多少及换来什么（更快 / 不用赶早班）、
+  每段直达、当天出发还是需前一晚。机器键值串一条不上屏。卡片脚注和决策面板
+  （"为什么是它：…"）都用它。原 `factsForOptionCard` 的"没有人话就退回机器串"兜底
+  是这次垃圾上屏的来源，方案卡不再用它（审批理由处仍在用，未动）。
+
+### 50.2 验收
+
+```
+前端 build + node --test 65 条 + oxlint    全过（新增 4 条 reasons 测试）
+浏览器实测                                 价格列和按钮可见；点卡片即切换；理由显示为
+                                          "综合最合适 · 最便宜 · 每一段都直达"这类人话
+```
+
+未提交。
+
+---
+
+## 51. 2026-09-01（第七轮）：过程记录做到函数级
+
+**一句话：** 应项目所有者要求，过程记录从"调用级"做到**函数级**：输入从哪个函数进来、
+对话怎么装配、发给 LLM 的**完整报文原文**、LLM 返回的**原始 tool_calls**、每次工具调用的
+参数和完整结果——全部落库并经 `/steps` 按先后给出。此前这些内容根本没存
+（§45 记过："LLM 调用侧仍然只有哈希"），这轮把捕获层补上了。
+
+### 51.1 三层改动
+
+| 层 | 改了什么 |
+|---|---|
+| 捕获（适配器） | `OpenAIToolCallingLanguageModel` 新增 `exchanges`：每次调用记完整 `request`（model / messages 原文 / tools 完整 schema / tool_choice / temperature / max_tokens / extra_body）和 `response`（content / 解析后的 tool_calls / usage 含缓存命中 / response_id / 耗时）。**失败的调用也记**（带错误分类）。只留最近 200 次防内存。密钥在 HTTP 头里，不在报文里，不会入库 |
+| 持久化（编排器） | `_capture_process_log`：五条退出路径（成功 / 预算耗尽 / 循环未收敛 / 模型故障 / 供应商故障）都把本轮的对话装配原文（`ConversationLedger.render`）、上下文、LLM 往返切片、工具往返（参数 + **完整结果**，即喂回模型的原文）、终局或错误写进 `task.metadata["process_log"]`。预算耗尽/传输故障拿不到工具往返时**如实记 null 并说明**，不假装有 |
+| 呈现（/steps + 前端） | 每步新增 `function`（真实调用链，如 `ToolLoopRunner._dispatch → ToolExecutor.search_transport`）；LLM 步骤带 `llm_request` / `llm_response`；工具步骤带 `arguments` / `result`；每轮循环一个 `loop_run` 步骤（装配原文、context、终局、**被拒的调用**单独列出）。前端时间线每步显示函数链，"原始数据"可展开看报文 JSON |
+
+### 51.2 两个如实的语义决定
+
+- **成功的终局工具不进 transcript**——它直接变成 `LoopOutcome`，所以记录里终局动作就是
+  `outcome`（kind/summary/refs 即其参数）；留在 transcript 里的终局调用都是**被拒的**，
+  在 `refused_exchanges` 单独列出（模型试过什么、宿主拦了什么，都看得见）。
+- **对齐靠发生顺序**：第 k 条 LLM 调用记录 ↔ 适配器第 k 笔往返（重试各占一笔，失败带 error）；
+  工具记录按名字向前扫描配对，重试不重复消费。
+
+### 51.3 体量与验收
+
+报文按轮重复对话与工具结果，真实单轮任务 `/steps` 响应约 **52KB**（含 5,915 字符系统提示词
+×2 次、24 条搜索结果原文）。演示规模没问题；生产要落库应换按哈希去重存储——先把"记全"做对。
+
+```
+pytest 全量                                   后台跑完见下轮记录（本轮相关 46 条全过）
+前端 build + node --test 69 + oxlint          全过
+真实验证（curl，1 条消息 ≈ $0.006）            10 步记录：入口函数 → 装配 → LLM 报文原文
+                                              （messages=2→4，cached 896/2944）→ 工具参数与
+                                              24 条完整结果 → 规划 → 第二次 LLM → 终局
+```
+
+未提交。旧任务（函数级记录上线前建的）没有 `process_log`，`/steps` 只给调用级内容，不编造。
+
+---
+
+## 52. 2026-09-01（第八轮）：降成本、降延迟——流式、并行、v4 提示词
+
+**一句话：** 三项优化一次做完：① SSE 流式（感知延迟 16s → 1s 内见到进展）；② 跨日拆窗的
+供应商搜索并行；③ 工具结果截断喂回 + 提示词拆"静态前缀 + 动态上下文"（**升 v4**，四套真实
+基线在新目录重跑）。**分数只升不降**（边界红线 26/28 → **28/28**），真实链路输入 token
+多轮 −27%、边界 −23%，缓存命中 70%–90%。pytest **822** 全过。
+
+### 52.0 先说名词
+
+| 词 | 大白话 |
+|---|---|
+| SSE | 服务器把事件一条条推给浏览器的流式协议。任务总耗时没变，变的是**用户 1 秒内就能看到"正在搜索北京→杭州"**，而不是对着按钮干等 |
+| 前缀缓存 | DeepSeek 对逐字相同的请求开头按缓存价计费（约为全价的零头）。动态值（参照时刻）嵌在提示词中间会把后半段缓存全部打断 |
+| cache-miss 口径 | 价目表故意按"全部未命中缓存"算的上界。真实账单按命中率打折——这轮实测命中 70%–90% |
+
+### 52.1 改了什么
+
+- **① 流式**：`POST /agentic/trip-tasks/stream` 和 `…/messages/stream`（SSE：`accepted` →
+  逐条 `step`（与 `GET /steps` 同构，靠轮询任务取增量，不另起事件总线）→ `task`/`error` → `done`）。
+  前端 `utils/stream.ts`（纯函数解析器 + 测试）+ 客户端流式方法 + 聊天栏"正在进行"气泡
+  （滚动显示最近 4 步）；后端没有流式路由（404/405）时自动回退非流式。失败路径有测试。
+- **② 并行**：`ToolExecutor.search_transport` 跨日拆出的几天并行发请求（`map` 保序，
+  快照顺序与串行逐字一致，存档/溯源/合并不用改）。实测省一次窗口拆分约 2.3s。
+- **③ v4**：
+  - 结果截断喂回：交通给模型看最便宜 6 + 最早到 4（≤10 条），酒店按夜价前 8；
+    `option_count` 仍是总数，另加 `options_shown` / `options_omitted`，`next_step` 写明
+    "其余已进规划器，别因为没看到就重搜"。**全部候选照进规划器**（规划读快照不读视图）。
+  - 提示词拆分：静态段一个字没删，动态值（reference_time/timezone/轮次）挪进第二条
+    system 消息。`TOOL_LOOP_PROMPT_VERSION = "tool-loop-v4"`。
+
+### 52.2 v4 基线（新目录 `*-v4-20260901`，与 v3 并排）
+
+| 集 | v3 | v4 | 输入 token | 缓存命中 |
+|---|---|---|---|---|
+| 日历 | 7/8 · $0.0233 | **7/8** · $0.0256 | 48.4k → 52.9k（略升，见下） | 90% |
+| 多城 | 8/8 · $0.0255 | **8/8** · $0.0259 | 50.4k → 50.7k | 79% |
+| 真实多轮 | 6/6 · $0.0585 | **6/6** · $0.0439 | 119.3k → 87.5k（**−27%**） | 70% |
+| 边界 28 条 | 红线 26/28 · $0.1264 | **红线 28/28 · 措辞 26/28** · $0.1007 | 261.2k → 202.2k（**−23%**） | 81% |
+| 四套合计 | $0.234 | **$0.196**（−16%，cache-miss 口径；按命中率真实账单再低一截） | | |
+
+**诚实注解：** 日历/多城名义成本略升是预期内的——合成库存只有几条，截断没触发，而第二条
+system 消息每次多 ~40 token，价目表又不计缓存折扣；它们的真实收益全在缓存命中率里。
+边界的 CB-01/LT-03 转好来自 §46 判据 v3 和 §47 英文月份修复的**首次全量重验**；CB-07/CB-10
+的措辞转好不归因于 v4（可能是模型方差），只记录不邀功。
+
+### 52.3 浏览器实测
+
+发「下周三从北京去杭州见客户，中午前到，不住酒店」：1 秒内"正在进行"气泡开始滚动
+（旅行者说 → 任务创建 → 模型决定下一步 → 执行交通搜索…），任务落地 3 个方案（下周三
+自己算成 9/9；模型主动说明"前一晚航班与不住酒店冲突，故不推荐"），无控制台错误。
+
+### 52.4 验收与未做
+
+```
+pytest 全量                               822 全过（+2 条流式测试）；ruff 全过
+前端 build + node --test 70 + oxlint      全过
+```
+
+未提交（§50–§52 三轮都在工作树里）。未做：模型 token 级流式（现在流的是步骤，最终文案仍
+整段到达）；决策类调用路由小模型；多轮会话复用上一轮快照（§52 分析里的第 3 条成本杠杆）。
+
+---
+
+## 53. 2026-09-01（第九轮）：外部数据集调研 + 300 条真实用户原话探针（D18）
+
+**一句话：** 调研了 4 个公开数据集的许可与可用性，建成 `external-longtail-v1`：
+**300 条别人家真实用户的原话**（中文自由行 154 + 中文口语对话 100 + 英文订票 46），
+期望只用机器可校验的宿主红线，离线替身跑 $0。首跑**红线 300/300、零崩溃**；
+终态分布暴露一个真实缺口：**离线替身几乎不判"越界"**（297 追问 / 3 越界）。
+
+### 53.1 调研结论（许可已逐一核实）
+
+| 数据集 | 许可 | 结论 |
+|---|---|---|
+| TravelPlanner（OSU-NLP） | 上游条款复杂 | **已在用**——D2 的 PreferTripPlan（Apache-2.0）就是它的衍生物，不再直接引 |
+| ChinaTravel（LAMDA-NeSy） | CC BY-NC-SA 4.0 | **采用** human split：1154 名真人写的中文旅行需求，长尾价值最高 |
+| CrossWOZ（thu-coai） | Apache-2.0 | **采用**：10 万条中文口语，取每段对话用户首句（酒店/地铁/出租优先） |
+| AirDialogue（Google） | Apache-2.0 | **采用**：40 万条英文订票对话，取顾客首句实质请求（订/改/退） |
+
+取数走 HuggingFace datasets-server 行接口和 GitHub raw（CrossWOZ test 集 1.3MB），
+构建器缺文件自动下载、记录原始文件 SHA-256；来源的回答/标注一概不当真值。
+
+### 53.2 建了什么
+
+| 件 | 路径 |
+|---|---|
+| 构建器 | `examples/build_external_longtail_dataset.py`（--force 才许重建，重建=换版本） |
+| 数据集 | `data/evaluation/external-longtail-v1/`（cases.jsonl + manifest + NOTICE，整目录按 CC BY-NC-SA 4.0 对待，仅评测） |
+| 探针 runner | `examples/run_external_longtail_probe.py`（离线替身，红线门禁 + 终态分布测量） |
+| CI 门禁 | `tests/test_external_longtail_probe.py`（完整性 + 每来源抽 10 条跑红线） |
+| 首跑报告 | `reports/evaluation-runs/external-longtail-probe-20260901/`（300/300，0 崩溃） |
+
+### 53.3 发现（测量，不是门禁失败）
+
+终态分布：`NEEDS_CLARIFICATION 297 / OUT_OF_SCOPE 3 / 搜索 0`。带娃三日游、找美食街、
+退改签这类问法，离线替身几乎全部选择追问而不是判越界或按可办部分搜索——
+真模型在 §41 边界集上是会判越界的（CB-11），所以这主要是**确定性替身的保守性**，
+但"美食街推荐"追问三轮也到不了差旅，这些原话适合下一步喂给真模型抽样看差距。
+
+### 53.3b v2：弱真值门禁（来源结构化字段对齐）
+
+应项目所有者要求加硬：数据集升 **v2**，每条带 `weak_truth`——来源对**输入本身**的
+结构化描述（ChinaTravel 的出发/目标城市与天数、AirDialogue 的机场码与声明日期、
+CrossWOZ 的北京域）。这不是借他们的答案，是"用户到底说了哪些地方和日子"的第二个
+独立出处，口径与本项目一致。探针加两条门禁（只在**真的搜索了**才生效）：
+
+- `searched_places_grounded`：搜过的每个地点，正规化后必须落在声明集合里或用户原话里；
+- `searched_dates_match_declaration`：声明过日期的来源逐个比对月/日；没声明的来源，
+  每次交通搜索必须带原话出处（`date_evidence`）。
+
+本轮离线替身 0 次搜索，两条新门禁没被触发——所以**用合成违例单测证明它们真的会拦**
+（没人提过的 Chengdu → 拦；声明 Oct 5 搜 7 月 1 日 → 拦；无声明且无出处 → 拦）。
+v2 全量重跑 300/300（`external-longtail-probe-v2-20260901`）。
+
+### 53.3c 真模型抽样对照（v1 首跑）
+
+分层抽样 45 条（ChinaTravel 20 / CrossWOZ 15 / AirDialogue 10，各来源前 N 条，确定性），
+真 DeepSeek + Duffel/LiteAPI 沙箱只读，**判据与离线探针共用同一份代码**
+（`services/evaluation_external_longtail.py`，为此把判据从 runner 下沉进包——§46 教训）。
+同场用离线替身把同一批再跑一遍逐条并排。报告：`external-longtail-live-20260901`
+（含 traces/cost-ledger/retry-cap 四件套）。
+
+```
+红线 45/45；重试上限核对通过；56 次模型调用；约 $0.077（cache-miss 口径）
+真实终态   NEEDS_CLARIFICATION 39 / OUT_OF_SCOPE 6 / 搜索 0
+离线终态   NEEDS_CLARIFICATION 45（一致 39/45）
+```
+
+- **分歧全部在"判越界"上**：真模型把 6 条判为越界（重庆美食推荐 ×3、酒店类型/评分咨询 ×3），
+  离线替身一条都不判——证实 §53.3 的推断：那是替身的保守性，不是产品缺陷。
+- **一条边界观察**：cw-10113「公司开会安排我们去北京丽景湾国际酒店，想知道类型和评分」
+  被判越界。说"查不了评分"是对的（工具只搜价格库存），但这句是差旅相关的信息咨询，
+  一句"我能帮你查该酒店的房价库存"会更好——记为观察，不动判据。
+- **搜索仍为 0**：这些首句几乎都缺日期（ChinaTravel 不写日期、AirDialogue 首句常只报姓名），
+  不带日期就不搜恰恰是红线要求。弱真值门禁因此仍未被真实行为触发，
+  其有效性由合成违例单测背书（test_weak_truth_checks_actually_catch_violations）。
+
+### 53.4 验收与未做
+
+```
+探针全量 300 条（v2，弱真值门禁）           红线 300/300，0 崩溃，$0
+真模型抽样 45 条                            红线 45/45，$0.077，见 §53.3c
+pytest 全量                                825 全过；ruff 全过
+```
+
+未提交。未做：ChinaTravel 的沙箱库存（城市间车次/酒店数据库）作为第三个只读 Provider
+接入的可行性评估；带日期的多轮续问（把这 45 条推进到真正触发搜索，让弱真值门禁吃上劲）。
+
+---
+
+## 54. 2026-09-02：300 条真话三轮稳定性 + 多轮续问把"办成率"测出来（D19）+ Judge 样本 185 条
+
+**一句话：** 先把 D18 的 300 条外部真实用户原话用真模型跑了三轮（pass^3 99.0%、mixed 0.7%，
+6 次"失败"全是关键词判据误报）；然后加了一层脚本化模拟旅行者续问（D19），185 条可谈"办成"的
+用例三轮真跑：**completion^3 84.0%、completion@1 88.4%**，办成的没有一条需要第二轮续问；
+红线 555 次运行只 1 次真命中；顺手修了两处判据缺陷；Judge 样本从 60 条加到 185 条真实原话，
+人工双评盲标包（100 条）已出。pytest 全过，ruff 全过。
+
+### 54.0 先说名词
+
+| 词 | 大白话 |
+|---|---|
+| D19 / 多轮续问 | 给每条真实原话配一张"旅行者知道但没说"的事实表（日期、路线），系统追问时由脚本逐轮交出去，最多三轮，看它能不能真的把方案摆出来 |
+| completion^3 | 三轮都办成的用例比例；办成 = 三轮内走到出方案 |
+| gate-v2 | 日期门禁的修正版：搜索窗口跨日拆出的"前一天"记录不算搜错日子 |
+| 回看窗口 | 没给出发时刻时，搜索从到达时限往前开 18 小时，前一晚出发也能搜到 |
+
+### 54.1 D18 三轮（300 × 3）
+
+`external-longtail-live-full-3x-{r1,r2,r3}-20260902` + 聚合 `external-longtail-live-full-3x-20260902/`。
+pass@1 894/900、pass^3 297/300、mixed 2/300、终态三轮一致 290/300、崩溃 0、$1.76 上界。
+6 次 FAIL 全是 `no_booking_claim_in_text` 用子串匹配 "booked"，取消/改签类请求里模型提到
+用户自己订过的票就命中；排除这条后其余五条红线 900/900。判据没改（改了就不可比），建议改成
+只在第一人称声称本系统已订时才判。首次尝试 `external-longtail-live-full-r1-20260902` 第 190 条起
+DeepSeek 402（余额耗尽），按设计降级不重试，整目录作废留档。
+
+### 54.2 D19 多轮续问：建了什么
+
+- `services/evaluation_external_longtail.py` 新增：事实表 `FactSheet` / `build_fact_sheet`
+  （ChinaTravel 参照日 + 21 天、按天数推返程；AirDialogue 声明月日落到未来最近一次）、
+  `follow_up_message`（中英文，绝对日期可逐字抄进 `date_evidence`）、`multiturn_record`
+  （红线照旧 + 终态分类 + "搜的是不是事实表那天"，搜索参数落盘）、`judge_input_for_task`
+  （对话原文 + 系统回复 + 方案投影 → 盲评输入）、`summarize_multiturn` / `render_multiturn_markdown`。
+- `examples/run_external_longtail_live_multiturn.py`：`--offline` 替身 $0；真跑产出七件套 +
+  `judge-inputs.jsonl` + `evaluation-result.json`（红线失败给 Judge 打 hard_rule_failed）。
+- `examples/build_multiturn_annotation_packet.py`：从 judge-inputs 按终态分层抽样，两位标注者各一份盲标文件。
+- `DeterministicUserOutput` 多两个可选字段 `traveler_messages` / `assistant_reply`，旧文件照常加载。
+- `run_output_quality_judge.py` 加 `--request-timeout-seconds`（一次超时会中断整轮，供应商慢时调大）。
+- 测试：`tests/test_external_longtail_multiturn.py`（11 条：事实表、续问文案、终态分类、
+  日期门禁的回看窗口容忍与真越界拦截、离线红线 + 盲评输入格式、盲标包）。
+- 文档：`docs/evaluation-protocol.md` D19 行 + §3.3。
+
+### 54.3 D19 结果（`external-longtail-multiturn-live-3x-20260902/REPORT.md` 全文）
+
+| 指标 | 值 |
+|---|---|
+| completion@1 / ^3 / @3 | 88.4% / **84.0%** / 92.0%（可完成 150 条） |
+| 办成所需续问 | 全部 0 或 1 轮 |
+| 苏州（无映射）诚实失败 | 105/105 |
+| 红线 gate-v2 | 185 / 184 / 185；唯一命中：PHX→LGA 没库存时模型自作主张改搜 JFK/EWR |
+| 弱真值门禁真实触发 | 每轮 140+ 次（D18 单轮只有 15 次） |
+| 成本 | $3.24 上界，1,856 次调用，实际约 21 元 |
+
+### 54.4 两处判据缺陷（都修了，改了就新开目录）
+
+1. **日期门禁把回看窗口当越界**（gate-v2）。r1 原判 177/185，8 条失败全是这个；r1 记录没存
+   搜索参数，只能从问题描述回推（`r1/rescored-gate-v2.json`），r2/r3 直接用 gate-v2。
+2. **三字母机场码被当成"没映射"**。Duffel 直接接受 IATA 码，HOU/OAK/AUS/CLT 的用例其实办成了；
+   `place_mappable` 已改，可完成分母 142 → 150，聚合按新规则重算。
+
+### 54.5 Judge 样本
+
+`judge-output-quality-multiturn-r1-20260902`：185 条真实原话，弃权 20（失败态没证据引用，
+r2 起已把搜索快照 ID 交给评委），均分 4.00；办成 4.28、苏州失败 2.51（失败文本是给运维看的
+英文报错，不是给旅行者的话——§41 CB-08 同一问题，这次有了量化）。仍是同源 Judge、未校准。
+盲标包 `data/evaluation/human-annotations/external-longtail-multiturn-v1/`：100 条，两位标注者。
+
+### 54.6 验收与未做
+
+```
+pytest 全量                        全过（新增 11 条）；ruff 全过
+D18 300 × 3 真跑                   pass^3 99.0%，$1.76 上界
+D19 185 × 3 真跑                   completion^3 84.0%，$3.24 上界
+Judge 185 条                       均分 4.00，未校准
+```
+
+未提交（本轮全部在工作树里）。未做：`no_booking_claim_in_text` 改成第一人称判定；
+续问日期尊重原话里的相对日期；"搜索日期不早于参照时刻"的宿主校验；约束声明一致性
+（"必须高铁"有时不声明成硬约束）；换一家 Judge 模型 + 人工双评 100 条后跑校准。
+
+---
+
+## 55. 2026-09-02（第二轮）：订好之后的追踪——被动检测、影响评估、主动变更
+
+**一句话：** 下单确认之后系统原来只有一个手工入口（管理员报航变）和一个盲点（延误和取消一视同仁）。
+这一轮补了三块：① **被动检测**——watch worker 按节奏问航班动态源 + HMAC 入站推送；② **确定性
+影响评估**——取消 / 晚于"到场时限 − 安全缓冲" / 接不上下一段才开改期任务，延误但来得及只通知，
+同样的动态不重复通知；③ **主动变更**——已订任务的聊天读成变更请求（会议改期可指定哪一段、航变
+自述、取消），`TripStatus.CANCELLED`，前端已订面板多了"行程追踪与变更"。pytest **869** 全过
+（+46），ruff 全过；前端 build + node --test 79 + oxlint 全过。
+
+### 55.0 先说名词
+
+| 词 | 大白话 |
+|---|---|
+| 动态源 | 回答"这张票现在怎么样了"的东西：航司推送、VariFlight 一类查询接口、企业 TMC。端口 `FlightStatusPort`，仓库里只有 `none`（不查）和 `memory`（进程内表，接推送 / 演示） |
+| 影响评估 | 收到"延误 40 分钟"之后判要不要改期的那段**代码**（`services/change_impact.py`）。和政策引擎同一类：输入事实、输出带依据的结论，不交给模型 |
+| 观察节奏 | 离起飞越近查得越勤：48h 外不查，48–12h 每 6h，12–3h 每 1h，3h 内每 15min，起飞后每 30min，落地后不查 |
+| 租约 | 多个 watch worker 靠 `trips.watch_lease_*` 互斥，Postgres `SKIP LOCKED`；保存即释放 |
+
+### 55.1 建了什么
+
+- **领域**：`TripStatus.CANCELLED`、`TripEventType.TRIP_CANCELLED`、`FlightStatusKind`、
+  `ChangeImpactVerdict`；`FlightStatusReport`（输入）、`ChangeImpact`（结论）、`FlightObservation`
+  （每段最近一次）；`TripWatch` 多了 `next_check_at / last_checked_at / check_count / observations`；
+  `TripEvent` 多了 `leg_index / impact`。载荷是 JSON，旧记录照常加载。
+- **迁移 0012**：`trips.next_check_at`（投影）+ `watch_lease_owner/until`，索引 `(status, next_check_at)`。
+  仓储 `claim_due_flight_checks` / `list_watching`（内存、SQL 两版）。
+- **`services/change_impact.py`**：`assess_flight_change`、`next_flight_check_at`。
+- **`providers/flight_status.py`**：端口、`Null` / `InMemory` 两个实现、`from_environment`。
+- **`orchestrator/watch.py`（新 mixin）**：`observe_flight_status`（评估 → 通知或开改期任务，去重）、
+  `process_due_flight_checks`（worker 一轮）、`cancel_trip`、`submit_change_message`。
+  `report_trip_event` 多了 `leg_index` / `impact`，拒绝取消了的和改期进行中的；`_change_request`
+  按 `leg_index` 改那一段（往返的返程改 `return_before`）。
+- **`agent/change_intent.py`**：`request_trip_change` 工具 + 两轮小循环；日期出处关卡复用
+  `_quote_fixes_date`。适配器的上下文消息在 `mode=trip_change` 时多一句"这趟已经订了，别搜别规划"。
+- **API**：`POST /trips/{id}/flight-status`（管理员）、`POST /flight-status/webhook`（HMAC，无 Bearer，
+  不带 trip_id 时对每趟盯着这张票的差旅都算数）、`POST /trips/{id}/cancel`、`POST /trip-watch/run`；
+  `TripEventRequest.leg_index`；`/agentic/trip-tasks/{id}/messages`（含 stream）在 `BOOKING_CONFIRMED`
+  上分流到 `submit_change_message`；`/health.trip_watch`；`PROCESS_ROLE=worker/all` 起 `TripWatchScheduler`。
+- **worker**：`examples/run_trip_watch_worker.py`（`--once` 冒烟过：sqlite + memory 源）。
+- **前端**：`utils/watch.ts`（纯函数 + 10 条测试）、`TripWatchPanel`（观察对象、每段动态与判定、
+  事件、报会议改期 / 取消的表单、打开改期任务）、聊天在 `BOOKING_CONFIRMED` 上继续可发。
+- **审计事件**：`FLIGHT_STATUS_OBSERVED`（记在被观察任务上）、`TRIP_CANCELLED`、
+  `CHANGE_MESSAGE_RECEIVED` / `CHANGE_INTENT_QUESTION` / `CHANGE_INTENT_RESOLVED` / `CHANGE_MESSAGE_CARRIED`；
+  发件箱 `TRIP_FLIGHT_STATUS_NOTICE`、`TRIP_CANCELLED`。
+- **文档**：`docs/architecture.md` §4.6、README「订好之后」一节、`docs/postgres-operations.md`
+  环境变量 + §6.1、`.env.example`。
+
+### 55.2 有意的边界
+
+- 真实动态源适配器**没写**：各家请求形状不同，没有凭证验不了；端口一个方法 `status_of`。
+- 酒店**不在观察对象里**（建议 5 未做）；原票处置（退了 / 改了 / 作废、退改费）**不记**（建议 4 未做）。
+- 改期进行中（`CHANGE_REQUESTED`）不再查旧票，第二段同时出事要等改期任务确认后新观察对象登记。
+- 聊天里的航变**自述**允许（note 标"旅行者自述："），API 上 `FLIGHT_CHANGED` 仍只许管理员报。
+- 会议改期只改那一段的到场时限；多城行程后面几段的日期不联动。
+
+### 55.3 真链路实测（DeepSeek + Duffel 沙箱 + Postgres，2026-09-02）
+
+`examples/run_trip_watch_walkthrough.py` 离线走通之后，又按 README 的步骤起了 uvicorn（8001）+
+vite + Postgres 真跑了一遍：真模型建 9 月 20 日北京→上海（3 个合规方案，Duffel 沙箱）→ 选方案重验 →
+回填订单号 → 观察对象排在起飞前 48 小时 → 报延误 30 分钟得 `NOTIFY_ONLY`、第二次不重复 → 独立
+worker 进程按 Postgres 队列领取并释放租约 → 浏览器里聊天"情况有变"得到真模型追问，"改到 9 月 22 号
+上午 10 点前"开出改期任务并带上原话 → 改期任务确认后 `REBOOKED` → TMC 签名推送取消开第二个改期任务、
+同样的推送第二次不再开 → 取消整趟：看板不显示、事件被拒、发件箱有 `TRIP_CANCELLED`。
+
+**实测抓到两处，都修了：**
+
+1. **改期任务确认时 `Trip … was updated concurrently`（Postgres 才会出）。** `add_with_trip` 联合写入
+   先序列化差旅再把版本号加一，载荷里的 revision 落后 `revision` 列一版；下一次 `trips.save()` 按载荷
+   里的旧版本比对列就失败。内存仓储不校验版本，单测此前没抓到。修法：写入前先加一再序列化；读取时
+   一律以列为准（`_from_row`）。回归测试 `test_the_trip_can_be_saved_again_after_the_joint_write`，
+   已验证去掉修复它会失败。
+2. **会议改期只改到场时限，不动出发窗口。** 会议从 20 号推到 22 号，请求窗口变成 19 号傍晚到 22 号
+   上午三天宽，规划器端出 19 号的票——可行，但没人要。修法：`_change_request` 把那一段的
+   `depart_after` 按同样的时间差平移（`test_trips` 断言随之更新）。
+
+**顺手看到、没改的：**
+
+- `confirm_booking` 里任务落库和差旅保存是两笔：差旅那笔失败时任务已经是 `BOOKING_CONFIRMED`，
+  差旅却没进 `REBOOKED`（实测第 1 条出问题时留下的就是这种半截，靠手工补登观察对象修好的）。
+  要彻底解决得像 `add_with_trip` 那样做成一笔事务——记为工程债。
+- 开发库里 8 月建的旧任务载荷没有 `options[].legs/stays`（8 月 29 日改的结构），
+  `GET /trip-tasks?summary=false` 碰到它们会 500。和本轮无关，是旧数据的兼容问题。
+
+### 55.4 D20：每类 ≥10 条、跑 3 轮（`examples/run_trip_change_evaluation.py`）
+
+真链路走通之后按项目所有者的要求做成可重复的评测：15 类 × 10 条，3 轮，
+`reports/evaluation-runs/trip-change-eval-20260902/`（REPORT.md / results.jsonl / summary.json）。
+装配是演示库存 + 钉住的时钟 + 内存仓储 + 进程内动态源，每条各订一趟（3 轮共 300 趟）；
+政策换成预算放大的副本（否则 11 趟之后预算规则会把方案判成需审批，那是政策在起作用）。
+
+| 类 | 量什么 | 3 轮 |
+|---|---|---|
+| `delay_notify` / `dedupe` | 去程延误仍来得及 → 只通知；同一条再报不重复 | 10/10 · 10/10 |
+| `delay_small` | ≤10 分钟 → 不动 | 10/10 |
+| `delay_rebook` / `cancelled` | 过时限 / 取消 → 改期任务，票被排除，原任务不动 | 10/10 · 10/10 |
+| `return_leg` / `informational` | 返程窗口混合期望；查不到/起飞/落地/按计划 | 10/10 · 10/10 |
+| `webhook` | 503 / 401×3 / 404 / 422×3 / 按票号 / 按 trip_id | 10/10 |
+| `worker` | 只领到点的、按源判、释放租约 | 10/10 |
+| `cancel_trip` / `events_api` | 各状态取消与拒绝；指定段 + 窗口平移 + 各种 409 | 10/10 · 10/10 |
+| `chat_meeting_moved`（真模型） | 10 种说法（中英、"7号上午十点"、返程） | 10/10 |
+| `chat_cancel` / `chat_flight_changed`（真模型） | 10 种说法；航变要排除对的那张票 | 10/10 · 10/10 |
+| `chat_ask`（真模型） | 说不清 / 越界 / "改到下周" → 问，不动行程 | 10/10 |
+
+每轮都过：150/150。真模型 120 条、120 次调用（每条一次，没有被打回重试的），
+输入 292k / 输出 12k token，价目表上界 $0.14，单条中位 2.1 秒。
+
+评测本身抓到一条产品缺陷：坏 JSON 推到 webhook 时 pydantic 报错里的 `input` 是 bytes，
+塞进 422 的 detail 会让它变成 500；已修（`include_input=False`），`test_trip_watch` 加了断言。
+
+协议表加了 D20 行。**没量的**：真实航班动态源（端口在、适配器没写）、酒店段、
+Judge 对聊天回复措辞的打分（这轮只判"读没读对"，不判"话说得好不好"）。措辞上看到一条：
+"帮我订个酒店"在已订任务上被正确地当成"不是变更"（行程没动、只追问），但追问的话是
+"好的，可以帮您订酒店，请问哪一晚"——变更模式里根本没有订酒店的工具，这句承诺是空的。
+其余 9 条追问都把可选项（会议改期 / 航变 / 取消）说清楚了。
+
+### 55.5 持久化的三个问题（2026-09-02 第三轮）
+
+评估持久化时点出三处，都修了：
+
+1. **载荷升级链。** `serialization.SCHEMA_VERSION` 升到 2，读取时旧版本逐级升级
+   （1 → 2：方案的 `outbound/inbound/hotel` 变 `legs/stays`）；升不上去抛 `PayloadIncompatible`，
+   `GET /trip-tasks/{id}` 给 500 并说明该跑哪个工具，全文列表跳过该行、摘要照常。
+   `examples/upgrade_task_payloads.py` 批量改写（干跑 / `--apply`，四张载荷表，`revision` 不动）。
+   开发库先 `pg_dump` 再跑：8 条 8 月的旧任务全部升到版本 2，20/20 可加载。
+   **规矩**：模型改形状必须同时加一级升级函数，`tests/test_payload_upgrade.py` 守着。
+2. **下单确认一笔事务。** `record()` 可带 `preceding` 审计事件（每条一个序号），
+   `record_with_trip()` 把差旅更新放进同一笔；`_transition_pending` 让状态迁移的审计也进这一笔。
+   现在状态迁移、确认记录、确认审计、发件箱通知、差旅观察对象一起成或一起败；航班动态观察和
+   取消差旅同样走 `_audit(trip=...)`。`test_trip_task_transaction` 加了"差旅冲突整笔回滚"的用例。
+3. **真 Postgres 测试。** `tests/test_postgres_live.py`（`TEST_DATABASE_URL` 才跑，会清库）：
+   `SKIP LOCKED` 双线程争抢不重领、联合写入版本列与载荷一致、确认整笔回滚、`trip_id` 投影、
+   JSONB 旧载荷读取与批量升级。CI 的 postgres-smoke 作业接上了它，本机 6/6 过。
+
+顺手：迁移 `0013_task_trip_projection` 给任务表加 `trip_id` 投影 + 回填，差旅按任务反查不再
+全表扫描载荷。`docs/postgres-operations.md` 加了 §3.1 载荷版本、§3.2 事务边界、§8.1 Postgres 测试。
+
+```
+pytest 全量                               880 全过（+10）；ruff 全过
+Postgres live（本机容器）                  6/6
+前端 build + node --test 79 + oxlint      全过
+D20 · 15 类 × 10 条 × 3 轮                 450/450，$0.14 上界
+开发库                                    迁到 0013；旧载荷 8 条升级，20/20 可加载
+```
+
+未提交（§49–§55 全在工作树里）。
+
+---
+
+*交接更新 2026-09-02（§55）。*
+
+**新 session 读六节：§1 现状，§2 本会话六项管控，§30 架构方案，§38 工具循环出口，§46–§48 真实链路复跑、两条修复、四条工程债，§55 订好之后的追踪与变更。**
 其余是历史记录，按需查。
 **§30 是常读章节；产品入口和出口自由度以 §38 为准。**
 
 *沟通标准见 `AGENTS.md`：先解释名词再用，先给结论再给细节，诚实优先于漂亮。*
-*本轮见 §49；上一轮 §48（四条工程债）；再上 §47（英文月份 + 重试上限）；再上 §46（真实链路复跑）；再上 §45（溯源）；再上 §44（政策分档）；再上 §43（评分过程）；再上 §42（前端两栏）；再上 §41（能力边界与长尾）；再上 §40；再上 §39；再上 §38；再上 §37–§31；再上 §29；A–I 见 §19–§22。*
+*本轮见 §55；上一轮 §54（300 条三轮 + 多轮续问 + Judge 185）；再上 §53（外部数据集 + 300 条探针）；再上 §52（降本降延迟）；再上 §51（函数级过程记录）；再上 §50（方案切换与理由）；再上 §49（过程记录）；再上 §48（四条工程债）；再上 §47（英文月份 + 重试上限）；再上 §46（真实链路复跑）；再上 §45（溯源）；再上 §44（政策分档）；再上 §43（评分过程）；再上 §42（前端两栏）；再上 §41（能力边界与长尾）；再上 §40；再上 §39；再上 §38；再上 §37–§31；再上 §29；A–I 见 §19–§22。*
