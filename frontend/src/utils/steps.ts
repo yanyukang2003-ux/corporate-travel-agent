@@ -10,6 +10,8 @@ export interface StepView {
   key: string
   time: string
   title: string
+  /** 产生这一步的函数链；后端按真实调用路径标注。 */
+  functionChain: string
   /** ok=正常，warn=失败/异常，info=里程碑说明，muted=辅助信息。 */
   tone: 'ok' | 'warn' | 'info' | 'muted'
   lines: string[]
@@ -22,6 +24,31 @@ function asText(value: unknown): string {
 
 function asArray(value: unknown): unknown[] {
   return Array.isArray(value) ? value : []
+}
+
+/** 展开区里逐项展示的原始数据键：LLM 报文、工具参数与结果、对话装配等。 */
+const RAW_KEYS = [
+  'llm_request',
+  'llm_response',
+  'llm_error',
+  'arguments',
+  'result',
+  'conversation',
+  'context',
+  'outcome',
+  'refused_exchanges',
+] as const
+
+/** 这一步可展开的原始数据（键 → JSON 字符串）；空数组表示没有。 */
+export function stepRawEntries(step: TaskStep): { key: string; json: string }[] {
+  const entries: { key: string; json: string }[] = []
+  for (const key of RAW_KEYS) {
+    const value = step.detail[key]
+    if (value === null || value === undefined) continue
+    if (Array.isArray(value) && value.length === 0) continue
+    entries.push({ key, json: JSON.stringify(value, null, 2) })
+  }
+  return entries
 }
 
 /** 步骤时间：只显示时分，日期变化靠上下文；无时间戳显示占位。 */
@@ -40,6 +67,7 @@ export function stepTime(at: string | null): string {
 export function stepTone(step: TaskStep): StepView['tone'] {
   const status = (step.status ?? '').toUpperCase()
   if (status.includes('FAIL') || status.includes('ERROR')) return 'warn'
+  if (step.kind === 'loop_run') return 'info'
   const kind = step.kind
   if (kind === 'milestone') {
     const type = asText(step.detail.event_type)
@@ -59,6 +87,16 @@ export function stepLines(step: TaskStep): string[] {
   switch (step.kind) {
     case 'message':
       return [asText(d.content)]
+    case 'loop_run': {
+      const lines = [
+        `入口 ${asText(d.entry_function).split(' → ').at(-1)} · 模型调用 ${asText(d.llm_call_count)} 次`,
+      ]
+      if (d.tool_exchanges_note) lines.push(asText(d.tool_exchanges_note))
+      const outcome = d.outcome as Record<string, unknown> | null
+      if (outcome) lines.push(`终局：${asText(outcome.kind)}${outcome.summary ? ` · ${asText(outcome.summary)}` : ''}`)
+      if (d.error) lines.push(`错误：${asText(d.error)}`)
+      return lines
+    }
     case 'tool_call': {
       const parts = [asText(d.tool_kind), asText(step.status)]
       if (d.duration_ms !== undefined) parts.push(`${asText(d.duration_ms)}ms`)
@@ -125,6 +163,7 @@ export function stepViews(steps: TaskStep[]): StepView[] {
     key: `${step.sequence}-${step.kind}`,
     time: stepTime(step.at),
     title: step.title,
+    functionChain: typeof step.function === 'string' ? step.function : '',
     tone: stepTone(step),
     lines: stepLines(step).filter(Boolean),
   }))

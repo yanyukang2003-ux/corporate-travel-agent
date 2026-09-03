@@ -43,6 +43,13 @@ from corporate_travel_agent.services.outbox_events import OutboxEventDraft
 from corporate_travel_agent.services.provider_resilience import PROVIDER_RETRY_METADATA_KEY
 
 
+def _json_safe_result(value: Any) -> Any:
+    """工具结果原样落库前转成 JSON 安全形态（Decimal/日期转字符串，不丢字段）。"""
+    import json as _json
+
+    return _json.loads(_json.dumps(value, ensure_ascii=False, default=str))
+
+
 def _iso_or_none(value: datetime | None) -> str | None:
     return value.isoformat() if value is not None else None
 
@@ -281,6 +288,11 @@ class IntakeMixin:
             "clarification_round": task.clarification_rounds,
             "max_clarification_rounds": self.max_clarification_rounds,
         }
+        # 函数级过程记录：这一轮循环发生的每一件事（对话装配原文、每次发给模型的
+        # 完整报文和返回、每次工具调用的参数和结果、终局）都要落到任务上。
+        # 适配器的 exchanges 是跨任务累计的，先记下起点，结束后只切走本轮的那一段。
+        exchanges_before = len(getattr(self.tool_calling_language_model, "exchanges", ()) or ())
+        run_started_at = self.clock()
         # 循环期间**留在 DRAFT**。它把"理解"和"搜索"交织在一起做，现有状态机里
         # 没有一个格子正好对应这件事；进 SEARCHING 会让"最后决定提问"变成非法迁移。
         # 状态标签在这里比循环实际做的事粗——真实经过在 tool_calls 和审计里。
@@ -292,6 +304,14 @@ class IntakeMixin:
             #
             # 状态仍然是 TOOL_BUDGET_EXHAUSTED——预算确实用光了，这是运维要看见的
             # 事实，不该被包装成"没有方案"。但话要说清楚。
+            self._capture_process_log(
+                task,
+                conversation=ledger.render(),
+                context=context,
+                started_at=run_started_at,
+                exchanges_before=exchanges_before,
+                error="ToolBudgetExceeded: 工具预算耗尽",
+            )
             findings = self._loop_findings(executor)
             task.metadata["agentic_partial_findings"] = findings
             task = self._stop_for_tool_budget(task, "agentic.tool_loop")
@@ -308,6 +328,15 @@ class IntakeMixin:
             return task
         except ToolLoopAborted as exc:
             # 循环没收敛不是"没方案"，是这条链路没走完——别把它伪装成结论。
+            self._capture_process_log(
+                task,
+                conversation=ledger.render(),
+                context=context,
+                started_at=run_started_at,
+                exchanges_before=exchanges_before,
+                transcript=exc.transcript,
+                error=f"ToolLoopAborted: {exc}",
+            )
             task.metadata["agentic_partial_findings"] = self._loop_findings(executor)
             task.metadata["agentic_transcript"] = [
                 {
@@ -324,6 +353,14 @@ class IntakeMixin:
             self._audit(task, "AGENTIC_LOOP_ABORTED", {"turns": len(ledger.turns)}, task.failure)
             return task
         except LanguageModelError as exc:
+            self._capture_process_log(
+                task,
+                conversation=ledger.render(),
+                context=context,
+                started_at=run_started_at,
+                exchanges_before=exchanges_before,
+                error=f"{type(exc).__name__}: {exc}",
+            )
             task.failure = str(exc)
             task.metadata["agentic_loop_failure"] = exc.trace_details()
             task.clarification_question = None
@@ -336,6 +373,14 @@ class IntakeMixin:
             )
             return task
         except ProviderError as exc:
+            self._capture_process_log(
+                task,
+                conversation=ledger.render(),
+                context=context,
+                started_at=run_started_at,
+                exchanges_before=exchanges_before,
+                error=f"{type(exc).__name__}: {exc}",
+            )
             task.failure = str(exc)
             task.options = []
             # 先记 SEARCHING 再记失败：库存确实去要过了，状态机也只从这里通往 PROVIDER_FAILED。
@@ -345,6 +390,15 @@ class IntakeMixin:
             return task
 
         self._note_llm_success()
+        self._capture_process_log(
+            task,
+            conversation=ledger.render(),
+            context=context,
+            started_at=run_started_at,
+            exchanges_before=exchanges_before,
+            transcript=outcome.transcript,
+            outcome=outcome,
+        )
         # 宿主替旅行者定下来的事必须当面说出口。循环里唯一这样的推导就是
         # "只说了几点前到，搜索窗口从时限往前扩，覆盖前一晚出发"。
         task.assumptions = tuple(dict.fromkeys(executor.assumptions))
@@ -366,6 +420,81 @@ class IntakeMixin:
                 return self._stop_for_empty_inventory(task, executor, outcome.question)
             return self._pause_for_agentic_question(task, outcome.question)
         return self._plan_from_tool_loop(task, executor, outcome, policy)
+
+    def _capture_process_log(
+        self,
+        task: TripTask,
+        *,
+        conversation: str,
+        context: dict[str, Any],
+        started_at: Any,
+        exchanges_before: int,
+        transcript: tuple[Any, ...] | None = None,
+        outcome: Any = None,
+        error: str | None = None,
+    ) -> None:
+        """把这一轮循环的函数级过程记录落到任务上（`metadata["process_log"]`）。
+
+        内容全是**当场发生过的原文**：喂给循环的对话装配、每次发给模型的完整报文和
+        返回（从适配器的 `exchanges` 切本轮那一段）、每次工具调用的参数与完整结果、
+        终局动作或错误。预算耗尽 / 模型或供应商故障时拿不到工具往返（异常没带出来），
+        记 null 并说明，不假装有。
+
+        体量上限心里有数：报文按轮重复对话与工具结果，演示规模每轮几十 KB；
+        生产要落库前应换成按哈希去重存储——这里先把"记全"做对。
+        """
+        adapter = self.tool_calling_language_model
+        exchanges = list(getattr(adapter, "exchanges", ()) or ())[exchanges_before:]
+        run: dict[str, Any] = {
+            "run": len(task.metadata.get("process_log") or ()) + 1,
+            "entry_function": (
+                "TripWorkflowOrchestrator.create_task_from_agentic_message"
+                if len([m for m in task.messages if m.role == "user"]) <= 1
+                else "TripWorkflowOrchestrator.submit_agentic_message"
+            ),
+            "started_at": started_at.isoformat(),
+            "finished_at": self.clock().isoformat(),
+            "conversation_function": "ConversationLedger.render",
+            "conversation": conversation,
+            "context": dict(context),
+            "prompt_version": getattr(adapter, "prompt_version", None),
+            "llm_exchanges": exchanges,
+            "tool_exchanges": (
+                None
+                if transcript is None
+                else [
+                    {
+                        "function": f"ToolExecutor.{exchange.invocation.name}",
+                        "tool": exchange.invocation.name,
+                        "arguments": dict(exchange.invocation.arguments),
+                        "ok": exchange.ok,
+                        "result": _json_safe_result(exchange.result),
+                    }
+                    for exchange in transcript
+                ]
+            ),
+            "tool_exchanges_note": (
+                "这条路径的异常没有携带工具往返记录（预算耗尽/传输故障），如实记 null"
+                if transcript is None
+                else None
+            ),
+            "outcome": (
+                {
+                    "kind": outcome.kind,
+                    "summary": outcome.summary,
+                    "question": outcome.question,
+                    "open_questions": list(outcome.open_questions),
+                    "transport_refs": list(outcome.transport_refs),
+                    "hotel_refs": list(outcome.hotel_refs),
+                }
+                if outcome is not None
+                else None
+            ),
+            "error": error,
+        }
+        log = list(task.metadata.get("process_log") or ())
+        log.append(run)
+        task.metadata["process_log"] = log
 
     @staticmethod
     def _loop_findings(executor: Any) -> dict[str, Any]:

@@ -30,8 +30,8 @@ import type {
 import { formatTravelDate, formatTravelTime, getStateMeta, parseIsoWallClock } from './utils/state'
 import { approvalReasonText, openQuestionsFromTask } from './utils/notices'
 import { chatTurns } from './utils/chat'
-import { stepViews } from './utils/steps'
 import { optionReasons } from './utils/reasons'
+import { stepRawEntries, stepViews } from './utils/steps'
 import { costNotes, money as moneyText } from './utils/cost'
 import { confirmationSummary, parseOrderReferences, reconciliationText } from './utils/booking'
 import { KPI_CARDS, KPI_KEYS, formatMetric, metricSample, utilisation, utilisationTone, whereaboutsLabel, whereaboutsTone } from './utils/dashboard'
@@ -1884,14 +1884,25 @@ function TimelinePanel({ task, selectedOptionId }: { task: TripTask; selectedOpt
     {!stepsError && steps === null && <div className="timeline-empty">正在读取过程记录…</div>}
     {!stepsError && steps !== null && views.length === 0 && <div className="timeline-empty">该任务暂时没有过程记录。</div>}
     {!stepsError && views.length > 0 && <div className="timeline">
-      {views.map((view, index) => <div key={view.key}>
-        <time>{view.time}</time>
-        <i className={`${index === views.length - 1 ? 'current ' : ''}${view.tone}`.trim()} />
-        <section>
-          <b>{view.title}</b>
-          {view.lines.map((line, lineIndex) => <p className="step-line" key={`${view.key}-${lineIndex}`}>{line}</p>)}
-        </section>
-      </div>)}
+      {views.map((view, index) => {
+        const rawEntries = steps ? stepRawEntries(steps[index]) : []
+        return <div key={view.key}>
+          <time>{view.time}</time>
+          <i className={`${index === views.length - 1 ? 'current ' : ''}${view.tone}`.trim()} />
+          <section>
+            <b>{view.title}</b>
+            {view.functionChain && <p className="step-function">{view.functionChain}</p>}
+            {view.lines.map((line, lineIndex) => <p className="step-line" key={`${view.key}-${lineIndex}`}>{line}</p>)}
+            {rawEntries.length > 0 && <details className="step-raw">
+              <summary>原始数据（{rawEntries.length} 项：{rawEntries.map((entry) => entry.key).join('、')}）</summary>
+              {rawEntries.map((entry) => <div key={`${view.key}-${entry.key}`}>
+                <b>{entry.key}</b>
+                <pre>{entry.json}</pre>
+              </div>)}
+            </details>}
+          </section>
+        </div>
+      })}
     </div>}
 
     <div className="provenance-block">

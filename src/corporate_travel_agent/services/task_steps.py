@@ -75,19 +75,58 @@ _MILESTONE_TITLES = {
     "PROVIDER_DELAYED_RETRY_STARTED": "延迟重试开始",
     "INTERRUPTED_TASK_RECOVERED": "进程重启后恢复了中断任务",
     "TRIP_CHANGE_REQUESTED": "收到行程变更事件",
+    "FLIGHT_STATUS_OBSERVED": "收到航班动态",
+    "TRIP_CANCELLED": "差旅已取消",
+    "CHANGE_MESSAGE_RECEIVED": "旅行者在已订行程上提出变更",
+    "CHANGE_INTENT_QUESTION": "助手追问变更内容",
+    "CHANGE_INTENT_RESOLVED": "变更请求已读出并落地",
+    "CHANGE_MESSAGE_CARRIED": "改期任务带上了旅行者的原话",
 }
 
-#: 排序用的来源优先级：同一时刻，先对话、再工具、再搜索、再里程碑、再汇总性的步骤。
+#: 每种步骤由哪条函数链产生。这不是猜测，是代码里的真实调用路径；
+#: 改了调用路径要同步改这张表，否则过程记录会说谎。
+_STEP_FUNCTIONS = {
+    "message.user.first": (
+        "api.main.create_agentic_trip_task → "
+        "TripWorkflowOrchestrator.create_task_from_agentic_message"
+    ),
+    "message.user.followup": (
+        "api.main.submit_agentic_trip_message → TripWorkflowOrchestrator.submit_agentic_message"
+    ),
+    "message.assistant": (
+        "TripWorkflowOrchestrator._pause_for_agentic_question（把模型的问题写进对话）"
+    ),
+    "loop_run": "ConversationLedger.render → ToolLoopRunner.run",
+    "llm": (
+        "ToolLoopRunner._model_turn → OpenAIToolCallingLanguageModel.next_turn"
+        " → POST /chat/completions"
+    ),
+    "tool": "ToolLoopRunner._dispatch → ToolExecutor.{name}",
+    "provider": "TripWorkflowOrchestrator._search_and_plan → TravelInventoryProvider.{name}",
+    "search": "ToolExecutor.search_* → TravelInventoryProvider.search_* → InventorySnapshot",
+    "plan": (
+        "TripWorkflowOrchestrator._plan_from_tool_loop → ItineraryPlanner.plan"
+        " → PolicyEngine.evaluate"
+    ),
+    "approval": "PlanningMixin.select_option → ApprovalMixin._new_approval",
+    "handoff": "PlanningMixin._revalidate_selected → BookingIntent",
+    "confirmation": "ConfirmationMixin.confirm_booking",
+    "reconciliation": "ConfirmationMixin.reconcile_expense",
+    "milestone": "RecordsMixin._audit（审计事件，只有时间和名目；内容在任务字段上）",
+}
+
+#: 排序用的来源优先级：同一时刻，先对话、再循环装配、再工具、再搜索、再里程碑、再汇总性的步骤。
 _SOURCE_ORDER = {
     "message": 0,
-    "tool_call": 1,
-    "search": 2,
-    "milestone": 3,
-    "plan": 4,
-    "approval": 5,
-    "handoff": 6,
-    "confirmation": 7,
-    "reconciliation": 8,
+    "loop_run": 1,
+    "tool_call": 2,
+    "search": 3,
+    "milestone": 4,
+    "plan": 5,
+    "approval": 6,
+    "handoff": 7,
+    "confirmation": 8,
+    "reconciliation": 9,
 }
 
 
@@ -99,29 +138,78 @@ def collect_task_steps(
 ) -> list[dict[str, Any]]:
     """把任务的每一步按先后整理成一条列表。只读，不改任务。"""
     snapshot_by_id = {item.snapshot_id: item for item in snapshots}
+    process_log: list[dict[str, Any]] = list(task.metadata.get("process_log") or ())
+    llm_exchanges: list[dict[str, Any]] = [
+        exchange for run in process_log for exchange in (run.get("llm_exchanges") or ())
+    ]
+    tool_exchanges: list[dict[str, Any]] = [
+        exchange for run in process_log for exchange in (run.get("tool_exchanges") or ())
+    ]
     raw: list[tuple[datetime | None, int, int, dict[str, Any]]] = []
 
     def add(kind: str, at: datetime | None, title: str, detail: dict[str, Any], *,
-            status: str | None = None) -> None:
+            status: str | None = None, function: str | None = None) -> None:
         raw.append(
             (
                 _aware(at),
-                _SOURCE_ORDER.get(kind, 9),
+                _SOURCE_ORDER.get(kind, 10),
                 len(raw),
                 {"kind": kind, "at": _iso(at), "title": title, "status": status,
+                 "function": function or _STEP_FUNCTIONS.get(kind),
                  "detail": _json_safe(detail)},
             )
         )
 
+    user_seen = 0
     for message in task.messages:
         role = "旅行者" if message.role == "user" else "助手"
+        if message.role == "user":
+            user_seen += 1
+            function = _STEP_FUNCTIONS[
+                "message.user.first" if user_seen == 1 else "message.user.followup"
+            ]
+        else:
+            function = _STEP_FUNCTIONS["message.assistant"]
         add(
             "message",
             message.created_at,
             f"{role}说",
             {"role": message.role, "content": message.content},
+            function=function,
         )
 
+    # 每一轮工具循环：对话怎么装配、上下文是什么、终局是什么；
+    # 终局工具调用和被拒的调用（不进 ToolCallRecord）也完整躺在这里。
+    for run in process_log:
+        exchanges = run.get("tool_exchanges")
+        # 成功的终局工具不进 transcript——它直接变成 outcome（kind/summary/refs 就是它的
+        # 参数）。留在 transcript 里的终局调用都是**被拒的**（引用编造、缺字段……），
+        # 和其它被拒调用一起单独列出来：模型试过什么、宿主拦了什么，都要看得见。
+        refused = [
+            exchange for exchange in (exchanges or ()) if not exchange.get("ok", True)
+        ]
+        add(
+            "loop_run",
+            datetime.fromisoformat(run["started_at"]) if run.get("started_at") else None,
+            f"第 {run.get('run')} 轮工具循环：对话装配与终局",
+            {
+                "entry_function": run.get("entry_function"),
+                "conversation_function": run.get("conversation_function"),
+                "conversation": run.get("conversation"),
+                "context": run.get("context"),
+                "prompt_version": run.get("prompt_version"),
+                "llm_call_count": len(run.get("llm_exchanges") or ()),
+                "tool_exchange_count": None if exchanges is None else len(exchanges),
+                "tool_exchanges_note": run.get("tool_exchanges_note"),
+                "refused_exchanges": refused,
+                "outcome": run.get("outcome"),
+                "error": run.get("error"),
+            },
+            status="error" if run.get("error") else "success",
+        )
+
+    llm_cursor = 0
+    tool_cursor = 0
     for call in task.tool_calls:
         detail: dict[str, Any] = {
             "sequence": call.sequence,
@@ -136,12 +224,46 @@ def collect_task_steps(
             value = getattr(call, field, None)
             if value is not None:
                 detail[field] = value
+        function = None
+        if call.tool_name == "llm.next_tool_call":
+            # 按发生顺序一一对应：第 k 次模型调用记录 ↔ 适配器记下的第 k 笔完整往返。
+            # 重试也各占一笔（失败那笔带 error），所以顺序对齐是成立的。
+            if llm_cursor < len(llm_exchanges):
+                exchange = llm_exchanges[llm_cursor]
+                llm_cursor += 1
+                detail["function"] = exchange.get("function")
+                detail["api"] = exchange.get("api")
+                detail["llm_request"] = exchange.get("request")
+                if "response" in exchange:
+                    detail["llm_response"] = exchange["response"]
+                if "error" in exchange:
+                    detail["llm_error"] = exchange["error"]
+            function = _STEP_FUNCTIONS["llm"]
+        elif call.tool_name.startswith("tool."):
+            short = call.tool_name.removeprefix("tool.")
+            # 只有非重试的记录消费一笔工具往返；往返里存的是参数原文和完整结果。
+            if getattr(call, "retry_of", None) is None:
+                probe = tool_cursor
+                while probe < len(tool_exchanges) and tool_exchanges[probe].get("tool") != short:
+                    probe += 1
+                if probe < len(tool_exchanges):
+                    exchange = tool_exchanges[probe]
+                    tool_cursor = probe + 1
+                    detail["arguments"] = exchange.get("arguments")
+                    detail["ok"] = exchange.get("ok")
+                    detail["result"] = exchange.get("result")
+            function = _STEP_FUNCTIONS["tool"].replace("{name}", short)
+        elif call.tool_name.startswith("provider."):
+            function = _STEP_FUNCTIONS["provider"].replace(
+                "{name}", call.tool_name.removeprefix("provider.")
+            )
         add(
             "tool_call",
             call.started_at,
             _TOOL_TITLES.get(call.tool_name, call.tool_name),
             detail,
             status=call.status.value if isinstance(call.status, Enum) else str(call.status),
+            function=function,
         )
 
     last_search_at: datetime | None = None

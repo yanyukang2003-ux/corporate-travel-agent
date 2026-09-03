@@ -660,6 +660,8 @@ export interface TaskStep {
   kind: string
   title: string
   status: string | null
+  /** 产生这一步的函数链（真实调用路径）。 */
+  function?: string | null
   detail: Record<string, unknown>
 }
 

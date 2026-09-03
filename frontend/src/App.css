@@ -768,4 +768,11 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px
 /* 决策面板：这条方案的理由（从数据推导，不编内容） */
 .decision-why { margin: 6px 0 0; color: var(--green); font-size: 9.5px; line-height: 1.5; }
 
+/* 过程记录：函数链与可展开的原始报文 */
+.timeline section p.step-function { margin: 2px 0 0; color: #7a8a94; font: 8.5px ui-monospace, monospace; }
+.step-raw { margin-top: 6px; }
+.step-raw summary { cursor: pointer; color: var(--muted); font-size: 9px; }
+.step-raw > div { margin-top: 6px; }
+.step-raw b { font: 9px ui-monospace, monospace; color: #5b6b66; }
+.step-raw pre { max-height: 320px; overflow: auto; margin: 3px 0 0; padding: 8px 10px; border: 1px solid var(--line); border-radius: 6px; background: #f7f7f3; font-size: 8.5px; line-height: 1.5; white-space: pre-wrap; word-break: break-all; }
 

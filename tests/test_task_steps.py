@@ -15,11 +15,17 @@ READY = "8月5号从北京去上海，8月5日上午10点前到，不住酒店"
 
 
 class ScriptedToolModel:
-    """按剧本吐工具调用的假模型；`__FOUND__` 换成本轮真搜到的引用。"""
+    """按剧本吐工具调用的假模型；`__FOUND__` 换成本轮真搜到的引用。
+
+    像真适配器一样把每次"请求/响应"记进 `exchanges`——函数级过程记录靠它。
+    """
+
+    prompt_version = "scripted-v1"
 
     def __init__(self, script: Sequence[tuple[str, dict[str, Any]]]) -> None:
         self._script = list(script)
         self.found_refs: list[str] = []
+        self.exchanges: list[dict[str, Any]] = []
 
     def next_tool_call(
         self,
@@ -29,7 +35,7 @@ class ScriptedToolModel:
         tools: Sequence[ToolSpec],
         context: Mapping[str, Any],
     ) -> ToolInvocation:
-        del conversation, tools, context
+        del tools, context
         for exchange in transcript:
             if exchange.ok:
                 for option in exchange.result.get("options", ()):  # type: ignore[union-attr]
@@ -41,6 +47,25 @@ class ScriptedToolModel:
             key: (self.found_refs[:1] if value == "__FOUND__" else value)
             for key, value in args.items()
         }
+        self.exchanges.append(
+            {
+                "function": "ScriptedToolModel.next_tool_call",
+                "api": "scripted",
+                "prompt_version": self.prompt_version,
+                "request": {
+                    "model": "scripted",
+                    "messages": [
+                        {"role": "system", "content": "scripted system prompt"},
+                        {"role": "user", "content": conversation},
+                    ],
+                    "tools": [{"type": "function", "function": {"name": "scripted"}}],
+                },
+                "response": {
+                    "content": None,
+                    "tool_calls": [{"name": name, "arguments": resolved}],
+                },
+            }
+        )
         return ToolInvocation(name=name, arguments=resolved)
 
 
@@ -121,3 +146,41 @@ def test_steps_endpoint_returns_the_ordered_record() -> None:
     kinds = {step["kind"] for step in payload["steps"]}
     assert "search" in kinds and "plan" in kinds and "milestone" in kinds
     assert client.get("/trip-tasks/no-such-task/steps").status_code == 404
+
+
+def test_steps_reach_function_level_with_full_payloads() -> None:
+    """函数级：LLM 步骤带完整请求/响应报文，工具步骤带参数和完整结果，每轮循环一步装配。"""
+    workflow, task = _agentic_task()
+    steps = collect_task_steps(
+        task,
+        events=workflow.tasks.events(task.task_id),
+        snapshots=workflow.tasks.snapshots(task.task_id),
+    )
+
+    assert all("function" in step for step in steps)
+
+    run = next(step for step in steps if step["kind"] == "loop_run")
+    assert run["detail"]["conversation"].startswith("[turn:0")
+    assert run["detail"]["context"]["reference_time"]
+    # 成功的终局动作就是 outcome 本身：kind/summary/refs 就是 propose_options 的参数
+    assert run["detail"]["outcome"]["kind"] == "propose_options"
+    assert run["detail"]["outcome"]["transport_refs"]
+    assert run["detail"]["refused_exchanges"] == []
+
+    llm = next(
+        step
+        for step in steps
+        if step["kind"] == "tool_call" and step["detail"]["tool_name"] == "llm.next_tool_call"
+    )
+    assert llm["detail"]["llm_request"]["messages"][0]["role"] == "system"
+    assert llm["detail"]["llm_response"]["tool_calls"][0]["name"] == "search_transport"
+
+    search_call = next(
+        step
+        for step in steps
+        if step["kind"] == "tool_call" and step["detail"]["tool_name"] == "tool.search_transport"
+    )
+    assert search_call["detail"]["arguments"]["origin"] == "北京"
+    assert search_call["detail"]["result"]["option_count"] >= 1
+    assert search_call["detail"]["result"]["options"][0]["ref_id"]
+    assert "ToolExecutor.search_transport" in search_call["function"]

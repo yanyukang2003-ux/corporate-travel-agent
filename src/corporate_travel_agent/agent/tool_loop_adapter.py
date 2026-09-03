@@ -71,6 +71,10 @@ class OpenAIToolCallingLanguageModel:
             extra_body = {"thinking": {"type": "disabled"}}
         self.extra_body = extra_body
         self.last_call_metadata: LLMCallMetadata | None = None
+        #: 每次调用的**完整往返原文**：组装好的 messages/tools 报文和模型返回。
+        #: 过程记录（函数级）靠它；失败的调用也记（模型必须看得见自己错在哪，
+        #: 排查的人也一样）。只留最近 200 次，防止长会话把内存吃穿。
+        self.exchanges: list[dict[str, Any]] = []
         #: 一次 `run()` 里会调很多轮模型；累计起来才是这条 case 的真实开销。
         self.call_count = 0
         self.input_tokens = 0
@@ -119,7 +123,9 @@ class OpenAIToolCallingLanguageModel:
         except Exception as exc:
             # 用和语义链路**同一个**分类器：超时/连不上标成可重试，宿主的有界重试
             # 才接得住。不翻译的话 SDK 异常会一路穿透，整个请求 500。
-            raise _classified_openai_error(exc) from exc
+            classified = _classified_openai_error(exc)
+            self._record_exchange(request, error=classified, started=started)
+            raise classified from exc
         self._record_usage(response, started)
 
         choice = response.choices[0] if response.choices else None
@@ -132,6 +138,32 @@ class OpenAIToolCallingLanguageModel:
             raw = getattr(getattr(call, "function", None), "arguments", None) or "{}"
             arguments = _parse_arguments(raw)
             calls.append(ToolInvocation(name=name, arguments=arguments))
+        self._record_exchange(
+            request,
+            response={
+                "model": str(getattr(response, "model", None) or self.model),
+                "response_id": getattr(response, "id", None),
+                "content": None if text is None else str(text),
+                "tool_calls": [
+                    {"name": call.name, "arguments": dict(call.arguments)} for call in calls
+                ],
+                "usage": {
+                    "input_tokens": self.last_call_metadata.input_tokens
+                    if self.last_call_metadata
+                    else None,
+                    "output_tokens": self.last_call_metadata.output_tokens
+                    if self.last_call_metadata
+                    else None,
+                    "cached_input_tokens": self.last_call_metadata.cached_input_tokens
+                    if self.last_call_metadata
+                    else None,
+                },
+                "duration_ms": self.last_call_metadata.duration_ms
+                if self.last_call_metadata
+                else None,
+            },
+            started=started,
+        )
         return ModelTurn(
             calls=tuple(calls),
             message=None if text is None else str(text),
@@ -159,6 +191,44 @@ class OpenAIToolCallingLanguageModel:
         return turn.calls[0]
 
     # -- 内部 -------------------------------------------------------------
+
+    def _record_exchange(
+        self,
+        request: dict[str, Any],
+        *,
+        response: dict[str, Any] | None = None,
+        error: Exception | None = None,
+        started: float,
+    ) -> None:
+        """记一笔完整往返。`request` 就是发给服务端的那个 dict（不含密钥——密钥在 HTTP 头里）。"""
+        record: dict[str, Any] = {
+            "function": "OpenAIToolCallingLanguageModel.next_turn",
+            "api": "POST /chat/completions",
+            "prompt_version": self.prompt_version,
+            "request": {
+                "model": request["model"],
+                "messages": request["messages"],
+                "tools": request["tools"],
+                "tool_choice": request.get("tool_choice"),
+                "temperature": request.get("temperature"),
+                "max_tokens": request.get("max_tokens"),
+                "extra_body": request.get("extra_body"),
+            },
+        }
+        if response is not None:
+            record["response"] = response
+        if error is not None:
+            record["error"] = {
+                "type": type(error).__name__,
+                "message": str(error),
+                "error_code": getattr(error, "error_code", None),
+                "retryable": getattr(error, "retryable", None),
+                "http_status": getattr(error, "http_status", None),
+                "duration_ms": int((monotonic() - started) * 1000),
+            }
+        self.exchanges.append(record)
+        del self.exchanges[:-200]
+
 
     def _record_usage(self, response: Any, started: float) -> None:
         usage = getattr(response, "usage", None)
