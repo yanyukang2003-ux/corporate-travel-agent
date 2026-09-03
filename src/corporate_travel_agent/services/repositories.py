@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 from datetime import datetime, timedelta
 from threading import RLock
-from typing import Protocol
+from typing import TYPE_CHECKING, Protocol
 from uuid import uuid4
 
 from corporate_travel_agent.domain.models import (
@@ -13,10 +13,14 @@ from corporate_travel_agent.domain.models import (
     EmployeeProfileSnapshot,
     InventorySnapshot,
     PolicySnapshot,
+    Trip,
     TripTask,
 )
 from corporate_travel_agent.services.outbox_events import InMemoryOutboxStore, OutboxEventDraft
 from corporate_travel_agent.services.task_projections import TaskSummary
+
+if TYPE_CHECKING:
+    from corporate_travel_agent.services.trips import TripRepository
 
 
 class NotFoundError(KeyError):
@@ -29,6 +33,26 @@ class ConcurrentUpdateError(RuntimeError):
 
 class SnapshotConflictError(RuntimeError):
     """库存快照 ID 冲突或不可变约束被破坏。"""
+
+
+class EmployeeDirectory(Protocol):
+    """员工目录端口：差标、审批链、委托名单都从这里读。"""
+
+    def snapshot(self, employee_id: str) -> EmployeeProfileSnapshot: ...
+
+    def knows(self, employee_id: str) -> bool: ...
+
+    def delegators_of(self, employee_id: str) -> tuple[str, ...]: ...
+
+    def may_book_for(self, requester_id: str, traveler_id: str) -> bool: ...
+
+
+class PolicyRepository(Protocol):
+    """政策快照端口：新任务绑当前快照，旧任务按自己的快照 ID 读历史版本。"""
+
+    def current(self) -> PolicySnapshot: ...
+
+    def snapshot(self, snapshot_id: str) -> PolicySnapshot: ...
 
 
 class TaskRepository(Protocol):
@@ -93,6 +117,35 @@ class TaskRepository(Protocol):
         outbox_events: Sequence[OutboxEventDraft] = (),
         preceding: Sequence[AuditEvent] = (),
     ) -> None: ...
+
+    def add_with_trip(
+        self,
+        task: TripTask,
+        *,
+        trip: Trip,
+        trip_is_new: bool,
+        trips: TripRepository,
+    ) -> None:
+        """新任务和它所属的差旅一起落库。
+
+        两张表在同一个库里（同一个引擎）就是**同一笔事务**，要么一起成、要么一起回滚；
+        不在同一个库里（任务在 SQL、差旅在内存，单测常见）退回先任务后差旅。判断由实现做，
+        调用方不必知道引擎是什么。
+        """
+        ...
+
+    def record_with_trip(
+        self,
+        task: TripTask,
+        event: AuditEvent,
+        *,
+        trip: Trip,
+        trips: TripRepository,
+        outbox_events: Sequence[OutboxEventDraft] = (),
+        preceding: Sequence[AuditEvent] = (),
+    ) -> None:
+        """`record()` 加上差旅聚合的更新；事务边界同 `add_with_trip`。"""
+        ...
 
     def events(self, task_id: str) -> tuple[AuditEvent, ...]: ...
 
@@ -326,6 +379,34 @@ class InMemoryTaskRepository:
             self.outbox.add(
                 draft.materialize(aggregate_type="trip_task", aggregate_id=task.task_id)
             )
+
+    def add_with_trip(
+        self,
+        task: TripTask,
+        *,
+        trip: Trip,
+        trip_is_new: bool,
+        trips: TripRepository,
+    ) -> None:
+        # 内存里没有"半截"可言：先任务后差旅就是这里的全部语义。
+        self.add(task)
+        if trip_is_new:
+            trips.add(trip)
+        else:
+            trips.save(trip)
+
+    def record_with_trip(
+        self,
+        task: TripTask,
+        event: AuditEvent,
+        *,
+        trip: Trip,
+        trips: TripRepository,
+        outbox_events: Sequence[OutboxEventDraft] = (),
+        preceding: Sequence[AuditEvent] = (),
+    ) -> None:
+        self.record(task, event, outbox_events=outbox_events, preceding=preceding)
+        trips.save(trip)
 
     def events(self, task_id: str) -> tuple[AuditEvent, ...]:
         self.get(task_id)

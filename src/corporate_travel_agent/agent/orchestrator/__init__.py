@@ -4,9 +4,10 @@
 再经确定性规划与政策校验后持久化并暂停。V1 不代付、不改签、不出票。
 
 2026-09-01 起这是一个包：编排器按职责拆成 `core` / `intake` / `planning` / `approval` /
-`confirmation` / `resilience` / `records` 七个模块，`TripWorkflowOrchestrator` 在这里由
-六个 mixin 组装。**行为没有变，公开名字也没有变**——从这个包导入的一切和拆分前相同。
-拆分依据见 HANDOFF §48。
+`confirmation` / `resilience` / `records` / `watch` 八个模块，`TripWorkflowOrchestrator` 在这里由
+七个 mixin 组装。**行为没有变，公开名字也没有变**——从这个包导入的一切和拆分前相同。
+拆分依据见 HANDOFF §48。2026-09-03 起 `state.py` 是 mixin 共享的状态与方法契约（ADR-0005），
+`recorder.py` 的 `TaskRecorder` 是审计 / 状态迁移 / 轨迹的写路径协作对象（ADR-0006）。
 """
 
 from __future__ import annotations
@@ -34,6 +35,7 @@ from corporate_travel_agent.agent.orchestrator.core import (
 )
 from corporate_travel_agent.agent.orchestrator.intake import IntakeMixin
 from corporate_travel_agent.agent.orchestrator.planning import PlanningMixin
+from corporate_travel_agent.agent.orchestrator.recorder import TaskRecorder
 from corporate_travel_agent.agent.orchestrator.records import (
     RecordsMixin,
 )
@@ -65,8 +67,8 @@ from corporate_travel_agent.services.provider_resilience import (
     ProviderDelayedRetryPolicy,
 )
 from corporate_travel_agent.services.repositories import (
-    InMemoryEmployeeDirectory,
-    InMemoryPolicyRepository,
+    EmployeeDirectory,
+    PolicyRepository,
     TaskRepository,
 )
 from corporate_travel_agent.services.travel_profile import TripHistoryPort
@@ -106,8 +108,8 @@ class TripWorkflowOrchestrator(
         self,
         *,
         tasks: TaskRepository,
-        employees: InMemoryEmployeeDirectory,
-        policies: InMemoryPolicyRepository,
+        employees: EmployeeDirectory,
+        policies: PolicyRepository,
         provider: TravelInventoryProvider,
         tool_calling_language_model: Any | None = None,
         planner: ItineraryPlanner | None = None,
@@ -273,6 +275,13 @@ class TripWorkflowOrchestrator(
             "changes_opened": 0,
             "source_errors": 0,
         }
+        #: 写路径：审计、状态迁移、轨迹、搜索出处都经它落库（ADR-0006）。
+        self.recorder = TaskRecorder(
+            tasks=self.tasks,
+            trips=self.trips,
+            state_machine=self.state_machine,
+            trace_observer=self.trace_observer,
+        )
         self._tool_budget_lock = RLock()
         self._delayed_retry_lock = RLock()
         self.recover_interrupted_tasks()

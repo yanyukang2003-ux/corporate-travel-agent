@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
-from typing import Any
+from typing import TYPE_CHECKING, Any
 from uuid import uuid4
 
 from sqlalchemy import (
@@ -31,6 +31,7 @@ from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column
 from corporate_travel_agent.domain.enums import TaskState, TripStatus
 from corporate_travel_agent.domain.models import AuditEvent, InventorySnapshot, Trip, TripTask
 from corporate_travel_agent.services.db_engine import (
+    EngineBound,
     create_database_engine,
     engine_pool_snapshot,
     read_alembic_version,
@@ -63,6 +64,9 @@ from corporate_travel_agent.services.task_projections import (
     projection_fields,
     summarize_task,
 )
+
+if TYPE_CHECKING:
+    from corporate_travel_agent.services.trips import TripRepository
 
 JSON_DOCUMENT = JSON().with_variant(JSONB, "postgresql")
 
@@ -526,13 +530,30 @@ class SQLAlchemyTaskRepository:
         except IntegrityError as exc:
             raise ValueError(f"Task {task.task_id} already exists") from exc
 
-    def add_with_trip(self, task: TripTask, *, trip: Trip, trip_is_new: bool) -> None:
+    def add_with_trip(
+        self,
+        task: TripTask,
+        *,
+        trip: Trip,
+        trip_is_new: bool,
+        trips: TripRepository,
+    ) -> None:
         """任务和它所属的差旅**同一笔事务**落库。
 
         以前是先 `add(task)` 再 `trips.add/save(trip)`：改期任务建成了、差旅没记上，
         `find_by_task` 就找不到它——这是 HANDOFF §8 记着的那条窄缝。现在要么一起成、要么一起回滚。
         新差旅插一行；已有差旅按乐观锁更新（`revision` 对不上就抛 `ConcurrentUpdateError`）。
+
+        一笔事务的前提是两张表在同一个库里。差旅仓储不在这个引擎上（任务在 SQL、差旅在内存，
+        单测常见）时退回先任务后差旅——联合写入会把差旅写到对方看不见的地方。
         """
+        if not (isinstance(trips, EngineBound) and trips.engine is self.engine):
+            self.add(task)
+            if trip_is_new:
+                trips.add(trip)
+            else:
+                trips.save(trip)
+            return
         task.persistence_revision = 0
         now = datetime.now(UTC)
         fields = projection_fields(task)
@@ -791,6 +812,7 @@ class SQLAlchemyTaskRepository:
         event: AuditEvent,
         *,
         trip: Trip,
+        trips: TripRepository,
         outbox_events: Sequence[OutboxEventDraft] = (),
         preceding: Sequence[AuditEvent] = (),
     ) -> None:
@@ -798,9 +820,13 @@ class SQLAlchemyTaskRepository:
 
         下单确认要同时登记观察对象、航班动态观察要同时记审计、取消差旅要同时发通知——
         这三处此前都是两笔写入，差旅那笔失败时任务已经变了（2026-09-02 真链路实测留下过
-        "任务已确认、差旅没改订"的半截）。两张表同一个引擎才能一笔提交；编排器在
-        `_audit(trip=...)` 里判断，引擎不同时退回两笔。
+        "任务已确认、差旅没改订"的半截）。两张表同一个引擎才能一笔提交；差旅仓储不在这个
+        引擎上时退回先任务后差旅。判断在这里做，调用方（`TaskRecorder`）不必知道引擎。
         """
+        if not (isinstance(trips, EngineBound) and trips.engine is self.engine):
+            self.record(task, event, outbox_events=outbox_events, preceding=preceding)
+            trips.save(trip)
+            return
         expected_revision = task.persistence_revision
         expected_trip_revision = trip.persistence_revision
         events = (*preceding, event)

@@ -21,6 +21,10 @@ from corporate_travel_agent.agent.orchestrator.core import (
     ToolBudgetExceeded,
     WorkflowError,
 )
+from corporate_travel_agent.agent.orchestrator.recorder import (
+    hotel_provenance,
+    transport_provenance,
+)
 from corporate_travel_agent.agent.orchestrator.state import OrchestratorState
 from corporate_travel_agent.domain.enums import (
     ApprovalStatus,
@@ -94,7 +98,7 @@ class PlanningMixin(OrchestratorState):
 
     def _search_and_plan(self, task: TripTask, policy: PolicySnapshot) -> TripTask:
         """调用 Provider 搜库存，规划可行方案并迁移状态。"""
-        self._transition(task, TaskState.SEARCHING)
+        self.recorder.transition(task, TaskState.SEARCHING)
         task.failure = None
         task.metadata.pop("no_feasible_reasons", None)
         request = self._request(task)
@@ -145,7 +149,7 @@ class PlanningMixin(OrchestratorState):
                     )
                 )
                 searched.append(
-                    self._transport_provenance(leg_query, leg_snapshots[-1])
+                    transport_provenance(leg_query, leg_snapshots[-1])
                 )
             journey_snapshot: InventorySnapshot | None = None
             if wants_journey_fare and journey_provider is not None:
@@ -191,7 +195,7 @@ class PlanningMixin(OrchestratorState):
                     )
                 )
                 searched.append(
-                    self._hotel_provenance(hotel_query, hotel_snapshots[-1])
+                    hotel_provenance(hotel_query, hotel_snapshots[-1])
                 )
         except ToolBudgetExceeded:
             self.provider_circuit_breaker.record_success()
@@ -218,7 +222,7 @@ class PlanningMixin(OrchestratorState):
             task.metadata["last_recovery"] = recovery_payload
             # Do not keep partial options from an aborted multi-leg search.
             task.options = []
-            self._audit(
+            self.recorder.audit(
                 task,
                 "PROVIDER_SEARCH_ATTEMPTS_EXHAUSTED",
                 request,
@@ -234,7 +238,7 @@ class PlanningMixin(OrchestratorState):
                 return task
             self.provider_circuit_breaker.record_success()
             self._mark_provider_retry_terminal(task, status="failed")
-            self._transition(task, TaskState.PROVIDER_FAILED)
+            self.recorder.transition(task, TaskState.PROVIDER_FAILED)
             return task
 
         self.provider_circuit_breaker.record_success()
@@ -249,8 +253,8 @@ class PlanningMixin(OrchestratorState):
                 invalid_snapshots
             )
             self._mark_provider_retry_terminal(task, status="failed")
-            self._transition(task, TaskState.PROVIDER_FAILED)
-            self._audit(
+            self.recorder.transition(task, TaskState.PROVIDER_FAILED)
+            self.recorder.audit(
                 task,
                 "INVENTORY_SNAPSHOT_REJECTED",
                 tuple(invalid_snapshots),
@@ -258,10 +262,10 @@ class PlanningMixin(OrchestratorState):
             )
             return task
         self._complete_provider_retry(task)
-        self._record_searches(task, searched)
+        self.recorder.record_searches(task, searched)
         self._record_coverage_notices(task, snapshots)
         self._audit_snapshots(task, snapshots)
-        self._transition(task, TaskState.PLANNING)
+        self.recorder.transition(task, TaskState.PLANNING)
 
         task.options = self.planner.plan(
             request=request,
@@ -289,19 +293,19 @@ class PlanningMixin(OrchestratorState):
             )
             task.metadata["no_feasible_reasons"] = reasons
             task.failure = "; ".join(reasons)
-            self._transition(task, TaskState.NO_FEASIBLE_OPTION)
-            self._audit(task, "NO_FEASIBLE_OPTION", request.version, reasons)
+            self.recorder.transition(task, TaskState.NO_FEASIBLE_OPTION)
+            self.recorder.audit(task, "NO_FEASIBLE_OPTION", request.version, reasons)
             return task
 
-        self._transition(task, TaskState.OPTIONS_READY)
-        self._audit(
+        self.recorder.transition(task, TaskState.OPTIONS_READY)
+        self.recorder.audit(
             task,
             "OPTIONS_VERIFIED",
             request.version,
             [item.option_id for item in task.options],
             tuple(ref for item in task.options for ref in item.inventory_refs),
         )
-        self._transition(task, TaskState.WAITING_FOR_USER)
+        self.recorder.transition(task, TaskState.WAITING_FOR_USER)
         return task
 
     def _no_feasible_reasons(
@@ -493,7 +497,7 @@ class PlanningMixin(OrchestratorState):
             return self._stop_for_tool_budget(task, "provider.revalidate")
         except ProviderError as exc:
             task.failure = str(exc)
-            self._audit(
+            self.recorder.audit(
                 task,
                 "PROVIDER_REVALIDATION_ATTEMPTS_EXHAUSTED",
                 option.inventory_refs,
@@ -509,21 +513,21 @@ class PlanningMixin(OrchestratorState):
                 return task
             self.provider_circuit_breaker.record_success()
             self._mark_provider_retry_terminal(task, status="failed")
-            self._transition(task, TaskState.PROVIDER_FAILED)
+            self.recorder.transition(task, TaskState.PROVIDER_FAILED)
             return task
         self.provider_circuit_breaker.record_success()
-        self._audit(task, "INVENTORY_REVALIDATED", option.inventory_refs, result)
+        self.recorder.audit(task, "INVENTORY_REVALIDATED", option.inventory_refs, result)
         if result.status is RevalidationStatus.PROVIDER_FAILED:
             task.failure = "; ".join(result.warnings)
             self._mark_provider_retry_terminal(task, status="failed")
-            self._transition(task, TaskState.PROVIDER_FAILED)
+            self.recorder.transition(task, TaskState.PROVIDER_FAILED)
             return task
         if result.status in {
             RevalidationStatus.PRICE_CHANGED,
             RevalidationStatus.UNAVAILABLE,
         }:
             self._complete_provider_retry(task)
-            self._transition(task, TaskState.RECONFIRMATION_REQUIRED)
+            self.recorder.transition(task, TaskState.RECONFIRMATION_REQUIRED)
             return task
 
         idempotency_key = stable_hash(
@@ -552,7 +556,7 @@ class PlanningMixin(OrchestratorState):
                 return self._stop_for_tool_budget(task, "provider.create_deep_link")
             except ProviderError as exc:
                 task.failure = str(exc)
-                self._audit(
+                self.recorder.audit(
                     task,
                     "PROVIDER_HANDOFF_ATTEMPTS_EXHAUSTED",
                     option.option_id,
@@ -568,13 +572,13 @@ class PlanningMixin(OrchestratorState):
                     return task
                 self.provider_circuit_breaker.record_success()
                 self._mark_provider_retry_terminal(task, status="failed")
-                self._transition(task, TaskState.PROVIDER_FAILED)
+                self.recorder.transition(task, TaskState.PROVIDER_FAILED)
                 return task
             if not self._timezone_aware(handoff.expires_at) or handoff.expires_at <= self.clock():
                 task.failure = "provider returned an expired or invalid handoff"
                 self._mark_provider_retry_terminal(task, status="failed")
-                self._transition(task, TaskState.PROVIDER_FAILED)
-                self._audit(
+                self.recorder.transition(task, TaskState.PROVIDER_FAILED)
+                self.recorder.audit(
                     task,
                     "PROVIDER_HANDOFF_REJECTED",
                     option.option_id,
@@ -594,8 +598,10 @@ class PlanningMixin(OrchestratorState):
         self.provider_circuit_breaker.record_success()
         self._complete_provider_retry(task)
         self._pin_provenance(task, option)
-        self._transition(task, TaskState.READY_FOR_HANDOFF)
-        self._audit(task, "BOOKING_INTENT_CREATED", idempotency_key, task.booking_intent.intent_id)
+        self.recorder.transition(task, TaskState.READY_FOR_HANDOFF)
+        self.recorder.audit(
+            task, "BOOKING_INTENT_CREATED", idempotency_key, task.booking_intent.intent_id
+        )
         return task
 
     def retry_or_replan(self, task_id: str) -> TripTask:
@@ -611,14 +617,14 @@ class PlanningMixin(OrchestratorState):
             raise WorkflowError(f"Cannot replan task in {task.state.value}")
         if task.approval and task.approval.status is ApprovalStatus.APPROVED:
             task.approval.status = ApprovalStatus.INVALIDATED
-            self._audit(task, "APPROVAL_INVALIDATED", task.approval.subject_hash, "replan")
+            self.recorder.audit(task, "APPROVAL_INVALIDATED", task.approval.subject_hash, "replan")
         task.selected_option_id = None
         retry_metadata = self._provider_retry_metadata(task)
         if prior_state is TaskState.WAITING_FOR_PROVIDER and retry_metadata is not None:
             retry_metadata["status"] = "scheduled"
             retry_metadata["next_retry_at"] = self.clock().isoformat()
             retry_metadata["trigger"] = "manual"
-            self._audit(
+            self.recorder.audit(
                 task,
                 "PROVIDER_DELAYED_RETRY_REQUESTED",
                 {"trigger": "manual"},
@@ -626,7 +632,7 @@ class PlanningMixin(OrchestratorState):
             )
         elif retry_metadata is not None:
             task.metadata.pop(PROVIDER_RETRY_METADATA_KEY, None)
-            self._audit(
+            self.recorder.audit(
                 task,
                 "PROVIDER_RETRY_CYCLE_RESET",
                 {"trigger": "manual_replan", "from_state": prior_state.value},
@@ -675,12 +681,12 @@ class PlanningMixin(OrchestratorState):
             raise WorkflowError("A business reason is required for a policy exception")
 
         task.selected_option_id = option_id
-        self._audit(task, "OPTION_SELECTED", option_id, decision.outcome.value)
+        self.recorder.audit(task, "OPTION_SELECTED", option_id, decision.outcome.value)
         if needs_human_judgment:
             assert business_reason is not None
             task.approval = self._new_approval(task, business_reason.strip())
-            self._transition(task, TaskState.WAITING_FOR_APPROVAL)
-            self._audit(
+            self.recorder.transition(task, TaskState.WAITING_FOR_APPROVAL)
+            self.recorder.audit(
                 task,
                 "APPROVAL_REQUESTED",
                 option_id,
@@ -692,7 +698,7 @@ class PlanningMixin(OrchestratorState):
         if decision.outcome is not PolicyOutcome.COMPLIANT:
             raise WorkflowError("INV-003: non-compliant option cannot proceed")
 
-        self._transition(task, TaskState.REVALIDATING)
+        self.recorder.transition(task, TaskState.REVALIDATING)
         return self._revalidate_selected(task)
 
     def _record_coverage_notices(self, task: TripTask, snapshots: list[InventorySnapshot]) -> None:
@@ -713,14 +719,16 @@ class PlanningMixin(OrchestratorState):
         )
         if notices:
             task.metadata[PARTIAL_COVERAGE_METADATA_KEY] = notices
-            self._audit(task, "PROVIDER_COVERAGE_INCOMPLETE", tuple(notices), task.state.value)
+            self.recorder.audit(
+                task, "PROVIDER_COVERAGE_INCOMPLETE", tuple(notices), task.state.value
+            )
         else:
             task.metadata.pop(PARTIAL_COVERAGE_METADATA_KEY, None)
 
     def _audit_snapshots(self, task: TripTask, snapshots: list[InventorySnapshot]) -> None:
         for snapshot in snapshots:
             self.tasks.add_snapshot(task.task_id, snapshot)
-            self._audit(
+            self.recorder.audit(
                 task,
                 "INVENTORY_SNAPSHOT_CAPTURED",
                 snapshot.query_hash,

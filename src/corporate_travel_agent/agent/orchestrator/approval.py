@@ -61,7 +61,7 @@ class ApprovalMixin(OrchestratorState):
             raise WorkflowError("The approval has already been decided")
         if self.clock() >= approval.expires_at:
             approval.status = ApprovalStatus.INVALIDATED
-            self._audit(
+            self.recorder.audit(
                 task,
                 "APPROVAL_INVALIDATED",
                 approval.subject_hash,
@@ -70,12 +70,12 @@ class ApprovalMixin(OrchestratorState):
             )
             task.selected_option_id = None
             task.failure = "The approval expired; select an option and request approval again"
-            self._transition(task, TaskState.OPTIONS_READY)
-            self._transition(task, TaskState.WAITING_FOR_USER)
+            self.recorder.transition(task, TaskState.OPTIONS_READY)
+            self.recorder.transition(task, TaskState.WAITING_FOR_USER)
             raise WorkflowError("The approval has expired")
         if approval.subject_hash != self._approval_subject_hash(task):
             approval.status = ApprovalStatus.INVALIDATED
-            self._audit(
+            self.recorder.audit(
                 task,
                 "APPROVAL_INVALIDATED",
                 approval.subject_hash,
@@ -84,8 +84,8 @@ class ApprovalMixin(OrchestratorState):
             )
             task.selected_option_id = None
             task.failure = "The approval subject changed; select an option again"
-            self._transition(task, TaskState.OPTIONS_READY)
-            self._transition(task, TaskState.WAITING_FOR_USER)
+            self.recorder.transition(task, TaskState.OPTIONS_READY)
+            self.recorder.transition(task, TaskState.WAITING_FOR_USER)
             raise WorkflowError("INV-004: approval subject has changed")
 
         decided_at = self.clock()
@@ -97,7 +97,7 @@ class ApprovalMixin(OrchestratorState):
         if not approved:
             approval.status = ApprovalStatus.REJECTED
             approval.decision_reason = reason
-            self._audit(
+            self.recorder.audit(
                 task,
                 "APPROVAL_DECIDED",
                 approver_id,
@@ -105,8 +105,8 @@ class ApprovalMixin(OrchestratorState):
                 outbox=(self._approval_event(task, "APPROVAL_DECIDED"),),
             )
             task.selected_option_id = None
-            self._transition(task, TaskState.OPTIONS_READY)
-            self._transition(task, TaskState.WAITING_FOR_USER)
+            self.recorder.transition(task, TaskState.OPTIONS_READY)
+            self.recorder.transition(task, TaskState.WAITING_FOR_USER)
             return task
 
         if step is not None and approval.remaining_steps > 0:
@@ -114,7 +114,7 @@ class ApprovalMixin(OrchestratorState):
             # 投影里的"当前待谁批"跟着换，下一级的收件箱才看得见它。
             approval.current_step += 1
             approval.approver_id = approval.steps[approval.current_step].approver_id
-            self._audit(
+            self.recorder.audit(
                 task,
                 "APPROVAL_STEP_ADVANCED",
                 approver_id,
@@ -129,14 +129,14 @@ class ApprovalMixin(OrchestratorState):
 
         approval.status = ApprovalStatus.APPROVED
         approval.decision_reason = reason
-        self._audit(
+        self.recorder.audit(
             task,
             "APPROVAL_DECIDED",
             approver_id,
             approval.status.value,
             outbox=(self._approval_event(task, "APPROVAL_DECIDED"),),
         )
-        self._transition(task, TaskState.REVALIDATING)
+        self.recorder.transition(task, TaskState.REVALIDATING)
         return self._revalidate_selected(task)
 
     def mark_handed_off(self, task_id: str) -> TripTask:
@@ -144,8 +144,10 @@ class ApprovalMixin(OrchestratorState):
         task = self.tasks.get(task_id)
         if task.state is not TaskState.READY_FOR_HANDOFF or task.booking_intent is None:
             raise WorkflowError("No validated handoff is ready")
-        self._transition(task, TaskState.HANDED_OFF)
-        self._audit(task, "HANDOFF_COMPLETED", task.booking_intent.intent_id, task.state.value)
+        self.recorder.transition(task, TaskState.HANDED_OFF)
+        self.recorder.audit(
+            task, "HANDOFF_COMPLETED", task.booking_intent.intent_id, task.state.value
+        )
         return task
 
     def _new_approval(self, task: TripTask, business_reason: str) -> ApprovalRequest:

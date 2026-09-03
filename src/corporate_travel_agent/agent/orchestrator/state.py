@@ -17,30 +17,26 @@ from threading import BoundedSemaphore, RLock
 from typing import Any
 
 from corporate_travel_agent.agent.orchestrator.core import ToolResult
-from corporate_travel_agent.agent.ports import WorkflowTraceEvent, WorkflowTraceObserverPort
-from corporate_travel_agent.domain.enums import TaskState, TripEventType
+from corporate_travel_agent.agent.orchestrator.recorder import TaskRecorder
+from corporate_travel_agent.agent.ports import WorkflowTraceObserverPort
+from corporate_travel_agent.domain.enums import TripEventType
 from corporate_travel_agent.domain.models import (
     ApprovalRequest,
-    AuditEvent,
     BudgetSnapshot,
     ChangeImpact,
     EmployeeTravelProfileSnapshot,
     HotelOffer,
     InventorySnapshot,
     PolicySnapshot,
-    SearchProvenance,
     TransportOffer,
     TravelOptionVersion,
-    Trip,
     TripEvent,
     TripRequestVersion,
     TripTask,
 )
 from corporate_travel_agent.planning.planner import ItineraryPlanner
 from corporate_travel_agent.providers.base import (
-    HotelSearchQuery,
     RetryableProviderError,
-    TransportSearchQuery,
     TravelInventoryProvider,
 )
 from corporate_travel_agent.providers.flight_status import FlightStatusPort
@@ -52,8 +48,8 @@ from corporate_travel_agent.services.provider_resilience import (
     ProviderDelayedRetryPolicy,
 )
 from corporate_travel_agent.services.repositories import (
-    InMemoryEmployeeDirectory,
-    InMemoryPolicyRepository,
+    EmployeeDirectory,
+    PolicyRepository,
     TaskRepository,
 )
 from corporate_travel_agent.services.travel_profile import TripHistoryPort
@@ -71,8 +67,8 @@ class OrchestratorState:
 
     # -- 端口与协作对象 -------------------------------------------------------
     tasks: TaskRepository
-    employees: InMemoryEmployeeDirectory
-    policies: InMemoryPolicyRepository
+    employees: EmployeeDirectory
+    policies: PolicyRepository
     provider: TravelInventoryProvider
     #: 工具循环的模型端口；None 表示没接模型。不同评测替身实现的方法集合不完全一样，
     #: 所以这里仍是 Any——见 `ToolLoopRunner._model_turn` 的兼容分支。
@@ -88,6 +84,8 @@ class OrchestratorState:
     flight_status_source: FlightStatusPort
     delayed_provider_retry_policy: ProviderDelayedRetryPolicy
     provider_circuit_breaker: ProviderCircuitBreaker
+    #: 写路径协作对象：审计、状态迁移、轨迹、搜索出处（`recorder.py`，ADR-0006）。
+    recorder: TaskRecorder
 
     # -- 时钟与参数 ------------------------------------------------------------
     clock: Callable[[], datetime]
@@ -130,21 +128,6 @@ class OrchestratorState:
     def _approval_event(self, task: TripTask, event_type: str) -> OutboxEventDraft:
         raise NotImplementedError
 
-    # records.py — used by approval, confirmation, intake, planning, resilience, watch
-    def _audit(
-        self,
-        task: TripTask,
-        event_type: str,
-        input_value: object,
-        output_value: object,
-        evidence_refs: tuple[str, ...] = (),
-        *,
-        outbox: Sequence[OutboxEventDraft] = (),
-        trip: Trip | None = None,
-        preceding: Sequence[AuditEvent] = (),
-    ) -> None:
-        raise NotImplementedError
-
     # planning.py — used by intake
     def _audit_snapshots(self, task: TripTask, snapshots: list[InventorySnapshot]) -> None:
         raise NotImplementedError
@@ -155,13 +138,6 @@ class OrchestratorState:
 
     # resilience.py — used by planning
     def _complete_provider_retry(self, task: TripTask) -> None:
-        raise NotImplementedError
-
-    # records.py — used by planning
-    @staticmethod
-    def _hotel_provenance(
-        query: HotelSearchQuery, snapshot: InventorySnapshot
-    ) -> SearchProvenance:
         raise NotImplementedError
 
     # planning.py — used by intake
@@ -235,16 +211,6 @@ class OrchestratorState:
     def _record_coverage_notices(self, task: TripTask, snapshots: list[InventorySnapshot]) -> None:
         raise NotImplementedError
 
-    # records.py — used by intake, planning
-    def _record_searches(
-        self, task: TripTask, searches: Sequence[SearchProvenance]
-    ) -> None:
-        raise NotImplementedError
-
-    # records.py — used by resilience
-    def _record_trace(self, event: WorkflowTraceEvent) -> None:
-        raise NotImplementedError
-
     # records.py — used by approval, intake, planning
     @staticmethod
     def _request(task: TripTask) -> TripRequestVersion:
@@ -281,26 +247,6 @@ class OrchestratorState:
     # intake.py — used by planning
     @staticmethod
     def _timezone_aware(value: datetime) -> bool:
-        raise NotImplementedError
-
-    # records.py — used by resilience
-    @staticmethod
-    def _trace_evidence_refs(result: object, input_value: object) -> tuple[str, ...]:
-        raise NotImplementedError
-
-    # records.py — used by approval, confirmation, intake, planning, resilience
-    def _transition(self, task: TripTask, target: TaskState) -> None:
-        raise NotImplementedError
-
-    # records.py — used by confirmation
-    def _transition_pending(self, task: TripTask, target: TaskState) -> AuditEvent:
-        raise NotImplementedError
-
-    # records.py — used by planning
-    @staticmethod
-    def _transport_provenance(
-        query: TransportSearchQuery, snapshot: InventorySnapshot
-    ) -> SearchProvenance:
         raise NotImplementedError
 
     # planning.py — used by intake

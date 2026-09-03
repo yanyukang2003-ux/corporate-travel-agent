@@ -3,10 +3,17 @@
 from __future__ import annotations
 
 import os
-from typing import Any, cast
+from typing import Any, Protocol, cast, runtime_checkable
 
 from sqlalchemy import create_engine, text
 from sqlalchemy.engine import CursorResult, Engine, Result
+
+
+@runtime_checkable
+class EngineBound(Protocol):
+    """绑定在某个 SQLAlchemy 引擎上的仓储。两个仓储共用一个引擎，才谈得上同一笔事务。"""
+
+    engine: Engine
 
 
 def rowcount(result: Result[Any]) -> int:

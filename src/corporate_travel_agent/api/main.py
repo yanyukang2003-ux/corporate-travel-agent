@@ -638,9 +638,7 @@ def current_user(identity: CurrentIdentity) -> dict[str, Any]:
     """返回当前登录用户信息。"""
     can_book_for: tuple[str, ...] = ()
     if identity.employee_id:
-        delegators_of = getattr(workflow.employees, "delegators_of", None)
-        if callable(delegators_of):
-            can_book_for = delegators_of(identity.employee_id)
+        can_book_for = workflow.employees.delegators_of(identity.employee_id)
     return {
         "user_id": identity.user_id,
         "roles": sorted(role.value for role in identity.roles),
@@ -1675,8 +1673,7 @@ def _require_can_create(identity: UserIdentity, traveler_id: str) -> None:
     if identity.has_role(Role.EMPLOYEE) and identity.employee_id:
         if identity.employee_id == traveler_id:
             return
-        may_book_for = getattr(workflow.employees, "may_book_for", None)
-        if callable(may_book_for) and may_book_for(identity.employee_id, traveler_id):
+        if workflow.employees.may_book_for(identity.employee_id, traveler_id):
             return
     raise HTTPException(status_code=403, detail="Cannot create a task for this traveler")
 

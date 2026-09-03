@@ -46,41 +46,17 @@ class ResilienceMixin(OrchestratorState):
         processed: list[str] = []
         with self._delayed_retry_lock:
             now = self._aware_datetime(self.clock())
-            claim_due = getattr(self.tasks, "claim_due_provider_retries", None)
-            claimed = callable(claim_due)
-            if callable(claim_due):
-                due_tasks = list(
-                    claim_due(
-                        worker_id=self.provider_retry_worker_id,
-                        now=now,
-                        lease_duration=self.provider_retry_lease_duration,
-                        limit=limit,
-                    )
+            # 认领是仓储端口的一部分（租约 + fencing token），内存版和 SQL 版都实现了它。
+            due_tasks = list(
+                self.tasks.claim_due_provider_retries(
+                    worker_id=self.provider_retry_worker_id,
+                    now=now,
+                    lease_duration=self.provider_retry_lease_duration,
+                    limit=limit,
                 )
-                self._provider_retry_metrics["claimed"] += len(due_tasks)
-            else:
-                list_due = getattr(self.tasks, "list_due_provider_retries", None)
-                if callable(list_due):
-                    due_tasks = list(list_due(now=now, limit=limit))
-                else:
-                    due_tasks = sorted(
-                        (
-                            task
-                            for task in self.tasks.list_tasks()
-                            if task.state is TaskState.WAITING_FOR_PROVIDER
-                            and self._provider_retry_is_due(task)
-                        ),
-                        key=lambda task: (
-                            self._provider_retry_datetime(
-                                (self._provider_retry_metadata(task) or {}).get("next_retry_at")
-                            )
-                            or now,
-                            task.task_id,
-                        ),
-                    )[:limit]
+            )
+            self._provider_retry_metrics["claimed"] += len(due_tasks)
             for task in due_tasks:
-                if not claimed and not self._provider_retry_is_due(task):
-                    continue
                 metadata = self._provider_retry_metadata(task)
                 if metadata is None:
                     continue
@@ -94,7 +70,7 @@ class ResilienceMixin(OrchestratorState):
                         lag,
                     )
                 attempt_token = metadata.get("attempt_token")
-                if claimed and not isinstance(attempt_token, str):
+                if not isinstance(attempt_token, str):
                     continue
                 if task.state in {TaskState.SEARCHING, TaskState.REVALIDATING}:
                     self._provider_retry_metrics["reclaimed"] += 1
@@ -103,7 +79,7 @@ class ResilienceMixin(OrchestratorState):
                 resume_operation = str(metadata.get("resume_operation") or "SEARCH")
                 try:
                     if resume_operation == "REVALIDATE":
-                        self._transition(task, TaskState.REVALIDATING)
+                        self.recorder.transition(task, TaskState.REVALIDATING)
                         self._revalidate_selected(task)
                     else:
                         self._search_and_plan(task, self._policy_for(task))
@@ -115,13 +91,10 @@ class ResilienceMixin(OrchestratorState):
                 except ConcurrentUpdateError:
                     self._provider_retry_metrics["lease_conflict"] += 1
                 finally:
-                    if claimed and isinstance(attempt_token, str):
-                        release = getattr(self.tasks, "release_provider_retry_claim", None)
-                        if callable(release) and not release(
-                            task,
-                            attempt_token=attempt_token,
-                        ):
-                            self._provider_retry_metrics["lease_conflict"] += 1
+                    if not self.tasks.release_provider_retry_claim(
+                        task, attempt_token=attempt_token
+                    ):
+                        self._provider_retry_metrics["lease_conflict"] += 1
         return tuple(processed)
 
     def provider_retry_metrics(self) -> dict[str, int | float]:
@@ -165,7 +138,7 @@ class ResilienceMixin(OrchestratorState):
                 "last_attempt_started_at": self.clock().isoformat(),
             }
         )
-        self._audit(
+        self.recorder.audit(
             task,
             "PROVIDER_DELAYED_RETRY_STARTED",
             {
@@ -207,8 +180,8 @@ class ResilienceMixin(OrchestratorState):
                 "user_message": "供应商持续不可用，自动重试已用尽，请稍后手动重试。",
             }
             self._set_provider_retry_metadata(task, metadata)
-            self._transition(task, TaskState.PROVIDER_FAILED)
-            self._audit(
+            self.recorder.transition(task, TaskState.PROVIDER_FAILED)
+            self.recorder.audit(
                 task,
                 "PROVIDER_DELAYED_RETRIES_EXHAUSTED",
                 {
@@ -245,8 +218,8 @@ class ResilienceMixin(OrchestratorState):
             "user_message": "供应商暂时不可用，任务会在后台自动重试。",
         }
         self._set_provider_retry_metadata(task, metadata)
-        self._transition(task, TaskState.WAITING_FOR_PROVIDER)
-        self._audit(
+        self.recorder.transition(task, TaskState.WAITING_FOR_PROVIDER)
+        self.recorder.audit(
             task,
             "PROVIDER_DELAYED_RETRY_SCHEDULED",
             {
@@ -270,7 +243,7 @@ class ResilienceMixin(OrchestratorState):
                 "user_message": "供应商已恢复，任务已继续执行。",
             }
         )
-        self._audit(
+        self.recorder.audit(
             task,
             "PROVIDER_DELAYED_RETRY_RECOVERED",
             {
@@ -360,10 +333,7 @@ class ResilienceMixin(OrchestratorState):
                 self.provider_circuit_breaker.restore_open_until(open_until)
 
     def _tasks_by_state(self, state: TaskState, *, limit: int = 10_000) -> tuple[TripTask, ...]:
-        list_by_state = getattr(self.tasks, "list_by_state", None)
-        if callable(list_by_state):
-            return tuple(list_by_state(state.value, limit=limit))
-        return tuple(task for task in self.tasks.list_tasks() if task.state is state)
+        return self.tasks.list_by_state(state.value, limit=limit)
 
     def _interrupted_candidates(self) -> tuple[TripTask, ...]:
         """重启恢复要看的任务：只查那几个瞬时状态（SEARCHING / PLANNING / REVALIDATING / DRAFT）。
@@ -379,19 +349,7 @@ class ResilienceMixin(OrchestratorState):
             TaskState.REVALIDATING.value,
             TaskState.DRAFT.value,
         )
-        list_by_states = getattr(self.tasks, "list_by_states", None)
-        if callable(list_by_states):
-            return tuple(list_by_states(states, limit=10_000))
-        return tuple(
-            task
-            for state in (
-                TaskState.SEARCHING,
-                TaskState.PLANNING,
-                TaskState.REVALIDATING,
-                TaskState.DRAFT,
-            )
-            for task in self._tasks_by_state(state)
-        )
+        return self.tasks.list_by_states(states, limit=10_000)
 
     def recover_interrupted_tasks(self) -> tuple[str, ...]:
         """恢复卡在 STARTED/中断态的任务，返回受影响 task_id。"""
@@ -471,8 +429,8 @@ class ResilienceMixin(OrchestratorState):
                 if task.state is TaskState.DRAFT
                 else TaskState.PROVIDER_FAILED
             )
-            self._transition(task, target)
-            self._audit(
+            self.recorder.transition(task, target)
+            self.recorder.audit(
                 task,
                 "INTERRUPTED_TASK_RECOVERED",
                 tuple(record.tool_name for record in started_calls)
@@ -516,7 +474,7 @@ class ResilienceMixin(OrchestratorState):
             trace_started_at = datetime.now(UTC)
             trace_started_ns = perf_counter_ns()
             trace_state_before = task.state.value
-            self._audit(
+            self.recorder.audit(
                 task,
                 "TOOL_CALL_STARTED",
                 {
@@ -586,7 +544,7 @@ class ResilienceMixin(OrchestratorState):
                     "recovery_reason": recovery.reason,
                 }
                 task.metadata["last_recovery"] = recovery.as_dict()
-                self._audit(
+                self.recorder.audit(
                     task,
                     "TOOL_CALL_FAILED",
                     {"sequence": record.sequence, "tool_name": tool_name},
@@ -595,7 +553,7 @@ class ResilienceMixin(OrchestratorState):
                         "will_retry": retryable,
                     },
                 )
-                self._record_trace(
+                self.recorder.record_trace(
                     WorkflowTraceEvent(
                         kind="tool",
                         name=tool_name,
@@ -630,7 +588,7 @@ class ResilienceMixin(OrchestratorState):
                     TRANSIENT_LLM_RETRY_REASON if tool_kind == "LLM" else TRANSIENT_RETRY_REASON
                 )
                 retry_delay = self._retry_delay_seconds(attempt)
-                self._audit(
+                self.recorder.audit(
                     task,
                     "TOOL_CALL_RETRY_SCHEDULED",
                     {
@@ -650,14 +608,14 @@ class ResilienceMixin(OrchestratorState):
             with self._tool_budget_lock:
                 record.status = ToolCallStatus.SUCCEEDED
                 record.completed_at = self.clock()
-            self._audit(
+            self.recorder.audit(
                 task,
                 "TOOL_CALL_SUCCEEDED",
                 {"sequence": record.sequence, "tool_name": tool_name},
                 {"remaining": task.tool_calls_remaining},
             )
             metadata = getattr(result, "metadata", None)
-            self._record_trace(
+            self.recorder.record_trace(
                 WorkflowTraceEvent(
                     kind="tool",
                     name=tool_name,
@@ -668,7 +626,7 @@ class ResilienceMixin(OrchestratorState):
                     state_after=task.state.value,
                     input_value=input_value,
                     output_value=result,
-                    evidence_refs=self._trace_evidence_refs(result, input_value),
+                    evidence_refs=self.recorder.trace_evidence_refs(result, input_value),
                     tool_kind=tool_kind,
                     tool_call_sequence=record.sequence,
                     retry_of=retry_of,
@@ -735,8 +693,8 @@ class ResilienceMixin(OrchestratorState):
             f"requires {required_calls}, remaining {task.tool_calls_remaining}, "
             f"limit {task.tool_call_limit}"
         )
-        self._transition(task, TaskState.TOOL_BUDGET_EXHAUSTED)
-        self._audit(
+        self.recorder.transition(task, TaskState.TOOL_BUDGET_EXHAUSTED)
+        self.recorder.audit(
             task,
             "TOOL_BUDGET_EXHAUSTED",
             {

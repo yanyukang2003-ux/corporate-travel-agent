@@ -100,8 +100,8 @@ class ConfirmationMixin(OrchestratorState):
             raise WorkflowError(str(exc)) from exc
 
         if task.state is TaskState.READY_FOR_HANDOFF:
-            self._transition(task, TaskState.HANDED_OFF)
-            self._audit(task, "HANDOFF_COMPLETED", intent.intent_id, task.state.value)
+            self.recorder.transition(task, TaskState.HANDED_OFF)
+            self.recorder.audit(task, "HANDOFF_COMPLETED", intent.intent_id, task.state.value)
 
         confirmation = BookingConfirmation(
             confirmation_id=str(uuid4()),
@@ -121,9 +121,9 @@ class ConfirmationMixin(OrchestratorState):
         # 此前是三笔（迁移 / 审计 / 差旅），差旅那笔失败时留下"任务已确认、差旅没登记"的半截
         # （2026-09-02 真链路实测踩到过）。
         task.booking_confirmation = confirmation
-        transition = self._transition_pending(task, TaskState.BOOKING_CONFIRMED)
+        transition = self.recorder.transition_pending(task, TaskState.BOOKING_CONFIRMED)
         trip = self._trip_with_watch(task, option)
-        self._audit(
+        self.recorder.audit(
             task,
             "BOOKING_CONFIRMED",
             {
@@ -165,9 +165,9 @@ class ConfirmationMixin(OrchestratorState):
         """新任务和它所属的差旅一起落库：规划任务建一趟新差旅，改期任务追加到已有差旅。
 
         以前是先 `tasks.add` 再 `trips.add/save`——改期任务建成了、差旅没记上，
-        `find_by_task` 就找不到它（HANDOFF §8 那条窄缝）。SQL 仓储现在提供 `add_with_trip`，
-        两张表同一笔事务；没有这个方法的仓储（内存版）退回先任务后差旅，内存里本来就没有
-        "半截"可言。改期事件也在这里一并写进差旅，不再事后补第二次保存。
+        `find_by_task` 就找不到它（HANDOFF §8 那条窄缝）。现在走 `TaskRepository.add_with_trip`：
+        两张表同一个库时一笔事务，否则先任务后差旅（内存里本来就没有"半截"可言）。
+        改期事件也在这里一并写进差旅，不再事后补第二次保存。
         """
         assert task.trip_id is not None
         if task.parent_task_id is None:
@@ -187,18 +187,8 @@ class ConfirmationMixin(OrchestratorState):
             if change_event is not None:
                 trip.events = (*trip.events, replace(change_event, opened_task_id=task.task_id))
             trip_is_new = False
-        # 一笔事务的前提是两张表在同一个库里：任务仓储和差旅仓储共用同一个引擎。
-        # 任务在 SQL、差旅在内存（单测常见）时联合写入会把差旅写到编排器看不见的地方。
-        engine = getattr(self.tasks, "engine", None)
-        joint = getattr(self.tasks, "add_with_trip", None)
-        if callable(joint) and engine is not None and getattr(self.trips, "engine", None) is engine:
-            joint(task, trip=trip, trip_is_new=trip_is_new)
-            return
-        self.tasks.add(task)
-        if trip_is_new:
-            self.trips.add(trip)
-        else:
-            self.trips.save(trip)
+        # 一笔事务还是两笔，由仓储按"两张表是否在同一个库里"决定；编排器不看引擎。
+        self.tasks.add_with_trip(task, trip=trip, trip_is_new=trip_is_new, trips=self.trips)
 
     def _register_trip_watch(self, task: TripTask, option: TravelOptionVersion) -> None:
         """单独登记观察对象（修复半截数据时用）；正常路径由 `confirm_booking` 随审计一笔写。"""
@@ -395,7 +385,7 @@ class ConfirmationMixin(OrchestratorState):
             note=note,
         )
         task.expense_reconciliation = reconciliation
-        self._audit(
+        self.recorder.audit(
             task,
             "EXPENSE_RECONCILED",
             {

@@ -32,7 +32,7 @@ from collections.abc import Mapping, Sequence
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, replace
 from datetime import date, datetime, time, timedelta
-from typing import Any, Protocol, cast
+from typing import Any, Protocol, cast, runtime_checkable
 from zoneinfo import ZoneInfo
 
 from corporate_travel_agent.domain.constraints import (
@@ -168,6 +168,16 @@ class LoopOutcome:
     hard_constraints: tuple[str, ...] = ()
     soft_preferences: tuple[str, ...] = ()
     transcript: tuple[ToolExchange, ...] = ()
+
+
+@runtime_checkable
+class ExchangeRecordingModel(Protocol):
+    """可选能力：把每次模型往返的完整报文留下来（`OpenAIToolCallingLanguageModel.exchanges`）。
+
+    过程记录靠它。评测替身不一定有，宿主用 isinstance 探测，没有就只记宿主自己看到的那部分。
+    """
+
+    exchanges: list[dict[str, Any]]
 
 
 class ToolCallingLanguageModelPort(Protocol):

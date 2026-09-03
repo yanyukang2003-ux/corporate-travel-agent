@@ -218,7 +218,7 @@ def test_when_the_trip_write_conflicts_the_task_row_is_rolled_back(tmp_path) -> 
     )
     stale.task_ids = (*stale.task_ids, "txn-orphan")
     with pytest.raises(ConcurrentUpdateError):
-        repository.add_with_trip(orphan, trip=stale, trip_is_new=False)
+        repository.add_with_trip(orphan, trip=stale, trip_is_new=False, trips=trips)
 
     with pytest.raises(NotFoundError):
         repository.get("txn-orphan")
@@ -254,7 +254,9 @@ def test_restart_recovery_does_not_touch_list_tasks(tmp_path, monkeypatch) -> No
             started_at=DEMO_CLOCK - timedelta(minutes=5),
         )
     )
-    workflow._audit(task, "TEST_PROCESS_KILLED", "simulated crash", {"state": task.state.value})
+    workflow.recorder.audit(
+        task, "TEST_PROCESS_KILLED", "simulated crash", {"state": task.state.value}
+    )
 
     def _forbidden():
         raise AssertionError("recovery must not scan the whole table")

@@ -186,7 +186,7 @@ class TripWatchMixin(OrchestratorState):
         outbox: tuple[OutboxEventDraft, ...] = ()
         if observation.verdict is not ChangeImpactVerdict.NO_CHANGE:
             outbox = (OutboxEventDraft(event_type="TRIP_FLIGHT_STATUS_NOTICE", payload=payload),)
-        self._audit(
+        self.recorder.audit(
             task,
             "FLIGHT_STATUS_OBSERVED",
             {
@@ -309,7 +309,7 @@ class TripWatchMixin(OrchestratorState):
             "reason": event.note,
             "watched_refs": watched_refs,
         }
-        self._audit(
+        self.recorder.audit(
             task,
             "TRIP_CANCELLED",
             {"trip_id": trip.trip_id, "reported_by": event.reported_by, "reason": event.note},
@@ -366,7 +366,7 @@ class TripWatchMixin(OrchestratorState):
         now = self.clock()
         reporter = (reported_by or "").strip() or task.requested_by
         task.messages.append(ConversationMessage(role="user", content=message, created_at=now))
-        self._audit(task, "CHANGE_MESSAGE_RECEIVED", message, {"trip_id": trip.trip_id})
+        self.recorder.audit(task, "CHANGE_MESSAGE_RECEIVED", message, {"trip_id": trip.trip_id})
 
         conversation = render_change_conversation(
             task=task, watch=trip.watch, journey=task.request.transport_legs(), message=message
@@ -402,7 +402,7 @@ class TripWatchMixin(OrchestratorState):
             task.messages.append(
                 ConversationMessage(role="assistant", content=question, created_at=self.clock())
             )
-            self._audit(task, "CHANGE_INTENT_QUESTION", message, question)
+            self.recorder.audit(task, "CHANGE_INTENT_QUESTION", message, question)
             return task
 
         change = outcome.change
@@ -416,7 +416,7 @@ class TripWatchMixin(OrchestratorState):
             task.messages.append(
                 ConversationMessage(role="assistant", content=reply, created_at=self.clock())
             )
-            self._audit(
+            self.recorder.audit(
                 task,
                 "CHANGE_INTENT_RESOLVED",
                 message,
@@ -441,7 +441,7 @@ class TripWatchMixin(OrchestratorState):
                 note=f"旅行者自述：{change.reason}",
                 reported_by=reporter,
             )
-        self._audit(
+        self.recorder.audit(
             task,
             "CHANGE_INTENT_RESOLVED",
             message,
@@ -460,7 +460,7 @@ class TripWatchMixin(OrchestratorState):
         change_task.messages.append(
             ConversationMessage(role="user", content=message, created_at=now)
         )
-        self._audit(
+        self.recorder.audit(
             change_task,
             "CHANGE_MESSAGE_CARRIED",
             {"from_task_id": task.task_id},

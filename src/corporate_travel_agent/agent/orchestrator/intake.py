@@ -18,6 +18,7 @@ from corporate_travel_agent.agent.orchestrator.core import (
 )
 from corporate_travel_agent.agent.orchestrator.state import OrchestratorState
 from corporate_travel_agent.agent.ports import LanguageModelError
+from corporate_travel_agent.agent.tool_loop import ExchangeRecordingModel
 from corporate_travel_agent.domain.enums import (
     ApprovalStatus,
     BookingScope,
@@ -153,7 +154,7 @@ class IntakeMixin(OrchestratorState):
                     },
                 ),
             )
-        self._audit(
+        self.recorder.audit(
             task,
             "TASK_CREATED",
             request,
@@ -210,7 +211,7 @@ class IntakeMixin(OrchestratorState):
             trip_id=str(uuid4()),
         )
         self._add_task_with_trip(task)
-        self._audit(
+        self.recorder.audit(
             task,
             "AGENTIC_TASK_CREATED_FROM_MESSAGE",
             message,
@@ -243,16 +244,18 @@ class IntakeMixin(OrchestratorState):
         task.failure = None
         task.clarification_question = None
         if prior_state is TaskState.NEEDS_CLARIFICATION:
-            self._audit(task, "AGENTIC_CLARIFICATION_RECEIVED", message, task.clarification_rounds)
+            self.recorder.audit(
+                task, "AGENTIC_CLARIFICATION_RECEIVED", message, task.clarification_rounds
+            )
         else:
             task.metadata.pop(PROVIDER_RETRY_METADATA_KEY, None)
-            self._audit(
+            self.recorder.audit(
                 task,
                 "AGENTIC_REVISION_RECEIVED",
                 message,
                 {"from_state": prior_state.value},
             )
-        self._transition(task, TaskState.DRAFT)
+        self.recorder.transition(task, TaskState.DRAFT)
         task.messages.append(
             ConversationMessage(role="user", content=message, created_at=self.clock())
         )
@@ -312,7 +315,7 @@ class IntakeMixin(OrchestratorState):
         # 函数级过程记录：这一轮循环发生的每一件事（对话装配原文、每次发给模型的
         # 完整报文和返回、每次工具调用的参数和结果、终局）都要落到任务上。
         # 适配器的 exchanges 是跨任务累计的，先记下起点，结束后只切走本轮的那一段。
-        exchanges_before = len(getattr(self.tool_calling_language_model, "exchanges", ()) or ())
+        exchanges_before = len(model.exchanges) if isinstance(model, ExchangeRecordingModel) else 0
         run_started_at = self.clock()
         # 循环期间**留在 DRAFT**。它把"理解"和"搜索"交织在一起做，现有状态机里
         # 没有一个格子正好对应这件事；进 SEARCHING 会让"最后决定提问"变成非法迁移。
@@ -370,8 +373,10 @@ class IntakeMixin(OrchestratorState):
             ]
             task.failure = str(exc)
             task.clarification_question = None
-            self._transition(task, TaskState.NEEDS_STRUCTURED_INPUT)
-            self._audit(task, "AGENTIC_LOOP_ABORTED", {"turns": len(ledger.turns)}, task.failure)
+            self.recorder.transition(task, TaskState.NEEDS_STRUCTURED_INPUT)
+            self.recorder.audit(
+                task, "AGENTIC_LOOP_ABORTED", {"turns": len(ledger.turns)}, task.failure
+            )
             return task
         except LanguageModelError as exc:
             self._capture_process_log(
@@ -385,8 +390,8 @@ class IntakeMixin(OrchestratorState):
             task.failure = str(exc)
             task.metadata["agentic_loop_failure"] = exc.trace_details()
             task.clarification_question = None
-            self._transition(task, TaskState.NEEDS_STRUCTURED_INPUT)
-            self._audit(
+            self.recorder.transition(task, TaskState.NEEDS_STRUCTURED_INPUT)
+            self.recorder.audit(
                 task,
                 "AGENTIC_LOOP_FAILED",
                 {"turns": len(ledger.turns)},
@@ -405,9 +410,11 @@ class IntakeMixin(OrchestratorState):
             task.failure = str(exc)
             task.options = []
             # 先记 SEARCHING 再记失败：库存确实去要过了，状态机也只从这里通往 PROVIDER_FAILED。
-            self._transition(task, TaskState.SEARCHING)
-            self._transition(task, TaskState.PROVIDER_FAILED)
-            self._audit(task, "AGENTIC_PROVIDER_FAILED", {"turns": len(ledger.turns)}, task.failure)
+            self.recorder.transition(task, TaskState.SEARCHING)
+            self.recorder.transition(task, TaskState.PROVIDER_FAILED)
+            self.recorder.audit(
+                task, "AGENTIC_PROVIDER_FAILED", {"turns": len(ledger.turns)}, task.failure
+            )
             return task
 
         self._note_llm_success()
@@ -465,7 +472,11 @@ class IntakeMixin(OrchestratorState):
         生产要落库前应换成按哈希去重存储——这里先把"记全"做对。
         """
         adapter = self.tool_calling_language_model
-        exchanges = list(getattr(adapter, "exchanges", ()) or ())[exchanges_before:]
+        exchanges = (
+            list(adapter.exchanges)[exchanges_before:]
+            if isinstance(adapter, ExchangeRecordingModel)
+            else []
+        )
         run: dict[str, Any] = {
             "run": len(task.metadata.get("process_log") or ()) + 1,
             "entry_function": (
@@ -562,8 +573,8 @@ class IntakeMixin(OrchestratorState):
         task.clarification_question = question
         if question:
             task.messages.append(ConversationMessage(role="assistant", content=question))
-        self._transition(task, TaskState.OUT_OF_SCOPE)
-        self._audit(task, "AGENTIC_OUT_OF_SCOPE", None, question)
+        self.recorder.transition(task, TaskState.OUT_OF_SCOPE)
+        self.recorder.audit(task, "AGENTIC_OUT_OF_SCOPE", None, question)
         return task
 
     def _stop_for_empty_inventory(
@@ -587,10 +598,10 @@ class IntakeMixin(OrchestratorState):
                 ]
             )
         )
-        self._record_searches(task, executor.searches)
-        self._transition(task, TaskState.SEARCHING)
+        self.recorder.record_searches(task, executor.searches)
+        self.recorder.transition(task, TaskState.SEARCHING)
         self._audit_snapshots(task, list(executor.captured_snapshots))
-        self._transition(task, TaskState.PLANNING)
+        self.recorder.transition(task, TaskState.PLANNING)
         task.request = None
         task.options = []
         task.selected_option_id = None
@@ -603,8 +614,8 @@ class IntakeMixin(OrchestratorState):
         task.clarification_question = question
         if question:
             task.messages.append(ConversationMessage(role="assistant", content=question))
-        self._transition(task, TaskState.NO_FEASIBLE_OPTION)
-        self._audit(task, "NO_FEASIBLE_OPTION", {"searched_legs": empty}, reasons)
+        self.recorder.transition(task, TaskState.NO_FEASIBLE_OPTION)
+        self.recorder.audit(task, "NO_FEASIBLE_OPTION", {"searched_legs": empty}, reasons)
         return task
 
     def _pause_for_agentic_question(self, task: TripTask, question: str | None) -> TripTask:
@@ -627,15 +638,17 @@ class IntakeMixin(OrchestratorState):
             task.failure = (
                 "Agentic clarification limit reached; use the structured form"
             )
-            self._transition(task, TaskState.NEEDS_STRUCTURED_INPUT)
-            self._audit(task, "AGENTIC_CLARIFICATION_EXHAUSTED", None, task.failure)
+            self.recorder.transition(task, TaskState.NEEDS_STRUCTURED_INPUT)
+            self.recorder.audit(task, "AGENTIC_CLARIFICATION_EXHAUSTED", None, task.failure)
             return task
         task.clarification_question = question or "请确认我对这次出行的理解。"
         task.messages.append(
             ConversationMessage(role="assistant", content=task.clarification_question)
         )
-        self._transition(task, TaskState.NEEDS_CLARIFICATION)
-        self._audit(task, "AGENTIC_CLARIFICATION_REQUESTED", None, task.clarification_question)
+        self.recorder.transition(task, TaskState.NEEDS_CLARIFICATION)
+        self.recorder.audit(
+            task, "AGENTIC_CLARIFICATION_REQUESTED", None, task.clarification_question
+        )
         return task
 
     def _plan_from_tool_loop(
@@ -655,23 +668,23 @@ class IntakeMixin(OrchestratorState):
         settled, empty_queries = self._settled_leg_searches(executor)
         if not settled:
             task.failure = "the tool loop proposed options without searching any transport leg"
-            self._transition(task, TaskState.NEEDS_STRUCTURED_INPUT)
-            self._audit(task, "AGENTIC_PROPOSAL_WITHOUT_SEARCH", None, task.failure)
+            self.recorder.transition(task, TaskState.NEEDS_STRUCTURED_INPUT)
+            self.recorder.audit(task, "AGENTIC_PROPOSAL_WITHOUT_SEARCH", None, task.failure)
             return task
 
         leg_snapshots = [snapshot for _, snapshot in settled]
         hotel_snapshots = [snapshot for _, snapshot in executor.stay_searches]
         # 搜索出处从执行器抄到任务上。**抄全部，不只抄用上的那几次**：
         # "我们还搜过这条航线、结果是空的"本身就是溯源的一部分。
-        self._record_searches(task, executor.searches)
-        self._transition(task, TaskState.SEARCHING)
+        self.recorder.record_searches(task, executor.searches)
+        self.recorder.transition(task, TaskState.SEARCHING)
         invalid = self._invalid_snapshot_ids([*leg_snapshots, *hotel_snapshots])
         if invalid:
             task.failure = "provider returned expired or invalid inventory snapshots: " + ", ".join(
                 invalid
             )
-            self._transition(task, TaskState.PROVIDER_FAILED)
-            self._audit(task, "INVENTORY_SNAPSHOT_REJECTED", tuple(invalid), task.failure)
+            self.recorder.transition(task, TaskState.PROVIDER_FAILED)
+            self.recorder.audit(task, "INVENTORY_SNAPSHOT_REJECTED", tuple(invalid), task.failure)
             return task
 
         version = task.request.version + 1 if task.request is not None else 1
@@ -691,12 +704,12 @@ class IntakeMixin(OrchestratorState):
         task.selected_option_id = None
         task.booking_intent = None
         task.approval = None
-        self._audit(task, "SEARCH_COMMAND_COMPILED", outcome.summary, task.request)
+        self.recorder.audit(task, "SEARCH_COMMAND_COMPILED", outcome.summary, task.request)
         self._record_coverage_notices(task, [*leg_snapshots, *hotel_snapshots])
         # 存档认**每一次真实搜索**，不认跨日合并出来的那个：合并快照的原始响应
         # 只覆盖第一天，却装着后面几天的报价，按哈希核对不上。见 `search_transport`。
         self._audit_snapshots(task, list(executor.captured_snapshots))
-        self._transition(task, TaskState.PLANNING)
+        self.recorder.transition(task, TaskState.PLANNING)
 
         task.options = self.planner.plan(
             request=task.request,
@@ -717,8 +730,8 @@ class IntakeMixin(OrchestratorState):
             )
             task.metadata["no_feasible_reasons"] = reasons
             task.failure = "; ".join(reasons)
-            self._transition(task, TaskState.NO_FEASIBLE_OPTION)
-            self._audit(task, "NO_FEASIBLE_OPTION", task.request.version, reasons)
+            self.recorder.transition(task, TaskState.NO_FEASIBLE_OPTION)
+            self.recorder.audit(task, "NO_FEASIBLE_OPTION", task.request.version, reasons)
             return task
 
         gap_questions = tuple(
@@ -752,21 +765,21 @@ class IntakeMixin(OrchestratorState):
                 ConversationMessage(role="assistant", content=task.clarification_question)
             )
             task.metadata["agentic_open_questions"] = list(open_questions)
-            self._audit(
+            self.recorder.audit(
                 task,
                 "AGENTIC_PARTIAL_ITINERARY",
                 {"legs_settled": len(settled)},
                 list(open_questions),
             )
-        self._transition(task, TaskState.OPTIONS_READY)
-        self._audit(
+        self.recorder.transition(task, TaskState.OPTIONS_READY)
+        self.recorder.audit(
             task,
             "OPTIONS_VERIFIED",
             task.request.version,
             [item.option_id for item in task.options],
             tuple(ref for item in task.options for ref in item.inventory_refs),
         )
-        self._transition(task, TaskState.WAITING_FOR_USER)
+        self.recorder.transition(task, TaskState.WAITING_FOR_USER)
         return task
 
     @staticmethod
@@ -875,13 +888,13 @@ class IntakeMixin(OrchestratorState):
             raise WorkflowError("Structured request identity does not match the draft task")
         request = self._canonicalize_request_cities(request)
         validate_trip_request(request).require_valid()
-        self._transition(task, TaskState.DRAFT)
+        self.recorder.transition(task, TaskState.DRAFT)
         task.request = request
         task.missing_required_fields = ()
         task.intent_conflicts = ()
         task.clarification_question = None
         task.failure = None
-        self._audit(task, "STRUCTURED_FALLBACK_SUBMITTED", request, request.version)
+        self.recorder.audit(task, "STRUCTURED_FALLBACK_SUBMITTED", request, request.version)
         return self._search_and_plan(task, self._policy_for(task))
 
     @staticmethod
@@ -969,13 +982,12 @@ class IntakeMixin(OrchestratorState):
         """
         if requester_id is None:
             return traveler.employee_id
-        knows = getattr(self.employees, "knows", None)
-        if callable(knows) and knows(requester_id):
-            may_book_for = getattr(self.employees, "may_book_for", None)
-            if callable(may_book_for) and not may_book_for(requester_id, traveler.employee_id):
-                raise WorkflowError(
-                    f"{requester_id} is not allowed to book on behalf of {traveler.employee_id}"
-                )
+        if self.employees.knows(requester_id) and not self.employees.may_book_for(
+            requester_id, traveler.employee_id
+        ):
+            raise WorkflowError(
+                f"{requester_id} is not allowed to book on behalf of {traveler.employee_id}"
+            )
         return requester_id
 
     def revise_request(self, task_id: str, request: TripRequestVersion) -> TripTask:
@@ -998,12 +1010,14 @@ class IntakeMixin(OrchestratorState):
         old_version = current_request.version
         if task.approval:
             task.approval.status = ApprovalStatus.INVALIDATED
-            self._audit(task, "APPROVAL_INVALIDATED", task.approval.subject_hash, request.version)
+            self.recorder.audit(
+                task, "APPROVAL_INVALIDATED", task.approval.subject_hash, request.version
+            )
         task.request = request
         task.options = []
         task.selected_option_id = None
         task.approval = None
         task.booking_intent = None
         task.metadata.pop(PROVIDER_RETRY_METADATA_KEY, None)
-        self._audit(task, "REQUEST_REVISED", old_version, request.version)
+        self.recorder.audit(task, "REQUEST_REVISED", old_version, request.version)
         return self._search_and_plan(task, self._policy_for(task))

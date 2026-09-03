@@ -48,6 +48,9 @@ mixin 组装，状态全部在实例上、只在 `__init__` 里定义。行为�
 2026-09-03 起 `state.py` 把这份状态契约写成代码：每个实例属性的类型，以及 mixin 之间互相调用的
 方法签名，都声明在 `OrchestratorState` 上（只有标注和 `NotImplementedError` 桩，运行时被真正的实现
 覆盖）。这张表就是 mixin 之间的耦合面，类型检查器逐条核对；它越短，模块越独立。
+写路径（审计事件、状态迁移、轨迹、搜索出处）是独立的协作对象 `recorder.TaskRecorder`（ADR-0006）：
+每个 mixin 调 `self.recorder.audit(...)`，任务更新、审计、发件箱事件、差旅聚合要不要放进同一笔事务，由仓储
+端口的 `add_with_trip` / `record_with_trip` 自己判断（两张表同一个引擎才一笔），编排器不再探测引擎。
 
 离线评测层使用严格 manifest 和固定来源哈希加载派生案例。PreferTripPlan 案例通过 Mock Provider 逐条运行同一个 Orchestrator、Planner 和 Policy Engine；Open-Travel 仅提供中文 query 与机器可检查的分类/缺失字段约束，不采用数据中的模型回答作为标准答案。
 
