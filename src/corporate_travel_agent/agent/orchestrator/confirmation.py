@@ -22,6 +22,7 @@ from corporate_travel_agent.domain.enums import (
 )
 from corporate_travel_agent.domain.models import (
     BookingConfirmation,
+    ChangeImpact,
     ExpenseReconciliation,
     TravelOptionVersion,
     Trip,
@@ -35,6 +36,7 @@ from corporate_travel_agent.domain.validation import (
     BookingConfirmationValidationError,
     validate_booking_confirmation_values,
 )
+from corporate_travel_agent.services.change_impact import next_flight_check_at
 from corporate_travel_agent.services.outbox_events import OutboxEventDraft
 
 
@@ -114,9 +116,12 @@ class ConfirmationMixin:
             booked_at=values.booked_at,
             note=values.note,
         )
-        # 先挂到聚合上再迁移：迁移会写审计并持久化整个聚合，确认记录得在那一笔里。
+        # 状态迁移、确认记录、确认审计、发件箱通知、差旅观察对象——**一笔**落库。
+        # 此前是三笔（迁移 / 审计 / 差旅），差旅那笔失败时留下"任务已确认、差旅没登记"的半截
+        # （2026-09-02 真链路实测踩到过）。
         task.booking_confirmation = confirmation
-        self._transition(task, TaskState.BOOKING_CONFIRMED)
+        transition = self._transition_pending(task, TaskState.BOOKING_CONFIRMED)
+        trip = self._trip_with_watch(task, option)
         self._audit(
             task,
             "BOOKING_CONFIRMED",
@@ -146,8 +151,9 @@ class ConfirmationMixin:
                     },
                 ),
             ),
+            trip=trip,
+            preceding=(transition,),
         )
-        self._register_trip_watch(task, option)
         return task
 
     # ------------------------------------------------------------------
@@ -194,9 +200,15 @@ class ConfirmationMixin:
             self.trips.save(trip)
 
     def _register_trip_watch(self, task: TripTask, option: TravelOptionVersion) -> None:
-        """下单确认之后登记观察对象：盯着确认方案的每一段，盯到最后一段落地后一天。"""
+        """单独登记观察对象（修复半截数据时用）；正常路径由 `confirm_booking` 随审计一笔写。"""
+        trip = self._trip_with_watch(task, option)
+        if trip is not None:
+            self.trips.save(trip)
+
+    def _trip_with_watch(self, task: TripTask, option: TravelOptionVersion) -> Trip | None:
+        """把观察对象挂到差旅上（不保存）：盯着确认方案的每一段，盯到最后一段落地后一天。"""
         if task.trip_id is None:
-            return  # 接差旅聚合之前建的旧任务
+            return None  # 接差旅聚合之前建的旧任务
         trip = self.trips.get(task.trip_id)
         now = self.clock()
         legs = tuple(
@@ -216,9 +228,13 @@ class ConfirmationMixin:
             legs=legs,
             registered_at=now,
             watch_until=max(last_arrival, now) + timedelta(days=1),
+            # watch worker 第一次该去问动态源的时刻：离起飞越近越勤，48 小时外先不问。
+            next_check_at=next_flight_check_at(
+                now, legs, lookahead_hours=self.trip_watch_lookahead_hours
+            ),
         )
         trip.status = TripStatus.REBOOKED if task.is_change_task else TripStatus.BOOKED
-        self.trips.save(trip)
+        return trip
 
     def report_trip_event(
         self,
@@ -230,14 +246,26 @@ class ConfirmationMixin:
         new_depart_at: datetime | None = None,
         new_arrive_by: datetime | None = None,
         note: str | None = None,
+        leg_index: int | None = None,
+        impact: ChangeImpact | None = None,
     ) -> TripTask:
         """收一条外部变更事件，开一个改期任务挂在这趟差旅下。原任务一个字不动。
 
         接受的条件：差旅已订（`BOOKED`/`REBOOKED`）、观察期没过；航变必须对上观察对象里
         的某张票，会议改期必须带新的最晚到达时刻。改期任务复用原请求：会议改期改最晚到达
-        时刻，航变把那张票排除在候选之外，然后照常走规划、政策、审批、交接、确认。
+        时刻（`leg_index` 指明是哪一段的，默认第一段），航变把那张票排除在候选之外，然后
+        照常走规划、政策、审批、交接、确认。
+
+        `impact` 是 watch worker 算出的影响评估（取消 / 赶不上 / 接不上），随事件一起记下，
+        改期任务的 `change_event` 元数据里能看到"为什么要改"。手工报的事件没有它。
         """
         trip = self.trips.get(trip_id)
+        if trip.status is TripStatus.CANCELLED:
+            raise WorkflowError(f"Trip {trip_id} has been cancelled; nothing to change")
+        if trip.status is TripStatus.CHANGE_REQUESTED:
+            raise WorkflowError(
+                f"Trip {trip_id} already has a change in progress (task {trip.latest_task_id})"
+            )
         if trip.status not in {TripStatus.BOOKED, TripStatus.REBOOKED} or trip.watch is None:
             raise WorkflowError(
                 f"Trip {trip_id} has no confirmed booking to change ({trip.status.value})"
@@ -245,6 +273,8 @@ class ConfirmationMixin:
         now = self.clock()
         if now > trip.watch.watch_until:
             raise WorkflowError("The trip has already been travelled; the watch window is over")
+        if event_type is TripEventType.TRIP_CANCELLED:
+            raise WorkflowError("Cancel a trip with cancel_trip, not as a change event")
         if event_type is TripEventType.FLIGHT_CHANGED:
             if not ref_id:
                 raise WorkflowError("FLIGHT_CHANGED needs the ref_id of the affected ticket")
@@ -255,6 +285,12 @@ class ConfirmationMixin:
         booked_task = self.tasks.get(trip.watch.task_id)
         if booked_task.request is None:
             raise WorkflowError("The booked task has no structured request to rebook from")
+        if leg_index is not None:
+            leg_count = len(booked_task.request.transport_legs())
+            if not 0 <= leg_index < leg_count:
+                raise WorkflowError(
+                    f"leg_index {leg_index} is out of range; this trip has {leg_count} legs"
+                )
         event = TripEvent(
             event_id=str(uuid4()),
             event_type=event_type,
@@ -265,6 +301,8 @@ class ConfirmationMixin:
             new_arrive_by=new_arrive_by,
             note=note,
             opened_task_id=None,
+            leg_index=leg_index,
+            impact=impact,
         )
         # 改期任务、差旅上的任务列表和这条事件在 `_add_task_with_trip` 里一笔写入。
         return self.create_task(
@@ -279,16 +317,39 @@ class ConfirmationMixin:
     def _change_request(
         request: TripRequestVersion, event: TripEvent, now: datetime
     ) -> TripRequestVersion:
-        """从被改的请求派生改期请求：新任务号、第 1 版；会议改期改最晚到达时刻。"""
+        """从被改的请求派生改期请求：新任务号、第 1 版；会议改期改**那一段**的最晚到达时刻。
+
+        `leg_index` 没给按第一段——接这个字段之前的事件都是改第一段。多城行程里
+        "杭州的客户改到 19 号见"改的是第二段，第一段一个字不动。
+        """
         values: dict[str, Any] = {"task_id": str(uuid4()), "version": 1, "created_at": now}
         if event.event_type is TripEventType.MEETING_MOVED and event.new_arrive_by is not None:
             new_arrive_by = event.new_arrive_by
+            index = event.leg_index or 0
+            # 搜索窗口整体平移：会议从 20 号推到 22 号，出发窗口也该从 19 号傍晚挪到 21 号傍晚。
+            # 只改到场时限的话，窗口会宽到三天，规划器会端出提前两天到的票——可行，但没人要。
+            legs = request.transport_legs()
+            shift = new_arrive_by - legs[index].arrive_before if index < len(legs) else None
+
+            def _shifted(depart_after: datetime | None) -> datetime | None:
+                if depart_after is None:
+                    return None
+                moved = depart_after + shift if shift is not None else depart_after
+                return moved if moved < new_arrive_by else new_arrive_by - timedelta(hours=24)
+
             if request.journey:
-                first, *rest = request.journey
-                values["journey"] = (replace(first, arrive_before=new_arrive_by), *rest)
-            values["arrive_by"] = new_arrive_by
-            if request.departure_after is not None and request.departure_after >= new_arrive_by:
-                values["departure_after"] = new_arrive_by - timedelta(hours=24)
+                journey = list(request.journey)
+                leg = journey[index]
+                journey[index] = replace(
+                    leg, arrive_before=new_arrive_by, depart_after=_shifted(leg.depart_after)
+                )
+                values["journey"] = tuple(journey)
+            if index == 0:
+                values["arrive_by"] = new_arrive_by
+                values["departure_after"] = _shifted(request.departure_after)
+            elif index == 1 and not request.journey and request.return_before is not None:
+                values["return_before"] = new_arrive_by
+                values["return_after"] = _shifted(request.return_after)
         return replace(request, **values)
 
     def reconcile_expense(

@@ -57,6 +57,10 @@ def _needs_arrival_buffer(request: TripRequestVersion, leg_index: int) -> bool:
     return False
 
 
+#: 公开名字：变更影响评估（`services/change_impact.py`）要按同一条规则读"这一段要不要留缓冲"。
+needs_arrival_buffer = _needs_arrival_buffer
+
+
 def planned_leg_count(request: TripRequestVersion) -> int:
     """这次要执行几段交通。
 

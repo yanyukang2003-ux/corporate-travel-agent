@@ -74,6 +74,9 @@ class TripStatus(StrEnum):
     REBOOKED = "REBOOKED"
     """改期任务也回填了下单确认。"""
 
+    CANCELLED = "CANCELLED"
+    """旅行者或发起人取消了这趟差旅。观察停止、看板不再显示；已订的票由人去退改。"""
+
 
 class TripEventType(StrEnum):
     """外部世界推来的、可能让已订行程失效的事。"""
@@ -83,6 +86,44 @@ class TripEventType(StrEnum):
 
     MEETING_MOVED = "MEETING_MOVED"
     """会议改了时间——由日历或旅行者本人报。"""
+
+    TRIP_CANCELLED = "TRIP_CANCELLED"
+    """旅行者或发起人取消了整趟差旅。不开改期任务。"""
+
+
+class FlightStatusKind(StrEnum):
+    """航班动态源报回来的一段交通的状态。"""
+
+    SCHEDULED = "SCHEDULED"
+    """按计划，没有变化。"""
+
+    DELAYED = "DELAYED"
+    """延误或时刻变更：带新的预计起降时刻。"""
+
+    CANCELLED = "CANCELLED"
+    """取消。"""
+
+    DEPARTED = "DEPARTED"
+    """已起飞。"""
+
+    LANDED = "LANDED"
+    """已落地。"""
+
+    UNKNOWN = "UNKNOWN"
+    """动态源查不到或没接：判不了，只记录。"""
+
+
+class ChangeImpactVerdict(StrEnum):
+    """一条航班动态对已订行程的影响——确定性代码算的，不是模型说的。"""
+
+    NO_CHANGE = "NO_CHANGE"
+    """和已知一致，或判不了：什么都不做。"""
+
+    NOTIFY_ONLY = "NOTIFY_ONLY"
+    """有变化但仍赶得上：通知旅行者，不开改期任务。"""
+
+    REBOOK_REQUIRED = "REBOOK_REQUIRED"
+    """取消、赶不上会议、或接不上下一段：开改期任务。"""
 
 
 class ReconciliationStatus(StrEnum):

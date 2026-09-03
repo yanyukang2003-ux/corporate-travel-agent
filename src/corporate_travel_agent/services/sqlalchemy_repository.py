@@ -28,7 +28,7 @@ from sqlalchemy.engine import Engine
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column
 
-from corporate_travel_agent.domain.enums import TaskState
+from corporate_travel_agent.domain.enums import TaskState, TripStatus
 from corporate_travel_agent.domain.models import AuditEvent, InventorySnapshot, Trip, TripTask
 from corporate_travel_agent.services.db_engine import (
     create_database_engine,
@@ -82,6 +82,7 @@ class TaskRow(Base):
         Index("ix_trip_tasks_retry_lease", "state", "retry_lease_until"),
         Index("ix_trip_tasks_pending_approver", "pending_approver_id", "state"),
         Index("ix_trip_tasks_requester_updated", "requester_id", "updated_at"),
+        Index("ix_trip_tasks_trip_id", "trip_id"),
     )
 
     task_id: Mapped[str] = mapped_column(String(64), primary_key=True)
@@ -100,6 +101,8 @@ class TaskRow(Base):
     retry_attempt_token: Mapped[str | None] = mapped_column(String(64))
     pending_approver_id: Mapped[str | None] = mapped_column(String(64))
     requester_id: Mapped[str | None] = mapped_column(String(64))
+    #: 属于哪趟差旅（投影）。差旅按任务反查走这一列，不再全表扫描差旅载荷。
+    trip_id: Mapped[str | None] = mapped_column(String(64))
     payload_schema_version: Mapped[int] = mapped_column(
         Integer, nullable=False, default=SCHEMA_VERSION
     )
@@ -284,6 +287,12 @@ class TripRow(Base):
     payload: Mapped[dict] = mapped_column(JSON_DOCUMENT, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    #: watch worker 下一次查航班动态的时刻（投影自载荷里的 `watch.next_check_at`）。
+    next_check_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    watch_lease_owner: Mapped[str | None] = mapped_column(String(128))
+    watch_lease_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    __table_args__ = (Index("ix_trips_next_check_at", "status", "next_check_at"),)
 
 
 class ProviderCircuitStateRow(Base):
@@ -461,6 +470,7 @@ class SQLAlchemyTaskRepository:
             "payload_schema_version",
             "pending_approver_id",
             "requester_id",
+            "trip_id",
         }
         missing_task_columns = sorted(required_task_columns - task_columns)
         if missing_task_columns:
@@ -535,6 +545,11 @@ class SQLAlchemyTaskRepository:
             **fields,
         )
         expected = trip.persistence_revision
+        if not trip_is_new:
+            # 先把版本号加一再序列化：载荷里的 revision 必须和 revision 列一致。
+            # 此前这里先序列化后加一，载荷落后列一版，下一次 `trips.save()` 就会按载荷里的旧版本
+            # 去比对列而失败——改期任务确认时"Trip … was updated concurrently"就是这么来的。
+            trip.persistence_revision = expected + 1
         try:
             with Session(self.engine) as session, session.begin():
                 session.add(row)
@@ -551,7 +566,6 @@ class SQLAlchemyTaskRepository:
                         raise ConcurrentUpdateError(
                             f"Trip {trip.trip_id} was updated concurrently"
                         )
-                    trip.persistence_revision = expected + 1
         except IntegrityError as exc:
             trip.persistence_revision = expected
             raise ValueError(f"Task {task.task_id} already exists") from exc
@@ -749,71 +763,117 @@ class SQLAlchemyTaskRepository:
         event: AuditEvent,
         *,
         outbox_events: Sequence[OutboxEventDraft] = (),
+        preceding: Sequence[AuditEvent] = (),
     ) -> None:
         """任务更新、审计事件、发件箱事件三者**同一笔事务**提交。
+
+        `preceding` 是要排在 `event` 前面、同一笔里一起落的审计事件——典型是状态迁移：
+        下单确认时"迁到 BOOKING_CONFIRMED"和"BOOKING_CONFIRMED 审计 + 通知"必须一起成或一起败。
+        每条事件占一个 revision，序号连续，乐观锁仍按写入前的版本比对。
 
         发件箱事件和任务状态要么一起落库、要么一起回滚：审批单进了状态机却没有通知
         出去，或者通知出去了而审批单其实没建成，都是不能接受的半截。
         """
         expected_revision = task.persistence_revision
-        next_revision = expected_revision + 1
-        task.persistence_revision = next_revision
-        fields = projection_fields(task)
-        retry = task.metadata.get("provider_retry")
-        attempt_token = retry.get("attempt_token") if isinstance(retry, dict) else None
+        events = (*preceding, event)
+        task.persistence_revision = expected_revision + len(events)
         try:
             with Session(self.engine) as session, session.begin():
-                statement = update(TaskRow).where(
-                        TaskRow.task_id == task.task_id,
-                        TaskRow.revision == expected_revision,
-                    )
-                if isinstance(attempt_token, str) and attempt_token:
-                    statement = statement.where(
-                        TaskRow.retry_attempt_token == attempt_token
-                    )
-                result = session.execute(
-                    statement.values(
-                        state=task.state.value,
-                        revision=next_revision,
-                        payload=serialize_task(task),
-                        updated_at=datetime.now(UTC),
-                        **fields,
-                    )
-                )
-                if result.rowcount != 1:
-                    raise ConcurrentUpdateError(
-                        f"Task {task.task_id} was updated concurrently"
-                    )
-                session.add(
-                    AuditEventRow(
-                        event_id=event.event_id,
-                        task_id=event.task_id,
-                        sequence=next_revision,
-                        event_type=event.event_type,
-                        payload=serialize_audit_event(event),
-                        created_at=event.created_at,
-                    )
-                )
-                for draft in outbox_events:
-                    outbox_event = draft.materialize(
-                        aggregate_type="trip_task", aggregate_id=task.task_id
-                    )
-                    session.add(
-                        OutboxEventRow(
-                            event_id=outbox_event.event_id,
-                            aggregate_type=outbox_event.aggregate_type,
-                            aggregate_id=outbox_event.aggregate_id,
-                            event_type=outbox_event.event_type,
-                            payload=outbox_event.payload,
-                            created_at=outbox_event.created_at,
-                            published_at=None,
-                            attempt_count=0,
-                            last_error=None,
-                        )
-                    )
+                self._record_in_session(session, task, events, expected_revision, outbox_events)
         except Exception:
             task.persistence_revision = expected_revision
             raise
+
+    def record_with_trip(
+        self,
+        task: TripTask,
+        event: AuditEvent,
+        *,
+        trip: Trip,
+        outbox_events: Sequence[OutboxEventDraft] = (),
+        preceding: Sequence[AuditEvent] = (),
+    ) -> None:
+        """`record()` 加上差旅聚合的更新，**同一笔事务**。
+
+        下单确认要同时登记观察对象、航班动态观察要同时记审计、取消差旅要同时发通知——
+        这三处此前都是两笔写入，差旅那笔失败时任务已经变了（2026-09-02 真链路实测留下过
+        "任务已确认、差旅没改订"的半截）。两张表同一个引擎才能一笔提交；编排器在
+        `_audit(trip=...)` 里判断，引擎不同时退回两笔。
+        """
+        expected_revision = task.persistence_revision
+        expected_trip_revision = trip.persistence_revision
+        events = (*preceding, event)
+        task.persistence_revision = expected_revision + len(events)
+        trip.persistence_revision = expected_trip_revision + 1
+        try:
+            with Session(self.engine) as session, session.begin():
+                self._record_in_session(session, task, events, expected_revision, outbox_events)
+                result = session.execute(
+                    trip_update_statement(trip, expected_revision=expected_trip_revision)
+                )
+                if result.rowcount != 1:
+                    raise ConcurrentUpdateError(f"Trip {trip.trip_id} was updated concurrently")
+        except Exception:
+            task.persistence_revision = expected_revision
+            trip.persistence_revision = expected_trip_revision
+            raise
+
+    def _record_in_session(
+        self,
+        session: Session,
+        task: TripTask,
+        events: Sequence[AuditEvent],
+        expected_revision: int,
+        outbox_events: Sequence[OutboxEventDraft],
+    ) -> None:
+        """任务行按乐观锁更新 + 审计行（每条一个序号）+ 发件箱行；调用方管事务和版本号回滚。"""
+        next_revision = expected_revision + len(events)
+        fields = projection_fields(task)
+        retry = task.metadata.get("provider_retry")
+        attempt_token = retry.get("attempt_token") if isinstance(retry, dict) else None
+        statement = update(TaskRow).where(
+            TaskRow.task_id == task.task_id,
+            TaskRow.revision == expected_revision,
+        )
+        if isinstance(attempt_token, str) and attempt_token:
+            statement = statement.where(TaskRow.retry_attempt_token == attempt_token)
+        result = session.execute(
+            statement.values(
+                state=task.state.value,
+                revision=next_revision,
+                payload=serialize_task(task),
+                updated_at=datetime.now(UTC),
+                **fields,
+            )
+        )
+        if result.rowcount != 1:
+            raise ConcurrentUpdateError(f"Task {task.task_id} was updated concurrently")
+        for offset, event in enumerate(events, start=1):
+            session.add(
+                AuditEventRow(
+                    event_id=event.event_id,
+                    task_id=event.task_id,
+                    sequence=expected_revision + offset,
+                    event_type=event.event_type,
+                    payload=serialize_audit_event(event),
+                    created_at=event.created_at,
+                )
+            )
+        for draft in outbox_events:
+            outbox_event = draft.materialize(aggregate_type="trip_task", aggregate_id=task.task_id)
+            session.add(
+                OutboxEventRow(
+                    event_id=outbox_event.event_id,
+                    aggregate_type=outbox_event.aggregate_type,
+                    aggregate_id=outbox_event.aggregate_id,
+                    event_type=outbox_event.event_type,
+                    payload=outbox_event.payload,
+                    created_at=outbox_event.created_at,
+                    published_at=None,
+                    attempt_count=0,
+                    last_error=None,
+                )
+            )
 
     def events(self, task_id: str) -> tuple[AuditEvent, ...]:
         with Session(self.engine) as session:
@@ -1038,6 +1098,13 @@ class SQLAlchemyProviderQuoteContextStore:
             return len(rows)
 
 
+def trip_watch_due_at(trip: Trip) -> datetime | None:
+    """投影列 `next_check_at`：只有已订、还在观察的差旅才排检查。"""
+    if trip.watch is None or trip.status not in {TripStatus.BOOKED, TripStatus.REBOOKED}:
+        return None
+    return trip.watch.next_check_at
+
+
 def trip_row_from(trip: Trip) -> TripRow:
     """从聚合造一行；`SQLAlchemyTripRepository.add` 和 `add_with_trip` 共用。"""
     return TripRow(
@@ -1049,11 +1116,15 @@ def trip_row_from(trip: Trip) -> TripRow:
         payload=serialize_trip(trip),
         created_at=trip.created_at,
         updated_at=trip.created_at,
+        next_check_at=trip_watch_due_at(trip),
     )
 
 
 def trip_update_statement(trip: Trip, *, expected_revision: int):
-    """乐观锁更新：`revision` 对不上就一行都不动，调用方按 rowcount 判冲突。"""
+    """乐观锁更新：`revision` 对不上就一行都不动，调用方按 rowcount 判冲突。
+
+    每次保存都重算 `next_check_at` 投影并放掉 watch 租约：保存就是"这一轮处理完了"。
+    """
     return (
         update(TripRow)
         .where(TripRow.trip_id == trip.trip_id, TripRow.revision == expected_revision)
@@ -1062,6 +1133,9 @@ def trip_update_statement(trip: Trip, *, expected_revision: int):
             revision=expected_revision + 1,
             payload=serialize_trip(trip),
             updated_at=datetime.now(tz=trip.created_at.tzinfo),
+            next_check_at=trip_watch_due_at(trip),
+            watch_lease_owner=None,
+            watch_lease_until=None,
         )
     )
 

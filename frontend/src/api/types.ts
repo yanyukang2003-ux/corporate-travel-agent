@@ -463,8 +463,95 @@ export interface TripTask {
   parent_task_id: string | null
   change_event_id: string | null
   is_change_task: boolean
-  change_event: { event_type: string; ref_id: string | null; note: string | null; excluded_refs?: string[] } | null
+  change_event: {
+    event_type: string
+    ref_id: string | null
+    note: string | null
+    excluded_refs?: string[]
+    leg_index?: number | null
+    reported_by?: string
+    /** watch worker 算出的影响（取消 / 赶不上 / 接不上）；手工报的事件没有。 */
+    impact?: ChangeImpact | null
+  } | null
   summary: false
+}
+
+export type TripStatus = 'PLANNED' | 'BOOKED' | 'CHANGE_REQUESTED' | 'REBOOKED' | 'CANCELLED'
+export type TripEventType = 'FLIGHT_CHANGED' | 'MEETING_MOVED' | 'TRIP_CANCELLED'
+export type FlightStatusKind = 'SCHEDULED' | 'DELAYED' | 'CANCELLED' | 'DEPARTED' | 'LANDED' | 'UNKNOWN'
+export type ChangeImpactVerdict = 'NO_CHANGE' | 'NOTIFY_ONLY' | 'REBOOK_REQUIRED'
+
+/** 一条航班动态对已订行程的影响——确定性代码算的，带依据。 */
+export interface ChangeImpact {
+  verdict: ChangeImpactVerdict
+  reasons: string[]
+  assessed_at?: string
+  delay_minutes: number | null
+  new_arrive_at: string | null
+  latest_acceptable_arrival: string | null
+  buffer_minutes: number
+  connection_ok?: boolean | null
+}
+
+/** 观察对象上某一段最近一次航班动态，以及系统对它的判断。 */
+export interface FlightObservation {
+  ref_id: string
+  status: FlightStatusKind
+  observed_at: string
+  source: string
+  verdict: ChangeImpactVerdict
+  reasons: string[]
+  estimated_depart_at: string | null
+  estimated_arrive_at: string | null
+  opened_task_id: string | null
+}
+
+/** 下单确认之后登记的观察对象。 */
+export interface TripWatch {
+  task_id: string
+  legs: WatchLeg[]
+  registered_at: string
+  watch_until: string
+  next_check_at: string | null
+  last_checked_at: string | null
+  check_count: number
+  observations: FlightObservation[]
+}
+
+/** 收到的一条变更事件，以及它开出来的改期任务。 */
+export interface TripEvent {
+  event_id: string
+  event_type: TripEventType
+  received_at: string
+  reported_by: string
+  ref_id: string | null
+  new_depart_at: string | null
+  new_arrive_by: string | null
+  note: string | null
+  opened_task_id: string | null
+  leg_index: number | null
+  impact: ChangeImpact | null
+}
+
+/** `GET /trips/{id}`：一趟差旅，跨越规划任务和改期任务。 */
+export interface TripAggregate {
+  trip_id: string
+  traveler_id: string
+  requester_id: string
+  status: TripStatus
+  task_ids: string[]
+  created_at: string
+  watch: TripWatch | null
+  events: TripEvent[]
+}
+
+/** `POST /trips/{id}/events`：旅行者能报的是会议改期；航变由动态源报。 */
+export interface TripEventCreate {
+  event_type: TripEventType
+  ref_id?: string | null
+  new_arrive_by?: string | null
+  note?: string | null
+  leg_index?: number | null
 }
 
 /** 任务审计事件条目。 */

@@ -67,3 +67,8 @@ jobs:
         run: |
           alembic upgrade head
           python examples/verify_postgres.py
+          python examples/upgrade_task_payloads.py
+      - name: Postgres-only behaviour (SKIP LOCKED, JSONB, joint writes)
+        env:
+          TEST_DATABASE_URL: postgresql+psycopg://travel_agent:travel_agent_dev@127.0.0.1:5432/travel_agent
+        run: pytest tests/test_postgres_live.py -q

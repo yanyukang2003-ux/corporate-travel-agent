@@ -91,6 +91,7 @@ class TaskRepository(Protocol):
         event: AuditEvent,
         *,
         outbox_events: Sequence[OutboxEventDraft] = (),
+        preceding: Sequence[AuditEvent] = (),
     ) -> None: ...
 
     def events(self, task_id: str) -> tuple[AuditEvent, ...]: ...
@@ -312,12 +313,14 @@ class InMemoryTaskRepository:
         event: AuditEvent,
         *,
         outbox_events: Sequence[OutboxEventDraft] = (),
+        preceding: Sequence[AuditEvent] = (),
     ) -> None:
         if task.task_id not in self._tasks:
             raise NotFoundError(task.task_id)
-        task.persistence_revision += 1
+        events = (*preceding, event)
+        task.persistence_revision += len(events)
         self._tasks[task.task_id] = task
-        self._events[task.task_id].append(event)
+        self._events[task.task_id].extend(events)
         self._updated_at[task.task_id] = datetime.now()
         for draft in outbox_events:
             self.outbox.add(

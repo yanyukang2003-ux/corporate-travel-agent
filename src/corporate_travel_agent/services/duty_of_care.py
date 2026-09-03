@@ -56,7 +56,8 @@ _ORDER = {
 def whereabouts_of(trip: Trip, *, at: datetime) -> Whereabouts | None:
     """一趟差旅在 `at` 这一刻的位置；没有观察对象（没确认过）就是 None。"""
     watch = trip.watch
-    if watch is None or not watch.legs:
+    if watch is None or not watch.legs or trip.status is TripStatus.CANCELLED:
+        # 取消了的差旅：人不去了，观察对象只是历史。
         return None
     legs = sorted(watch.legs, key=lambda leg: leg.depart_at)
     change_pending = trip.status is TripStatus.CHANGE_REQUESTED

@@ -44,10 +44,17 @@ from corporate_travel_agent.agent.orchestrator.records import (
     _travel_profile_from_metadata as _travel_profile_from_metadata,
 )
 from corporate_travel_agent.agent.orchestrator.resilience import ResilienceMixin
+from corporate_travel_agent.agent.orchestrator.watch import TripWatchMixin
 from corporate_travel_agent.agent.ports import WorkflowTraceObserverPort
 from corporate_travel_agent.planning.planner import ItineraryPlanner
 from corporate_travel_agent.providers.base import TravelInventoryProvider
+from corporate_travel_agent.providers.flight_status import FlightStatusPort, NullFlightStatusSource
 from corporate_travel_agent.services.budget_ledger import BudgetLedgerPort
+from corporate_travel_agent.services.change_impact import (
+    DEFAULT_DELAY_NOTICE_MINUTES,
+    DEFAULT_LOOKAHEAD_HOURS,
+    DEFAULT_MIN_CONNECTION_MINUTES,
+)
 from corporate_travel_agent.services.locations import CityNormalizer
 from corporate_travel_agent.services.provider_resilience import (
     DEFAULT_CIRCUIT_OPEN_SECONDS,
@@ -85,6 +92,7 @@ class TripWorkflowOrchestrator(
     PlanningMixin,
     ApprovalMixin,
     ConfirmationMixin,
+    TripWatchMixin,
     ResilienceMixin,
     RecordsMixin,
 ):
@@ -159,6 +167,16 @@ class TripWorkflowOrchestrator(
         provider_retry_lease_seconds: float = 900.0,
         city_normalizer: CityNormalizer | None = None,
         trace_observer: WorkflowTraceObserverPort | None = None,
+        #: 航班动态源。默认没接（`NullFlightStatusSource`）：watch worker 一趟都不领。
+        flight_status_source: FlightStatusPort | None = None,
+        trip_watch_worker_id: str | None = None,
+        trip_watch_lease_seconds: float = 300.0,
+        #: 起飞前多少小时开始盯。
+        trip_watch_lookahead_hours: int = DEFAULT_LOOKAHEAD_HOURS,
+        #: 前一段落地到下一段起飞至少留多久才算接得上。
+        min_connection_minutes: int = DEFAULT_MIN_CONNECTION_MINUTES,
+        #: 延误多少分钟以内不打扰旅行者。
+        delay_notice_minutes: int = DEFAULT_DELAY_NOTICE_MINUTES,
     ) -> None:
         if max_tool_calls < 1:
             raise ValueError("max_tool_calls must be at least 1")
@@ -232,6 +250,29 @@ class TripWorkflowOrchestrator(
         )
         self.city_normalizer = city_normalizer or CityNormalizer()
         self.trace_observer = trace_observer
+        if not 1 <= trip_watch_lease_seconds <= 3600:
+            raise ValueError("trip_watch_lease_seconds must be between 1 and 3600")
+        if not 1 <= trip_watch_lookahead_hours <= 24 * 14:
+            raise ValueError("trip_watch_lookahead_hours must be between 1 and 336")
+        if not 0 <= min_connection_minutes <= 24 * 60:
+            raise ValueError("min_connection_minutes must be between 0 and 1440")
+        if not 0 <= delay_notice_minutes <= 24 * 60:
+            raise ValueError("delay_notice_minutes must be between 0 and 1440")
+        self.flight_status_source: FlightStatusPort = (
+            flight_status_source or NullFlightStatusSource()
+        )
+        self.trip_watch_worker_id = trip_watch_worker_id or f"watch-{uuid4()}"
+        self.trip_watch_lease_duration = timedelta(seconds=trip_watch_lease_seconds)
+        self.trip_watch_lookahead_hours = trip_watch_lookahead_hours
+        self.min_connection_minutes = min_connection_minutes
+        self.delay_notice_minutes = delay_notice_minutes
+        self._trip_watch_metrics = {
+            "claimed": 0,
+            "checked": 0,
+            "notices": 0,
+            "changes_opened": 0,
+            "source_errors": 0,
+        }
         self._tool_budget_lock = RLock()
         self._delayed_retry_lock = RLock()
         self.recover_interrupted_tasks()

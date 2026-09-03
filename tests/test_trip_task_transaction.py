@@ -83,6 +83,120 @@ def test_a_change_task_its_trip_link_and_the_event_are_one_write(tmp_path) -> No
     assert repository.get(change.task_id).parent_task_id == "txn-booked"
 
 
+def test_the_trip_can_be_saved_again_after_the_joint_write(tmp_path) -> None:
+    """联合写入之后差旅的版本号在载荷和列里必须一致，否则改期任务确认时会报"并发更新"。
+
+    真链路（Postgres）实测踩到的：会议改期开了改期任务（联合写入），旅行者在改期任务上回填
+    订单号，`_register_trip_watch` 保存差旅 → ConcurrentUpdateError。内存仓储不校验版本，
+    单测此前没抓到。
+    """
+    workflow, _, trips = _sql_system(tmp_path)
+    task, _ = _booked(workflow, "txn-rebook")
+    change = workflow.report_trip_event(
+        task.trip_id,
+        event_type=TripEventType.MEETING_MOVED,
+        new_arrive_by=task.request.arrive_by + timedelta(hours=6),
+        reported_by="E1001",
+    )
+    loaded = trips.get(task.trip_id)
+    assert loaded.status is TripStatus.CHANGE_REQUESTED
+    # 载荷和列都说同一个版本；worker 领取到的也一样。
+    assert loaded.persistence_revision == trips.get(task.trip_id).persistence_revision
+
+    option = next(
+        item for item in change.options if item.policy_decision.outcome is PolicyOutcome.COMPLIANT
+    )
+    workflow.select_option(change.task_id, option.option_id)
+    workflow.confirm_booking(
+        change.task_id,
+        order_references=["PNR-T2"],
+        total_amount=option.total_cost,
+        currency=option.currency,
+        reported_by="E1001",
+    )
+    rebooked = trips.get(task.trip_id)
+    assert rebooked.status is TripStatus.REBOOKED
+    assert rebooked.watch is not None and rebooked.watch.task_id == change.task_id
+    # 之后照常能领取、能保存。
+    claimed = trips.claim_due_flight_checks(
+        worker_id="w", now=rebooked.watch.next_check_at, lease_duration=timedelta(minutes=5)
+    )
+    assert [item.trip_id for item in claimed] == [task.trip_id]
+    trips.save(claimed[0])
+
+
+def test_confirmation_audit_and_trip_watch_are_one_write(tmp_path) -> None:
+    """下单确认：状态迁移、确认审计、发件箱通知、差旅观察对象一笔落库；差旅冲突时整笔回滚。"""
+    workflow, repository, trips = _sql_system(tmp_path)
+    task = workflow.create_task(make_demo_request(task_id="txn-confirm"))
+    option = next(
+        item for item in task.options if item.policy_decision.outcome is PolicyOutcome.COMPLIANT
+    )
+    workflow.select_option(task.task_id, option.option_id)
+    workflow.mark_handed_off(task.task_id)
+    events_before = [item.event_type for item in repository.events(task.task_id)]
+    outbox_before = repository.outbox.unpublished_count() if hasattr(repository, "outbox") else None
+
+    # 别人先改了差旅一版：确认时差旅那笔会撞乐观锁。
+    stale = trips.get(task.trip_id)
+    trips.save(trips.get(task.trip_id))
+    trips_get = trips.get
+    trips.get = lambda trip_id: stale if trip_id == task.trip_id else trips_get(trip_id)  # type: ignore[method-assign]
+    try:
+        with pytest.raises(ConcurrentUpdateError):
+            workflow.confirm_booking(
+                task.task_id,
+                order_references=["PNR-C"],
+                total_amount=option.total_cost,
+                currency=option.currency,
+                reported_by="E1001",
+            )
+    finally:
+        trips.get = trips_get  # type: ignore[method-assign]
+
+    # 整笔回滚：状态没迁、确认没记、审计没多、差旅没动。
+    stored = repository.get(task.task_id)
+    assert stored.state is TaskState.HANDED_OFF
+    assert stored.booking_confirmation is None
+    assert [item.event_type for item in repository.events(task.task_id)] == events_before
+    assert trips.get(task.trip_id).status is TripStatus.PLANNED
+    assert trips.get(task.trip_id).watch is None
+
+    # 再来一次就是一笔成功的联合写入：迁移审计排在确认审计前面，序号连续。
+    confirmed = workflow.confirm_booking(
+        task.task_id,
+        order_references=["PNR-C"],
+        total_amount=option.total_cost,
+        currency=option.currency,
+        reported_by="E1001",
+    )
+    assert confirmed.state is TaskState.BOOKING_CONFIRMED
+    events = [item.event_type for item in repository.events(task.task_id)]
+    assert events[-2:] == ["STATE_TRANSITION", "BOOKING_CONFIRMED"]
+    assert repository.get(task.task_id).persistence_revision == len(events)
+    trip = trips.get(task.trip_id)
+    assert trip.status is TripStatus.BOOKED
+    assert trip.watch is not None and trip.watch.task_id == task.task_id
+    del outbox_before
+
+
+def test_find_by_task_uses_the_projection_column(tmp_path) -> None:
+    workflow, repository, trips = _sql_system(tmp_path)
+    task = workflow.create_task(make_demo_request(task_id="txn-find"))
+    from sqlalchemy import select
+    from sqlalchemy.orm import Session
+
+    from corporate_travel_agent.services.sqlalchemy_repository import TaskRow
+
+    with Session(repository.engine) as session:
+        projected = session.execute(
+            select(TaskRow.trip_id).where(TaskRow.task_id == "txn-find")
+        ).scalar_one()
+    assert projected == task.trip_id
+    assert trips.find_by_task("txn-find").trip_id == task.trip_id
+    assert trips.find_by_task("nope") is None
+
+
 def test_when_the_trip_write_conflicts_the_task_row_is_rolled_back(tmp_path) -> None:
     """要么一起成、要么一起回滚：差旅乐观锁撞了，任务行不能留下半截。"""
     workflow, repository, trips = _sql_system(tmp_path)

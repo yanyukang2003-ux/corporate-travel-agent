@@ -15,6 +15,7 @@ from corporate_travel_agent.agent.orchestrator.core import WorkflowError
 from corporate_travel_agent.agent.ports import WorkflowTraceEvent
 from corporate_travel_agent.domain.enums import PreferenceOrigin, TaskState
 from corporate_travel_agent.domain.models import (
+    AuditEvent,
     BudgetSnapshot,
     EmployeeTravelProfileSnapshot,
     InventorySnapshot,
@@ -22,6 +23,7 @@ from corporate_travel_agent.domain.models import (
     ProfilePreference,
     SearchProvenance,
     TravelOptionVersion,
+    Trip,
     TripRequestVersion,
     TripTask,
 )
@@ -161,6 +163,18 @@ class RecordsMixin:
         task.state = self.state_machine.transition(previous, target)
         self._audit(task, "STATE_TRANSITION", previous.value, target.value)
 
+    def _transition_pending(self, task: TripTask, target: TaskState) -> AuditEvent:
+        """迁移状态但先不落库：把迁移审计交给下一次 `_audit(preceding=...)` 同一笔写。
+
+        下单确认用它：迁到 `BOOKING_CONFIRMED`、确认审计、发件箱通知、差旅观察对象四件事
+        必须一起成或一起败，拆成两笔就会留下"状态改了、通知没发 / 差旅没登记"的半截。
+        """
+        previous = task.state
+        task.state = self.state_machine.transition(previous, target)
+        return new_audit_event(
+            task.task_id, "STATE_TRANSITION", input_value=previous.value, output_value=target.value
+        )
+
     def _audit(
         self,
         task: TripTask,
@@ -170,12 +184,18 @@ class RecordsMixin:
         evidence_refs: tuple[str, ...] = (),
         *,
         outbox: Sequence[OutboxEventDraft] = (),
+        trip: Trip | None = None,
+        preceding: Sequence[AuditEvent] = (),
     ) -> None:
         """写审计事件并可选推送轨迹观察者。
 
         `outbox` 是要**随这次状态变化一起**进发件箱的事件：仓储把任务更新、审计事件和
         发件箱事件放进同一笔事务。审批单建了却没通知出去、或通知出去了审批单其实没建成，
         都是不能接受的半截。
+
+        `trip` 是要**随这次审计一起**保存的差旅聚合（下单确认登记观察对象、航班动态观察、
+        取消差旅）。两个仓储共用一个引擎时走 `record_with_trip` 一笔提交；否则退回
+        "先任务后差旅"两笔——内存仓储本来就没有半截可言。
         """
         event = new_audit_event(
             task.task_id,
@@ -184,10 +204,39 @@ class RecordsMixin:
             output_value=output_value,
             evidence_refs=evidence_refs,
         )
-        if outbox:
-            self.tasks.record(task, event, outbox_events=tuple(outbox))
+        preceding = tuple(preceding)
+        if trip is not None:
+            engine = getattr(self.tasks, "engine", None)
+            joint = getattr(self.tasks, "record_with_trip", None)
+            if (
+                callable(joint)
+                and engine is not None
+                and getattr(self.trips, "engine", None) is engine
+            ):
+                joint(task, event, trip=trip, outbox_events=tuple(outbox), preceding=preceding)
+            else:
+                self.tasks.record(task, event, outbox_events=tuple(outbox), preceding=preceding)
+                self.trips.save(trip)
+        elif outbox or preceding:
+            self.tasks.record(task, event, outbox_events=tuple(outbox), preceding=preceding)
         else:
             self.tasks.record(task, event)
+        for earlier in preceding:
+            if earlier.event_type == "STATE_TRANSITION":
+                self._record_trace(
+                    WorkflowTraceEvent(
+                        kind="state_transition",
+                        name="STATE_TRANSITION",
+                        status="success",
+                        started_at=datetime.now(UTC),
+                        duration_ms=0.0,
+                        state_before=str(earlier.input_hash),
+                        state_after=task.state.value,
+                        input_value=None,
+                        output_value=task.state.value,
+                        evidence_refs=(),
+                    )
+                )
         if event_type.startswith("TOOL_CALL_"):
             return
         state_before = task.state.value

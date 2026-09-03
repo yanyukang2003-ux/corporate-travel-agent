@@ -84,6 +84,13 @@ def build_demo_system(
     budget_ledger: object | None = None,
     #: 差旅聚合仓储。默认内存；API 按 DATABASE_URL 换成 SQL。
     trip_repository: object | None = None,
+    #: 航班动态源。默认没接；API 按 FLIGHT_STATUS_SOURCE 装配。
+    flight_status_source: object | None = None,
+    trip_watch_worker_id: str | None = None,
+    trip_watch_lease_seconds: float = 300.0,
+    trip_watch_lookahead_hours: int = 48,
+    min_connection_minutes: int = 60,
+    delay_notice_minutes: int = 15,
 ) -> tuple[TripWorkflowOrchestrator, TravelInventoryProvider]:
     """构建演示系统：返回 (Orchestrator, Provider)，便于本地/API 冒烟。"""
     effective_clock = clock or (lambda: datetime.now(UTC))
@@ -226,6 +233,12 @@ def build_demo_system(
         timezone_name=policy_configuration.config.timezone_name,
         city_normalizer=CityNormalizer(policy_configuration.city_aliases),
         trace_observer=trace_observer,
+        flight_status_source=flight_status_source,  # type: ignore[arg-type]
+        trip_watch_worker_id=trip_watch_worker_id,
+        trip_watch_lease_seconds=trip_watch_lease_seconds,
+        trip_watch_lookahead_hours=trip_watch_lookahead_hours,
+        min_connection_minutes=min_connection_minutes,
+        delay_notice_minutes=delay_notice_minutes,
     )
     return workflow, provider
 

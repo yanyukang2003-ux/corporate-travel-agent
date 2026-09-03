@@ -12,6 +12,8 @@ from .enums import (
     ApprovalStatus,
     BookingConfirmationSource,
     BookingScope,
+    ChangeImpactVerdict,
+    FlightStatusKind,
     PolicyOutcome,
     PreferenceOrigin,
     RawResponseAccessPolicy,
@@ -844,16 +846,89 @@ class TripWatchLeg:
 
 
 @dataclass(frozen=True, slots=True)
+class FlightStatusReport:
+    """航班动态源对一段交通的一次回答：状态、预计起降时刻、谁说的、什么时候说的。
+
+    这是**输入**，不是判断。它可能来自轮询的动态源、企业 TMC 的推送、也可能是管理员
+    手工报的。对已订行程有什么影响，由 `services/change_impact.assess_flight_change`
+    这段确定性代码算，不由报告者说了算。
+    """
+
+    ref_id: str
+    status: FlightStatusKind
+    observed_at: datetime
+    source: str
+    #: 新的预计起降时刻。按计划 / 取消 / 查不到时为 None。
+    estimated_depart_at: datetime | None = None
+    estimated_arrive_at: datetime | None = None
+    note: str | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class ChangeImpact:
+    """一条航班动态对已订行程的影响——确定性代码算出来的结论和它的依据。
+
+    `reasons` 是给旅行者和审计看的人话；`latest_acceptable_arrival` 是这一段最晚
+    几点到还来得及（到场时限减去政策的安全缓冲），`new_arrive_at` 是动态源说的
+    新到达时刻。两者摆在一起，"为什么要改期"或"为什么只通知"就说得出口。
+    """
+
+    verdict: ChangeImpactVerdict
+    reasons: tuple[str, ...]
+    assessed_at: datetime
+    delay_minutes: int | None = None
+    new_arrive_at: datetime | None = None
+    latest_acceptable_arrival: datetime | None = None
+    buffer_minutes: int = 0
+    #: 和下一段接不接得上；没有下一段时为 None。
+    connection_ok: bool | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class FlightObservation:
+    """观察对象上某一段最近一次航班动态，以及系统对它的判断。
+
+    每段只留最近一次——历史在被观察任务的审计事件里（`FLIGHT_STATUS_OBSERVED`）。
+    """
+
+    ref_id: str
+    status: FlightStatusKind
+    observed_at: datetime
+    source: str
+    verdict: ChangeImpactVerdict
+    reasons: tuple[str, ...]
+    estimated_depart_at: datetime | None = None
+    estimated_arrive_at: datetime | None = None
+    #: 这次观察开出的改期任务；没开就是 None。
+    opened_task_id: str | None = None
+
+
+@dataclass(frozen=True, slots=True)
 class TripWatch:
-    """下单确认之后登记的观察对象：盯到最后一段出发后一天为止。"""
+    """下单确认之后登记的观察对象：盯到最后一段出发后一天为止。
+
+    `next_check_at` 是 watch worker 下一次该去问动态源的时刻（`services/change_impact.
+    next_flight_check_at` 算的：离起飞越近查得越勤）。None 表示没什么可查了——所有段
+    都落地了，或者这趟差旅登记在接动态源之前、从没排过检查。
+    """
 
     task_id: str
     legs: tuple[TripWatchLeg, ...]
     registered_at: datetime
     watch_until: datetime
+    next_check_at: datetime | None = None
+    last_checked_at: datetime | None = None
+    check_count: int = 0
+    observations: tuple[FlightObservation, ...] = ()
 
     def leg(self, ref_id: str) -> TripWatchLeg | None:
         return next((item for item in self.legs if item.ref_id == ref_id), None)
+
+    def leg_index(self, ref_id: str) -> int | None:
+        return next((i for i, item in enumerate(self.legs) if item.ref_id == ref_id), None)
+
+    def observation(self, ref_id: str) -> FlightObservation | None:
+        return next((item for item in self.observations if item.ref_id == ref_id), None)
 
 
 @dataclass(frozen=True, slots=True)
@@ -871,6 +946,10 @@ class TripEvent:
     new_arrive_by: datetime | None
     note: str | None
     opened_task_id: str | None
+    #: 会议改期改的是第几段的到场时限（0 起）。None 按第一段——接这个字段之前的事件都是。
+    leg_index: int | None = None
+    #: 航变时确定性代码算出的影响；手工报的事件没有就是 None。
+    impact: ChangeImpact | None = None
 
 
 @dataclass(slots=True)

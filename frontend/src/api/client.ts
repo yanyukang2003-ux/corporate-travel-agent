@@ -18,6 +18,8 @@ import type {
   ProvenanceRecord,
   TripTask,
   UserIdentity,
+  TripAggregate,
+  TripEventCreate,
 } from './types'
 import type { TaskStep } from './types'
 import { feedSse } from '../utils/stream'
@@ -124,6 +126,7 @@ async function streamTask(
   const token = getToken()
   if (token) headers.set('Authorization', `Bearer ${token}`)
   const response = await fetch(`${API_BASE}${path}`, {
+    method: 'POST',
     headers,
     body: JSON.stringify(body),
   })
@@ -298,8 +301,22 @@ export const api = {
   /** 成本中心预算消耗（仅管理员）。 */
   budgets: () => request<BudgetsResponse>('/budgets'),
 
+  /** 一趟差旅：观察对象、航班动态、变更事件。 */
+  getTrip: (tripId: string) => request<TripAggregate>(`/trips/${tripId}`),
 
+  /** 报一条变更事件（会议改期 / 航变），后端开一个改期任务并返回它。 */
+  reportTripEvent: (tripId: string, payload: TripEventCreate) =>
+    request<TripTask>(`/trips/${tripId}/events`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
 
+  /** 取消整趟差旅：观察停止、看板不再显示；票由人去官方平台退改。 */
+  cancelTrip: (tripId: string, reason?: string) =>
+    request<TripAggregate>(`/trips/${tripId}/cancel`, {
+      method: 'POST',
+      body: JSON.stringify({ reason: reason?.trim() || null }),
+    }),
 
   /**
    * 流式创建自然语言任务：`onStep` 逐步收到过程记录，返回值是最终任务。

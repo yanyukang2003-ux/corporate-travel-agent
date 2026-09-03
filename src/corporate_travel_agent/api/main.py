@@ -6,7 +6,10 @@ V1 只规划与合规校验，不代付、不预订、不退改。
 
 from __future__ import annotations
 
+import hashlib
+import hmac
 import json
+import logging
 import os
 from contextlib import asynccontextmanager
 from dataclasses import asdict
@@ -15,11 +18,11 @@ from decimal import Decimal
 from typing import Annotated, Any
 from uuid import uuid4
 
-from fastapi import Depends, FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_validator
 
 from corporate_travel_agent.agent.orchestrator import (
     PARTIAL_COVERAGE_METADATA_KEY,
@@ -30,9 +33,15 @@ from corporate_travel_agent.agent.ports import LanguageModelError
 from corporate_travel_agent.agent.tool_loop_adapter import OpenAIToolCallingLanguageModel
 from corporate_travel_agent.demo import build_demo_system
 from corporate_travel_agent.domain.constraints import HardConstraint, SoftPreference
-from corporate_travel_agent.domain.enums import BookingScope, TripEventType
+from corporate_travel_agent.domain.enums import (
+    BookingScope,
+    FlightStatusKind,
+    TaskState,
+    TripEventType,
+)
 from corporate_travel_agent.domain.models import (
     AuditEvent,
+    FlightStatusReport,
     InventorySnapshot,
     TripRequestVersion,
     TripTask,
@@ -44,6 +53,7 @@ from corporate_travel_agent.planning.cost_guidance import (
 )
 from corporate_travel_agent.planning.preferences import duration_minutes_per_unit
 from corporate_travel_agent.providers.factory import travel_provider_from_environment
+from corporate_travel_agent.providers.flight_status import flight_status_source_from_environment
 from corporate_travel_agent.services.auth import (
     AuthenticationFailed,
     AuthService,
@@ -74,23 +84,36 @@ from corporate_travel_agent.services.repositories import (
     TaskRepository,
 )
 from corporate_travel_agent.services.runtime_config import validate_deployment_environment
+from corporate_travel_agent.services.serialization import PayloadIncompatible
 from corporate_travel_agent.services.task_projections import pending_approver_id
 from corporate_travel_agent.services.task_steps import collect_task_steps
+from corporate_travel_agent.services.trip_watch import (
+    DEFAULT_TRIP_WATCH_LEASE_SECONDS,
+    DEFAULT_TRIP_WATCH_POLL_SECONDS,
+    TripWatchScheduler,
+)
+
+LOGGER = logging.getLogger(__name__)
 
 provider_retry_scheduler: ProviderRetryScheduler | None = None
+trip_watch_scheduler: TripWatchScheduler | None = None
 
 validate_deployment_environment(os.environ)
 
 
 @asynccontextmanager
 async def _lifespan(_: FastAPI):
-    """启动/停止 Provider 延迟重试调度器，并在退出时释放资源。"""
+    """启动/停止 Provider 延迟重试和差旅观察两个调度器，并在退出时释放资源。"""
     if provider_retry_scheduler is not None:
         provider_retry_scheduler.start()
+    if trip_watch_scheduler is not None:
+        trip_watch_scheduler.start()
     try:
         yield
     finally:
         retry_worker_drained = True
+        if trip_watch_scheduler is not None:
+            trip_watch_scheduler.stop()
         if provider_retry_scheduler is not None:
             retry_worker_drained = provider_retry_scheduler.stop()
         if retry_worker_drained:
@@ -298,6 +321,30 @@ def _configured_provider_resilience() -> tuple[float, int, tuple[float, ...], fl
     return circuit_seconds, max_delayed_attempts, schedule, poll_seconds
 
 
+def _configured_trip_watch() -> tuple[float, float, int, int, int]:
+    """读取差旅观察（watch worker）与变更影响评估的配置。"""
+    poll_seconds = float(
+        os.getenv("TRIP_WATCH_POLL_SECONDS", str(DEFAULT_TRIP_WATCH_POLL_SECONDS))
+    )
+    lease_seconds = float(
+        os.getenv("TRIP_WATCH_LEASE_SECONDS", str(DEFAULT_TRIP_WATCH_LEASE_SECONDS))
+    )
+    lookahead_hours = int(os.getenv("TRIP_WATCH_LOOKAHEAD_HOURS", "48"))
+    min_connection = int(os.getenv("TRIP_CHANGE_MIN_CONNECTION_MINUTES", "60"))
+    delay_notice = int(os.getenv("FLIGHT_DELAY_NOTICE_MINUTES", "15"))
+    if poll_seconds <= 0:
+        raise RuntimeError("TRIP_WATCH_POLL_SECONDS must be greater than zero")
+    if not 1 <= lease_seconds <= 3600:
+        raise RuntimeError("TRIP_WATCH_LEASE_SECONDS must be between 1 and 3600")
+    if not 1 <= lookahead_hours <= 336:
+        raise RuntimeError("TRIP_WATCH_LOOKAHEAD_HOURS must be between 1 and 336")
+    if not 0 <= min_connection <= 1440:
+        raise RuntimeError("TRIP_CHANGE_MIN_CONNECTION_MINUTES must be between 0 and 1440")
+    if not 0 <= delay_notice <= 1440:
+        raise RuntimeError("FLIGHT_DELAY_NOTICE_MINUTES must be between 0 and 1440")
+    return poll_seconds, lease_seconds, lookahead_hours, min_connection, delay_notice
+
+
 raw_response_store = _configured_raw_response_store()
 auth_service = AuthService.from_environment()
 policy_configuration = load_policy_configuration_from_environment()
@@ -327,6 +374,14 @@ configured_travel_provider = travel_provider_from_environment(
     delayed_provider_retry_seconds,
     provider_retry_poll_seconds,
 ) = _configured_provider_resilience()
+(
+    trip_watch_poll_seconds,
+    trip_watch_lease_seconds,
+    trip_watch_lookahead_hours,
+    trip_change_min_connection_minutes,
+    flight_delay_notice_minutes,
+) = _configured_trip_watch()
+flight_status_source = flight_status_source_from_environment()
 workflow, _provider = build_demo_system(
     tool_calling_language_model=_configured_tool_calling_language_model(),
     task_repository=task_repository,
@@ -349,12 +404,24 @@ workflow, _provider = build_demo_system(
     provider_retry_lease_seconds=float(
         os.getenv("PROVIDER_RETRY_LEASE_SECONDS", "900")
     ),
+    flight_status_source=flight_status_source,
+    trip_watch_worker_id=os.getenv("TRIP_WATCH_WORKER_ID") or None,
+    trip_watch_lease_seconds=trip_watch_lease_seconds,
+    trip_watch_lookahead_hours=trip_watch_lookahead_hours,
+    min_connection_minutes=trip_change_min_connection_minutes,
+    delay_notice_minutes=flight_delay_notice_minutes,
 )
 provider_retry_scheduler = (
     ProviderRetryScheduler(
         workflow,
         poll_seconds=provider_retry_poll_seconds,
     )
+    if process_role in {"worker", "all"}
+    else None
+)
+# 差旅观察 worker：和延迟重试一样只在 worker / all 角色里起；没接动态源时它每轮空转。
+trip_watch_scheduler = (
+    TripWatchScheduler(workflow, poll_seconds=trip_watch_poll_seconds)
     if process_role in {"worker", "all"}
     else None
 )
@@ -529,6 +596,18 @@ def health() -> dict[str, Any]:
             "retry_lease_seconds": workflow.provider_retry_lease_duration.total_seconds(),
             "retry_metrics": workflow.provider_retry_metrics(),
         },
+        "trip_watch": {
+            "source": workflow.flight_status_source.name,
+            "source_configured": bool(getattr(workflow.flight_status_source, "configured", True)),
+            "worker_enabled": trip_watch_scheduler is not None,
+            "poll_seconds": trip_watch_poll_seconds,
+            "lease_seconds": workflow.trip_watch_lease_duration.total_seconds(),
+            "lookahead_hours": workflow.trip_watch_lookahead_hours,
+            "min_connection_minutes": workflow.min_connection_minutes,
+            "delay_notice_minutes": workflow.delay_notice_minutes,
+            "webhook_configured": bool(os.getenv("FLIGHT_STATUS_WEBHOOK_SECRET")),
+            "metrics": workflow.trip_watch_metrics(),
+        },
     }
 
 
@@ -623,6 +702,10 @@ def list_trips(
             task = workflow.tasks.get(item.task_id)
         except NotFoundError:
             continue
+        except PayloadIncompatible as exc:
+            # 一行旧载荷不该让整张列表 500：摘要（投影列）照常可见，全文跳过并记日志。
+            LOGGER.warning("skipping task %s in full listing: %s", item.task_id, exc)
+            continue
         if _can_read_task(identity, task):
             tasks.append(_public_task(task))
     return tasks
@@ -709,6 +792,9 @@ def _agentic_message_operation(task_id: str, message: str, identity: UserIdentit
     """
     task = _visible_task(task_id, identity)
     _require_can_operate(identity, task)
+    if task.state is TaskState.BOOKING_CONFIRMED:
+        reporter = _requester_id(identity) or identity.user_id
+        return lambda: workflow.submit_change_message(task_id, message, reported_by=reporter)
     return lambda: workflow.submit_agentic_message(task_id, message)
 
 
@@ -986,6 +1072,33 @@ class TripEventRequest(BaseModel):
     new_depart_at: datetime | None = None
     new_arrive_by: datetime | None = None
     note: str | None = Field(default=None, max_length=500)
+    #: 会议改期改的是第几段的到场时限（0 起）；不填按第一段。
+    leg_index: int | None = Field(default=None, ge=0, le=20)
+
+
+class FlightStatusIn(BaseModel):
+    """一条航班动态：某张票现在怎么样了。只是事实，影响由系统算。"""
+    model_config = ConfigDict(extra="forbid")
+
+    ref_id: str = Field(min_length=1, max_length=128)
+    status: FlightStatusKind
+    estimated_depart_at: datetime | None = None
+    estimated_arrive_at: datetime | None = None
+    observed_at: datetime | None = None
+    source: str = Field(default="carrier-feed", min_length=1, max_length=64)
+    note: str | None = Field(default=None, max_length=500)
+
+
+class FlightStatusPush(FlightStatusIn):
+    """入站推送：可以不带 trip_id，按票号找到正盯着它的差旅。"""
+
+    trip_id: str | None = Field(default=None, max_length=64)
+
+
+class TripCancelRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    reason: str | None = Field(default=None, max_length=500)
 
 
 def _visible_trip(trip_id: str, identity: UserIdentity):
@@ -1058,8 +1171,122 @@ def report_trip_event(
             new_arrive_by=payload.new_arrive_by,
             note=payload.note,
             reported_by=reported_by,
+            leg_index=payload.leg_index,
         )
     )
+
+
+def _observe_flight_status(
+    trip_id: str, payload: FlightStatusIn, *, reported_by: str
+) -> dict[str, Any]:
+    report = FlightStatusReport(
+        ref_id=payload.ref_id,
+        status=payload.status,
+        observed_at=payload.observed_at or workflow.clock(),
+        source=payload.source,
+        estimated_depart_at=payload.estimated_depart_at,
+        estimated_arrive_at=payload.estimated_arrive_at,
+        note=payload.note,
+    )
+    try:
+        observation = workflow.observe_flight_status(trip_id, report, reported_by=reported_by)
+    except NotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except (ConcurrentUpdateError, WorkflowError, ValueError) as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    return {
+        "observation": asdict(observation),
+        "trip": _public_trip(workflow.trips.get(trip_id)),
+    }
+
+
+@app.post("/trips/{trip_id}/flight-status")
+def report_flight_status(
+    trip_id: str, payload: FlightStatusIn, identity: CurrentIdentity
+) -> dict[str, Any]:
+    """报一条航班动态（管理员，代表航司/供应商推送）。
+
+    和 `POST /trips/{id}/events` 的区别：那边是"我要开一个改期任务"；这边只是"这张票
+    现在这样"——先过确定性影响评估，取消 / 赶不上 / 接不上才开改期任务，延误但来得及只通知。
+    """
+    if not identity.has_role(Role.ADMIN):
+        raise HTTPException(status_code=403, detail="Flight status is reported by the carrier feed")
+    trip = _visible_trip(trip_id, identity)
+    return _observe_flight_status(
+        trip.trip_id, payload, reported_by=f"flight-status:{payload.source}"
+    )
+
+
+@app.post("/flight-status/webhook")
+async def flight_status_webhook(request: Request) -> dict[str, Any]:
+    """企业侧 / TMC 推送航班动态：HMAC-SHA256 签名验身份，不走 Bearer。
+
+    配置 `FLIGHT_STATUS_WEBHOOK_SECRET`；请求头 `X-Flight-Status-Signature` 是对原始请求体
+    的 HMAC-SHA256 十六进制摘要。没配密钥就 503——不接受没法验身份的推送。
+    """
+    secret = os.getenv("FLIGHT_STATUS_WEBHOOK_SECRET")
+    if not secret:
+        raise HTTPException(status_code=503, detail="Flight status webhook is not configured")
+    body = await request.body()
+    signature = request.headers.get("X-Flight-Status-Signature", "")
+    expected = hmac.new(secret.encode(), body, hashlib.sha256).hexdigest()
+    if not signature or not hmac.compare_digest(signature, expected):
+        raise HTTPException(status_code=401, detail="Invalid flight status signature")
+    try:
+        payload = FlightStatusPush.model_validate_json(body)
+    except ValidationError as exc:
+        # 不带 input：坏 JSON 的 input 是 bytes，塞进 detail 会让 422 变成 500。
+        raise HTTPException(
+            status_code=422, detail=exc.errors(include_input=False, include_url=False)
+        ) from exc
+    status_in = FlightStatusIn(**payload.model_dump(exclude={"trip_id"}))
+    reported_by = f"flight-status:{payload.source}"
+    if payload.trip_id is not None:
+        result = _observe_flight_status(payload.trip_id, status_in, reported_by=reported_by)
+        return {"results": [result], "trip_count": 1}
+    # 一班航班上可能坐着好几位旅行者：只带票号的推送对每一趟盯着它的差旅都算数。
+    trips = workflow.trips.list_watching(payload.ref_id)
+    if not trips:
+        raise HTTPException(
+            status_code=404, detail=f"No watched trip holds ticket {payload.ref_id}"
+        )
+    results = [
+        _observe_flight_status(trip.trip_id, status_in, reported_by=reported_by) for trip in trips
+    ]
+    return {"results": results, "trip_count": len(results)}
+
+
+@app.post("/trips/{trip_id}/cancel")
+def cancel_trip(
+    trip_id: str, payload: TripCancelRequest, identity: CurrentIdentity
+) -> dict[str, Any]:
+    """旅行者、发起人或管理员取消整趟差旅：观察停止、看板不再显示，票由人去退改。"""
+    trip = _visible_trip(trip_id, identity)
+    reported_by = _requester_id(identity) or identity.user_id
+    try:
+        cancelled = workflow.cancel_trip(
+            trip.trip_id, reported_by=reported_by, reason=payload.reason
+        )
+    except NotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except (ConcurrentUpdateError, WorkflowError, ValueError) as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    return _public_trip(cancelled)
+
+
+@app.post("/trip-watch/run")
+def run_trip_watch(identity: CurrentIdentity, limit: int = 20) -> dict[str, Any]:
+    """管理员手动跑一轮差旅观察。生产里由 `examples/run_trip_watch_worker.py` 循环做同一件事。"""
+    if not identity.has_role(Role.ADMIN):
+        raise HTTPException(status_code=403, detail="Admin role required")
+    if not 1 <= limit <= 200:
+        raise HTTPException(status_code=400, detail="limit must be between 1 and 200")
+    processed = workflow.process_due_flight_checks(limit=limit)
+    return {
+        "processed": list(processed),
+        "source": workflow.flight_status_source.name,
+        "metrics": workflow.trip_watch_metrics(),
+    }
 
 
 class ExpenseImportRequest(BaseModel):
@@ -1397,11 +1624,19 @@ def inventory_snapshots(
 
 
 def _visible_task(task_id: str, identity: UserIdentity) -> TripTask:
-    """按权限取任务；不可见则 404。"""
+    """按权限取任务；不可见则 404；库里的旧载荷升不上来给 500 但说清楚该做什么。"""
     try:
         task = workflow.tasks.get(task_id)
     except NotFoundError as exc:
         raise HTTPException(status_code=404, detail="Task not found") from exc
+    except PayloadIncompatible as exc:
+        raise HTTPException(
+            status_code=500,
+            detail=(
+                f"Stored task payload predates the current schema ({exc.version}); "
+                "run examples/upgrade_task_payloads.py --apply"
+            ),
+        ) from exc
     if not _can_read_task(identity, task):
         raise HTTPException(status_code=404, detail="Task not found")
     return task

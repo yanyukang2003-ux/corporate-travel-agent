@@ -139,7 +139,10 @@ class TripLifecycleTests(unittest.TestCase):
         )
 
         self.assertEqual(change.request.arrive_by, new_arrive_by)
-        self.assertEqual(change.request.departure_after, task.request.departure_after)
+        # 出发窗口跟着到场时限一起平移：会议推迟一天，最早出发也推迟一天。
+        self.assertEqual(
+            change.request.departure_after, task.request.departure_after + timedelta(days=1)
+        )
         self.assertEqual(change.request.version, 1)
         self.assertNotEqual(change.task_id, task.task_id)
         self.assertEqual(change.metadata["excluded_refs"], [])

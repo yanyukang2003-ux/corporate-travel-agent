@@ -26,8 +26,10 @@ import type {
   BusinessMetricsReport,
   DutyOfCareResponse,
   BudgetsResponse,
+  TripAggregate,
 } from './api/types'
-import { formatTravelDate, formatTravelTime, getStateMeta, parseIsoWallClock } from './utils/state'
+import { formatDateTime, formatTravelDate, formatTravelTime, getStateMeta, parseIsoWallClock } from './utils/state'
+import { canReportChange, eventLine, legLine, localInputToIso, observationFor, tripStatusLabel, tripStatusTone, verdictLabel, verdictTone } from './utils/watch'
 import { approvalReasonText, openQuestionsFromTask } from './utils/notices'
 import { chatTurns } from './utils/chat'
 import { optionReasons } from './utils/reasons'
@@ -667,7 +669,7 @@ function ChatPane({
             onKeyDown={(event) => {
               if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') void submit()
             }}
-            placeholder={task ? '继续补充，或者直接改主意……' : '例如：下周二从北京去上海见客户，优先高铁，酒店离客户近一点……'}
+            placeholder={task?.state === 'BOOKING_CONFIRMED' ? '行程已订好。会议改了时间、航司说航班有变、或者这趟不去了，直接说……' : task ? '继续补充，或者直接改主意……' : '例如：下周二从北京去上海见客户，优先高铁，酒店离客户近一点……'}
           />
           <button
             className="primary chat-send"
@@ -1276,6 +1278,152 @@ function HandoffPanel({ task, busy, error, onHandoff, onConfirm }: {
   </section>
 }
 
+/**
+ * 订好之后：观察对象、航班动态、变更事件，以及"报变更 / 取消"的表单。
+ *
+ * 数据来自 `GET /trips/{id}`。航班动态由 watch worker 或航司推送进来，先过确定性影响评估；
+ * 这里只把结论和依据摆出来。会议改期走 `POST /trips/{id}/events`，取消走 `POST /trips/{id}/cancel`。
+ */
+function TripWatchPanel({ task, onOpenTask, onToast }: {
+  task: TripTask
+  onOpenTask: (task: TripTask) => void
+  onToast: (text: string) => void
+}) {
+  const tripId = task.trip_id
+  const [trip, setTrip] = useState<TripAggregate | null>(null)
+  const [error, setError] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [kind, setKind] = useState<'MEETING_MOVED' | 'CANCEL'>('MEETING_MOVED')
+  const [legIndex, setLegIndex] = useState(0)
+  const [newArriveBy, setNewArriveBy] = useState('')
+  const [note, setNote] = useState('')
+  const [epoch, setEpoch] = useState(0)
+
+  useEffect(() => {
+    if (!tripId) return
+    let cancelled = false
+    api.getTrip(tripId)
+      .then((item) => {
+        if (cancelled) return
+        setTrip(item)
+        setError('')
+      })
+      .catch((err) => {
+        if (!cancelled) setError(err instanceof Error ? err.message : '读取差旅失败')
+      })
+    return () => { cancelled = true }
+  }, [tripId, epoch])
+
+  if (!tripId) return null
+  const legs = trip?.watch?.legs ?? []
+  const journey = task.transport_legs
+
+  const submit = async () => {
+    setBusy(true)
+    setError('')
+    try {
+      if (kind === 'CANCEL') {
+        const next = await api.cancelTrip(tripId, note)
+        setTrip(next)
+        onToast('差旅已取消；已订的票请自行到官方平台退改')
+      } else {
+        const iso = localInputToIso(newArriveBy)
+        if (!iso) {
+          setError('请填新的最晚到达时刻')
+          return
+        }
+        const change = await api.reportTripEvent(tripId, {
+          event_type: 'MEETING_MOVED',
+          leg_index: legIndex,
+          new_arrive_by: iso,
+          note: note.trim() || null,
+        })
+        onToast(`已开改期任务 ${change.task_id.slice(0, 8)} · ${getStateMeta(change.state).label}`)
+        onOpenTask(change)
+      }
+      setNote('')
+      setNewArriveBy('')
+      setEpoch((value) => value + 1)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '提交变更失败')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const openLatest = async () => {
+    if (!trip) return
+    try {
+      onOpenTask(await api.getTask(trip.task_ids[trip.task_ids.length - 1]))
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '打开改期任务失败')
+    }
+  }
+
+  return <section className="handoff-panel watch-panel" data-testid="trip-watch">
+    <div className="handoff-head">
+      <span className="handoff-signal"><Icon name="clock" size={20} /></span>
+      <div>
+        <div className="section-kicker">TRIP WATCH</div>
+        <h2>行程追踪与变更</h2>
+        <p>下单确认后系统盯着每一段：航班动态进来先判影响，取消或赶不上才开改期任务，延误但来得及只通知。会议改了时间或不去了，在这里报，或者直接在左边说。</p>
+      </div>
+      {trip && <Badge tone={tripStatusTone(trip.status)}>{tripStatusLabel(trip.status)}</Badge>}
+    </div>
+    {error && <div className="clarification-error"><Icon name="info" size={14} />{error}</div>}
+    {trip && <dl className="handoff-facts watch-facts">
+      {legs.map((leg) => {
+        const observation = observationFor(trip, leg.ref_id)
+        return <div key={leg.ref_id} data-testid={`watch-leg-${leg.ref_id}`}>
+          <dt>{leg.origin} → {leg.destination}</dt>
+          <dd>
+            {legLine(leg, observation)}
+            {observation && <> <Badge tone={verdictTone(observation.verdict)}>{verdictLabel(observation.verdict)}</Badge></>}
+            {observation?.reasons.map((reason) => <small className="muted" key={reason}><br />{reason}</small>)}
+          </dd>
+        </div>
+      })}
+      {trip.watch && <div>
+        <dt>下次查动态</dt>
+        <dd>{trip.watch.next_check_at ? formatDateTime(trip.watch.next_check_at) : '不再查（已落地、改期中或已取消）'} · 已查 {trip.watch.check_count} 次</dd>
+      </div>}
+    </dl>}
+    {trip && trip.events.length > 0 && <ul className="watch-events">
+      {trip.events.map((event) => <li key={event.event_id}>
+        {eventLine(event)}
+        {event.impact && <small className="muted"> · {event.impact.reasons.join('；')}</small>}
+      </li>)}
+    </ul>}
+    {trip && trip.status === 'CHANGE_REQUESTED' && <div className="handoff-actions watch-actions">
+      <button className="handoff-secondary" disabled={busy} onClick={() => void openLatest()}>打开改期任务</button>
+    </div>}
+    {canReportChange(trip) && <div className="handoff-form">
+      <div className="handoff-form-row watch-form-row">
+        <label><span>变更类型</span>
+          <select data-testid="change-kind" value={kind} onChange={(event) => setKind(event.target.value as 'MEETING_MOVED' | 'CANCEL')}>
+            <option value="MEETING_MOVED">会议改了时间</option>
+            <option value="CANCEL">这趟不去了</option>
+          </select>
+        </label>
+        {kind === 'MEETING_MOVED' && <label><span>哪一段</span>
+          <select value={legIndex} onChange={(event) => setLegIndex(Number(event.target.value))}>
+            {journey.map((leg, index) => <option key={`${leg.origin}-${leg.destination}-${index}`} value={index}>第 {index + 1} 段 {leg.origin} → {leg.destination}</option>)}
+          </select>
+        </label>}
+      </div>
+      {kind === 'MEETING_MOVED' && <label><span>新的最晚到达时刻（当地）</span><input data-testid="new-arrive-by" type="datetime-local" value={newArriveBy} onChange={(event) => setNewArriveBy(event.target.value)} /></label>}
+      <label><span>说明（可选）</span><input value={note} onChange={(event) => setNote(event.target.value)} placeholder={kind === 'CANCEL' ? '比如：项目取消了' : '比如：客户把会议推到了周五'} /></label>
+      <div className="handoff-actions">
+        <button className={kind === 'CANCEL' ? 'danger-outline' : 'primary'} data-testid="submit-change" disabled={busy || (kind === 'MEETING_MOVED' && !newArriveBy)} onClick={() => void submit()}>
+          {busy ? '正在提交…' : kind === 'CANCEL' ? '取消这趟差旅' : '按新时间重新规划'}
+        </button>
+      </div>
+      <p className="handoff-help"><Icon name="info" size={14} />改期开的是新任务，原任务和它的审计不动；旧票的退改由你去官方平台办，本系统不代退、不代改。</p>
+    </div>}
+    {trip && trip.status === 'CANCELLED' && <p className="handoff-help watch-cancelled"><Icon name="info" size={14} />这趟差旅已取消；已订的票请到官方平台自行退改。</p>}
+  </section>
+}
+
 function OptionCard({ option, selected, compared, onSelect, onCompare }: {
   option: DisplayOption
   selected: boolean
@@ -1465,7 +1613,11 @@ function PlanView({ onToast, composerEpoch, onNewTrip }: {
       const isClarification = !composingNew
         && task
         && (task.state === 'NEEDS_CLARIFICATION' || task.state === 'NEEDS_STRUCTURED_INPUT')
-      const continueAgentic = !composingNew
+      // 订好之后的聊天读成变更请求（会议改期 / 航变自述 / 取消），不分入口：
+      // 后端不会重跑规划，原任务一个字不动；改期时返回的是新开的改期任务。
+      const continueChange = !composingNew && task && task.state === 'BOOKING_CONFIRMED'
+      const continueAgentic = continueChange || (
+        !composingNew
         && task
         && task.intent_entrypoint === 'agentic'
         && (
@@ -1473,6 +1625,7 @@ function PlanView({ onToast, composerEpoch, onNewTrip }: {
           || task.state === 'WAITING_FOR_USER'
           || task.state === 'NO_FEASIBLE_OPTION'
         )
+      )
       // 旧入口（legacy / semantic）已删除（ADR-0003）：还停在澄清态的旧任务不能续聊，
       // 只能新建；这里把它当成新任务处理，不再按 intent_entrypoint 分流。
       const fallbackTraveler = travelerId || (user.employee_id ?? user.user_id)
@@ -1669,6 +1822,8 @@ function PlanView({ onToast, composerEpoch, onNewTrip }: {
 
         {task && task.booking_intent && inHandoffStage
           && <HandoffPanel task={task} busy={actionBusy} error={apiError} onHandoff={markHandedOff} onConfirm={confirmBooking} />}
+        {task && task.state === 'BOOKING_CONFIRMED' && task.trip_id
+          && <TripWatchPanel task={task} onOpenTask={applyTask} onToast={onToast} />}
 
         {/* 状态机分支：结构化表单 → 结构化澄清题 → 行程 */}
         {task && task.state === 'NEEDS_STRUCTURED_INPUT'

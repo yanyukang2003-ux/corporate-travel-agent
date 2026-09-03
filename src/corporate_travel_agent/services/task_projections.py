@@ -70,6 +70,7 @@ def projection_fields(task: TripTask) -> dict[str, Any]:
         "payload_schema_version": SCHEMA_VERSION,
         "pending_approver_id": pending_approver_id(task),
         "requester_id": task.requested_by,
+        "trip_id": task.trip_id,
     }
 
 

@@ -103,6 +103,23 @@ class IntakeMixin:
                 "new_depart_at": _iso_or_none(change_event.new_depart_at),
                 "new_arrive_by": _iso_or_none(change_event.new_arrive_by),
                 "excluded_refs": excluded,
+                "leg_index": change_event.leg_index,
+                "reported_by": change_event.reported_by,
+                # watch worker 算出的影响（取消 / 赶不上 / 接不上）；手工报的事件没有。
+                "impact": (
+                    {
+                        "verdict": change_event.impact.verdict.value,
+                        "reasons": list(change_event.impact.reasons),
+                        "delay_minutes": change_event.impact.delay_minutes,
+                        "new_arrive_at": _iso_or_none(change_event.impact.new_arrive_at),
+                        "latest_acceptable_arrival": _iso_or_none(
+                            change_event.impact.latest_acceptable_arrival
+                        ),
+                        "buffer_minutes": change_event.impact.buffer_minutes,
+                    }
+                    if change_event.impact is not None
+                    else None
+                ),
             }
             metadata["excluded_refs"] = excluded
         task = TripTask(

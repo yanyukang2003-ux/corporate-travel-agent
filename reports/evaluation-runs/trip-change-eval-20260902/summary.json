@@ -1,0 +1,183 @@
+{
+  "started_at": "2026-09-03T01:58:52.033567+00:00",
+  "finished_at": "2026-09-03T02:03:13.895494+00:00",
+  "runs": 3,
+  "model": "deepseek-v4-pro",
+  "prompt_version": "tool-loop-v4",
+  "trips_booked": 300,
+  "categories": {
+    "delay_notify": {
+      "cases": 10,
+      "per_run": {
+        "1": "10/10",
+        "2": "10/10",
+        "3": "10/10"
+      },
+      "pass_all_runs": 10,
+      "pass_any_run": 10,
+      "failed_cases": []
+    },
+    "dedupe": {
+      "cases": 10,
+      "per_run": {
+        "1": "10/10",
+        "2": "10/10",
+        "3": "10/10"
+      },
+      "pass_all_runs": 10,
+      "pass_any_run": 10,
+      "failed_cases": []
+    },
+    "delay_small": {
+      "cases": 10,
+      "per_run": {
+        "1": "10/10",
+        "2": "10/10",
+        "3": "10/10"
+      },
+      "pass_all_runs": 10,
+      "pass_any_run": 10,
+      "failed_cases": []
+    },
+    "delay_rebook": {
+      "cases": 10,
+      "per_run": {
+        "1": "10/10",
+        "2": "10/10",
+        "3": "10/10"
+      },
+      "pass_all_runs": 10,
+      "pass_any_run": 10,
+      "failed_cases": []
+    },
+    "cancelled": {
+      "cases": 10,
+      "per_run": {
+        "1": "10/10",
+        "2": "10/10",
+        "3": "10/10"
+      },
+      "pass_all_runs": 10,
+      "pass_any_run": 10,
+      "failed_cases": []
+    },
+    "return_leg": {
+      "cases": 10,
+      "per_run": {
+        "1": "10/10",
+        "2": "10/10",
+        "3": "10/10"
+      },
+      "pass_all_runs": 10,
+      "pass_any_run": 10,
+      "failed_cases": []
+    },
+    "informational": {
+      "cases": 10,
+      "per_run": {
+        "1": "10/10",
+        "2": "10/10",
+        "3": "10/10"
+      },
+      "pass_all_runs": 10,
+      "pass_any_run": 10,
+      "failed_cases": []
+    },
+    "webhook": {
+      "cases": 10,
+      "per_run": {
+        "1": "10/10",
+        "2": "10/10",
+        "3": "10/10"
+      },
+      "pass_all_runs": 10,
+      "pass_any_run": 10,
+      "failed_cases": []
+    },
+    "worker": {
+      "cases": 10,
+      "per_run": {
+        "1": "10/10",
+        "2": "10/10",
+        "3": "10/10"
+      },
+      "pass_all_runs": 10,
+      "pass_any_run": 10,
+      "failed_cases": []
+    },
+    "cancel_trip": {
+      "cases": 10,
+      "per_run": {
+        "1": "10/10",
+        "2": "10/10",
+        "3": "10/10"
+      },
+      "pass_all_runs": 10,
+      "pass_any_run": 10,
+      "failed_cases": []
+    },
+    "events_api": {
+      "cases": 10,
+      "per_run": {
+        "1": "10/10",
+        "2": "10/10",
+        "3": "10/10"
+      },
+      "pass_all_runs": 10,
+      "pass_any_run": 10,
+      "failed_cases": []
+    },
+    "chat_meeting_moved": {
+      "cases": 10,
+      "per_run": {
+        "1": "10/10",
+        "2": "10/10",
+        "3": "10/10"
+      },
+      "pass_all_runs": 10,
+      "pass_any_run": 10,
+      "failed_cases": []
+    },
+    "chat_cancel": {
+      "cases": 10,
+      "per_run": {
+        "1": "10/10",
+        "2": "10/10",
+        "3": "10/10"
+      },
+      "pass_all_runs": 10,
+      "pass_any_run": 10,
+      "failed_cases": []
+    },
+    "chat_flight_changed": {
+      "cases": 10,
+      "per_run": {
+        "1": "10/10",
+        "2": "10/10",
+        "3": "10/10"
+      },
+      "pass_all_runs": 10,
+      "pass_any_run": 10,
+      "failed_cases": []
+    },
+    "chat_ask": {
+      "cases": 10,
+      "per_run": {
+        "1": "10/10",
+        "2": "10/10",
+        "3": "10/10"
+      },
+      "pass_all_runs": 10,
+      "pass_any_run": 10,
+      "failed_cases": []
+    }
+  },
+  "llm": {
+    "cases": 120,
+    "calls": 120,
+    "input_tokens": 292215,
+    "output_tokens": 12316,
+    "cost_usd_upper_bound": 0.1378,
+    "median_seconds": 2.11
+  }
+}
