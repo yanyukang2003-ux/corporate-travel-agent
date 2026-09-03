@@ -34,6 +34,7 @@ from corporate_travel_agent.services.db_engine import (
     create_database_engine,
     engine_pool_snapshot,
     read_alembic_version,
+    rowcount,
 )
 from corporate_travel_agent.services.outbox_events import OutboxEventDraft
 from corporate_travel_agent.services.provider_quote_context import (
@@ -562,7 +563,7 @@ class SQLAlchemyTaskRepository:
                     result = session.execute(
                         trip_update_statement(trip, expected_revision=expected)
                     )
-                    if result.rowcount != 1:
+                    if rowcount(result) != 1:
                         raise ConcurrentUpdateError(
                             f"Trip {trip.trip_id} was updated concurrently"
                         )
@@ -755,7 +756,7 @@ class SQLAlchemyTaskRepository:
                     updated_at=datetime.now(UTC),
                 )
             )
-            return result.rowcount == 1
+            return rowcount(result) == 1
 
     def record(
         self,
@@ -811,7 +812,7 @@ class SQLAlchemyTaskRepository:
                 result = session.execute(
                     trip_update_statement(trip, expected_revision=expected_trip_revision)
                 )
-                if result.rowcount != 1:
+                if rowcount(result) != 1:
                     raise ConcurrentUpdateError(f"Trip {trip.trip_id} was updated concurrently")
         except Exception:
             task.persistence_revision = expected_revision
@@ -846,7 +847,7 @@ class SQLAlchemyTaskRepository:
                 **fields,
             )
         )
-        if result.rowcount != 1:
+        if rowcount(result) != 1:
             raise ConcurrentUpdateError(f"Task {task.task_id} was updated concurrently")
         for offset, event in enumerate(events, start=1):
             session.add(

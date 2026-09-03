@@ -12,6 +12,7 @@ from decimal import Decimal
 from typing import Any
 
 from corporate_travel_agent.agent.orchestrator.core import WorkflowError
+from corporate_travel_agent.agent.orchestrator.state import OrchestratorState
 from corporate_travel_agent.agent.ports import WorkflowTraceEvent
 from corporate_travel_agent.domain.enums import PreferenceOrigin, TaskState
 from corporate_travel_agent.domain.models import (
@@ -35,7 +36,7 @@ from corporate_travel_agent.services.provenance import option_provenance, proven
 from corporate_travel_agent.services.travel_profile import derive_travel_profile
 
 
-def _budget_snapshot_from_metadata(payload: dict) -> BudgetSnapshot:
+def _budget_snapshot_from_metadata(payload: dict[str, Any]) -> BudgetSnapshot:
     """从任务元数据里把钉住的预算快照读回来（金额和日期在 JSON 里是字符串）。"""
     return BudgetSnapshot(
         snapshot_id=str(payload["snapshot_id"]),
@@ -50,7 +51,7 @@ def _budget_snapshot_from_metadata(payload: dict) -> BudgetSnapshot:
     )
 
 
-def _travel_profile_from_metadata(payload: dict) -> EmployeeTravelProfileSnapshot:
+def _travel_profile_from_metadata(payload: dict[str, Any]) -> EmployeeTravelProfileSnapshot:
     """把钉在任务上的画像读回来。
 
     任务从数据库恢复时 metadata 是纯 JSON，`origin` 变回了字符串。这里显式还原成
@@ -75,7 +76,7 @@ def _travel_profile_from_metadata(payload: dict) -> EmployeeTravelProfileSnapsho
     )
 
 
-class RecordsMixin:
+class RecordsMixin(OrchestratorState):
     """记录：审计事件、评测轨迹、方案溯源、政策/预算/画像快照的读取。
 
     混入 `TripWorkflowOrchestrator`；状态都在宿主实例上，这里只放方法。
@@ -412,7 +413,12 @@ class RecordsMixin:
                 ("origin", query.origin),
                 ("destination", query.destination),
                 ("depart_after", query.depart_after.isoformat()),
-                ("arrive_by", query.arrive_before.isoformat()),
+                # 没有到达时限的查询就不记这一项：出处只记真正用过的参数。
+                *(
+                    (("arrive_by", query.arrive_before.isoformat()),)
+                    if query.arrive_before is not None
+                    else ()
+                ),
             ),
             snapshot_id=snapshot.snapshot_id,
             query_hash=snapshot.query_hash,

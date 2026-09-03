@@ -32,7 +32,7 @@ from collections.abc import Mapping, Sequence
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, replace
 from datetime import date, datetime, time, timedelta
-from typing import Any, Protocol
+from typing import Any, Protocol, cast
 from zoneinfo import ZoneInfo
 
 from corporate_travel_agent.domain.constraints import (
@@ -573,7 +573,8 @@ class ToolExecutor:
                         ("origin", origin),
                         ("destination", destination),
                         ("depart_after", part.depart_after.isoformat()),
-                        ("arrive_by", part.arrive_before.isoformat()),
+                        # 拆日的每一段都带到达时限（从 arrive_by 派生），这里只是把类型说清楚。
+                        ("arrive_by", (part.arrive_before or arrive_by).isoformat()),
                         ("requested_window_arrive_by", arrive_by.isoformat()),
                     ),
                     snapshot_id=part_snapshot.snapshot_id,
@@ -1228,7 +1229,7 @@ class ToolLoopRunner:
                 tools=offered,
                 context=ctx,
             )
-        invocation = self.model.next_tool_call(
+        invocation = cast(Any, self.model).next_tool_call(
             conversation=conversation,
             transcript=transcript,
             tools=offered,

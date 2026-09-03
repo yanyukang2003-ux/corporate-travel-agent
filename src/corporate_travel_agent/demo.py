@@ -18,8 +18,12 @@ from corporate_travel_agent.agent.ports import (
 from corporate_travel_agent.domain.enums import TransportMode
 from corporate_travel_agent.domain.models import HotelOffer, TransportOffer, TripRequestVersion
 from corporate_travel_agent.providers.base import TravelInventoryProvider
+from corporate_travel_agent.providers.flight_status import FlightStatusPort
 from corporate_travel_agent.providers.mock import MockProvider
-from corporate_travel_agent.services.budget_ledger import RepositoryTripBudgetLedger
+from corporate_travel_agent.services.budget_ledger import (
+    BudgetLedgerPort,
+    RepositoryTripBudgetLedger,
+)
 from corporate_travel_agent.services.locations import CityNormalizer
 from corporate_travel_agent.services.object_storage import RawResponseObjectStore
 from corporate_travel_agent.services.policy_config import (
@@ -30,6 +34,7 @@ from corporate_travel_agent.services.provider_resilience import (
     DEFAULT_CIRCUIT_OPEN_SECONDS,
     DEFAULT_DELAYED_PROVIDER_RETRY_SECONDS,
     DEFAULT_MAX_DELAYED_PROVIDER_ATTEMPTS,
+    ProviderCircuitStateStore,
 )
 from corporate_travel_agent.services.repositories import (
     InMemoryEmployeeDirectory,
@@ -37,7 +42,8 @@ from corporate_travel_agent.services.repositories import (
     InMemoryTaskRepository,
     TaskRepository,
 )
-from corporate_travel_agent.services.trips import InMemoryTripRepository
+from corporate_travel_agent.services.travel_profile import TripHistoryPort
+from corporate_travel_agent.services.trips import InMemoryTripRepository, TripRepository
 
 SHANGHAI_TZ = ZoneInfo("Asia/Shanghai")
 
@@ -62,7 +68,7 @@ def build_demo_system(
     retry_jitter: Callable[[], float] | None = None,
     provider_circuit_open_seconds: float = DEFAULT_CIRCUIT_OPEN_SECONDS,
     #: 多实例共享的熔断状态存储；API 按 DATABASE_URL 换成 SQL，默认每个进程一份。
-    provider_circuit_store: object | None = None,
+    provider_circuit_store: ProviderCircuitStateStore | None = None,
     max_delayed_provider_attempts: int = DEFAULT_MAX_DELAYED_PROVIDER_ATTEMPTS,
     delayed_provider_retry_seconds: tuple[float, ...] = (DEFAULT_DELAYED_PROVIDER_RETRY_SECONDS),
     max_concurrent_llm_calls: int = 8,
@@ -79,13 +85,13 @@ def build_demo_system(
     provider: TravelInventoryProvider | None = None,
     #: 员工习惯画像的历史来源。默认 None——这一层默认关着，理由见
     #: `TripWorkflowOrchestrator.__init__` 上的说明。
-    trip_history: object | None = None,
+    trip_history: TripHistoryPort | None = None,
     #: 预算账本。默认读同一个任务仓储里回填过的下单确认；政策没配预算就不会有规则。
-    budget_ledger: object | None = None,
+    budget_ledger: BudgetLedgerPort | None = None,
     #: 差旅聚合仓储。默认内存；API 按 DATABASE_URL 换成 SQL。
-    trip_repository: object | None = None,
+    trip_repository: TripRepository | None = None,
     #: 航班动态源。默认没接；API 按 FLIGHT_STATUS_SOURCE 装配。
-    flight_status_source: object | None = None,
+    flight_status_source: FlightStatusPort | None = None,
     trip_watch_worker_id: str | None = None,
     trip_watch_lease_seconds: float = 300.0,
     trip_watch_lookahead_hours: int = 48,
@@ -221,7 +227,7 @@ def build_demo_system(
         retry_sleep=retry_sleep,
         retry_jitter=retry_jitter,
         provider_circuit_open_seconds=provider_circuit_open_seconds,
-        provider_circuit_store=provider_circuit_store,  # type: ignore[arg-type]
+        provider_circuit_store=provider_circuit_store,
         max_delayed_provider_attempts=max_delayed_provider_attempts,
         delayed_provider_retry_seconds=delayed_provider_retry_seconds,
         max_concurrent_llm_calls=max_concurrent_llm_calls,
@@ -233,7 +239,7 @@ def build_demo_system(
         timezone_name=policy_configuration.config.timezone_name,
         city_normalizer=CityNormalizer(policy_configuration.city_aliases),
         trace_observer=trace_observer,
-        flight_status_source=flight_status_source,  # type: ignore[arg-type]
+        flight_status_source=flight_status_source,
         trip_watch_worker_id=trip_watch_worker_id,
         trip_watch_lease_seconds=trip_watch_lease_seconds,
         trip_watch_lookahead_hours=trip_watch_lookahead_hours,

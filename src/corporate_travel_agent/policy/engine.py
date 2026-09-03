@@ -14,6 +14,7 @@ from corporate_travel_agent.domain.models import (
     PolicyDecision,
     PolicySnapshot,
     RuleEvidence,
+    SeasonalHotelCap,
     TransportOffer,
 )
 
@@ -106,7 +107,7 @@ class PolicyEngine:
         hotels = _as_hotels(stays)
         level_rule = policy.level_rules.get(employee.level)
         if level_rule is None:
-            evidence = RuleEvidence(
+            missing_level = RuleEvidence(
                 rule_id="employee.level.known",
                 actual=employee.level,
                 threshold="configured level",
@@ -115,13 +116,13 @@ class PolicyEngine:
                 message=f"No policy rule is configured for level {employee.level}.",
                 exception_allowed=False,
             )
-            return PolicyDecision(PolicyOutcome.INSUFFICIENT_EVIDENCE, (evidence,))
+            return PolicyDecision(PolicyOutcome.INSUFFICIENT_EVIDENCE, (missing_level,))
 
         evidence: list[RuleEvidence] = []
         window_evidence = self._policy_window_evidence(policy, transports, hotels)
         if window_evidence is not None:
             evidence.append(window_evidence)
-        priced_items = (*transports, *hotels)
+        priced_items: tuple[TransportOffer | HotelOffer, ...] = (*transports, *hotels)
         currencies = sorted({item.currency for item in priced_items})
         currency_compliant = currencies == [policy.currency]
         evidence.append(
@@ -278,7 +279,7 @@ class PolicyEngine:
 
     @classmethod
     def _seasonal_cap_evidence(
-        cls, policy: PolicySnapshot, hotel: HotelOffer, season
+        cls, policy: PolicySnapshot, hotel: HotelOffer, season: SeasonalHotelCap
     ) -> RuleEvidence:
         rule_id = "hotel.city.seasonal_cap"
         compliant = hotel.nightly_price <= season.nightly_cap
@@ -337,7 +338,7 @@ class PolicyEngine:
                 ),
                 exception_allowed=False,
             )
-        priced = (*transports, *hotels)
+        priced: tuple[TransportOffer | HotelOffer, ...] = (*transports, *hotels)
         if any(item.currency != budget.currency for item in priced):
             # 币种不一致已经由 pricing.currency 判成"判不了"，这里不再叠一条。
             return None

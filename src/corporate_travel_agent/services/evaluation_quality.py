@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from datetime import UTC, datetime
-from typing import Any, Literal
+from typing import Any, Final, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -16,7 +16,7 @@ from corporate_travel_agent.services.evaluation_dataset import (
     WorkflowEvaluationObservation,
 )
 
-OUTPUT_RUBRIC_VERSION = "output-quality-v1"
+OUTPUT_RUBRIC_VERSION: Final = "output-quality-v1"
 
 MetricStatus = Literal["measured", "unavailable", "not_applicable"]
 GateStatus = Literal["pass", "fail", "not_evaluated"]
@@ -421,11 +421,11 @@ def _judge_metric(
                 "to populate this metric."
             ),
         )
-    scored = [
-        judge_scores[item.run_id]
-        for item in evaluations
-        if item.run_id in judge_scores and judge_scores[item.run_id] is not None
-    ]
+    scored: list[float] = []
+    for item in evaluations:
+        score = judge_scores.get(item.run_id)
+        if score is not None:
+            scored.append(score)
     covered = sum(1 for item in evaluations if item.run_id in judge_scores)
     if not scored:
         return MetricResult(

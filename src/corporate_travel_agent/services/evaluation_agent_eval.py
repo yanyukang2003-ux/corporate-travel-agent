@@ -230,6 +230,11 @@ def _parse_dt(value: str | None) -> datetime | None:
     return datetime.fromisoformat(value.replace("Z", "+00:00"))
 
 
+def _require_dt(value: str) -> datetime:
+    """必填时刻：用例文件里没有它就是数据错误，不是"可选"。"""
+    return datetime.fromisoformat(value.replace("Z", "+00:00"))
+
+
 def _resolve_path(root: dict[str, Any], path: str | None) -> Any:
     if not path:
         return root
@@ -436,8 +441,8 @@ def _world_models(
             mode=TransportMode(item["mode"]),
             origin=item["origin"],
             destination=item["destination"],
-            depart_at=_parse_dt(item["depart_at"]),
-            arrive_at=_parse_dt(item["arrive_at"]),
+            depart_at=_require_dt(item["depart_at"]),
+            arrive_at=_require_dt(item["arrive_at"]),
             price=Decimal(str(item["price"])),
             seat_class=item["seat_class"],
             available=item["available"],
@@ -471,8 +476,8 @@ def _world_models(
         traveler_id=employee.employee_id,
         origin=request_value["origin"],
         destination=request_value["destination"],
-        departure_after=_parse_dt(request_value["departure_after"]),
-        arrive_by=_parse_dt(request_value["arrive_by"]),
+        departure_after=_require_dt(request_value["departure_after"]),
+        arrive_by=_require_dt(request_value["arrive_by"]),
         return_after=_parse_dt(request_value.get("return_after")),
         return_before=_parse_dt(request_value.get("return_before")),
         hotel_check_in=(
@@ -511,8 +516,8 @@ def _recommended_policy(
         for model, raw in zip(transports, inventory_raw["transports"], strict=True)
         if raw["direction"] == "inbound"
     ]
-    inbound_choices: list[TransportOffer | None] = inbound if request.return_after else [None]
-    hotel_choices: list[HotelOffer | None] = hotels if request.hotel_check_in else [None]
+    inbound_choices: list[TransportOffer | None] = [*inbound] if request.return_after else [None]
+    hotel_choices: list[HotelOffer | None] = [*hotels] if request.hotel_check_in else [None]
     validator = FeasibilityValidator()
     engine = PolicyEngine()
     replay_now = _replay_now([*outbound, *inbound])

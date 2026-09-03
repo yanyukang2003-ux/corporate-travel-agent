@@ -30,6 +30,14 @@ from corporate_travel_agent.services.evaluation_quality import (
     JudgeSummary,
 )
 
+CalibrationStatus = Literal[
+    "passed",
+    "failed",
+    "insufficient_samples",
+    "passed_single_annotator",
+    "failed_single_annotator",
+]
+
 MAX_RUBRIC_BYTES = 256 * 1024
 MAX_JUDGE_FILE_BYTES = 32 * 1024 * 1024
 ADJACENT_TOLERANCE = 1
@@ -153,13 +161,7 @@ class CalibrationReport(JudgeModel):
     # 单标注者模式的状态名单独取，绝不复用 "passed"：一致率再高，单人打的分也只能
     # 说明"评委和这个人想的差不多"，不能说明这个分数客观。名字里必须带着依据。
     single_annotator_accepted: bool = False
-    calibration_status: Literal[
-        "passed",
-        "failed",
-        "insufficient_samples",
-        "passed_single_annotator",
-        "failed_single_annotator",
-    ]
+    calibration_status: CalibrationStatus
     per_dimension: tuple[DimensionAgreement, ...]
     major_disagreements: tuple[CalibrationDisagreement, ...]
 
@@ -448,7 +450,7 @@ def calibrate_against_human(
     adjacent_rate = total_adjacent / total_compared if total_compared else None
     # 人工双评的判定只看标注元数据，不靠推断：同一份用例必须有两个标注者或两轮。
     human_double_rated = len(annotator_ids) > 1 or len(rounds) > 1
-    status: str
+    status: CalibrationStatus
     if allow_single_annotator and not human_double_rated:
         # 样本量按**人工标注条数**算，而不是按"评委没弃权的条数"算：弃权是评分表
         # 明确允许的行为（弃权≠0分），不该反过来把数据集判成太小。

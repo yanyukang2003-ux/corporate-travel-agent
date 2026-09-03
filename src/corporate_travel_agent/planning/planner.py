@@ -20,6 +20,7 @@ from datetime import datetime
 from decimal import Decimal
 from heapq import heappop, heappush
 from itertools import product
+from typing import cast
 
 from corporate_travel_agent.domain.enums import PolicyOutcome, TransportMode
 from corporate_travel_agent.domain.models import (
@@ -298,7 +299,7 @@ class ItineraryPlanner:
                     employee,
                     policy,
                     legs,
-                    [item.offer for item in combination if item.offer is not None],
+                    [item.offer for item in combination if isinstance(item.offer, HotelOffer)],
                     shape,
                     minutes_per_unit,
                     profile=profile,
@@ -445,8 +446,8 @@ class ItineraryPlanner:
                 request,
                 employee,
                 policy,
-                [choice.offer for choice in transports],
-                [choice.offer for choice in lodging if choice.offer is not None],
+                [choice.offer for choice in transports if isinstance(choice.offer, TransportOffer)],
+                [choice.offer for choice in lodging if isinstance(choice.offer, HotelOffer)],
                 shape,
                 minutes_per_unit,
                 profile=profile,
@@ -572,10 +573,11 @@ def _stay_pools(
     stays = request.lodging_stays()
     if not stays:
         return []
-    flat = bool(hotel_offers) and isinstance(hotel_offers[0], HotelOffer)
-    per_stay: Sequence[Sequence[HotelOffer]] = (
-        [hotel_offers] if flat else hotel_offers  # type: ignore[list-item]
-    )
+    per_stay: Sequence[Sequence[HotelOffer]]
+    if hotel_offers and isinstance(hotel_offers[0], HotelOffer):
+        per_stay = [cast(Sequence[HotelOffer], hotel_offers)]
+    else:
+        per_stay = cast(Sequence[Sequence[HotelOffer]], hotel_offers)
     return [
         list(per_stay[index]) if index < len(per_stay) else []
         for index in range(len(stays))

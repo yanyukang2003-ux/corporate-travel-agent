@@ -165,7 +165,7 @@ def collect_task_steps(
         role = "旅行者" if message.role == "user" else "助手"
         if message.role == "user":
             user_seen += 1
-            function = _STEP_FUNCTIONS[
+            function: str | None = _STEP_FUNCTIONS[
                 "message.user.first" if user_seen == 1 else "message.user.followup"
             ]
         else:
@@ -218,7 +218,8 @@ def collect_task_steps(
         }
         if call.completed_at is not None and call.started_at is not None:
             detail["duration_ms"] = round(
-                (_aware(call.completed_at) - _aware(call.started_at)).total_seconds() * 1000, 1
+                (_as_aware(call.completed_at) - _as_aware(call.started_at)).total_seconds() * 1000,
+                1,
             )
         for field in ("retry_of", "reason_code", "error_code", "error_type"):
             value = getattr(call, field, None)
@@ -381,13 +382,13 @@ def collect_task_steps(
         )
 
     for event in events:
-        title = _MILESTONE_TITLES.get(event.event_type)
-        if title is None:
+        milestone_title = _MILESTONE_TITLES.get(event.event_type)
+        if milestone_title is None:
             continue
         add(
             "milestone",
             event.created_at,
-            title,
+            milestone_title,
             {
                 "event_type": event.event_type,
                 "actor_type": event.actor_type,
@@ -435,18 +436,20 @@ def _snapshot_samples(
 
 
 def _latest_tool_time(task: TripTask) -> datetime | None:
-    times = [
-        _aware(call.completed_at or call.started_at)
-        for call in task.tool_calls
-        if call.completed_at is not None or call.started_at is not None
-    ]
+    times: list[datetime] = []
+    for call in task.tool_calls:
+        stamp = call.completed_at or call.started_at
+        if stamp is not None:
+            times.append(_as_aware(stamp))
     return max(times) if times else None
 
 
-def _aware(value: datetime | None) -> datetime | None:
-    if value is None:
-        return None
+def _as_aware(value: datetime) -> datetime:
     return value if value.tzinfo is not None else value.replace(tzinfo=UTC)
+
+
+def _aware(value: datetime | None) -> datetime | None:
+    return None if value is None else _as_aware(value)
 
 
 def _iso(value: datetime | None) -> str | None:

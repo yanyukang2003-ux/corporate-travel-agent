@@ -7,7 +7,7 @@ import math
 from collections import Counter, defaultdict
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Literal
+from typing import Any, Final, Literal
 from uuid import uuid4
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -35,8 +35,8 @@ from corporate_travel_agent.services.evaluation_trajectory import (
     trace_has_model_in_the_loop,
 )
 
-EFFICIENCY_EVALUATOR_VERSION = "tool-efficiency-evaluator-v1"
-TOOL_CALL_BUDGET = 12
+EFFICIENCY_EVALUATOR_VERSION: Final = "tool-efficiency-evaluator-v1"
+TOOL_CALL_BUDGET: Final = 12
 SHA256_PATTERN = r"^[a-f0-9]{64}$"
 
 MutationDetection = Literal[
@@ -228,7 +228,11 @@ def evaluate_tool_efficiency_case(
             redundancy_reasons.append("NO_INFORMATION_GAIN")
         if step.name not in expected_counts:
             redundancy_reasons.append("OUTSIDE_MINIMAL_SCENARIO_PATH")
-        elif seen_name_counts[step.name] > expected_counts[step.name] and not justified_retry:
+        elif (
+            step.name is not None
+            and seen_name_counts[step.name] > expected_counts[step.name]
+            and not justified_retry
+        ):
             redundancy_reasons.append("EXCEEDS_MINIMAL_PATH_COUNT")
         calls.append(
             ToolCallEfficiency(

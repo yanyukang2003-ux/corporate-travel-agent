@@ -10,7 +10,7 @@ import tempfile
 from dataclasses import dataclass, replace
 from datetime import UTC, date, datetime
 from pathlib import Path
-from typing import Any, Literal
+from typing import Any, Final, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, TypeAdapter, ValidationError, model_validator
 
@@ -36,8 +36,8 @@ from corporate_travel_agent.services.redaction import (
     redact_json,
 )
 
-DATASET_SCHEMA_VERSION = 1
-SNAPSHOT_SCHEMA_VERSION = 1
+DATASET_SCHEMA_VERSION: Final = 1
+SNAPSHOT_SCHEMA_VERSION: Final = 1
 MAX_MANIFEST_BYTES = 2 * 1024 * 1024
 MAX_DATA_FILE_BYTES = 20 * 1024 * 1024
 SHA256_PATTERN = r"^[a-f0-9]{64}$"

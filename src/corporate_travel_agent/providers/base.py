@@ -4,9 +4,10 @@ from __future__ import annotations
 
 import hashlib
 import json
+from collections.abc import Sequence
 from dataclasses import asdict, dataclass
 from datetime import date, datetime
-from typing import Any, Protocol
+from typing import Any, Protocol, runtime_checkable
 
 from corporate_travel_agent.domain.models import (
     InventorySnapshot,
@@ -106,10 +107,8 @@ class TravelInventoryProvider(Protocol):
 
     def search_transport(self, query: TransportSearchQuery) -> InventorySnapshot: ...
 
-    # 整票搜索是**可选能力**：不是每家供应商都做得了多段，也不是每条链路都需要。
-    # 宿主用 `hasattr` 判断，没有就退回分段购买——少省一笔钱，不是坏掉。
-    # def search_multi_city(self, queries: Sequence[TransportSearchQuery])
-    #     -> InventorySnapshot: ...
+    # 整票搜索是**可选能力**，见下面的 `MultiCityInventoryProvider`：不是每家供应商都做得了
+    # 多段，也不是每条链路都需要。宿主用 isinstance 判断，没有就退回分段购买——少省一笔钱，不是坏掉。
 
     def search_hotels(self, query: HotelSearchQuery) -> InventorySnapshot: ...
 
@@ -118,7 +117,20 @@ class TravelInventoryProvider(Protocol):
     def create_deep_link(self, option: TravelOptionVersion) -> ProviderHandoff: ...
 
 
-def inventory_query_hash(query: TransportSearchQuery | HotelSearchQuery) -> str:
+@runtime_checkable
+class MultiCityInventoryProvider(Protocol):
+    """可选能力：一次请求问完整条多段行程，返回整票报价。
+
+    `runtime_checkable` 让宿主能用 `isinstance` 探测这项能力，并且类型检查器知道探测之后
+    这个方法一定在——比 `hasattr` 多的正是这一点。
+    """
+
+    def search_multi_city(self, queries: Sequence[TransportSearchQuery]) -> InventorySnapshot: ...
+
+
+def inventory_query_hash(
+    query: TransportSearchQuery | JourneySearchQuery | HotelSearchQuery,
+) -> str:
     """返回 live / mock / replay 共用的规范化查询哈希键。"""
 
     query_json = json.dumps(asdict(query), default=str, sort_keys=True)

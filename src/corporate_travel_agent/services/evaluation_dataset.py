@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, date, datetime
 from decimal import Decimal
@@ -22,6 +23,7 @@ from corporate_travel_agent.domain.models import (
     LevelTravelRule,
     PolicySnapshot,
     TransportOffer,
+    TravelOptionVersion,
     TripRequestVersion,
     TripTask,
 )
@@ -229,7 +231,7 @@ class InventoryFixture(EvaluationModel):
         _require_aware(self.valid_until, "valid_until")
         if self.valid_until <= self.captured_at:
             raise ValueError("inventory valid_until must be later than captured_at")
-        refs = [item.ref_id for item in (*self.transports, *self.hotels)]
+        refs = [*(item.ref_id for item in self.transports), *(item.ref_id for item in self.hotels)]
         if len(refs) != len(set(refs)):
             raise ValueError("inventory references must be unique")
         directions = {item.direction for item in self.transports}
@@ -310,7 +312,8 @@ class WorkflowEvaluationCase(EvaluationModel):
             raise ValueError("hotel fixture city does not match request")
         if self.expected.selected_inventory_ref is not None:
             refs = {
-                item.ref_id for item in (*self.inventory.transports, *self.inventory.hotels)
+                *(item.ref_id for item in self.inventory.transports),
+                *(item.ref_id for item in self.inventory.hotels),
             }
             if self.expected.selected_inventory_ref not in refs:
                 raise ValueError("expected selected inventory reference is unavailable")
@@ -849,7 +852,7 @@ def run_intent_evaluation(
     for case in cases:
         workflow, _ = build_demo_system(
             tool_calling_language_model=parser,
-            clock=lambda observed_at=observed_at: observed_at,
+            clock=_fixed_clock(observed_at),
         )
         task = workflow.create_task_from_agentic_message(
             case.message,
@@ -1039,7 +1042,14 @@ def _optional_rate(values) -> float | None:
     return sum(values) / len(values) if values else None
 
 
-def _select_expected_option(case: WorkflowEvaluationCase, options: list) -> object:
+def _fixed_clock(at: datetime) -> Callable[[], datetime]:
+    """评测用的钉死时钟：每条用例按自己的观察时刻跑。"""
+    return lambda: at
+
+
+def _select_expected_option(
+    case: WorkflowEvaluationCase, options: list[TravelOptionVersion]
+) -> TravelOptionVersion:
     for option in options:
         if (
             case.expected.selected_inventory_ref is not None
@@ -1064,9 +1074,9 @@ def _original_price(
     for item in transports:
         if item.ref_id == ref_id:
             return item.price
-    for item in hotels:
-        if item.ref_id == ref_id:
-            return item.nightly_price
+    for hotel in hotels:
+        if hotel.ref_id == ref_id:
+            return hotel.nightly_price
     raise EvaluationDatasetError(f"Unknown inventory reference: {ref_id}")
 
 

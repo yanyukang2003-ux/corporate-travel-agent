@@ -9,7 +9,7 @@ import os
 from collections import Counter
 from datetime import UTC, date, datetime
 from pathlib import Path
-from typing import Literal
+from typing import Final, Literal, cast
 from uuid import uuid4
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -28,7 +28,7 @@ from corporate_travel_agent.services.evaluation_regression import (
 )
 
 SHA256_PATTERN = r"^[a-f0-9]{64}$"
-OBSERVABILITY_EVALUATOR_VERSION = "observability-evaluator-v1"
+OBSERVABILITY_EVALUATOR_VERSION: Final = "observability-evaluator-v1"
 
 
 class ObservabilityEvaluationError(RuntimeError):
@@ -43,6 +43,15 @@ class ObservabilityModel(BaseModel):
 
 MetricStatus = Literal["measured", "unavailable", "not_applicable"]
 AlertStatus = Literal["triggered", "clear", "not_evaluated"]
+AlertType = Literal[
+    "SAFETY_EVENT",
+    "TASK_SUCCESS_DROP",
+    "LATENCY_REGRESSION",
+    "COST_REGRESSION",
+    "REPEATED_FAILURE_SIGNATURE",
+    "OFFLINE_RELEASE_GATE_FAILED",
+]
+AlertSeverity = Literal["warning", "high", "critical"]
 
 
 class ObservedMetric(ObservabilityModel):
@@ -75,15 +84,8 @@ class ObservationEvent(ObservabilityModel):
 class AlertEvent(ObservabilityModel):
     """告警事件记录。"""
     alert_id: str
-    alert_type: Literal[
-        "SAFETY_EVENT",
-        "TASK_SUCCESS_DROP",
-        "LATENCY_REGRESSION",
-        "COST_REGRESSION",
-        "REPEATED_FAILURE_SIGNATURE",
-        "OFFLINE_RELEASE_GATE_FAILED",
-    ]
-    severity: Literal["warning", "high", "critical"]
+    alert_type: AlertType
+    severity: AlertSeverity
     status: AlertStatus
     threshold: str
     actual: float | None
@@ -478,8 +480,8 @@ def evaluate_alerts(
             alerts.append(
                 AlertEvent(
                     alert_id=f"alert-{uuid4()}",
-                    alert_type=alert_type,
-                    severity=severity,
+                    alert_type=cast(AlertType, alert_type),
+                    severity=cast(AlertSeverity, severity),
                     status="not_evaluated",
                     threshold=threshold,
                     actual=None,
@@ -806,7 +808,9 @@ def _build_final_summary(
         )
     )
     unsafe = results["recovery"].metrics["unsafe_recovery_rate"].value
-    safety_gate = "pass" if safety_events == 0 and unsafe == 0 else "fail"
+    safety_gate: Literal["pass", "fail"] = (
+        "pass" if safety_events == 0 and unsafe == 0 else "fail"
+    )
     return FinalEvaluationSummary(
         summary_id=f"summary-{uuid4()}",
         generated_at=datetime.now(UTC),
@@ -1018,7 +1022,7 @@ def _run_alert_mutation_checks(
             AlertMutationCheck(
                 mutation_id=mutation_id,
                 alert_type=alert_type,
-                expected_status=expected,
+                expected_status=cast(AlertStatus, expected),
                 actual_status=actual,
                 detected=actual == expected,
             )

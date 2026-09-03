@@ -8,7 +8,7 @@ import math
 from collections import Counter, defaultdict
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Literal
+from typing import Final, Literal
 from uuid import uuid4
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
@@ -29,7 +29,8 @@ from corporate_travel_agent.services.evaluation_runner import (
 )
 from corporate_travel_agent.services.evaluation_trace import EvaluationTrace
 
-PERFORMANCE_EVALUATOR_VERSION = "performance-stability-evaluator-v1"
+PERFORMANCE_EVALUATOR_VERSION: Final = "performance-stability-evaluator-v1"
+GateStatus = Literal["pass", "fail", "not_evaluated"]
 SHA256_PATTERN = r"^[a-f0-9]{64}$"
 
 
@@ -290,7 +291,7 @@ def evaluate_performance_and_stability(
         item.trajectory_consistent for item in case_evaluations
     ) / len(case_evaluations)
     deterministic_mode = source_summary.evaluation_mode == "deterministic_mock"
-    deterministic_gate = (
+    deterministic_gate: GateStatus = (
         "pass"
         if deterministic_mode
         and pass_power == 1
@@ -299,7 +300,7 @@ def evaluate_performance_and_stability(
         and trajectory_consistency == 1
         else "fail" if deterministic_mode else "not_evaluated"
     )
-    real_gate = (
+    real_gate: GateStatus = (
         "pass"
         if not deterministic_mode
         and expected_attempts == 3
@@ -428,12 +429,12 @@ def _evaluate_resource_run(
     )
     token_complete: bool | None = len(complete) == len(llm_steps) if llm_steps else None
     input_tokens = (
-        sum(step.token_usage.input_tokens or 0 for step in complete)
+        sum((step.token_usage.input_tokens or 0) for step in complete if step.token_usage)
         if llm_steps and token_complete
         else None
     )
     output_tokens = (
-        sum(step.token_usage.output_tokens or 0 for step in complete)
+        sum((step.token_usage.output_tokens or 0) for step in complete if step.token_usage)
         if llm_steps and token_complete
         else None
     )

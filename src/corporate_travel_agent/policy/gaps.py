@@ -11,7 +11,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
 
 from corporate_travel_agent.domain.enums import PolicyOutcome
 from corporate_travel_agent.domain.models import PolicyDecision, RuleEvidence
@@ -88,7 +88,7 @@ def _sentences_for(evidence: Iterable[RuleEvidence]) -> tuple[str, ...]:
     )
 
 
-def _fallback(rule_id: str):
+def _fallback(rule_id: str) -> Callable[[tuple[str, ...]], str]:
     """没配文案的规则也要说人话，不能把 rule_id 直接甩给用户。"""
 
     def sentence(values: tuple[str, ...]) -> str:

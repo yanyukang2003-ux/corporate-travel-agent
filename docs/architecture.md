@@ -29,15 +29,25 @@ flowchart LR
     PLANNING --> DOMAIN["domain"]
     POLICY --> DOMAIN
     PROVIDERS --> DOMAIN
+    PROVIDERS --> SERVICES
     WORKFLOW --> DOMAIN
     SERVICES --> DOMAIN
 ```
 
 `domain` 不依赖 FastAPI、数据库或供应商 SDK。当前可在内存与 PostgreSQL 仓储之间切换；把 Mock 替换为正式 TMC API 也不需要重写规划和政策核心。
+`providers` 依赖 `services` 里的三个基础设施模块（原文对象存储、报价上下文存储、城市登记表），不依赖 `agent` 和 `api`。
+
+**两道机器守卫**（2026-09-03 起）：`tests/test_architecture_layers.py` 解析 `src/` 里的每一条 import，按上图核对依赖方向，
+表外的边测试失败；已知的债写在测试的 `KNOWN_DEBTS` 里，每条注明由哪一步还清，还清了不删也失败。`mypy`（`pyproject.toml`
+`[tool.mypy]`）对全部源码做默认检查，对 `domain`、`workflow`、`policy`、`services/repositories.py`、`agent/orchestrator`
+开严格模式；仓储、供应商、模型端口是 Protocol，从此传错实现在提交前就会被拦下。
 
 `agent/orchestrator` 自 2026-09-01 起是一个包（ADR-0004）：`core` / `intake` / `planning` / `approval` /
-`confirmation` / `resilience` / `records` 七个模块各管一个职责，`TripWorkflowOrchestrator` 由六个 mixin 组装，
-状态全部在实例上、只在 `__init__` 里定义。行为和公开名字与拆分前逐字相同。
+`confirmation` / `resilience` / `records` / `watch` 八个模块各管一个职责，`TripWorkflowOrchestrator` 由七个
+mixin 组装，状态全部在实例上、只在 `__init__` 里定义。行为和公开名字与拆分前逐字相同。
+2026-09-03 起 `state.py` 把这份状态契约写成代码：每个实例属性的类型，以及 mixin 之间互相调用的
+方法签名，都声明在 `OrchestratorState` 上（只有标注和 `NotImplementedError` 桩，运行时被真正的实现
+覆盖）。这张表就是 mixin 之间的耦合面，类型检查器逐条核对；它越短，模块越独立。
 
 离线评测层使用严格 manifest 和固定来源哈希加载派生案例。PreferTripPlan 案例通过 Mock Provider 逐条运行同一个 Orchestrator、Planner 和 Policy Engine；Open-Travel 仅提供中文 query 与机器可检查的分类/缺失字段约束，不采用数据中的模型回答作为标准答案。
 

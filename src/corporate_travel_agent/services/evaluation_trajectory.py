@@ -5,7 +5,7 @@ from __future__ import annotations
 import hashlib
 from datetime import UTC, date, datetime
 from pathlib import Path
-from typing import Any, Literal
+from typing import Any, Final, Literal
 from uuid import uuid4
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
@@ -26,7 +26,7 @@ from corporate_travel_agent.services.evaluation_quality import (
 )
 from corporate_travel_agent.services.evaluation_trace import EvaluationTrace, TraceStep
 
-TRAJECTORY_EVALUATOR_VERSION = "trajectory-evaluator-v1"
+TRAJECTORY_EVALUATOR_VERSION: Final = "trajectory-evaluator-v1"
 SHA256_PATTERN = r"^[a-f0-9]{64}$"
 
 HallucinationType = Literal["tool", "parameter_schema", "parameter_unsupported", "shadow"]

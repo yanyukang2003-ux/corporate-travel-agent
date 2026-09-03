@@ -410,10 +410,10 @@ def check_retry_caps(
                 }
             )
     for head, length in chain_len.items():
-        step = by_call_sequence.get(head)
-        if step is None:
+        head_step = by_call_sequence.get(head)
+        if head_step is None:
             continue
-        cap = llm_cap if step.tool_kind == "LLM" else provider_cap
+        cap = llm_cap if head_step.tool_kind == "LLM" else provider_cap
         if length > cap:
             findings.append(
                 {

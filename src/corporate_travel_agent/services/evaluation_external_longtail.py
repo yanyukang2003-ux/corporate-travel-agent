@@ -439,17 +439,17 @@ def build_fact_sheet(
         )
         for item in (weak_truth.get("dates_declared") or [])
     ]
-    declared = [(m, int(d)) for m, d in declared if m and d.isdigit()]
-    if declared:
+    resolved = [(m, int(d)) for m, d in declared if m and d.isdigit()]
+    if resolved:
         depart = _next_occurrence(
-            declared[0][0],
-            declared[0][1],
+            resolved[0][0],
+            resolved[0][1],
             not_before=reference_date + timedelta(days=MIN_LEAD_DAYS),
         )
         if depart is None:
             raise ValueError(f"{case['case_id']}: 声明日期无法落到未来")
-        if len(declared) > 1:
-            back = _next_occurrence(declared[1][0], declared[1][1], not_before=depart)
+        if len(resolved) > 1:
+            back = _next_occurrence(resolved[1][0], resolved[1][1], not_before=depart)
             return_date = back or depart
         else:
             return_date = depart

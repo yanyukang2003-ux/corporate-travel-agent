@@ -16,6 +16,7 @@ from corporate_travel_agent.agent.orchestrator.core import (
     ToolBudgetExceeded,
     WorkflowError,
 )
+from corporate_travel_agent.agent.orchestrator.state import OrchestratorState
 from corporate_travel_agent.agent.ports import LanguageModelError
 from corporate_travel_agent.domain.enums import (
     ApprovalStatus,
@@ -63,7 +64,7 @@ def _empty_corridor_question(query: TransportSearchQuery) -> str:
     )
 
 
-class IntakeMixin:
+class IntakeMixin(OrchestratorState):
     """创建：结构化入口、工具循环入口、把循环终局落成任务状态、请求修订。
 
     混入 `TripWorkflowOrchestrator`；状态都在宿主实例上，这里只放方法。
@@ -284,8 +285,11 @@ class IntakeMixin:
             # 每一段的日期都要能在这段原文里逐字找到出处，编的对不上。
             conversation=ledger.render(),
         )
+        model = self.tool_calling_language_model
+        if model is None:
+            raise LanguageModelUnavailable("No tool-calling language model adapter is configured")
         runner = ToolLoopRunner(
-            model=self.tool_calling_language_model,
+            model=model,
             executor=executor,
             # 一轮最多花 2 次预算（选工具 1 次 + 执行工具 1 次），所以轮数上限要按
             # 剩余预算的一半算。此前直接用 max_tool_calls，循环永远是被预算掐断的，

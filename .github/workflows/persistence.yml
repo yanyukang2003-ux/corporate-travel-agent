@@ -18,6 +18,8 @@ jobs:
         run: alembic upgrade head
       - name: Lint
         run: ruff check src tests examples migrations
+      - name: Type check
+        run: mypy
       - name: Full Python suite
         run: pytest -q
 

@@ -197,7 +197,7 @@ class MockProvider:
     def _snapshot(
         self,
         category: str,
-        query: object,
+        query: TransportSearchQuery | JourneySearchQuery | HotelSearchQuery,
         items: tuple[TransportOffer | HotelOffer, ...],
     ) -> InventorySnapshot:
         """归档原始响应并构造带 snapshot_id 的 InventorySnapshot。"""

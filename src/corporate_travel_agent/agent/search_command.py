@@ -142,6 +142,7 @@ def compile_search_command(
         )
 
     assert isinstance(origin, str) and isinstance(destination, str)
+    assert intent.departure_after is not None and intent.arrive_by is not None
     journey = _journey_from(
         intent, city_normalizer, origin, destination, return_origin
     )
@@ -218,7 +219,7 @@ def _resolve_by_divergence(intent: Any, city_normalizer: CityNormalizer) -> Any:
         hotel_check_out=intent.hotel_check_out,
         requirements=frozenset(intent.hard_constraints) | frozenset(intent.soft_preferences),
     )
-    questions = [
+    questions: list[OpenQuestion | None] = [
         _city_question("origin", intent.origin_candidates, city_normalizer),
         _city_question("destination", intent.destination_candidates, city_normalizer),
     ]

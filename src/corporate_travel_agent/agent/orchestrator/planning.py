@@ -6,6 +6,8 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
+from functools import partial
+from typing import cast
 from uuid import uuid4
 
 from corporate_travel_agent.agent.error_recovery import (
@@ -19,6 +21,7 @@ from corporate_travel_agent.agent.orchestrator.core import (
     ToolBudgetExceeded,
     WorkflowError,
 )
+from corporate_travel_agent.agent.orchestrator.state import OrchestratorState
 from corporate_travel_agent.domain.enums import (
     ApprovalStatus,
     PolicyOutcome,
@@ -40,6 +43,7 @@ from corporate_travel_agent.policy.engine import unreviewable_reasons
 from corporate_travel_agent.providers.base import (
     HotelSearchQuery,
     JourneySearchQuery,
+    MultiCityInventoryProvider,
     ProviderError,
     RetryableProviderError,
     TransportSearchQuery,
@@ -82,7 +86,7 @@ def _leg_phrase(request: TripRequestVersion, leg_index: int) -> str:
     return f"{spec.label} ({spec.origin} → {spec.destination})"
 
 
-class PlanningMixin:
+class PlanningMixin(OrchestratorState):
     """规划：搜索与可行性、无可行方案的解释、报价重验、重试/重规划、选方案。
 
     混入 `TripWorkflowOrchestrator`；状态都在宿主实例上，这里只放方法。
@@ -102,8 +106,11 @@ class PlanningMixin:
         # 规则给一个覆盖全程的价——**不是几张单程相加**。实测整票便宜 15%–76%，
         # 连普通往返都便宜 18%–23%（`reports/evaluation-runs/multicity-pricing-*/`）。
         # 整票和分段购买是两种真正不同的走法，一起摆出来由人取舍。
-        wants_journey_fare = len(transport_legs) >= self.journey_fare_min_legs and hasattr(
-            self.provider, "search_multi_city"
+        journey_provider = (
+            self.provider if isinstance(self.provider, MultiCityInventoryProvider) else None
+        )
+        wants_journey_fare = (
+            len(transport_legs) >= self.journey_fare_min_legs and journey_provider is not None
         )
         required_calls = len(transport_legs) + len(stays) + int(wants_journey_fare)
         if task.tool_calls_remaining < required_calls:
@@ -134,16 +141,14 @@ class PlanningMixin:
                         tool_kind="PROVIDER",
                         input_value=leg_query,
                         # 每轮各自绑住自己的 query：闭包晚绑定会让所有段都搜最后一段。
-                        operation=lambda query=leg_query: self.provider.search_transport(
-                            query
-                        ),
+                        operation=partial(self.provider.search_transport, leg_query),
                     )
                 )
                 searched.append(
                     self._transport_provenance(leg_query, leg_snapshots[-1])
                 )
             journey_snapshot: InventorySnapshot | None = None
-            if wants_journey_fare:
+            if wants_journey_fare and journey_provider is not None:
                 leg_queries = [
                     TransportSearchQuery(
                         origin=leg.origin,
@@ -159,7 +164,7 @@ class PlanningMixin:
                         tool_name="provider.search_transport.journey",
                         tool_kind="PROVIDER",
                         input_value=JourneySearchQuery(tuple(leg_queries)),
-                        operation=lambda: self.provider.search_multi_city(leg_queries),
+                        operation=partial(journey_provider.search_multi_city, leg_queries),
                     )
                 except ProviderError as exc:
                     # **整票搜不到不算失败。** 它是一条额外的、更便宜的走法；
@@ -182,9 +187,7 @@ class PlanningMixin:
                         tool_name=hotel_search_tool_name(index),
                         tool_kind="PROVIDER",
                         input_value=hotel_query,
-                        operation=lambda query=hotel_query: self.provider.search_hotels(
-                            query
-                        ),
+                        operation=partial(self.provider.search_hotels, hotel_query),
                     )
                 )
                 searched.append(
@@ -430,7 +433,7 @@ class PlanningMixin:
         try:
             employee = self.tasks.get(request.task_id).employee
         except NotFoundError:
-            employee = self.employees.get(request.traveler_id)
+            employee = self.employees.snapshot(request.traveler_id)
 
         validator = FeasibilityValidator()
         engine = PolicyEngine()
@@ -438,8 +441,9 @@ class PlanningMixin:
         leg_count = len(sampled_legs)
         combinations = product(*sampled_legs, *sampled_stays)
         for combination in islice(combinations, combination_limit):
-            transports = list(combination[:leg_count])
-            hotels = list(combination[leg_count:])
+            # product() 混合了两种候选池，静态类型退化成 object；按位置切开后类型是确定的。
+            transports = cast(list[TransportOffer], list(combination[:leg_count]))
+            hotels = cast(list[HotelOffer], list(combination[leg_count:]))
             feasibility = validator.validate(
                 request,
                 transports,

@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import cast
 from uuid import uuid4
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -26,6 +27,7 @@ from corporate_travel_agent.services.evaluation_quality import (
     evaluate_workflow_case,
 )
 from corporate_travel_agent.services.evaluation_trace import (
+    EvaluationMode,
     EvaluationTrace,
     EvaluationTraceRecorder,
     TraceFinal,
@@ -181,7 +183,7 @@ def _run_workflow_evaluation(
                 run_id=run_id,
                 case_id=case.case_id,
                 attempt=attempt,
-                evaluation_mode=evaluation_mode,
+                evaluation_mode=cast(EvaluationMode, evaluation_mode),
                 fingerprint=fingerprint,
                 # 结构化请求：编排器决定每一步；产品入口：模型从固定工具表里挑。
                 tool_choice_exposure=(

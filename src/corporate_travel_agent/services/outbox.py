@@ -10,6 +10,7 @@ from sqlalchemy import func, select, update
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session
 
+from corporate_travel_agent.services.db_engine import rowcount
 from corporate_travel_agent.services.outbox_events import (
     InMemoryOutboxStore,
     OutboxEvent,
@@ -102,7 +103,7 @@ class SQLAlchemyOutboxStore:
                     last_error=None,
                 )
             )
-            if result.rowcount != 1:
+            if rowcount(result) != 1:
                 raise KeyError(event_id)
 
     def mark_failed(self, event_id: str, error: str) -> None:

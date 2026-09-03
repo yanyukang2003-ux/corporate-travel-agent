@@ -9,6 +9,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime
 from enum import StrEnum
+from typing import Any
 
 from corporate_travel_agent.domain.enums import TripStatus
 from corporate_travel_agent.domain.models import Trip, TripWatchLeg
@@ -61,7 +62,7 @@ def whereabouts_of(trip: Trip, *, at: datetime) -> Whereabouts | None:
         return None
     legs = sorted(watch.legs, key=lambda leg: leg.depart_at)
     change_pending = trip.status is TripStatus.CHANGE_REQUESTED
-    common = {
+    common: dict[str, Any] = {
         "trip_id": trip.trip_id,
         "task_id": watch.task_id,
         "traveler_id": trip.traveler_id,

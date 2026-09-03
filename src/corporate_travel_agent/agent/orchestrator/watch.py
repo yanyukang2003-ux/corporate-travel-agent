@@ -23,6 +23,7 @@ from typing import Any
 from uuid import uuid4
 
 from corporate_travel_agent.agent.orchestrator.core import LanguageModelUnavailable, WorkflowError
+from corporate_travel_agent.agent.orchestrator.state import OrchestratorState
 from corporate_travel_agent.domain.enums import (
     ChangeImpactVerdict,
     TaskState,
@@ -65,7 +66,7 @@ def _impact_dict(impact: Any) -> dict[str, Any]:
     }
 
 
-class TripWatchMixin:
+class TripWatchMixin(OrchestratorState):
     """混入 `TripWorkflowOrchestrator`；状态都在宿主实例上，这里只放方法。"""
 
     # ------------------------------------------------------------------
@@ -131,8 +132,9 @@ class TripWatchMixin:
             opened_task_id = change.task_id
             # 改期任务和差旅在同一笔里落了库；本地这份差旅已经过期，重新读。
             trip = self.trips.get(trip.trip_id)
-            watch = trip.watch
-            assert watch is not None
+            refreshed_watch = trip.watch
+            assert refreshed_watch is not None
+            watch = refreshed_watch
         elif duplicate and previous is not None:
             opened_task_id = previous.opened_task_id
 

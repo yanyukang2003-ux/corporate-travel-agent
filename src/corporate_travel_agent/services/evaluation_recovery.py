@@ -10,7 +10,7 @@ from dataclasses import dataclass, replace
 from datetime import UTC, datetime
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import Literal
+from typing import Any, Final, Literal
 from uuid import uuid4
 
 from pydantic import BaseModel, ConfigDict, Field, TypeAdapter, model_validator
@@ -75,7 +75,7 @@ from corporate_travel_agent.services.repositories import (
     TaskRepository,
 )
 
-RECOVERY_EVALUATOR_VERSION = "fault-recovery-evaluator-v1"
+RECOVERY_EVALUATOR_VERSION: Final = "fault-recovery-evaluator-v1"
 SHA256_PATTERN = r"^[a-f0-9]{64}$"
 
 FaultType = Literal[
@@ -719,7 +719,7 @@ def build_recovery_evaluation_result(
             ),
         ),
     }
-    slices = {}
+    slices: dict[str, Any] = {}
     for fault_type in sorted({item.fault_type for item in evaluations}):
         items = tuple(item for item in evaluations if item.fault_type == fault_type)
         slices[fault_type] = {

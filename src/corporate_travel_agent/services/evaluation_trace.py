@@ -7,7 +7,7 @@ from dataclasses import asdict, is_dataclass
 from datetime import UTC, date, datetime
 from decimal import Decimal
 from enum import Enum
-from typing import Any, Literal
+from typing import Any, Final, Literal, cast
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
@@ -15,7 +15,7 @@ from corporate_travel_agent.agent.ports import WorkflowTraceEvent
 from corporate_travel_agent.services.audit import stable_hash
 from corporate_travel_agent.services.redaction import redact_json
 
-TRACE_SCHEMA_VERSION = 1
+TRACE_SCHEMA_VERSION: Final = 1
 TRACE_RUNNER_VERSION = "agent-eval-runner-v1"
 SHA256_PATTERN = r"^[a-f0-9]{64}$"
 
@@ -198,8 +198,9 @@ class EvaluationTraceRecorder:
         self._steps.append(
             TraceStep(
                 sequence=len(self._steps) + 1,
-                kind=event.kind,
-                status=event.status,
+                # 观测事件用的是宽字符串；TraceStep 是 strict 的 Pydantic 模型，越界值在这里被拒。
+                kind=cast(TraceKind, event.kind),
+                status=cast(TraceStatus, event.status),
                 started_at=event.started_at,
                 duration_ms=round(event.duration_ms, 6),
                 state_before=event.state_before,

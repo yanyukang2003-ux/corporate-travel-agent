@@ -242,10 +242,10 @@ def recon_search_legs(tool_calls: list[Any] | tuple[Any, ...]) -> dict[str, Any]
     started: list[str] = []
     for record in tool_calls:
         name = getattr(record, "tool_name", None)
-        if not is_search_leg_tool(name):
+        if not isinstance(name, str) or not is_search_leg_tool(name):
             continue
         status = getattr(record, "status", None)
-        status_value = status.value if hasattr(status, "value") else str(status)
+        status_value = str(getattr(status, "value", status))
         if status_value == "SUCCEEDED":
             if name not in succeeded:
                 succeeded.append(name)

@@ -3,10 +3,19 @@
 from __future__ import annotations
 
 import os
-from typing import Any
+from typing import Any, cast
 
 from sqlalchemy import create_engine, text
-from sqlalchemy.engine import Engine
+from sqlalchemy.engine import CursorResult, Engine, Result
+
+
+def rowcount(result: Result[Any]) -> int:
+    """UPDATE/DELETE 影响的行数。
+
+    SQLAlchemy 把它放在 `CursorResult` 上，而 `Session.execute` 的静态返回类型是更宽的
+    `Result`；乐观锁按行数判冲突，这里把这一步收成一个有类型的名字。
+    """
+    return cast(CursorResult[Any], result).rowcount
 
 
 def database_pool_options(database_url: str) -> dict[str, Any]:

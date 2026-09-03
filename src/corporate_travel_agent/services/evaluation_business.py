@@ -76,7 +76,7 @@ from collections.abc import Mapping, Sequence
 from datetime import UTC, datetime
 from decimal import Decimal
 from pathlib import Path
-from typing import Any, Literal
+from typing import Any, Final, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -88,7 +88,7 @@ from corporate_travel_agent.domain.models import (
 )
 from corporate_travel_agent.services.evaluation_quality import MetricResult
 
-BUSINESS_PROTOCOL_ID = "business-outcome-v1"
+BUSINESS_PROTOCOL_ID: Final = "business-outcome-v1"
 
 
 class BusinessMetricsError(RuntimeError):

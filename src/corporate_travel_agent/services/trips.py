@@ -17,6 +17,7 @@ from sqlalchemy.orm import Session
 
 from corporate_travel_agent.domain.enums import TripStatus
 from corporate_travel_agent.domain.models import Trip
+from corporate_travel_agent.services.db_engine import rowcount
 from corporate_travel_agent.services.repositories import ConcurrentUpdateError, NotFoundError
 from corporate_travel_agent.services.serialization import deserialize_trip
 from corporate_travel_agent.services.sqlalchemy_repository import (
@@ -168,7 +169,7 @@ class SQLAlchemyTripRepository:
         try:
             with Session(self.engine) as session, session.begin():
                 result = session.execute(trip_update_statement(trip, expected_revision=expected))
-                if result.rowcount != 1:
+                if rowcount(result) != 1:
                     raise ConcurrentUpdateError(f"Trip {trip.trip_id} was updated concurrently")
         except Exception:
             trip.persistence_revision = expected

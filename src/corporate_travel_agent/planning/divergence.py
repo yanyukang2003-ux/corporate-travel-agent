@@ -18,6 +18,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from dataclasses import dataclass, replace
 from datetime import date, datetime
+from typing import Any
 
 from corporate_travel_agent.domain.enums import BookingScope
 
@@ -132,14 +133,14 @@ def resolve_open_questions(
     baseline = base
     for question in questions:
         if len(question.readings) == 1:
-            baseline = replace(baseline, **dict(question.readings[0]))
+            baseline = replace(baseline, **dict[str, Any](question.readings[0]))
 
     for question in questions:
         if not question.readings:
             must_ask.append(question.field)
             continue
         sketches = {
-            sketch(replace(baseline, **dict(reading))) for reading in question.readings
+            sketch(replace(baseline, **dict[str, Any](reading))) for reading in question.readings
         }
         if len(sketches) > 1:
             must_ask.append(question.field)

@@ -251,7 +251,7 @@ class CompromisedToolModel:
             rendered = json.dumps(exchange.result, ensure_ascii=False, default=str)
             if INJECTION in rendered:
                 self.saw_injection = True
-            for option in exchange.result.get("options", ()) or ():  # type: ignore[union-attr]
+            for option in exchange.result.get("options", ()) or ():
                 ref = option.get("ref_id") if isinstance(option, dict) else None
                 is_transport = exchange.invocation.name == "search_transport"
                 if ref and ref not in self.found_refs and is_transport:

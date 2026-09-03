@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from datetime import datetime
+from decimal import Decimal
 from typing import Protocol
 
 from corporate_travel_agent.domain.enums import RevalidationStatus
@@ -84,7 +85,7 @@ class CompositeTravelInventoryProvider:
                 warnings=("No selected references belong to a configured provider",),
             )
 
-        current_prices = {}
+        current_prices: dict[str, Decimal] = {}
         unavailable: list[str] = list(unknown)
         warnings: list[str] = []
         for result in results:

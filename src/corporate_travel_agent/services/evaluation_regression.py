@@ -8,7 +8,7 @@ import math
 from collections import Counter
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Literal
+from typing import Any, Final, Literal, cast
 from uuid import uuid4
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -18,7 +18,7 @@ from corporate_travel_agent.services.audit import stable_hash
 from corporate_travel_agent.services.evaluation_quality import EvaluationResult
 
 SHA256_PATTERN = r"^[a-f0-9]{64}$"
-REGRESSION_EVALUATOR_VERSION = "regression-evaluator-v1"
+REGRESSION_EVALUATOR_VERSION: Final = "regression-evaluator-v1"
 
 
 class RegressionEvaluationError(RuntimeError):
@@ -729,7 +729,7 @@ def _extract_metrics(results: dict[str, EvaluationResult]) -> dict[str, Baseline
             status=source.status,
             value=source.value,
             unit=source.unit,
-            direction=direction,
+            direction=cast(Literal["min", "max"], direction),
             absolute_threshold=threshold,
             regression_tolerance=tolerance,
             required_for_release=required,
@@ -780,7 +780,7 @@ def _run_mutation_checks(baseline: RegressionBaseline) -> tuple[MutationCheck, .
             MutationCheck(
                 mutation_id=mutation_id,
                 metric_id=metric_id,
-                expected_gate=expected,
+                expected_gate=cast(GateStatus, expected),
                 actual_gate=actual,
                 detected=actual == expected,
             )

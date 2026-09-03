@@ -12,6 +12,7 @@ from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session
 
 from corporate_travel_agent.domain.models import EmployeeProfileSnapshot, PolicySnapshot
+from corporate_travel_agent.services.db_engine import rowcount
 from corporate_travel_agent.services.policy_config import (
     LoadedPolicyConfiguration,
     PolicyConfigurationError,
@@ -158,7 +159,7 @@ class SQLAlchemyConfigRepository:
                 .where(PolicyConfigurationRow.config_id == config_id)
                 .values(is_active=True)
             )
-            if result.rowcount != 1:
+            if rowcount(result) != 1:
                 raise PolicyConfigurationError(f"Unknown policy configuration {config_id}")
 
     def _row_to_loaded(self, row: PolicyConfigurationRow) -> LoadedPolicyConfiguration:

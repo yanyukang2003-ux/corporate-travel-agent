@@ -13,6 +13,7 @@ from typing import Any
 from uuid import uuid4
 
 from corporate_travel_agent.agent.orchestrator.core import WorkflowError
+from corporate_travel_agent.agent.orchestrator.state import OrchestratorState
 from corporate_travel_agent.domain.enums import (
     BookingConfirmationSource,
     ReconciliationStatus,
@@ -45,7 +46,7 @@ def _aware(value: datetime) -> datetime:
     return value if value.tzinfo is not None else value.replace(tzinfo=UTC)
 
 
-class ConfirmationMixin:
+class ConfirmationMixin(OrchestratorState):
     """确认与改期：下单确认回流、差旅聚合与观察对象、航变/会议改期开改期任务、费控对账。
 
     混入 `TripWorkflowOrchestrator`；状态都在宿主实例上，这里只放方法。
@@ -331,17 +332,18 @@ class ConfirmationMixin:
             legs = request.transport_legs()
             shift = new_arrive_by - legs[index].arrive_before if index < len(legs) else None
 
-            def _shifted(depart_after: datetime | None) -> datetime | None:
-                if depart_after is None:
-                    return None
+            def _shift(depart_after: datetime) -> datetime:
                 moved = depart_after + shift if shift is not None else depart_after
                 return moved if moved < new_arrive_by else new_arrive_by - timedelta(hours=24)
+
+            def _shifted(depart_after: datetime | None) -> datetime | None:
+                return None if depart_after is None else _shift(depart_after)
 
             if request.journey:
                 journey = list(request.journey)
                 leg = journey[index]
                 journey[index] = replace(
-                    leg, arrive_before=new_arrive_by, depart_after=_shifted(leg.depart_after)
+                    leg, arrive_before=new_arrive_by, depart_after=_shift(leg.depart_after)
                 )
                 values["journey"] = tuple(journey)
             if index == 0:

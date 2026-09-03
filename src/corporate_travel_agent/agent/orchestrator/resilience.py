@@ -23,6 +23,7 @@ from corporate_travel_agent.agent.orchestrator.core import (
     ToolResult,
     WorkflowError,
 )
+from corporate_travel_agent.agent.orchestrator.state import OrchestratorState
 from corporate_travel_agent.agent.ports import LanguageModelError, WorkflowTraceEvent
 from corporate_travel_agent.domain.enums import TaskState, ToolCallStatus
 from corporate_travel_agent.domain.models import ToolCallRecord, TripTask
@@ -31,7 +32,7 @@ from corporate_travel_agent.services.provider_resilience import PROVIDER_RETRY_M
 from corporate_travel_agent.services.repositories import ConcurrentUpdateError
 
 
-class ResilienceMixin:
+class ResilienceMixin(OrchestratorState):
     """供应商韧性：有界重试、延迟重试队列、熔断器恢复、重启后的中断任务恢复、工具调用闸门。
 
     混入 `TripWorkflowOrchestrator`；状态都在宿主实例上，这里只放方法。
@@ -47,7 +48,7 @@ class ResilienceMixin:
             now = self._aware_datetime(self.clock())
             claim_due = getattr(self.tasks, "claim_due_provider_retries", None)
             claimed = callable(claim_due)
-            if claimed:
+            if callable(claim_due):
                 due_tasks = list(
                     claim_due(
                         worker_id=self.provider_retry_worker_id,
@@ -361,7 +362,7 @@ class ResilienceMixin:
     def _tasks_by_state(self, state: TaskState, *, limit: int = 10_000) -> tuple[TripTask, ...]:
         list_by_state = getattr(self.tasks, "list_by_state", None)
         if callable(list_by_state):
-            return list_by_state(state.value, limit=limit)
+            return tuple(list_by_state(state.value, limit=limit))
         return tuple(task for task in self.tasks.list_tasks() if task.state is state)
 
     def _interrupted_candidates(self) -> tuple[TripTask, ...]:
@@ -685,7 +686,7 @@ class ResilienceMixin:
 
     def _retry_delay_seconds(self, failed_attempt: int) -> float:
         jitter = min(max(float(self.retry_jitter()), 0.0), 1.0)
-        exponential = self.retry_backoff_base_seconds * (2 ** (failed_attempt - 1))
+        exponential = self.retry_backoff_base_seconds * (2.0 ** (failed_attempt - 1))
         return min(exponential * (1 + 0.2 * jitter), 5.0)
 
     @staticmethod

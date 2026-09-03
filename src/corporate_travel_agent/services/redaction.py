@@ -5,10 +5,10 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 from math import isfinite
-from typing import Any
+from typing import Any, Final
 from urllib.parse import urlsplit, urlunsplit
 
-REDACTION_PROFILE_VERSION = "travel-redaction-v1"
+REDACTION_PROFILE_VERSION: Final = "travel-redaction-v1"
 REDACTED_VALUE = "[REDACTED]"
 MAX_JSON_DEPTH = 64
 MAX_JSON_NODES = 1_000_000

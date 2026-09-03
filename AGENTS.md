@@ -57,6 +57,9 @@
 # 代码检查
 .venv/bin/ruff check src tests examples migrations
 
+# 静态类型检查（配置在 pyproject.toml；domain / policy / workflow / 仓储端口 / 编排器为严格模式）
+.venv/bin/mypy
+
 # 前端（连本机 API；8000 被占时换端口）
 cd frontend && npm run build && npm test && npm run lint
 cd frontend && VITE_API_TARGET=http://127.0.0.1:8001 npm run dev

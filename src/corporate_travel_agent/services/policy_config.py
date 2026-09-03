@@ -107,7 +107,8 @@ class EmployeeConfig(StrictConfigModel):
 def _safe_money(value: Decimal, label: str) -> Decimal:
     if value.is_nan() or value.is_infinite() or value <= 0 or value > Decimal("1000000000"):
         raise ValueError(f"invalid amount for {label}")
-    if value.as_tuple().exponent < -2:
+    exponent = value.as_tuple().exponent
+    if isinstance(exponent, int) and exponent < -2:
         raise ValueError(f"amount for {label} has more than two decimals")
     return value
 
@@ -250,7 +251,8 @@ class PolicySnapshotConfig(StrictConfigModel):
         for city_code, cap in values.items():
             if cap.is_nan() or cap.is_infinite() or cap <= 0 or cap > Decimal("1000000"):
                 raise ValueError(f"invalid hotel cap for {city_code}")
-            if cap.as_tuple().exponent < -2:
+            exponent = cap.as_tuple().exponent
+            if isinstance(exponent, int) and exponent < -2:
                 raise ValueError(f"hotel cap for {city_code} has more than two decimals")
         return values
 

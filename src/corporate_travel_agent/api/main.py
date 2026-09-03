@@ -202,9 +202,11 @@ def _configured_outbox_store():
     """装配 outbox 存储：和任务仓储同一个地方——内存仓储自带的那份，或同一个 SQL 引擎。"""
     from corporate_travel_agent.services.outbox import SQLAlchemyOutboxStore
 
+    if isinstance(workflow.tasks, InMemoryTaskRepository):
+        return workflow.tasks.outbox
     engine = getattr(workflow.tasks, "engine", None)
     if engine is None:
-        return workflow.tasks.outbox
+        raise RuntimeError("task repository has neither an in-memory outbox nor a SQL engine")
     return SQLAlchemyOutboxStore(engine)
 
 

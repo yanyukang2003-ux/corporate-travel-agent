@@ -10,6 +10,7 @@ from decimal import Decimal
 from uuid import uuid4
 
 from corporate_travel_agent.agent.orchestrator.core import WorkflowError
+from corporate_travel_agent.agent.orchestrator.state import OrchestratorState
 from corporate_travel_agent.domain.enums import ApprovalStatus, TaskState
 from corporate_travel_agent.domain.models import (
     ApprovalRequest,
@@ -35,7 +36,7 @@ def _approval_subject_rules(decision: PolicyDecision) -> tuple[str, ...]:
     )
 
 
-class ApprovalMixin:
+class ApprovalMixin(OrchestratorState):
     """审批与交接：分级审批、审批主体哈希、发件箱事件、交接单。
 
     混入 `TripWorkflowOrchestrator`；状态都在宿主实例上，这里只放方法。
