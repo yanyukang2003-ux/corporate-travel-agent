@@ -28,9 +28,10 @@ import type {
   BudgetsResponse,
 } from './api/types'
 import { formatTravelDate, formatTravelTime, getStateMeta, parseIsoWallClock } from './utils/state'
-import { approvalReasonText, factsForOptionCard, openQuestionsFromTask } from './utils/notices'
+import { approvalReasonText, openQuestionsFromTask } from './utils/notices'
 import { chatTurns } from './utils/chat'
 import { stepViews } from './utils/steps'
+import { optionReasons } from './utils/reasons'
 import { costNotes, money as moneyText } from './utils/cost'
 import { confirmationSummary, parseOrderReferences, reconciliationText } from './utils/booking'
 import { KPI_CARDS, KPI_KEYS, formatMetric, metricSample, utilisation, utilisationTone, whereaboutsLabel, whereaboutsTone } from './utils/dashboard'
@@ -255,6 +256,7 @@ function displayOptionFromApi(
   index: number,
   lodgingRequirement: LodgingRequirement,
   labelFor: (optionId: string) => string,
+  allOptions: TravelOption[],
 ): DisplayOption {
   const total = Number(option.total_cost)
   const hotelTotal = Number(option.hotel?.total_price ?? 0)
@@ -292,9 +294,9 @@ function displayOptionFromApi(
     policy: isCompliant ? '全部合规' : needsApproval ? '需要审批' : option.policy_outcome === 'FORBIDDEN' ? '政策禁止' : '证据不足',
     policyTone: isCompliant ? 'ok' : 'warn',
     carbon: `${option.outbound.provider} 实时库存`,
-    facts: option.facts.length
-      ? factsForOptionCard(option.facts)
-      : option.rule_evidence.slice(0, 3).map((rule) => rule.message),
+    // 理由从数据推导（最便宜/最快/贵多少换来什么/直达/当天还是前一晚），
+    // 机器键值串（total_cost=238.80 这种）一条都不上屏。
+    facts: optionReasons(option, allOptions),
     costNotes: costNotes(option.cost_guidance, labelFor),
     live: true,
   }
@@ -1271,10 +1273,15 @@ function OptionCard({ option, selected, compared, onSelect, onCompare }: {
   onCompare: () => void
 }) {
   return (
-    <article className={`option-card ${selected ? 'selected' : ''}`} data-testid={`option-card-${option.id}`}>
+    <article
+      className={`option-card ${selected ? 'selected' : ''}`}
+      data-testid={`option-card-${option.id}`}
+      // 整张卡都能点：之前只有右下角的按钮可选，窄屏下按钮被挤出可视区就没法切换了。
+      onClick={onSelect}
+    >
       <div className="option-topline">
         <div><Badge tone={option.tagTone}>{option.tag}</Badge><Badge tone={option.policyTone}>{option.policy === '全部合规' && <span className="mini-check">✓</span>}{option.policy}</Badge></div>
-        <label className="compare-check"><input type="checkbox" checked={compared} onChange={onCompare} />加入对比</label>
+        <label className="compare-check" onClick={(event) => event.stopPropagation()}><input type="checkbox" checked={compared} onChange={onCompare} />加入对比</label>
       </div>
       <div className="option-body">
         <div className="itinerary">
@@ -1388,7 +1395,7 @@ function PlanView({ onToast, composerEpoch, onNewTrip }: {
     // 名字由展示顺序决定，所以先把整张表建好，再逐条映射。
     const labels = new Map((task?.options ?? []).map((option, index) => [option.option_id, optionTag(index)]))
     const labelFor = (optionId: string) => labels.get(optionId) ?? optionId
-    return task?.options.map((option, index) => displayOptionFromApi(option, index, lodgingRequirement, labelFor)) ?? []
+    return task?.options.map((option, index) => displayOptionFromApi(option, index, lodgingRequirement, labelFor, task.options)) ?? []
   }, [task])
   const selected = displayOptions.find((option) => option.id === selectedId) ?? displayOptions[0]
   const selectedApiOption = task?.options.find((option) => option.option_id === selected?.id) ?? null
@@ -1674,6 +1681,7 @@ function PlanView({ onToast, composerEpoch, onNewTrip }: {
               {/* 供应商没给航班号，就别拿一串报价编号当标题——按航线和时刻说人话，编号放小字。 */}
               <h3>{selected.origin} → {selected.destination} · {selected.depart} 出发</h3>
               <p className="decision-ref">{selected.number} · {selected.hotel}</p>
+              {selected.facts.length > 0 && <p className="decision-why">为什么是它：{selected.facts.join(' · ')}</p>}
               <div className="price-breakdown"><div><span>往返交通</span><b>{selected.transportPrice}</b></div><div><span>酒店</span><b>{selected.hotelPrice}</b></div><div className="total"><span>预估总计</span><strong>{selected.currencySymbol}{selected.price}</strong></div></div>
               <div className={`policy-callout ${selected.policyTone}`}>
                 <span><Icon name={selected.policyTone === 'ok' ? 'shield' : 'info'} size={18} /></span>

@@ -241,15 +241,17 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px
 .list-toolbar p { margin: 0; color: var(--muted); font-size: 10px; }
 .list-toolbar button, .queue-title button { display: flex; align-items: center; gap: 5px; color: var(--muted); font-size: 10px; }
 
-.option-card { position: relative; margin-bottom: 12px; border: 1px solid var(--line); background: var(--paper); transition: border-color .2s, box-shadow .2s; }
+.option-card { position: relative; cursor: pointer; margin-bottom: 12px; border: 1px solid var(--line); background: var(--paper); transition: border-color .2s, box-shadow .2s; }
 .option-card:hover { border-color: #bdc6c1; box-shadow: 0 8px 22px rgba(23,49,57,.06); }
 .option-card.selected { border-color: #466d68; box-shadow: inset 3px 0 0 #466d68; }
 .option-topline { display: flex; justify-content: space-between; align-items: center; padding: 11px 14px 9px; border-bottom: 1px solid var(--line-soft); }
 .option-topline > div { display: flex; gap: 6px; }
 .compare-check { display: flex; align-items: center; gap: 6px; color: var(--muted); font-size: 10px; cursor: pointer; }
 .compare-check input { width: 13px; height: 13px; margin: 0; accent-color: var(--ink-2); }
-.option-body { display: grid; grid-template-columns: 1fr 126px; min-height: 134px; }
-.itinerary { padding: 18px 18px 12px; }
+/* 第一列必须允许收缩（minmax(0,…)）：航班引用号很长时，1fr 的最小宽度会把
+   126px 的价格列（含「选择方案」按钮）挤出卡片可视区——按钮看不见，方案就没法切换。 */
+.option-body { display: grid; grid-template-columns: minmax(0, 1fr) 126px; min-height: 134px; }
+.itinerary { padding: 18px 18px 12px; min-width: 0; overflow: hidden; }
 .route-main { display: flex; align-items: center; gap: 12px; }
 .transport-icon { width: 34px; height: 34px; flex: 0 0 auto; display: grid; place-items: center; border-radius: 50%; color: #315f58; background: #e5eeea; }
 .transport-icon.plane { color: #466e89; background: #e8eff3; }
@@ -762,3 +764,8 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px
 .provenance-items b { font-size: 10.5px; }
 .provenance-items p { margin: 3px 0 0; color: var(--muted); font-size: 9.5px; }
 .provenance-gaps { margin-top: 10px; }
+
+/* 决策面板：这条方案的理由（从数据推导，不编内容） */
+.decision-why { margin: 6px 0 0; color: var(--green); font-size: 9.5px; line-height: 1.5; }
+
+
