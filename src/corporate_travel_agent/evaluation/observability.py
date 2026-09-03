@@ -15,11 +15,11 @@ from uuid import uuid4
 from pydantic import BaseModel, ConfigDict, Field
 
 from corporate_travel_agent import __version__
-from corporate_travel_agent.services.evaluation_performance import (
+from corporate_travel_agent.evaluation.performance import (
     ModelPriceTable,
 )
-from corporate_travel_agent.services.evaluation_quality import EvaluationResult
-from corporate_travel_agent.services.evaluation_regression import (
+from corporate_travel_agent.evaluation.quality import EvaluationResult
+from corporate_travel_agent.evaluation.regression import (
     ArtifactReference,
     BadCaseDatasetManifest,
     BadCaseRecord,

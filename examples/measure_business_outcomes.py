@@ -25,7 +25,7 @@ import argparse
 from datetime import datetime
 
 from corporate_travel_agent.domain.models import AuditEvent, TripTask
-from corporate_travel_agent.services.evaluation_business import (
+from corporate_travel_agent.evaluation.business import (
     build_business_metrics_report,
     write_business_metrics_report,
 )

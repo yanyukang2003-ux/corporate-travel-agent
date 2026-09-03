@@ -8,7 +8,7 @@ from pathlib import Path
 
 from corporate_travel_agent.agent.deterministic_tool_model import DeterministicToolCallingModel
 from corporate_travel_agent.demo import DEMO_CLOCK, build_demo_system
-from corporate_travel_agent.services.evaluation_external_longtail import (
+from corporate_travel_agent.evaluation.external_longtail import (
     MULTITURN_SCENARIO,
     FactSheet,
     build_fact_sheet,
@@ -23,12 +23,12 @@ from corporate_travel_agent.services.evaluation_external_longtail import (
     select_multiturn_cases,
     summarize_multiturn,
 )
-from corporate_travel_agent.services.evaluation_judge import (
+from corporate_travel_agent.evaluation.judge import (
     assert_blinded,
     load_judge_inputs,
     load_output_quality_rubric,
 )
-from corporate_travel_agent.services.evaluation_quality import DeterministicUserOutput
+from corporate_travel_agent.evaluation.quality import DeterministicUserOutput
 from corporate_travel_agent.services.locations import CityNormalizer
 from corporate_travel_agent.services.policy_config import load_policy_configuration
 

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import argparse
 
-from corporate_travel_agent.services.evaluation_observability import (
+from corporate_travel_agent.evaluation.observability import (
     build_observability_evaluation,
 )
 

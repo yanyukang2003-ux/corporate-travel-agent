@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import argparse
 
-from corporate_travel_agent.services.evaluation_recovery import (
+from corporate_travel_agent.evaluation.recovery import (
     evaluate_fault_recovery_run,
 )
 

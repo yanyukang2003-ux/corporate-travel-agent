@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import argparse
 
-from corporate_travel_agent.services.evaluation_trajectory import evaluate_trajectory_run
+from corporate_travel_agent.evaluation.trajectory import evaluate_trajectory_run
 
 
 def main() -> None:

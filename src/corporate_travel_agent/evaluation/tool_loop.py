@@ -35,15 +35,15 @@ from uuid import uuid4
 from corporate_travel_agent import __version__
 from corporate_travel_agent.agent.orchestrator import MAX_LLM_ATTEMPTS, MAX_PROVIDER_ATTEMPTS
 from corporate_travel_agent.agent.ports import WorkflowTraceEvent
-from corporate_travel_agent.services.audit import stable_hash
-from corporate_travel_agent.services.evaluation_performance import ModelPriceTable
-from corporate_travel_agent.services.evaluation_trace import (
+from corporate_travel_agent.evaluation.performance import ModelPriceTable
+from corporate_travel_agent.evaluation.trace import (
     EvaluationTrace,
     EvaluationTraceRecorder,
     ToolChoiceExposure,
     TraceFinal,
     TraceFingerprint,
 )
+from corporate_travel_agent.services.audit import stable_hash
 
 T = TypeVar("T")
 

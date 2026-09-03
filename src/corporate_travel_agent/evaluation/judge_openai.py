@@ -12,12 +12,12 @@ from typing import Any
 
 from corporate_travel_agent.agent.openai_errors import _classified_openai_error
 from corporate_travel_agent.agent.ports import LanguageModelError, LLMCallMetadata
-from corporate_travel_agent.services.evaluation_judge import (
+from corporate_travel_agent.evaluation.judge import (
     JudgeError,
     JudgeScore,
     OutputQualityRubric,
 )
-from corporate_travel_agent.services.evaluation_quality import JudgeInput
+from corporate_travel_agent.evaluation.quality import JudgeInput
 
 JUDGE_PROMPT_VERSION = "output-quality-judge-v1"
 

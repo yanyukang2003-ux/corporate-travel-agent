@@ -26,7 +26,7 @@
 | 无可行方案可解释 | 区分去程、返程、酒店无库存与硬过滤 | `agent/orchestrator.py` | 已实现 |
 | 库存与交接有效期 | 共享时钟、快照/链接过期拦截与审计 | `providers/mock.py`, `agent/orchestrator.py` | 已实现 |
 | 20+ 真实快照 | 脱敏数据集、WORM 导出、清单哈希、去重统计和查询契约已具备；Mock 样例 3 个 | `services/replay_dataset.py`, `services/redaction.py`, `docs/replay-datasets.md` | 工具已实现，真实来源 0/20 |
-| 60+ 场景评估 | 540 条派生案例：60 条工作流案例、480 条完整测试切分意图案例；按旧版/扩展 cohort、来源和场景报告分类、字段、澄清、越界、交通偏好、不支持约束拒绝、提前调用与幻觉指标；另有火车、多职级、禁止/证据不足、审批、跨时区和多币种边界回归 | `data/evaluation/derived-v2`, `services/evaluation_dataset.py`, `tests/test_evaluation_dataset.py`, `tests/test_enterprise_edge_cases.py` | 完整离线测试切分与确定性执行已完成，真实模型质量评估待完成 |
+| 60+ 场景评估 | 540 条派生案例：60 条工作流案例、480 条完整测试切分意图案例；按旧版/扩展 cohort、来源和场景报告分类、字段、澄清、越界、交通偏好、不支持约束拒绝、提前调用与幻觉指标；另有火车、多职级、禁止/证据不足、审批、跨时区和多币种边界回归 | `data/evaluation/derived-v2`, `evaluation/dataset.py`, `tests/test_evaluation_dataset.py`, `tests/test_enterprise_edge_cases.py` | 完整离线测试切分与确定性执行已完成，真实模型质量评估待完成 |
 | 认证和资源级授权 | scrypt 登录、短期签名会话、员工本人/直属审批人/管理员范围，审批身份由令牌派生 | `services/auth.py`, `api/main.py` | 内部试用已实现，正式环境待接 OIDC/SSO |
 | PostgreSQL 任务持久化 | JSONB 聚合、事务审计、乐观锁、迁移和重启恢复 | `services/sqlalchemy_repository.py`, `migrations/` | 已实现 |
 | Provider 原始响应对象存储 | 内存/本地 WORM 后端、不可变引用、保留期、受限读取与公开字段脱敏 | `services/object_storage.py`, `providers/mock.py` | 内部试用已实现，正式环境待接 S3 Object Lock |

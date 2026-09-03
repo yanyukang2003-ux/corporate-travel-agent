@@ -26,8 +26,8 @@ from corporate_travel_agent.agent.tool_loop import (
 )
 from corporate_travel_agent.demo import DEMO_CLOCK, build_demo_system
 from corporate_travel_agent.domain.enums import TaskState, ToolCallStatus
-from corporate_travel_agent.services.evaluation_performance import ModelPriceTable, ModelTokenPrice
-from corporate_travel_agent.services.evaluation_tool_loop import (
+from corporate_travel_agent.evaluation.performance import ModelPriceTable, ModelTokenPrice
+from corporate_travel_agent.evaluation.tool_loop import (
     COST_LEDGER_FILE,
     COST_SUMMARY_FILE,
     RETRY_CAP_FILE,
@@ -35,7 +35,7 @@ from corporate_travel_agent.services.evaluation_tool_loop import (
     LiveRunLedger,
     check_retry_caps,
 )
-from corporate_travel_agent.services.evaluation_trace import (
+from corporate_travel_agent.evaluation.trace import (
     EvaluationTrace,
     EvaluationTraceRecorder,
     TraceFinal,

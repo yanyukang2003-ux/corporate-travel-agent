@@ -13,13 +13,13 @@ from typing import Any
 from corporate_travel_agent.demo import build_demo_system
 from corporate_travel_agent.domain.enums import PolicyOutcome
 from corporate_travel_agent.domain.models import TripRequestVersion
-from corporate_travel_agent.providers.duffel import DuffelProvider
-from corporate_travel_agent.services.audit import stable_hash
-from corporate_travel_agent.services.evaluation_trace import (
+from corporate_travel_agent.evaluation.trace import (
     EvaluationTraceRecorder,
     TraceFinal,
     TraceFingerprint,
 )
+from corporate_travel_agent.providers.duffel import DuffelProvider
+from corporate_travel_agent.services.audit import stable_hash
 from corporate_travel_agent.services.object_storage import LocalRawResponseObjectStore
 from corporate_travel_agent.services.policy_config import load_policy_configuration
 

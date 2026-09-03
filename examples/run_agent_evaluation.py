@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import argparse
 
-from corporate_travel_agent.services.evaluation_runner import (
+from corporate_travel_agent.evaluation.runner import (
     run_deterministic_workflow_evaluation,
 )
 

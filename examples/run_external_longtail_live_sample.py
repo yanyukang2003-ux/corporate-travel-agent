@@ -32,14 +32,14 @@ from corporate_travel_agent.agent.tool_loop_adapter import (
     OpenAIToolCallingLanguageModel,
 )
 from corporate_travel_agent.demo import build_demo_system
-from corporate_travel_agent.providers.factory import travel_provider_from_environment
-from corporate_travel_agent.services.evaluation_external_longtail import (
+from corporate_travel_agent.evaluation.external_longtail import (
     case_record,
     load_cases,
     probe_cases,
 )
-from corporate_travel_agent.services.evaluation_performance import load_model_price_table
-from corporate_travel_agent.services.evaluation_tool_loop import LiveRunLedger
+from corporate_travel_agent.evaluation.performance import load_model_price_table
+from corporate_travel_agent.evaluation.tool_loop import LiveRunLedger
+from corporate_travel_agent.providers.factory import travel_provider_from_environment
 from corporate_travel_agent.services.locations import CityNormalizer
 from corporate_travel_agent.services.policy_config import load_policy_configuration
 

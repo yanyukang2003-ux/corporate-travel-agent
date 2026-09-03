@@ -10,15 +10,15 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from corporate_travel_agent.agent.orchestrator import PARTIAL_COVERAGE_METADATA_KEY
 from corporate_travel_agent.domain.enums import TaskState
-from corporate_travel_agent.services.audit import stable_hash
-from corporate_travel_agent.services.evaluation_dataset import (
+from corporate_travel_agent.evaluation.dataset import (
     WorkflowEvaluationCase,
     WorkflowEvaluationObservation,
 )
+from corporate_travel_agent.services.audit import stable_hash
+from corporate_travel_agent.services.metrics import MetricResult
 
 OUTPUT_RUBRIC_VERSION: Final = "output-quality-v1"
 
-MetricStatus = Literal["measured", "unavailable", "not_applicable"]
 GateStatus = Literal["pass", "fail", "not_evaluated"]
 
 
@@ -116,17 +116,6 @@ class JudgeInput(QualityModel):
     trace_evidence_refs: tuple[str, ...]
     user_visible_output: DeterministicUserOutput
     candidate_identity_blinded: Literal[True] = True
-
-
-class MetricResult(QualityModel):
-    """带状态与说明的指标结果。"""
-    status: MetricStatus
-    value: float | None
-    numerator: float | None
-    denominator: float | None
-    unit: str | None
-    exposure_note: str | None = None
-    confidence_note: str | None = None
 
 
 class EvaluationCoverage(QualityModel):

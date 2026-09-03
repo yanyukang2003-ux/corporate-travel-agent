@@ -5,7 +5,7 @@ import json
 from collections import Counter
 from dataclasses import asdict
 
-from corporate_travel_agent.services.evaluation_dataset import (
+from corporate_travel_agent.evaluation.dataset import (
     EvaluationDatasetError,
     load_evaluation_dataset,
     run_intent_evaluation,

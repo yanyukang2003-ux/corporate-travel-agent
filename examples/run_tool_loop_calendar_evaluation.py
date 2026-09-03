@@ -78,14 +78,14 @@ from corporate_travel_agent.domain.models import (
     PolicySnapshot,
     TransportOffer,
 )
-from corporate_travel_agent.policy.engine import PolicyEngine
-from corporate_travel_agent.providers.base import HotelSearchQuery, TransportSearchQuery
-from corporate_travel_agent.providers.mock import MockProvider
-from corporate_travel_agent.services.evaluation_performance import load_model_price_table
-from corporate_travel_agent.services.evaluation_tool_loop import (
+from corporate_travel_agent.evaluation.performance import load_model_price_table
+from corporate_travel_agent.evaluation.tool_loop import (
     LiveCaseRecorder,
     LiveRunLedger,
 )
+from corporate_travel_agent.policy.engine import PolicyEngine
+from corporate_travel_agent.providers.base import HotelSearchQuery, TransportSearchQuery
+from corporate_travel_agent.providers.mock import MockProvider
 from corporate_travel_agent.services.locations import CityNormalizer
 from corporate_travel_agent.services.policy_config import load_policy_configuration
 

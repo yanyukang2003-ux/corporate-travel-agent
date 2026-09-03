@@ -17,7 +17,7 @@ import argparse
 import json
 from pathlib import Path
 
-from corporate_travel_agent.services.evaluation_external_longtail import (
+from corporate_travel_agent.evaluation.external_longtail import (
     load_cases,
     probe_cases,
     render_markdown,

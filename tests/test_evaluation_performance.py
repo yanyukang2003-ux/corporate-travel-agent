@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
-from corporate_travel_agent.services.evaluation_performance import (
+from corporate_travel_agent.evaluation.performance import (
     ModelPriceTable,
 )
 

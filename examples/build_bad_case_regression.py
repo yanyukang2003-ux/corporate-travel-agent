@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import argparse
 
-from corporate_travel_agent.services.evaluation_regression import build_bad_case_dataset
+from corporate_travel_agent.evaluation.regression import build_bad_case_dataset
 
 
 def main() -> None:

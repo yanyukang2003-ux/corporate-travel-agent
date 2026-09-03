@@ -28,11 +28,11 @@ from corporate_travel_agent.domain.models import (  # noqa: E402
     TransportOffer,
     TripRequestVersion,
 )
-from corporate_travel_agent.planning.feasibility import FeasibilityValidator  # noqa: E402
-from corporate_travel_agent.policy.engine import PolicyEngine  # noqa: E402
-from corporate_travel_agent.services.evaluation_agent_eval import (  # noqa: E402
+from corporate_travel_agent.evaluation.agent_eval import (  # noqa: E402
     _oracle_preference_penalty,
 )
+from corporate_travel_agent.planning.feasibility import FeasibilityValidator  # noqa: E402
+from corporate_travel_agent.policy.engine import PolicyEngine  # noqa: E402
 
 DATASET_DIR = ROOT / "data" / "evaluation" / "agent-eval-v1"
 CASES_PATH = DATASET_DIR / "cases.jsonl"

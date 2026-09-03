@@ -5,7 +5,7 @@ from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
 
-from corporate_travel_agent.services.evaluation_agent_eval import (
+from corporate_travel_agent.evaluation.agent_eval import (
     _external_mutation_count,
     _unsupported_parameter_value_count,
     _untrusted_instruction_mutation_count,
@@ -128,7 +128,7 @@ def test_hard_assertion_executor_flags_wrong_final_state() -> None:
     result = run_case(case, worlds[case["case_id"]], mode="oracle_label")
     assert result.passed
     # Mutate observation by re-running executor with a forged observation.
-    from corporate_travel_agent.services.evaluation_agent_eval import build_oracle_observation
+    from corporate_travel_agent.evaluation.agent_eval import build_oracle_observation
 
     obs = build_oracle_observation(case, worlds[case["case_id"]])
     obs.task["state"] = "WAITING_FOR_USER"

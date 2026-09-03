@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import argparse
 
-from corporate_travel_agent.services.evaluation_performance import (
+from corporate_travel_agent.evaluation.performance import (
     evaluate_performance_and_stability,
 )
 

@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from corporate_travel_agent.services.evaluation_dataset import (
+from corporate_travel_agent.evaluation.dataset import (
     EvaluationDatasetError,
     load_evaluation_dataset,
     run_workflow_evaluation_case,

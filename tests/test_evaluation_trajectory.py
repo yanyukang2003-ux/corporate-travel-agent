@@ -5,19 +5,19 @@ from pathlib import Path
 
 import pytest
 
-from corporate_travel_agent.services.evaluation_dataset import (
+from corporate_travel_agent.evaluation.dataset import (
     WorkflowEvaluationCase,
     load_evaluation_dataset,
 )
-from corporate_travel_agent.services.evaluation_quality import (
+from corporate_travel_agent.evaluation.quality import (
     EvaluationResult,
     WorkflowCaseEvaluation,
 )
-from corporate_travel_agent.services.evaluation_runner import (
+from corporate_travel_agent.evaluation.runner import (
     run_deterministic_workflow_evaluation,
 )
-from corporate_travel_agent.services.evaluation_trace import EvaluationTrace
-from corporate_travel_agent.services.evaluation_trajectory import (
+from corporate_travel_agent.evaluation.trace import EvaluationTrace
+from corporate_travel_agent.evaluation.trajectory import (
     TrajectoryCaseEvaluation,
     TrajectoryEvaluationError,
     TrajectoryRunSummary,

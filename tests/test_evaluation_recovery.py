@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from collections import Counter
 
-from corporate_travel_agent.services.evaluation_recovery import (
+from corporate_travel_agent.evaluation.recovery import (
     build_recovery_evaluation_result,
     evaluate_fault_recovery_run,
     load_fault_evaluation_dataset,

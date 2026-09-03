@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from corporate_travel_agent.services.evaluation_regression import (
+from corporate_travel_agent.evaluation.regression import (
     BadCaseRecord,
     BaselineMetric,
     RegressionEvaluationError,

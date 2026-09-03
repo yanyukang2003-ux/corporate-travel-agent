@@ -23,11 +23,11 @@ from corporate_travel_agent.api.schemas import (
 )
 from corporate_travel_agent.api.serializers import public_audit_event
 from corporate_travel_agent.domain.models import AuditEvent, TripTask
-from corporate_travel_agent.services.duty_of_care import whereabouts
-from corporate_travel_agent.services.evaluation_business import (
+from corporate_travel_agent.services.business_metrics import (
     METRIC_LABELS,
     build_business_metrics_report,
 )
+from corporate_travel_agent.services.duty_of_care import whereabouts
 from corporate_travel_agent.services.expense_reconciliation import (
     reconcile_expenses,
     record_from_payload,

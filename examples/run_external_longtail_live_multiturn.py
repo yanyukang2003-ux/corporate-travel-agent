@@ -39,7 +39,7 @@ from typing import Any
 from corporate_travel_agent.agent.ports import LanguageModelError
 from corporate_travel_agent.demo import DEMO_CLOCK, build_demo_system
 from corporate_travel_agent.domain.enums import TaskState
-from corporate_travel_agent.services.evaluation_external_longtail import (
+from corporate_travel_agent.evaluation.external_longtail import (
     MAX_FOLLOW_UPS,
     MULTITURN_RUNNER_VERSION,
     FactSheet,
@@ -202,11 +202,11 @@ def main(argv: Sequence[str] | None = None) -> int:
             TOOL_LOOP_PROMPT_VERSION,
             OpenAIToolCallingLanguageModel,
         )
-        from corporate_travel_agent.providers.factory import travel_provider_from_environment
-        from corporate_travel_agent.services.evaluation_performance import (
+        from corporate_travel_agent.evaluation.performance import (
             load_model_price_table,
         )
-        from corporate_travel_agent.services.evaluation_tool_loop import LiveRunLedger
+        from corporate_travel_agent.evaluation.tool_loop import LiveRunLedger
+        from corporate_travel_agent.providers.factory import travel_provider_from_environment
 
         provider_name = _assert_live_sandbox()
         active = next(

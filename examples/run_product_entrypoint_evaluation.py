@@ -30,7 +30,7 @@ from corporate_travel_agent.agent.deterministic_tool_model import (
     DeterministicToolCallingModel,
 )
 from corporate_travel_agent.domain.enums import TaskState
-from corporate_travel_agent.services.evaluation_dataset import (
+from corporate_travel_agent.evaluation.dataset import (
     load_evaluation_dataset,
     run_intent_evaluation,
     run_workflow_evaluation_case,

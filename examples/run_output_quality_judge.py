@@ -24,7 +24,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from corporate_travel_agent.services.evaluation_judge import (
+from corporate_travel_agent.evaluation.judge import (
     JudgeError,
     assert_blinded,
     calibrate_against_human,
@@ -153,7 +153,7 @@ def main() -> None:
             "Judge calls are billable. Re-run with --confirm-billable-judge-calls."
         )
 
-    from corporate_travel_agent.services.evaluation_judge_openai import (
+    from corporate_travel_agent.evaluation.judge_openai import (
         OpenAIOutputQualityJudge,
     )
 

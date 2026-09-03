@@ -26,7 +26,7 @@ from corporate_travel_agent.domain.models import (
     RuleEvidence,
     TripTask,
 )
-from corporate_travel_agent.services.evaluation_business import (
+from corporate_travel_agent.evaluation.business import (
     BUSINESS_PROTOCOL_ID,
     METRIC_LABELS,
     BusinessMetricsError,

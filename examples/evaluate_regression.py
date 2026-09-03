@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import argparse
 
-from corporate_travel_agent.services.evaluation_regression import (
+from corporate_travel_agent.evaluation.regression import (
     evaluate_regression,
     freeze_regression_baseline,
 )

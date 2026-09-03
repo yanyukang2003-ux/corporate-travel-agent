@@ -14,7 +14,7 @@ import json
 from collections.abc import Sequence
 from pathlib import Path
 
-from corporate_travel_agent.services.evaluation_adversarial import (
+from corporate_travel_agent.evaluation.adversarial import (
     render_markdown,
     run_adversarial_suite,
 )

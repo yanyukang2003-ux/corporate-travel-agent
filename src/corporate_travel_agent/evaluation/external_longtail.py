@@ -605,7 +605,7 @@ def judge_input_for_task(
     inventory_source: str,
 ) -> Any:
     """把一条跑完的任务投影成盲评输入：对话原文 + 系统可见回复 + 方案投影。"""
-    from corporate_travel_agent.services.evaluation_quality import (
+    from corporate_travel_agent.evaluation.quality import (
         _NEXT_ACTIONS,
         _SUMMARY_CODES,
         DeterministicUserOutput,

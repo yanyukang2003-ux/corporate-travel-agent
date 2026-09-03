@@ -40,6 +40,25 @@ from corporate_travel_agent.domain.models import (
     TripRequestVersion,
     TripTask,
 )
+from corporate_travel_agent.evaluation.dataset import (
+    WorkflowEvaluationCase,
+    WorkflowEvaluationObservation,
+    load_evaluation_dataset,
+)
+from corporate_travel_agent.evaluation.quality import (
+    BadCaseCandidate,
+    EvaluationCoverage,
+    EvaluationResult,
+    HardFailure,
+    MetricResult,
+    project_user_output,
+)
+from corporate_travel_agent.evaluation.trace import (
+    EvaluationTrace,
+    EvaluationTraceRecorder,
+    TraceFinal,
+    TraceFingerprint,
+)
 from corporate_travel_agent.providers.base import (
     HotelSearchQuery,
     ProviderError,
@@ -49,25 +68,6 @@ from corporate_travel_agent.providers.base import (
 )
 from corporate_travel_agent.providers.mock import MockProvider
 from corporate_travel_agent.services.audit import new_audit_event, stable_hash
-from corporate_travel_agent.services.evaluation_dataset import (
-    WorkflowEvaluationCase,
-    WorkflowEvaluationObservation,
-    load_evaluation_dataset,
-)
-from corporate_travel_agent.services.evaluation_quality import (
-    BadCaseCandidate,
-    EvaluationCoverage,
-    EvaluationResult,
-    HardFailure,
-    MetricResult,
-    project_user_output,
-)
-from corporate_travel_agent.services.evaluation_trace import (
-    EvaluationTrace,
-    EvaluationTraceRecorder,
-    TraceFinal,
-    TraceFingerprint,
-)
 from corporate_travel_agent.services.repositories import (
     InMemoryEmployeeDirectory,
     InMemoryPolicyRepository,

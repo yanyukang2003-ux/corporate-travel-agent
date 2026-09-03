@@ -12,12 +12,11 @@ from uuid import uuid4
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from corporate_travel_agent.services.audit import stable_hash
-from corporate_travel_agent.services.evaluation_dataset import (
+from corporate_travel_agent.evaluation.dataset import (
     WorkflowEvaluationCase,
     load_evaluation_dataset,
 )
-from corporate_travel_agent.services.evaluation_quality import (
+from corporate_travel_agent.evaluation.quality import (
     BadCaseCandidate,
     EvaluationCoverage,
     EvaluationResult,
@@ -25,8 +24,8 @@ from corporate_travel_agent.services.evaluation_quality import (
     MetricResult,
     WorkflowCaseEvaluation,
 )
-from corporate_travel_agent.services.evaluation_trace import EvaluationTrace, TraceStep
-from corporate_travel_agent.services.evaluation_trajectory import (
+from corporate_travel_agent.evaluation.trace import EvaluationTrace, TraceStep
+from corporate_travel_agent.evaluation.trajectory import (
     ToolRegistry,
     TrajectoryCaseEvaluation,
     evaluate_trajectory_case,
@@ -34,6 +33,7 @@ from corporate_travel_agent.services.evaluation_trajectory import (
     load_tool_registry,
     trace_has_model_in_the_loop,
 )
+from corporate_travel_agent.services.audit import stable_hash
 
 EFFICIENCY_EVALUATOR_VERSION: Final = "tool-efficiency-evaluator-v1"
 TOOL_CALL_BUDGET: Final = 12

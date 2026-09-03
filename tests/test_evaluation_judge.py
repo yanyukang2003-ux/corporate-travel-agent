@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 
 from corporate_travel_agent.agent.ports import LLMCallMetadata
-from corporate_travel_agent.services.evaluation_judge import (
+from corporate_travel_agent.evaluation.judge import (
     JudgeDimensionScore,
     JudgeError,
     JudgeScore,
@@ -21,7 +21,7 @@ from corporate_travel_agent.services.evaluation_judge import (
     score_judge_inputs,
     summarize_judge_verdicts,
 )
-from corporate_travel_agent.services.evaluation_quality import (
+from corporate_travel_agent.evaluation.quality import (
     apply_judge_scores,
 )
 
@@ -278,7 +278,7 @@ def test_calibration_flags_major_disagreement(rubric, inputs) -> None:
 
 
 def test_apply_judge_scores_keeps_abstentions_unavailable() -> None:
-    from corporate_travel_agent.services.evaluation_quality import (
+    from corporate_travel_agent.evaluation.quality import (
         CaseAssertionResult,
         DeterministicUserOutput,
         WorkflowCaseEvaluation,

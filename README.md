@@ -209,7 +209,7 @@ Duffel 报价币种必须与企业政策币种一致，否则政策引擎会因�
 评测由 `examples/run_tool_loop_calendar_evaluation.py`、`run_tool_loop_multicity_evaluation.py`、
 `run_tool_loop_live_multiturn_evaluation.py` 和 `run_agentic_boundary_longtail_evaluation.py`
 产出（`reports/evaluation-runs/toolloop-*`、`agentic-boundary-*`）。自 2026-09-01 起它们统一经
-`services/evaluation_tool_loop.py` 记账：每个报告目录里都有协议 §5 的 `traces.jsonl`、逐次计价的
+`evaluation/tool_loop.py` 记账：每个报告目录里都有协议 §5 的 `traces.jsonl`、逐次计价的
 `cost-ledger.jsonl`、`cost-summary.json` 和 `retry-cap-check.json`（LLM 最多 2 次、供应商最多 3 次，
 402 之后绝不重试）。对抗集（库存文本注入、编造引用、写工具、身份替换、越权审批/交接）在
 `examples/run_adversarial_tool_loop.py`，0 计费、0 外部调用，也是 CI 门禁

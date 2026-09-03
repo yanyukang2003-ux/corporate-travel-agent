@@ -22,7 +22,7 @@ from corporate_travel_agent.agent.tool_loop import (
     ToolInvocation,
 )
 from corporate_travel_agent.domain.models import ConversationMessage
-from corporate_travel_agent.services.evaluation_dataset import load_evaluation_dataset
+from corporate_travel_agent.evaluation.dataset import load_evaluation_dataset
 
 CONTEXT = {"reference_time": "2026-07-20T09:00:00+00:00", "timezone": "Asia/Shanghai"}
 ROUND_TRIP_WITH_HOTEL = (

@@ -6,7 +6,7 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
-from corporate_travel_agent.services.evaluation_agent_eval import (
+from corporate_travel_agent.evaluation.agent_eval import (
     load_agent_eval_subset,
     run_agent_eval_dataset,
     write_run_report,

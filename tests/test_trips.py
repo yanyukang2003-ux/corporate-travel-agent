@@ -20,7 +20,7 @@ from sqlalchemy import create_engine
 from corporate_travel_agent.agent.orchestrator import WorkflowError
 from corporate_travel_agent.demo import DEMO_CLOCK, build_demo_system, make_demo_request
 from corporate_travel_agent.domain.enums import PolicyOutcome, TaskState, TripEventType, TripStatus
-from corporate_travel_agent.services.evaluation_business import aggregate_metrics, summarize_task
+from corporate_travel_agent.services.business_metrics import aggregate_metrics, summarize_task
 from corporate_travel_agent.services.repositories import ConcurrentUpdateError, NotFoundError
 from corporate_travel_agent.services.sqlalchemy_repository import Base
 from corporate_travel_agent.services.trips import (

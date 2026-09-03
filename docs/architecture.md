@@ -37,6 +37,10 @@ flowchart LR
 `domain` 不依赖 FastAPI、数据库或供应商 SDK。当前可在内存与 PostgreSQL 仓储之间切换；把 Mock 替换为正式 TMC API 也不需要重写规划和政策核心。
 `providers` 依赖 `services` 里的三个基础设施模块（原文对象存储、报价上下文存储、城市登记表），不依赖 `agent` 和 `api`。
 
+**评测包**（2026-09-03 起，ADR-0008）：`evaluation/` 是依赖图最上层的一个包，装离线评测和真实链路评测的执行器、
+数据集加载、裁判、轨迹与报告（原 `services/evaluation_*.py`）。产品代码不 import 它；产品接口要的指标计算
+（`services/business_metrics.py`、`services/metrics.py`）是产品代码，评测包只在外面加一层落盘。
+
 **API 层**（2026-09-03 起，ADR-0007）：`api/settings.py` 把环境变量读成一个 `ApiSettings`；`api/runtime.py` 的
 `build_runtime` 按它装配编排器、仓储、发件箱和两个后台调度器；`api/app.py` 的 `create_app` 把运行时挂到
 `app.state.runtime` 并按资源挂载 `api/routers/` 下的路由；`api/schemas.py` 是请求与响应模型，每个序列化
@@ -193,7 +197,7 @@ stateDiagram-v2
 `HANDED_OFF` 此前是终态，系统从那一刻起什么都看不见。现在多了一条出边：员工回填
 订单号和实付金额（`POST /trip-tasks/{id}/booking-confirmation`），任务进入
 `BOOKING_CONFIRMED`。这是交接之后系统能拿到的**第一条**"真的订了"的证据，业务指标层
-（`services/evaluation_business.py`）的确认预订率、真实下单时刻的提前预订天数、实付偏差
+（`evaluation/business.py`）的确认预订率、真实下单时刻的提前预订天数、实付偏差
 都从它来。
 
 边界，全部有测试：
@@ -281,7 +285,7 @@ stateDiagram-v2
 
 | 块 | 接口 | 数据从哪来 | 不做什么 |
 |---|---|---|---|
-| 业务结果 | `GET /metrics/business` | 最近任务的审计事件 + 费控记录，`services/evaluation_business` 同一套口径，附 `labels` | 分母为零不写 0，卡片上写"测不出来" |
+| 业务结果 | `GET /metrics/business` | 最近任务的审计事件 + 费控记录，`services/business_metrics.py` 同一套口径，附 `labels` | 分母为零不写 0，卡片上写"测不出来" |
 | 谁在哪（duty of care） | `GET /duty-of-care?at=` | 差旅聚合的观察对象：员工回填了下单确认的那份方案的航段，按 `at` 判在途 / 在目的地 / 未出发（`services/duty_of_care.py`） | 没确认的行程不出现——系统不知道人到底订没订，就不假装知道人在哪；观察期过了默认不出现 |
 | 预算消耗 | `GET /budgets` | 政策里的成本中心额度、账本里确认过的支出、已交接还没回填的"在途"金额（选定方案的价格） | 在途不进账本；账本没接时支出显示"账本未接"而不是 0 |
 

@@ -1130,7 +1130,7 @@ def main() -> None:
             sys.exit("no tool-calling model configured: set OPENAI_API_KEY or pass --offline")
         categories.update(CHAT)
         try:
-            from corporate_travel_agent.services.evaluation_performance import (
+            from corporate_travel_agent.evaluation.performance import (
                 load_model_price_table,
             )
 

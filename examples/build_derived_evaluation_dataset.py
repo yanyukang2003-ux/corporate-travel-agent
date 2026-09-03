@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Any
 
 from corporate_travel_agent.domain.enums import PolicyOutcome, TaskState, TransportMode
-from corporate_travel_agent.services.evaluation_dataset import (
+from corporate_travel_agent.evaluation.dataset import (
     EVALUATION_DATASET_SCHEMA_VERSION,
     TRANSFORM_VERSION,
     CaseFileMetadata,

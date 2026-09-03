@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import argparse
 
-from corporate_travel_agent.services.evaluation_efficiency import (
+from corporate_travel_agent.evaluation.efficiency import (
     evaluate_tool_efficiency_run,
 )
 

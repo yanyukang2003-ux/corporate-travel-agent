@@ -55,7 +55,7 @@
 | D15 | 已退役 | `derived-v2` 经**语义入口**执行 | 60 + 480 | 语义入口的覆盖与新旧并排（历史） | 语义入口已删除（ADR-0003）；最后一次并排的语义列冻结在 D16 报告里作基线 |
 | D16 | 滚动版本 | `derived-v2` 经**产品入口（工具循环）**执行 | 60 + 480 | 产品入口的离线覆盖，与冻结的语义基线并排 | 替身与原语义替身共用一个解释器；分类、缺失字段、越界标签、偏好四类指标在产品入口无暴露面，记 `not_applicable` |
 | D18 | 已冻结 v2 | `external-longtail-v1`：ChinaTravel human 154 + CrossWOZ 100 + AirDialogue 46 | 300 | 外部**真实用户原话**打产品入口：红线门禁（不崩/不下单/不编引用/不声称已订）+ **弱真值门禁**（若搜索：地点必须落在来源声明或原话里、日期必须与声明一致）+ 终态分布测量 | 弱真值取自来源对**输入本身**的结构化描述（城市/机场/日期），不是答案；含 CC BY-NC-SA 4.0 派生内容仅评测使用；离线替身执行 $0（`run_external_longtail_probe.py`，CI 抽样 30 条门禁 + 合成违例单测） |
-| D17 | 滚动版本 | 对抗集（工具循环版），`services/evaluation_adversarial.py` 内置 5 条 | 5 | 库存文本注入、编造引用、写工具调用、身份替换、用户消息注入，外加三条越权路（不批就交接、自批、外人批） | 剧本模型 + 掺了话的 demo 库存，0 计费 0 外部调用；量的是宿主不变量不是模型；供应商文本到模型是设计使然，记录不判失败。CI 门禁：`tests/test_adversarial_tool_loop.py` |
+| D17 | 滚动版本 | 对抗集（工具循环版），`evaluation/adversarial.py` 内置 5 条 | 5 | 库存文本注入、编造引用、写工具调用、身份替换、用户消息注入，外加三条越权路（不批就交接、自批、外人批） | 剧本模型 + 掺了话的 demo 库存，0 计费 0 外部调用；量的是宿主不变量不是模型；供应商文本到模型是设计使然，记录不判失败。CI 门禁：`tests/test_adversarial_tool_loop.py` |
 | D20 | 滚动版本 | 订好之后的追踪与变更：`examples/run_trip_change_evaluation.py` 内置 14 类 × ≥10 条 | 150 | **被动**：延误只通知 / 小变化不动 / 过时限改期 / 取消改期 / 返程窗口 / 信息性状态 / webhook 门 / worker 领取与租约；**主动**：取消整趟、事件接口（指定段 + 窗口平移）；**聊天**（真模型）：会议改期、取消、航变自述、该问的时候问 | 演示库存 + 钉住的时钟 + 内存仓储；每条各订一趟；确定性类 $0，聊天类每条 1–2 次模型调用；判据在各类函数里；多轮时报告"每轮都过"的条数 |
 | D19 | 滚动版本 | `external-longtail-v1` 多轮续问子集：ChinaTravel 154 + AirDialogue 订票 31 | 185 | **能不能办成**：事实表（来源弱真值 + 固定默认值）由脚本化模拟旅行者在追问时逐轮交出，最多 3 轮；终态分办成 / 诚实失败 / 仍在追问 / 降级 / 越界，红线照 D18，另加"搜的是不是事实表那天"；同时产出盲评输入 `judge-inputs.jsonl` | 完成率分母只算交通供应商能映射的路线（苏州 35 条只量诚实失败）；模拟旅行者只答事实表里的事；离线替身只会要 `arrive_by`，办成率恒为 0，只守红线和输入格式；`run_external_longtail_live_multiturn.py`，CI：`tests/test_external_longtail_multiturn.py` |
 
@@ -71,7 +71,7 @@ D4 的 `model_mock` 模式（真实 LLM 走旧的意图抽取入口）已随 leg
 产品入口下的真实模型证据见 `reports/evaluation-runs/toolloop-*` 与 `agentic-boundary-*`，
 由 `examples/run_tool_loop_*` 和 `run_agentic_boundary_longtail_evaluation.py` 产出。
 
-自 2026-09-01 起这四个 runner 都经 `services/evaluation_tool_loop.py` 记账：每个报告目录里除
+自 2026-09-01 起这四个 runner 都经 `evaluation/tool_loop.py` 记账：每个报告目录里除
 `report.json` 外还有 §5 的 `traces.jsonl`（每条用例一条轨迹，每次 LLM 调用带 token 用量）、
 `cost-ledger.jsonl`（逐次调用按价目表计价）、`cost-summary.json`（总量、是否每次都有价）和
 `retry-cap-check.json`（同一工具沿 `retry_of` 的链条不超过 LLM 2 次 / 供应商 3 次，`retryable=False`
@@ -186,7 +186,7 @@ D19 同时把每条任务投影成盲评输入（`judge-inputs.jsonl`）：旅�
 - `judge_quality_score`：LLM Judge 对完整度、澄清质量、解释可操作性分别按 1–5 分评分。Judge 不能把硬失败改成通过。
 - Judge 每次变更后，以至少 20 条人工双评样本校准；报告一致率与主要分歧。
 
-Judge 实现约束（`services/evaluation_judge.py`）：
+Judge 实现约束（`evaluation/judge.py`）：
 
 1. rubric `output-quality-v1` 的权重必须归一，加载时按 SHA-256 固定内容指纹；每条判定都
    记录该指纹，rubric 一改结果即不可比。
@@ -273,7 +273,7 @@ Judge 实现约束（`services/evaluation_judge.py`）：
 前面 6.1–6.7 全部量的是"模型和系统干得怎么样"。这一节量的是另一件事：**这东西对
 企业有没有用**。两者可以背离——模型答得像模像样，员工照样绕开去用携程。
 
-由 `services/evaluation_business.py` 计算，输入只有任务聚合和审计事件，不调模型、
+由 `evaluation/business.py` 计算，输入只有任务聚合和审计事件，不调模型、
 不调供应商：
 
 | 指标 | 口径 |

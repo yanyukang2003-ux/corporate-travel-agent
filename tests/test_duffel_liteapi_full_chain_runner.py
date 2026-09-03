@@ -7,7 +7,7 @@ from pathlib import Path
 from corporate_travel_agent.agent.orchestrator import TRANSIENT_RETRY_REASON
 from corporate_travel_agent.domain.enums import ToolCallStatus
 from corporate_travel_agent.domain.models import ToolCallRecord
-from corporate_travel_agent.services.evaluation_full_chain import (
+from corporate_travel_agent.evaluation.full_chain import (
     duffel_read_sequence_valid,
     liteapi_read_sequence_valid,
     provider_retry_contract_valid,

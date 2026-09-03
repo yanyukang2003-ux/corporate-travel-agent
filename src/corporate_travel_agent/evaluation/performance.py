@@ -14,8 +14,7 @@ from uuid import uuid4
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from corporate_travel_agent import __version__
-from corporate_travel_agent.services.audit import stable_hash
-from corporate_travel_agent.services.evaluation_quality import (
+from corporate_travel_agent.evaluation.quality import (
     BadCaseCandidate,
     CostSummary,
     EvaluationCoverage,
@@ -23,11 +22,12 @@ from corporate_travel_agent.services.evaluation_quality import (
     HardFailure,
     MetricResult,
 )
-from corporate_travel_agent.services.evaluation_runner import (
+from corporate_travel_agent.evaluation.runner import (
     CaseRunSummary,
     EvaluationRunSummary,
 )
-from corporate_travel_agent.services.evaluation_trace import EvaluationTrace
+from corporate_travel_agent.evaluation.trace import EvaluationTrace
+from corporate_travel_agent.services.audit import stable_hash
 
 PERFORMANCE_EVALUATOR_VERSION: Final = "performance-stability-evaluator-v1"
 GateStatus = Literal["pass", "fail", "not_evaluated"]

@@ -10,12 +10,11 @@ from uuid import uuid4
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-from corporate_travel_agent.services.audit import stable_hash
-from corporate_travel_agent.services.evaluation_dataset import (
+from corporate_travel_agent.evaluation.dataset import (
     WorkflowEvaluationCase,
     load_evaluation_dataset,
 )
-from corporate_travel_agent.services.evaluation_quality import (
+from corporate_travel_agent.evaluation.quality import (
     BadCaseCandidate,
     EvaluationCoverage,
     EvaluationResult,
@@ -24,7 +23,8 @@ from corporate_travel_agent.services.evaluation_quality import (
     OutputClaim,
     WorkflowCaseEvaluation,
 )
-from corporate_travel_agent.services.evaluation_trace import EvaluationTrace, TraceStep
+from corporate_travel_agent.evaluation.trace import EvaluationTrace, TraceStep
+from corporate_travel_agent.services.audit import stable_hash
 
 TRAJECTORY_EVALUATOR_VERSION: Final = "trajectory-evaluator-v1"
 SHA256_PATTERN = r"^[a-f0-9]{64}$"

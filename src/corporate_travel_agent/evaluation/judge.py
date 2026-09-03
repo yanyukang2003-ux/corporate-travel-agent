@@ -24,7 +24,7 @@ from typing import Any, Literal, Protocol
 from pydantic import BaseModel, ConfigDict, Field
 
 from corporate_travel_agent.agent.ports import LLMCallMetadata
-from corporate_travel_agent.services.evaluation_quality import (
+from corporate_travel_agent.evaluation.quality import (
     OUTPUT_RUBRIC_VERSION,
     JudgeInput,
     JudgeSummary,

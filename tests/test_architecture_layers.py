@@ -32,14 +32,14 @@ ALLOWED: dict[str, frozenset[str]] = {
     "api": frozenset(
         {"agent", "demo", "domain", "planning", "policy", "providers", "services", "workflow"}
     ),
+    # 评测包在最上层：什么都能用，但产品代码（api 及以下）不许 import 它。
+    "evaluation": frozenset(
+        {"agent", "demo", "domain", "planning", "policy", "providers", "services", "workflow"}
+    ),
 }
 
 #: (模块 glob, 目标层) —— 现在存在、将来要还的边。改了代码就同步改这里。
-KNOWN_DEBTS: dict[tuple[str, str], str] = {
-    # 评测代码住在 services 里，反向依赖 agent 和 demo；第 5 步把它搬成独立的 evaluation 包。
-    (f"{PACKAGE}.services.evaluation_*", "agent"): "step 5: move evaluation_* out of services",
-    (f"{PACKAGE}.services.evaluation_*", "demo"): "step 5: move evaluation_* out of services",
-}
+KNOWN_DEBTS: dict[tuple[str, str], str] = {}
 
 
 def _layer(module: str) -> str | None:
@@ -129,6 +129,16 @@ def test_known_debts_are_still_real() -> None:
     assert not stale, (
         "KNOWN_DEBTS entries no longer match any import; remove them:\n  " + "\n  ".join(stale)
     )
+
+
+def test_the_product_never_imports_the_evaluation_package() -> None:
+    """评测是产品之上的一层：产品接口要的指标计算住在 services，不从评测包里拿。"""
+    importers = sorted(
+        module
+        for module, source_layer, target_layer in _edges()
+        if target_layer == "evaluation" and source_layer != "evaluation"
+    )
+    assert not importers, f"product code imports the evaluation package: {importers}"
 
 
 def test_nothing_imports_the_api_layer() -> None:

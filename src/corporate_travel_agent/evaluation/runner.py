@@ -11,14 +11,14 @@ from uuid import uuid4
 from pydantic import BaseModel, ConfigDict, Field
 
 from corporate_travel_agent import __version__
-from corporate_travel_agent.services.evaluation_dataset import (
+from corporate_travel_agent.evaluation.dataset import (
     LoadedEvaluationDataset,
     WorkflowEvaluationCase,
     WorkflowEvaluationObservation,
     load_evaluation_dataset,
     run_workflow_evaluation_case,
 )
-from corporate_travel_agent.services.evaluation_quality import (
+from corporate_travel_agent.evaluation.quality import (
     EvaluationResult,
     JudgeInput,
     WorkflowCaseEvaluation,
@@ -26,7 +26,7 @@ from corporate_travel_agent.services.evaluation_quality import (
     build_judge_input,
     evaluate_workflow_case,
 )
-from corporate_travel_agent.services.evaluation_trace import (
+from corporate_travel_agent.evaluation.trace import (
     EvaluationMode,
     EvaluationTrace,
     EvaluationTraceRecorder,

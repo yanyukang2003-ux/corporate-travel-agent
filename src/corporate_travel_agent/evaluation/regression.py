@@ -14,8 +14,8 @@ from uuid import uuid4
 from pydantic import BaseModel, ConfigDict, Field
 
 from corporate_travel_agent import __version__
+from corporate_travel_agent.evaluation.quality import EvaluationResult
 from corporate_travel_agent.services.audit import stable_hash
-from corporate_travel_agent.services.evaluation_quality import EvaluationResult
 
 SHA256_PATTERN = r"^[a-f0-9]{64}$"
 REGRESSION_EVALUATOR_VERSION: Final = "regression-evaluator-v1"
