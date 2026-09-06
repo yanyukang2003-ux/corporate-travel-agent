@@ -1,0 +1,402 @@
+{
+  "runner_version": "run-consistency-v1",
+  "generated_at": "2026-09-06T15:56:56.104761+00:00",
+  "label": "D18 单轮原话 300 条 × 3 轮（2026-09-02 的三轮报告）",
+  "runs": [
+    {
+      "run_id": "external-longtail-live-full-3x-r1-20260902",
+      "path": "reports/evaluation-runs/external-longtail-live-full-3x-r1-20260902",
+      "report_sha256": "57bbbaabca2271f90ed1af3aa441a97fa386b75805c4373068f5091643aadebd",
+      "traces_sha256": "9edfa7071d872237ef53dc8e8726cc15fcfad3cdeff9d08311e3e69e314c4ff1",
+      "cases": 300,
+      "has_search_params": false,
+      "has_traces": true,
+      "has_turns": false,
+      "cases_with_successful_search_in_traces": 24
+    },
+    {
+      "run_id": "external-longtail-live-full-3x-r2-20260902",
+      "path": "reports/evaluation-runs/external-longtail-live-full-3x-r2-20260902",
+      "report_sha256": "aaf30c0f5c11848be1fe3a52807bd2952b49bafa7c06473c3d2f98fb46d39899",
+      "traces_sha256": "95e1f9c8a425dd9aa85a1ae8395ebb6fa3c8d8fb08d59d862ddcd10968dcf7fc",
+      "cases": 300,
+      "has_search_params": false,
+      "has_traces": true,
+      "has_turns": false,
+      "cases_with_successful_search_in_traces": 27
+    },
+    {
+      "run_id": "external-longtail-live-full-3x-r3-20260902",
+      "path": "reports/evaluation-runs/external-longtail-live-full-3x-r3-20260902",
+      "report_sha256": "b4dd3abfb349654c39fc9c42eb5388cf36ec3fa0ac172d801cabb0af7c0d5c19",
+      "traces_sha256": "1f0dab259083155cc5af61ccb38d81c46db7a848ca6879285a1d2fa92cd5ae41",
+      "cases": 300,
+      "has_search_params": false,
+      "has_traces": true,
+      "has_turns": false,
+      "cases_with_successful_search_in_traces": 24
+    }
+  ],
+  "shared_cases": 300,
+  "layer_1_decision": {
+    "cases": 300,
+    "consistent": 290,
+    "consistent_rate": 0.9667,
+    "buckets": {
+      "consistent_and_matches_reference": 266,
+      "consistent_but_differs_from_reference": 24,
+      "mixed": 10
+    },
+    "decision_field": "state",
+    "distribution": {
+      "external-longtail-live-full-3x-r1-20260902": {
+        "NEEDS_CLARIFICATION": 270,
+        "OUT_OF_SCOPE": 21,
+        "WAITING_FOR_USER": 5,
+        "PROVIDER_FAILED": 4
+      },
+      "external-longtail-live-full-3x-r2-20260902": {
+        "NEEDS_CLARIFICATION": 272,
+        "OUT_OF_SCOPE": 18,
+        "WAITING_FOR_USER": 5,
+        "PROVIDER_FAILED": 4,
+        "NO_FEASIBLE_OPTION": 1
+      },
+      "external-longtail-live-full-3x-r3-20260902": {
+        "NEEDS_CLARIFICATION": 272,
+        "OUT_OF_SCOPE": 20,
+        "WAITING_FOR_USER": 3,
+        "PROVIDER_FAILED": 3,
+        "NEEDS_STRUCTURED_INPUT": 1,
+        "NO_FEASIBLE_OPTION": 1
+      }
+    },
+    "mixed_cases": [
+      {
+        "case_id": "ct-human-h20241029143455115600",
+        "decisions": [
+          "OUT_OF_SCOPE",
+          "OUT_OF_SCOPE",
+          "NEEDS_CLARIFICATION"
+        ]
+      },
+      {
+        "case_id": "ct-human-h20241029143508251643",
+        "decisions": [
+          "OUT_OF_SCOPE",
+          "NEEDS_CLARIFICATION",
+          "NEEDS_CLARIFICATION"
+        ]
+      },
+      {
+        "case_id": "ct-human-h20241029143542560410",
+        "decisions": [
+          "NEEDS_CLARIFICATION",
+          "WAITING_FOR_USER",
+          "NEEDS_CLARIFICATION"
+        ]
+      },
+      {
+        "case_id": "ct-human-h20241029143546424651",
+        "decisions": [
+          "NEEDS_CLARIFICATION",
+          "NEEDS_CLARIFICATION",
+          "OUT_OF_SCOPE"
+        ]
+      },
+      {
+        "case_id": "ct-human-h20241029143630351554",
+        "decisions": [
+          "WAITING_FOR_USER",
+          "WAITING_FOR_USER",
+          "NEEDS_STRUCTURED_INPUT"
+        ]
+      },
+      {
+        "case_id": "ct-human-h20241029143732290071",
+        "decisions": [
+          "OUT_OF_SCOPE",
+          "NEEDS_CLARIFICATION",
+          "NEEDS_CLARIFICATION"
+        ]
+      },
+      {
+        "case_id": "ct-human-h20241029143735439292",
+        "decisions": [
+          "NEEDS_CLARIFICATION",
+          "NEEDS_CLARIFICATION",
+          "OUT_OF_SCOPE"
+        ]
+      },
+      {
+        "case_id": "ct-human-h20241029143738057260",
+        "decisions": [
+          "PROVIDER_FAILED",
+          "PROVIDER_FAILED",
+          "NEEDS_CLARIFICATION"
+        ]
+      },
+      {
+        "case_id": "ct-human-h20241029143818664124",
+        "decisions": [
+          "WAITING_FOR_USER",
+          "NO_FEASIBLE_OPTION",
+          "NO_FEASIBLE_OPTION"
+        ]
+      },
+      {
+        "case_id": "cw-10351",
+        "decisions": [
+          "OUT_OF_SCOPE",
+          "NEEDS_CLARIFICATION",
+          "OUT_OF_SCOPE"
+        ]
+      }
+    ]
+  },
+  "layer_2_search": {
+    "status": "computed",
+    "mode": "trace_hash",
+    "compared_runs": [
+      "external-longtail-live-full-3x-r1-20260902",
+      "external-longtail-live-full-3x-r2-20260902",
+      "external-longtail-live-full-3x-r3-20260902"
+    ],
+    "skipped_runs": [],
+    "searched_in_all_compared_runs": 13,
+    "identical_after_dedup": 13,
+    "identical_rate_after_dedup": 1.0,
+    "identical_before_dedup": 13,
+    "buckets": {
+      "searched_in_some_compared_runs_only": 25,
+      "identical": 13
+    },
+    "search_presence_mixed": 25,
+    "search_presence_mixed_cases": [
+      {
+        "case_id": "ct-human-h20241029143457494209",
+        "searched": [
+          false,
+          true,
+          false
+        ]
+      },
+      {
+        "case_id": "ct-human-h20241029143509607671",
+        "searched": [
+          true,
+          true,
+          false
+        ]
+      },
+      {
+        "case_id": "ct-human-h20241029143542560410",
+        "searched": [
+          false,
+          true,
+          false
+        ]
+      },
+      {
+        "case_id": "ct-human-h20241029143556181559",
+        "searched": [
+          true,
+          true,
+          false
+        ]
+      },
+      {
+        "case_id": "ct-human-h20241029143617975256",
+        "searched": [
+          false,
+          true,
+          false
+        ]
+      },
+      {
+        "case_id": "ct-human-h20241029143625307702",
+        "searched": [
+          true,
+          false,
+          false
+        ]
+      },
+      {
+        "case_id": "ct-human-h20241029143646523600",
+        "searched": [
+          true,
+          false,
+          true
+        ]
+      },
+      {
+        "case_id": "ct-human-h20241029143650282919",
+        "searched": [
+          true,
+          true,
+          false
+        ]
+      },
+      {
+        "case_id": "ct-human-h20241029143653372872",
+        "searched": [
+          true,
+          false,
+          false
+        ]
+      },
+      {
+        "case_id": "ct-human-h20241029143701815147",
+        "searched": [
+          true,
+          false,
+          true
+        ]
+      },
+      {
+        "case_id": "ct-human-h20241029143711334809",
+        "searched": [
+          false,
+          true,
+          false
+        ]
+      },
+      {
+        "case_id": "ct-human-h20241029143724478281",
+        "searched": [
+          false,
+          true,
+          true
+        ]
+      },
+      {
+        "case_id": "ct-human-h20241029143741942032",
+        "searched": [
+          false,
+          false,
+          true
+        ]
+      },
+      {
+        "case_id": "ct-human-h20241029143745264225",
+        "searched": [
+          false,
+          false,
+          true
+        ]
+      },
+      {
+        "case_id": "ct-human-h20241029143807949268",
+        "searched": [
+          false,
+          true,
+          true
+        ]
+      },
+      {
+        "case_id": "ct-human-h20241029143814437710",
+        "searched": [
+          true,
+          false,
+          false
+        ]
+      },
+      {
+        "case_id": "ct-human-h20241029143826541906",
+        "searched": [
+          false,
+          false,
+          true
+        ]
+      },
+      {
+        "case_id": "ct-human-h20241029143828857993",
+        "searched": [
+          false,
+          true,
+          true
+        ]
+      },
+      {
+        "case_id": "ct-human-h20241029143840382242",
+        "searched": [
+          true,
+          false,
+          false
+        ]
+      },
+      {
+        "case_id": "ct-human-h20241029143844076573",
+        "searched": [
+          false,
+          true,
+          false
+        ]
+      },
+      {
+        "case_id": "ct-human-h20241029143851561679",
+        "searched": [
+          false,
+          true,
+          true
+        ]
+      },
+      {
+        "case_id": "ct-human-h20241029143915014327",
+        "searched": [
+          false,
+          false,
+          true
+        ]
+      },
+      {
+        "case_id": "ct-human-h20241029143916604779",
+        "searched": [
+          false,
+          true,
+          false
+        ]
+      },
+      {
+        "case_id": "ct-human-h20241029143920003060",
+        "searched": [
+          true,
+          false,
+          true
+        ]
+      },
+      {
+        "case_id": "ct-human-h20241029143926788464",
+        "searched": [
+          true,
+          true,
+          false
+        ]
+      }
+    ],
+    "host_rejected_searches": {
+      "external-longtail-live-full-3x-r1-20260902": {
+        "rejected_search_attempts": 109,
+        "cases_with_rejected_attempt": 91
+      },
+      "external-longtail-live-full-3x-r2-20260902": {
+        "rejected_search_attempts": 105,
+        "cases_with_rejected_attempt": 85
+      },
+      "external-longtail-live-full-3x-r3-20260902": {
+        "rejected_search_attempts": 115,
+        "cases_with_rejected_attempt": 91
+      }
+    },
+    "differing_cases": []
+  },
+  "layer_3_declared_requirements": {
+    "status": "not_applicable",
+    "reason": "现有报告没有落盘交付时声明的硬要求；要先改 runner 再重跑"
+  },
+  "layer_4_clarification": {
+    "status": "not_applicable",
+    "reason": "少于两轮带追问原文（单轮集报告里没有 turns）",
+    "compared_runs": []
+  }
+}
