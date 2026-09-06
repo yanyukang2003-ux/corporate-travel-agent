@@ -309,3 +309,85 @@ def test_parameter_runs_are_preferred_and_hash_only_runs_are_skipped(tmp_path: P
     assert l2["compared_runs"] == ["r2", "r3"]
     assert [s["run_id"] for s in l2["skipped_runs"]] == ["r1"]
     assert l2["identical_after_dedup"] == 1
+
+
+def test_layer_3_compares_declared_requirements_and_first_action(tmp_path: Path) -> None:
+    """ "必须高铁"一轮声明成 train_only、一轮不声明，就是第 3 层要抓的那种不一致。"""
+
+    def case(
+        case_id: str, hard: list[str], soft: list[str], *, declared: bool, action: str
+    ) -> dict:
+        return {
+            "case_id": case_id,
+            "state": "WAITING_FOR_USER" if declared else "NEEDS_CLARIFICATION",
+            "outcome": "completed" if declared else "stuck_clarifying",
+            "expected_completable": True,
+            "search_count": 1 if declared else 0,
+            "searches": [],
+            "declared_requirements": {"declared": declared, "hard": hard, "soft": soft},
+            "turns": [
+                {
+                    "turn": 0,
+                    "question": None if declared else "哪天出发？",
+                    "loop": {"final_action": action},
+                }
+            ],
+        }
+
+    def run(run_id: str, *, b_hard: list[str], c_soft: list[str], d_declared: bool) -> Path:
+        return _write_run(
+            tmp_path,
+            run_id,
+            [
+                case("A", ["direct_only"], [], declared=True, action="propose_options"),
+                case("B", b_hard, [], declared=True, action="propose_options"),
+                case("C", [], c_soft, declared=True, action="propose_options"),
+                case(
+                    "D",
+                    ["train_only"] if d_declared else [],
+                    [],
+                    declared=d_declared,
+                    action="propose_options" if d_declared else "ask_traveler",
+                ),
+            ],
+        )
+
+    runs = [
+        run("r1", b_hard=["train_only"], c_soft=["prefer_train"], d_declared=True),
+        run("r2", b_hard=[], c_soft=["prefer_train"], d_declared=True),
+        run("r3", b_hard=["train_only"], c_soft=[], d_declared=False),
+    ]
+    summary = evaluate_consistency(runs)
+    l3 = summary["layer_3_declared_requirements"]
+    assert l3["status"] == "computed"
+    assert l3["declared_in_all_compared_runs"] == 3  # A、B、C；D 有一轮没交付
+    assert l3["identical"] == 1  # A
+    assert l3["hard_identical"] == 2  # A + C（C 只差偏好）
+    assert l3["buckets"] == {
+        "identical": 1,
+        "hard_differ": 1,
+        "soft_differ": 1,
+        "declared_in_some_runs_only": 1,
+    }
+    assert l3["per_name"]["train_only"] == {"declared_in_any_run": 1, "agree": 0}
+    assert [d["case_id"] for d in l3["differing_cases"]] == ["B", "C"]
+
+    l4 = summary["layer_4_clarification"]
+    assert l4["first_action_known"] == 4
+    assert l4["first_action_identical"] == 3
+    assert [m["case_id"] for m in l4["first_action_mixed_cases"]] == ["D"]
+
+    markdown = render_markdown(summary)
+    assert "第 3 层 · 声明的硬要求 | 1/3" in markdown
+    assert "第一轮终局动作（问 / 交付 / 越界）三轮相同 3/4" in markdown
+
+
+def test_layer_3_is_not_applicable_for_reports_without_declared_requirements(
+    tmp_path: Path,
+) -> None:
+    runs = [
+        _write_run(tmp_path, run_id, [{"case_id": "X", "state": "NEEDS_CLARIFICATION"}])
+        for run_id in ("r1", "r2")
+    ]
+    l3 = evaluate_consistency(runs)["layer_3_declared_requirements"]
+    assert l3["status"] == "not_applicable"

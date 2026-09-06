@@ -184,6 +184,43 @@ def probe_cases(cases: Sequence[dict[str, Any]]) -> list[dict[str, Any]]:
     return results
 
 
+def loop_decision_snapshot(task: Any) -> dict[str, Any]:
+    """本轮工具循环做了什么决策：终局动作、声明的硬要求与偏好、未决问题、工具调用序列。
+
+    只读任务，不改它。三轮重跑比一致性（`evaluation/consistency.py`）的第 3 层就靠这里：
+    此前报告只存了终态和搜索参数，"必须高铁"有没有被声明成 `train_only` 一个字都看不到。
+
+    - `final_action`：这一轮最后选的出口——`ask_traveler` / `propose_options`
+      （编排器记在 `metadata["agentic_final_action"]`，出口工具本身不进 transcript）；
+      任务落成越界时记 `out_of_scope`；循环没收敛记 None。
+    - `hard_constraints` / `soft_preferences`：交付时声明并被宿主接受、写进当前请求版本的
+      名字。只有交付过才有请求版本；停在追问的任务这两项为空，`declared` 为 False。
+    - `open_questions`：交付时挂在方案旁边的未决问题（结构化列表，不是整段话）。
+    - `tool_calls`：本轮按顺序调过的工具名（搜索类；出口不在其中）；
+      `rejected_tool_calls` 是其中被宿主拒掉的。
+    """
+    transcript = list(task.metadata.get("agentic_transcript") or [])
+    tool_calls = [str(item.get("tool")) for item in transcript]
+    rejected = [str(item.get("tool")) for item in transcript if not item.get("ok", True)]
+    action = task.metadata.get("agentic_final_action")
+    final_action: str | None = None if action is None else str(action)
+    if task.state.value == "OUT_OF_SCOPE":
+        final_action = "out_of_scope"
+    request = getattr(task, "request", None)
+    hard = [str(item.name) for item in getattr(request, "scoped_hard_constraints", ())]
+    soft = [str(item.name) for item in getattr(request, "scoped_soft_preferences", ())]
+    proposal = task.metadata.get("agentic_proposal") or {}
+    return {
+        "final_action": final_action,
+        "declared": request is not None,
+        "hard_constraints": hard,
+        "soft_preferences": soft,
+        "open_questions": [str(item) for item in (proposal.get("open_questions") or [])],
+        "tool_calls": tool_calls,
+        "rejected_tool_calls": rejected,
+    }
+
+
 def case_record(
     workflow: Any,
     task: Any,
@@ -253,6 +290,14 @@ def case_record(
     if date_problems:
         record["date_problems"] = date_problems[:5]
     record["search_count"] = len(searches)
+    # 第 3 层的数据：交付时声明的硬要求与偏好、终局动作、未决问题。以后改判据可原地重打分。
+    loop = loop_decision_snapshot(task)
+    record["loop"] = loop
+    record["declared_requirements"] = {
+        "declared": loop["declared"],
+        "hard": list(loop["hard_constraints"]),
+        "soft": list(loop["soft_preferences"]),
+    }
     return record
 
 
@@ -523,6 +568,8 @@ def turn_snapshot(turn: int, said: str, task: Any) -> dict[str, Any]:
         "option_count": len(task.options),
         "search_count": len(task.searches),
         "failure": task.failure,
+        # 这一轮循环的决策（终局动作、声明的要求、未决问题、工具序列）。
+        "loop": loop_decision_snapshot(task),
     }
 
 
@@ -763,6 +810,23 @@ def summarize_multiturn(
             )
         ),
         "llm_calls": sum(int(item.get("llm_calls") or 0) for item in results),
+        "declared_hard_constraints": dict(
+            Counter(
+                name
+                for item in results
+                for name in (item.get("declared_requirements") or {}).get("hard", [])
+            )
+        ),
+        "declared_soft_preferences": dict(
+            Counter(
+                name
+                for item in results
+                for name in (item.get("declared_requirements") or {}).get("soft", [])
+            )
+        ),
+        "final_actions": dict(
+            Counter(str((item.get("loop") or {}).get("final_action")) for item in results)
+        ),
         "by_source": by_source,
         "limitations": [
             "模拟旅行者是脚本：只交事实表里的日期和路线，不回答别的；系统问了别的就得不到答案。",

@@ -14,8 +14,9 @@
 | 第 4 层 · 追问目标 | 追问在问哪件缺的事（日期 / 出发地 / 住宿……），不比问法 |
   `report.json` 每条用例第一轮的 `turns[0].question`，关键词规则分类（粗版） |
 
-第 3 层（交付时声明的硬要求，如 `train_only`）现有报告里没有落盘，本模块不算；要先改 runner
-再重跑。
+第 3 层（交付时声明的硬要求，如 `train_only`）自 2026-09-06 起由 `case_record` 落盘在每条用例的
+`declared_requirements`（`external_longtail.loop_decision_snapshot`）；2026-09-02 的报告没有这个
+字段，对那两批只能报 `not_applicable`，要用 v4 提示词重跑一次才有数。
 
 **去重规则（第 2 层）。** 交通搜索窗口从到达时限往前开 18 小时，跨日时会拆成几条出处记录；
 宿主拒绝的重复搜索也各留一条。签名取 `(kind, origin, destination, 旅行者真正给的到达日)`，
@@ -196,6 +197,32 @@ class RunRecord:
         if not self.has_traces:
             return None
         return [tuple(item) for item in self.trace_search_hashes.get(case_id, [])]
+
+    @property
+    def has_declared_requirements(self) -> bool:
+        return any("declared_requirements" in item for item in self.results.values())
+
+    def declared(self, case_id: str) -> tuple[frozenset[str], frozenset[str]] | None:
+        """交付时声明并被接受的（硬要求, 偏好）；没交付过返回 None。"""
+        result = self.results.get(case_id)
+        if result is None:
+            return None
+        declared = result.get("declared_requirements")
+        if not declared or not declared.get("declared"):
+            return None
+        return frozenset(declared.get("hard") or ()), frozenset(declared.get("soft") or ())
+
+    def first_action(self, case_id: str) -> str | None:
+        """第一轮的终局动作（ask_traveler / propose_options / out_of_scope）；没记录返回 None。"""
+        result = self.results.get(case_id)
+        if result is None or not self.has_turns:
+            return None
+        turns = result.get("turns") or []
+        if not turns:
+            return None
+        loop = turns[0].get("loop") or {}
+        action = loop.get("final_action")
+        return None if action is None else str(action)
 
     def first_question(self, case_id: str) -> str | None:
         result = self.results.get(case_id)
@@ -395,6 +422,84 @@ def search_consistency(runs: list[RunRecord], case_ids: list[str]) -> dict[str, 
     }
 
 
+def declared_requirements_consistency(runs: list[RunRecord], case_ids: list[str]) -> dict[str, Any]:
+    """第 3 层：交付时声明的硬要求与偏好三轮是否相同。只看三轮都交付了的用例。"""
+    compared = [run for run in runs if run.has_declared_requirements]
+    if len(compared) < 2:
+        return {
+            "status": NOT_APPLICABLE,
+            "reason": "少于两轮带 declared_requirements（2026-09-06 之前的报告没有这个字段）",
+            "compared_runs": [run.run_id for run in compared],
+        }
+    buckets: Counter[str] = Counter()
+    declared_everywhere = 0
+    per_name_agree: Counter[str] = Counter()
+    per_name_declared: Counter[str] = Counter()
+    differing: list[dict[str, Any]] = []
+    for case_id in case_ids:
+        declared = [run.declared(case_id) for run in compared]
+        if all(item is None for item in declared):
+            continue
+        if any(item is None for item in declared):
+            buckets["declared_in_some_runs_only"] += 1
+            continue
+        declared_everywhere += 1
+        hard_sets = [item[0] for item in declared if item is not None]
+        soft_sets = [item[1] for item in declared if item is not None]
+        for name in sorted(set().union(*hard_sets, *soft_sets)):
+            per_name_declared[name] += 1
+            if (
+                len({name in h or name in s for h, s in zip(hard_sets, soft_sets, strict=True)})
+                == 1
+            ):
+                per_name_agree[name] += 1
+        hard_same = len(set(hard_sets)) == 1
+        soft_same = len(set(soft_sets)) == 1
+        if hard_same and soft_same:
+            buckets["identical"] += 1
+            continue
+        kind = (
+            "hard_differ"
+            if not hard_same and soft_same
+            else ("soft_differ" if hard_same else "both_differ")
+        )
+        buckets[kind] += 1
+        differing.append(
+            {
+                "case_id": case_id,
+                "kind": kind,
+                "per_run": {
+                    run.run_id: {"hard": sorted(h), "soft": sorted(s)}
+                    for run, h, s in zip(compared, hard_sets, soft_sets, strict=True)
+                },
+            }
+        )
+    return {
+        "status": "computed",
+        "compared_runs": [run.run_id for run in compared],
+        "declared_in_all_compared_runs": declared_everywhere,
+        "identical": buckets["identical"],
+        "identical_rate": (
+            round(buckets["identical"] / declared_everywhere, 4) if declared_everywhere else None
+        ),
+        "hard_identical": buckets["identical"] + buckets["soft_differ"],
+        "hard_identical_rate": (
+            round((buckets["identical"] + buckets["soft_differ"]) / declared_everywhere, 4)
+            if declared_everywhere
+            else None
+        ),
+        "buckets": dict(buckets),
+        "per_name": {
+            name: {
+                "declared_in_any_run": per_name_declared[name],
+                "agree": per_name_agree[name],
+            }
+            for name in sorted(per_name_declared)
+        },
+        "differing_cases": differing,
+    }
+
+
 def clarification_consistency(runs: list[RunRecord], case_ids: list[str]) -> dict[str, Any]:
     """第 4 层：第一轮追问在问哪几件事，三轮是否相同（关键词粗版）。"""
     compared = [run for run in runs if run.has_turns]
@@ -408,11 +513,21 @@ def clarification_consistency(runs: list[RunRecord], case_ids: list[str]) -> dic
     identical_full = 0
     identical_core = 0
     presence_mixed = 0
+    action_known = 0
+    action_identical = 0
+    action_mixed: list[dict[str, Any]] = []
     per_fact_agree: Counter[str] = Counter()
     per_fact_asked: Counter[str] = Counter()
     core_disagreements: list[dict[str, Any]] = []
     supplementary_only = 0
     for case_id in case_ids:
+        actions = [run.first_action(case_id) for run in compared]
+        if all(action is not None for action in actions):
+            action_known += 1
+            if len(set(actions)) == 1:
+                action_identical += 1
+            else:
+                action_mixed.append({"case_id": case_id, "actions": actions})
         questions = [run.first_question(case_id) for run in compared]
         if all(q is None for q in questions):
             continue
@@ -460,6 +575,13 @@ def clarification_consistency(runs: list[RunRecord], case_ids: list[str]) -> dic
         ),
         "supplementary_only_disagreements": supplementary_only,
         "question_presence_mixed": presence_mixed,
+        # 第一轮终局动作（问 / 交付 / 越界）：有 loop 记录的报告才有；2026-09-02 的没有。
+        "first_action_known": action_known,
+        "first_action_identical": action_identical,
+        "first_action_identical_rate": (
+            round(action_identical / action_known, 4) if action_known else None
+        ),
+        "first_action_mixed_cases": action_mixed,
         "per_fact": {
             name: {
                 "asked_in_any_run": per_fact_asked[name],
@@ -502,10 +624,7 @@ def evaluate_consistency(run_dirs: list[Path], label: str | None = None) -> dict
         "shared_cases": len(case_ids),
         "layer_1_decision": decision_consistency(runs, case_ids),
         "layer_2_search": search_consistency(runs, case_ids),
-        "layer_3_declared_requirements": {
-            "status": NOT_APPLICABLE,
-            "reason": "现有报告没有落盘交付时声明的硬要求；要先改 runner 再重跑",
-        },
+        "layer_3_declared_requirements": declared_requirements_consistency(runs, case_ids),
         "layer_4_clarification": clarification_consistency(runs, case_ids),
     }
 
@@ -575,6 +694,35 @@ def _render_layer_2(l2: dict[str, Any]) -> list[str]:
     return lines
 
 
+def _render_layer_3(l3: dict[str, Any]) -> list[str]:
+    lines = ["## 第 3 层 · 交付时声明的硬要求与偏好", ""]
+    if l3["status"] != "computed":
+        lines.append(l3["reason"])
+        return lines
+    lines += [
+        f"三轮都交付了的用例 {l3['declared_in_all_compared_runs']}；硬要求和偏好都相同 "
+        f"{l3['identical']}；只看硬要求相同 {l3['hard_identical']}。",
+        "",
+        "| 桶 | 数 |",
+        "|---|---:|",
+    ]
+    for key, value in l3["buckets"].items():
+        lines.append(f"| `{key}` | {value} |")
+    if l3["per_name"]:
+        lines += ["", "| 名字 | 至少一轮声明了 | 三轮一致 |", "|---|---:|---:|"]
+        for name, stat in l3["per_name"].items():
+            lines.append(f"| `{name}` | {stat['declared_in_any_run']} | {stat['agree']} |")
+    if l3["differing_cases"]:
+        lines += ["", "声明不同的用例：", ""]
+        for item in l3["differing_cases"]:
+            lines.append(f"- `{item['case_id']}` · `{item['kind']}`")
+            for run_id, detail in item["per_run"].items():
+                lines.append(
+                    f"  - `{run_id}`: hard={detail['hard'] or '[]'} soft={detail['soft'] or '[]'}"
+                )
+    return lines
+
+
 def _render_layer_4(l4: dict[str, Any]) -> list[str]:
     lines = ["## 第 4 层 · 追问目标（粗版）", ""]
     if l4["status"] != "computed":
@@ -588,6 +736,13 @@ def _render_layer_4(l4: dict[str, Any]) -> list[str]:
         f"核心事实集合一致 {l4['identical_core_fact_sets']}；全集一致 {l4['identical_fact_sets']}；"
         f"只有附带事实不同 {l4['supplementary_only_disagreements']}；"
         f"有的轮追问有的轮没有 {l4['question_presence_mixed']}（与第 1 层的不一致重叠）。",
+        "",
+        (
+            f"第一轮终局动作（问 / 交付 / 越界）三轮相同 {l4['first_action_identical']}/"
+            f"{l4['first_action_known']}。"
+            if l4["first_action_known"]
+            else "第一轮终局动作：这批报告没有 `loop` 记录，未比较。"
+        ),
         "",
         "| 问的事 | 至少一轮问了 | 三轮一致 | 一致率 |",
         "|---|---:|---:|---:|",
@@ -616,6 +771,7 @@ def _render_layer_4(l4: dict[str, Any]) -> list[str]:
 def render_markdown(summary: dict[str, Any]) -> str:
     l1 = summary["layer_1_decision"]
     l2 = summary["layer_2_search"]
+    l3 = summary["layer_3_declared_requirements"]
     l4 = summary["layer_4_clarification"]
     run_ids = [run["run_id"] for run in summary["runs"]]
     title = "# 三轮一致性 · 比决策不比文本"
@@ -654,7 +810,14 @@ def render_markdown(summary: dict[str, Any]) -> str:
         )
     else:
         lines.append(f"| 第 2 层 · 搜索参数 | 不适用 | {l2['reason']} |")
-    lines.append("| 第 3 层 · 声明的硬要求 | 未计算 | 现有报告没有落盘，要先改 runner 再重跑 |")
+    if l3["status"] == "computed":
+        lines.append(
+            f"| 第 3 层 · 声明的硬要求 | {l3['identical']}/{l3['declared_in_all_compared_runs']} = "
+            f"{_pct(l3['identical_rate'])} | 三轮都交付了的用例中，声明的硬要求和偏好都相同的比例"
+            f"（只看硬要求 {l3['hard_identical']}） |"
+        )
+    else:
+        lines.append(f"| 第 3 层 · 声明的硬要求 | 不适用 | {l3['reason']} |")
     if l4["status"] == "computed":
         lines.append(
             f"| 第 4 层 · 追问目标 | {l4['identical_core_fact_sets']}/"
@@ -669,6 +832,8 @@ def render_markdown(summary: dict[str, Any]) -> str:
     lines.append("")
     lines += _render_layer_2(l2)
     lines.append("")
+    lines += _render_layer_3(l3)
+    lines.append("")
     lines += _render_layer_4(l4)
     lines += [
         "",
@@ -679,7 +844,8 @@ def render_markdown(summary: dict[str, Any]) -> str:
         "会记成路线不同。",
         "- 第 4 层是关键词规则，不一致用例里会混有漏判；"
         "精确版要 runner 把 `open_questions` 结构化落盘。",
-        "- 第 3 层（声明的硬要求）没有数据；多轮集里「办成与否不一致」的根因正在这一层。",
+        "- 第 3 层要报告带 `declared_requirements`（2026-09-06 起的 runner）；"
+        "多轮集里「办成与否不一致」的根因正在这一层。",
         "- 一致不等于对：`consistent_but_differs_from_reference` 那一桶要单独看。",
         "",
         "## 输入指纹",

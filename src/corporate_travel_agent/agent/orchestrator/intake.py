@@ -372,6 +372,7 @@ class IntakeMixin(OrchestratorState):
                 }
                 for exchange in exc.transcript
             ]
+            task.metadata["agentic_final_action"] = None
             task.failure = str(exc)
             task.clarification_question = None
             self.recorder.transition(task, TaskState.NEEDS_STRUCTURED_INPUT)
@@ -437,6 +438,9 @@ class IntakeMixin(OrchestratorState):
             }
             for exchange in outcome.transcript
         ]
+        # 出口工具（问 / 交付）不进 transcript；评测比"三轮是不是做了同样的事"要知道
+        # 这一轮最后选的是哪个出口，单独记一个只读字段。不喂回模型，不进公开视图。
+        task.metadata["agentic_final_action"] = outcome.kind
         if outcome.kind == "ask_traveler":
             if outcome.out_of_scope and not executor.leg_searches and not executor.stay_searches:
                 return self._stop_for_out_of_scope(task, outcome.question)

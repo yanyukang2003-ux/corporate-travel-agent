@@ -327,3 +327,88 @@ def test_date_gates_ignore_the_lookback_window_but_catch_real_strays() -> None:
     bad_fact, problems = searched_dates_match_fact_sheet([stray], fact)
     bad_decl, decl_problems = searched_dates_ok([stray], truth)
     assert not bad_fact and problems and not bad_decl and decl_problems
+
+
+# ---------------------------------------------------------------------------
+# 第 3 层的数据：交付时声明的硬要求与偏好、终局动作，落在每条记录和每一轮里。
+# ---------------------------------------------------------------------------
+
+
+def _synthetic_case(message: str) -> dict:
+    return {
+        "case_id": "synthetic-declared",
+        "language": "zh",
+        "message": message,
+        "source": {"dataset": "synthetic"},
+        "weak_truth": {"cities": ["北京", "上海"], "dates_declared": []},
+    }
+
+
+def test_case_record_keeps_declared_requirements_and_loop_decisions() -> None:
+    """此前报告只存终态和搜索参数，"必须高铁"有没有被声明成 train_only 一个字都看不到。"""
+    from corporate_travel_agent.evaluation.external_longtail import (
+        case_record,
+        loop_decision_snapshot,
+        turn_snapshot,
+    )
+    from tests.test_agentic_entrypoint import ScriptedToolModel
+
+    search = (
+        "search_transport",
+        {
+            "origin": "北京",
+            "destination": "上海",
+            "arrive_by": "2026-08-05T10:00:00+08:00",
+            "date_evidence": "8月5日上午10点前到",
+        },
+    )
+    propose = (
+        "propose_options",
+        {
+            "transport_refs": "__FOUND__",
+            "summary": "只看高铁",
+            "hard_constraints": ["train_only"],
+            "soft_preferences": ["prefer_train"],
+        },
+    )
+    workflow, _ = build_demo_system(
+        tool_calling_language_model=ScriptedToolModel([search, propose]),
+        clock=lambda: DEMO_CLOCK,
+    )
+    message = "8月5号从北京去上海，8月5日上午10点前到，只坐高铁，不住酒店"
+    task = workflow.create_task_from_agentic_message(message, traveler_id="E1001")
+
+    loop = loop_decision_snapshot(task)
+    assert loop["final_action"] == "propose_options"
+    assert loop["declared"] is True
+    assert loop["hard_constraints"] == ["train_only"]
+    assert loop["soft_preferences"] == ["prefer_train"]
+    assert loop["tool_calls"] == ["search_transport"]  # 出口工具不进 transcript
+    assert loop["rejected_tool_calls"] == []
+
+    record = case_record(workflow, task, _synthetic_case(message), _normalizer())
+    assert record["declared_requirements"] == {
+        "declared": True,
+        "hard": ["train_only"],
+        "soft": ["prefer_train"],
+    }
+    assert record["loop"]["final_action"] == "propose_options"
+    assert turn_snapshot(0, message, task)["loop"]["hard_constraints"] == ["train_only"]
+
+
+def test_a_turn_that_only_asks_records_no_declaration() -> None:
+    from corporate_travel_agent.evaluation.external_longtail import turn_snapshot
+    from tests.test_agentic_entrypoint import ScriptedToolModel
+
+    workflow, _ = build_demo_system(
+        tool_calling_language_model=ScriptedToolModel(
+            [("ask_traveler", {"question": "请问哪天出发？"})]
+        ),
+        clock=lambda: DEMO_CLOCK,
+    )
+    task = workflow.create_task_from_agentic_message("我想去上海出差", traveler_id="E1001")
+    loop = turn_snapshot(0, "我想去上海出差", task)["loop"]
+    assert loop["final_action"] == "ask_traveler"
+    assert loop["declared"] is False
+    assert loop["hard_constraints"] == [] and loop["open_questions"] == []
+    assert loop["tool_calls"] == []
