@@ -20,6 +20,10 @@ from corporate_travel_agent.evaluation.judge import (
 from corporate_travel_agent.evaluation.quality import JudgeInput
 
 JUDGE_PROMPT_VERSION = "output-quality-judge-v1"
+#: 与编排器的 MAX_LLM_ATTEMPTS 一致：每条最多两次尝试（一次重试）。只对分类为瞬时的错误
+#: （超时、连接错误、408/409/425/429、5xx）重试；402 余额不足和其他 4xx 绝不重试。
+#: 此前一次超时就让整轮裁判作废，185 条里只要一次网络抖动就得从头再花一遍钱。
+MAX_JUDGE_ATTEMPTS = 2
 
 
 class OpenAIOutputQualityJudge:
@@ -69,6 +73,9 @@ class OpenAIOutputQualityJudge:
                 ) from exc
             client = OpenAI(max_retries=0, timeout=request_timeout_seconds)
         self.client = client
+        #: 整轮里重试了几次，以及每次重试的用例和错误码；runner 写进 run-summary。
+        self.retries = 0
+        self.retry_log: list[dict[str, Any]] = []
 
     def score(
         self,
@@ -80,15 +87,35 @@ class OpenAIOutputQualityJudge:
         self.last_call_metadata = None
         system = _judge_system_prompt(rubric)
         payload = _judge_user_payload(judge_input)
-        try:
-            if self.api_mode == "chat":
-                parsed, usage = self._score_via_chat(system, payload)
-            else:
-                parsed, usage = self._score_via_responses(system, payload)
-        except LanguageModelError:
-            raise
-        except Exception as exc:
-            raise _classified_openai_error(exc) from exc
+        attempt = 0
+        while True:
+            attempt += 1
+            try:
+                if self.api_mode == "chat":
+                    parsed, usage = self._score_via_chat(system, payload)
+                else:
+                    parsed, usage = self._score_via_responses(system, payload)
+                break
+            except LanguageModelError:
+                raise
+            except Exception as exc:
+                classified = _classified_openai_error(exc)
+                can_retry = (
+                    attempt < MAX_JUDGE_ATTEMPTS
+                    and classified.retryable
+                    and classified.http_status != 402
+                )
+                if not can_retry:
+                    raise classified from exc
+                self.retries += 1
+                self.retry_log.append(
+                    {
+                        "judge_case_id": judge_input.judge_case_id,
+                        "attempt": attempt,
+                        "error_code": classified.error_code,
+                        "cause_type": classified.cause_type,
+                    }
+                )
 
         metadata = LLMCallMetadata(
             prompt_version=self.judge_prompt_version,

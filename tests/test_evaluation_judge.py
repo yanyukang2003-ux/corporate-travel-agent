@@ -28,9 +28,7 @@ from corporate_travel_agent.evaluation.quality import (
 REPO = Path(__file__).resolve().parents[1]
 RUBRIC_PATH = REPO / "evals/rubrics/output-quality-v1.json"
 JUDGE_INPUTS = REPO / "reports/evaluation-runs/phase2-quality-20260802/judge-inputs.jsonl"
-ANNOTATIONS = (
-    REPO / "data/evaluation/human-annotations/v1/to-label/03-output-quality.jsonl"
-)
+ANNOTATIONS = REPO / "data/evaluation/human-annotations/v1/to-label/03-output-quality.jsonl"
 
 
 class ScriptedJudge:
@@ -116,9 +114,7 @@ def test_unblinded_input_is_rejected(rubric, inputs) -> None:
 
 
 def test_scoring_produces_a_weighted_score_in_range(rubric, inputs) -> None:
-    verdicts, metadata = score_judge_inputs(
-        inputs[:3], judge=ScriptedJudge(score=4), rubric=rubric
-    )
+    verdicts, metadata = score_judge_inputs(inputs[:3], judge=ScriptedJudge(score=4), rubric=rubric)
     assert len(verdicts) == 3
     assert len(metadata) == 3
     for verdict in verdicts:
@@ -128,9 +124,7 @@ def test_scoring_produces_a_weighted_score_in_range(rubric, inputs) -> None:
 
 
 def test_abstention_is_never_scored_as_zero(rubric, inputs) -> None:
-    verdicts, _ = score_judge_inputs(
-        inputs[:3], judge=ScriptedJudge(abstain=True), rubric=rubric
-    )
+    verdicts, _ = score_judge_inputs(inputs[:3], judge=ScriptedJudge(abstain=True), rubric=rubric)
     assert all(item.weighted_score is None for item in verdicts)
     assert mean_judge_score(verdicts) is None
     summary = summarize_judge_verdicts(verdicts, rubric=rubric)
@@ -192,9 +186,7 @@ def test_judge_cannot_invent_a_dimension(rubric, inputs) -> None:
                 for item in rubric.dimensions
             ]
             dimensions.append(
-                JudgeDimensionScore(
-                    dimension_id="creativity", score=5, rationale="invented"
-                )
+                JudgeDimensionScore(dimension_id="creativity", score=5, rationale="invented")
             )
             return (
                 JudgeScore(abstained=False, abstain_reason=None, dimensions=dimensions),
@@ -261,9 +253,7 @@ def test_calibration_reports_agreement_against_human_labels(rubric, inputs) -> N
 
 def test_calibration_flags_major_disagreement(rubric, inputs) -> None:
     annotations, sha = load_human_output_quality_annotations(ANNOTATIONS)
-    verdicts, _ = score_judge_inputs(
-        inputs, judge=ScriptedJudge(score=1), rubric=rubric
-    )
+    verdicts, _ = score_judge_inputs(inputs, judge=ScriptedJudge(score=1), rubric=rubric)
     report = calibrate_against_human(
         verdicts,
         rubric=rubric,
@@ -325,9 +315,7 @@ def test_apply_judge_scores_keeps_abstentions_unavailable() -> None:
     assert scored[0].judge_quality_score == pytest.approx(4.25)
 
 
-def test_single_annotator_mode_is_opt_in_and_never_reports_plain_passed(
-    rubric, inputs
-) -> None:
+def test_single_annotator_mode_is_opt_in_and_never_reports_plain_passed(rubric, inputs) -> None:
     """放行单标注者后要给出结论，但结论名里必须带着依据。
 
     默认仍然是 insufficient_samples：一个人打的分证明不了分数客观，只能证明评委
@@ -369,9 +357,7 @@ def test_single_annotator_mode_is_opt_in_and_never_reports_plain_passed(
 def test_single_annotator_mode_still_fails_when_agreement_is_bad(rubric, inputs) -> None:
     """放行不等于放水：一致率不达标照样是 failed。"""
     annotations, sha = load_human_output_quality_annotations(ANNOTATIONS)
-    verdicts, _ = score_judge_inputs(
-        inputs, judge=ScriptedJudge(score=1), rubric=rubric
-    )
+    verdicts, _ = score_judge_inputs(inputs, judge=ScriptedJudge(score=1), rubric=rubric)
 
     report = calibrate_against_human(
         verdicts,
@@ -385,3 +371,96 @@ def test_single_annotator_mode_still_fails_when_agreement_is_bad(rubric, inputs)
 
     assert report.calibration_status == "failed_single_annotator"
     assert report.target_met is False
+
+
+# ---------------------------------------------------------------------------
+# 裁判适配器的重试：瞬时错误重试一次，402 绝不重试。
+# ---------------------------------------------------------------------------
+
+
+class _FakeCompletions:
+    def __init__(self, outcomes: list) -> None:
+        self._outcomes = list(outcomes)
+        self.calls = 0
+
+    def create(self, **kwargs):  # noqa: ANN003 - mimics the OpenAI SDK surface
+        del kwargs
+        self.calls += 1
+        outcome = self._outcomes.pop(0)
+        if isinstance(outcome, Exception):
+            raise outcome
+        return outcome
+
+
+class _FakeClient:
+    def __init__(self, outcomes: list) -> None:
+        from types import SimpleNamespace
+
+        self.chat = SimpleNamespace(completions=_FakeCompletions(outcomes))
+
+
+def _fake_response(text: str):
+    from types import SimpleNamespace
+
+    return SimpleNamespace(
+        id="resp-1",
+        model="fake-judge",
+        choices=[SimpleNamespace(message=SimpleNamespace(content=text))],
+        usage=SimpleNamespace(prompt_tokens=10, completion_tokens=5, total_tokens=15),
+    )
+
+
+def _timeout_error():
+    import httpx
+    import openai
+
+    return openai.APITimeoutError(request=httpx.Request("POST", "https://judge.test/v1"))
+
+
+def _status_error(status: int):
+    import httpx
+    import openai
+
+    request = httpx.Request("POST", "https://judge.test/v1")
+    return openai.APIStatusError(
+        f"http {status}", response=httpx.Response(status, request=request), body=None
+    )
+
+
+def test_judge_retries_once_on_a_transient_error() -> None:
+    from corporate_travel_agent.evaluation.judge_openai import OpenAIOutputQualityJudge
+
+    rubric = load_output_quality_rubric(RUBRIC_PATH)
+    judge_input = load_judge_inputs(JUDGE_INPUTS)[0]
+    abstain = JudgeScore(abstained=True, abstain_reason="no evidence", dimensions=[])
+    client = _FakeClient([_timeout_error(), _fake_response(abstain.model_dump_json())])
+    judge = OpenAIOutputQualityJudge(model="fake-judge", client=client, api_mode="chat")
+
+    score, metadata = judge.score(judge_input, rubric)
+
+    assert score.abstained is True
+    assert client.chat.completions.calls == 2
+    assert judge.retries == 1
+    assert judge.retry_log[0]["cause_type"] == "APITimeoutError"
+    assert metadata.total_tokens == 15
+
+
+def test_judge_never_retries_on_402_and_gives_up_after_the_cap() -> None:
+    from corporate_travel_agent.agent.ports import LanguageModelError
+    from corporate_travel_agent.evaluation.judge_openai import OpenAIOutputQualityJudge
+
+    rubric = load_output_quality_rubric(RUBRIC_PATH)
+    judge_input = load_judge_inputs(JUDGE_INPUTS)[0]
+
+    billing = _FakeClient([_status_error(402), _fake_response("{}")])
+    judge = OpenAIOutputQualityJudge(model="fake-judge", client=billing, api_mode="chat")
+    with pytest.raises(LanguageModelError) as refused:
+        judge.score(judge_input, rubric)
+    assert refused.value.http_status == 402
+    assert billing.chat.completions.calls == 1 and judge.retries == 0
+
+    flaky = _FakeClient([_timeout_error(), _timeout_error(), _fake_response("{}")])
+    judge = OpenAIOutputQualityJudge(model="fake-judge", client=flaky, api_mode="chat")
+    with pytest.raises(LanguageModelError):
+        judge.score(judge_input, rubric)
+    assert flaky.chat.completions.calls == 2 and judge.retries == 1

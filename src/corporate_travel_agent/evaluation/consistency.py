@@ -28,6 +28,11 @@
 提到（"不是差旅安排（订机票/酒店/高铁）"），只在带问号或"吗 / 还是 / 需不需要"的句子里才算问了。
 主指标是核心事实集合一致，全集一致另报。
 
+**四层不是固定的。** 它们是当前工具表的四个决策点（搜什么、声明什么、问什么、最后落到哪）；工具表
+变了，层就得跟着变。**调用次数不按"是否相同"判。** 同一条用例三轮各花了几次模型调用、几次搜索、
+几次被宿主拒掉、几轮对话，是路径不是决策，影响的是成本、延迟和 12 次工具预算；这里按**离散度**
+（三轮最大值减最小值）报告，超过阈值的用例列出来给人看，不设门禁。
+
 **一致性要和正确性并列报。** 三轮都不声明硬约束是"一致地错"。第 1 层在有参照的地方
 （单轮集的离线替身终态 `offline_state`、多轮集的事实表 `expected_completable`）把"一致且对"
 和"一致但错"分开计数；没有参照就记 `no_reference`，不当作对。
@@ -488,6 +493,12 @@ def declared_requirements_consistency(runs: list[RunRecord], case_ids: list[str]
             if declared_everywhere
             else None
         ),
+        "soft_identical": buckets["identical"] + buckets["hard_differ"],
+        "soft_identical_rate": (
+            round((buckets["identical"] + buckets["hard_differ"]) / declared_everywhere, 4)
+            if declared_everywhere
+            else None
+        ),
         "buckets": dict(buckets),
         "per_name": {
             name: {
@@ -596,6 +607,65 @@ def clarification_consistency(runs: list[RunRecord], case_ids: list[str]) -> dic
     }
 
 
+#: 过程指标：名字 -> (大白话, 离散度阈值)。阈值只用来挑出给人看的用例，不是门禁。
+PROCESS_METRICS: dict[str, tuple[str, int]] = {
+    "llm_calls": ("模型调用次数", 4),
+    "search_count": ("成功搜索次数", 2),
+    "rejected_searches": ("被宿主拒掉的搜索次数", 3),
+    "rounds": ("对话轮数", 1),
+}
+
+
+def _process_value(result: dict[str, Any], metric: str) -> int | None:
+    if metric in {"llm_calls", "search_count"}:
+        value = result.get(metric)
+        return None if value is None else int(value)
+    turns = result.get("turns")
+    if metric == "rounds":
+        return len(turns) if turns else None
+    # 没采集的记 None，不记 0：旧报告的 loop 里没有 rejected_tool_calls 这一项。
+    if not turns or not all("rejected_tool_calls" in (turn.get("loop") or {}) for turn in turns):
+        return None
+    return sum(len(turn["loop"]["rejected_tool_calls"] or []) for turn in turns)
+
+
+def process_spread(runs: list[RunRecord], case_ids: list[str]) -> dict[str, Any]:
+    """过程（不设门禁）：同一条用例三轮各花了多少步，按离散度报。"""
+    out: dict[str, Any] = {}
+    for metric, (label, threshold) in PROCESS_METRICS.items():
+        spreads: list[int] = []
+        outliers: list[dict[str, Any]] = []
+        totals: Counter[str] = Counter()
+        for case_id in case_ids:
+            values = [_process_value(run.results[case_id], metric) for run in runs]
+            if any(value is None for value in values):
+                continue
+            known = [int(value) for value in values if value is not None]
+            for run, value in zip(runs, known, strict=True):
+                totals[run.run_id] += value
+            spread = max(known) - min(known)
+            spreads.append(spread)
+            if spread >= threshold:
+                outliers.append({"case_id": case_id, "values": known, "spread": spread})
+        if not spreads:
+            out[metric] = {"status": NOT_APPLICABLE, "label": label, "threshold": threshold}
+            continue
+        ordered = sorted(spreads)
+        out[metric] = {
+            "status": "computed",
+            "label": label,
+            "threshold": threshold,
+            "cases": len(spreads),
+            "zero_spread": sum(1 for item in spreads if item == 0),
+            "median_spread": ordered[len(ordered) // 2],
+            "max_spread": ordered[-1],
+            "over_threshold": len(outliers),
+            "outliers": sorted(outliers, key=lambda item: -item["spread"])[:15],
+            "per_run_total": dict(totals),
+        }
+    return out
+
+
 def evaluate_consistency(run_dirs: list[Path], label: str | None = None) -> dict[str, Any]:
     if len(run_dirs) < 2:
         raise ValueError("至少需要两轮运行才能比一致性")
@@ -626,6 +696,7 @@ def evaluate_consistency(run_dirs: list[Path], label: str | None = None) -> dict
         "layer_2_search": search_consistency(runs, case_ids),
         "layer_3_declared_requirements": declared_requirements_consistency(runs, case_ids),
         "layer_4_clarification": clarification_consistency(runs, case_ids),
+        "process_spread": process_spread(runs, case_ids),
     }
 
 
@@ -700,8 +771,8 @@ def _render_layer_3(l3: dict[str, Any]) -> list[str]:
         lines.append(l3["reason"])
         return lines
     lines += [
-        f"三轮都交付了的用例 {l3['declared_in_all_compared_runs']}；硬要求和偏好都相同 "
-        f"{l3['identical']}；只看硬要求相同 {l3['hard_identical']}。",
+        f"三轮都交付了的用例 {l3['declared_in_all_compared_runs']}；硬要求相同 "
+        f"{l3['hard_identical']}；偏好相同 {l3['soft_identical']}；两者都相同 {l3['identical']}。",
         "",
         "| 桶 | 数 |",
         "|---|---:|",
@@ -768,6 +839,35 @@ def _render_layer_4(l4: dict[str, Any]) -> list[str]:
     return lines
 
 
+def _render_process(spread: dict[str, Any]) -> list[str]:
+    lines = [
+        "## 过程（不设门禁）· 同一条用例三轮各花了多少步",
+        "",
+        "次数不是决策，按离散度（三轮最大值减最小值）报；超过阈值的用例列出来给人看。",
+        "",
+        "| 指标 | 用例 | 三轮相同 | 离散度中位数 | 最大 | ≥ 阈值 | 各轮合计 |",
+        "|---|---:|---:|---:|---:|---:|---|",
+    ]
+    for stat in spread.values():
+        if stat["status"] != "computed":
+            lines.append(f"| {stat['label']} | — | — | — | — | — | 没有数据 |")
+            continue
+        totals = " / ".join(str(v) for v in stat["per_run_total"].values())
+        lines.append(
+            f"| {stat['label']} | {stat['cases']} | {stat['zero_spread']} | "
+            f"{stat['median_spread']} | {stat['max_spread']} | "
+            f"{stat['over_threshold']}（阈值 {stat['threshold']}） | {totals} |"
+        )
+    for metric in ("llm_calls", "rejected_searches"):
+        stat = spread.get(metric)
+        if not stat or stat["status"] != "computed" or not stat["outliers"]:
+            continue
+        lines += ["", f"{stat['label']}离散度最大的用例（值按轮次顺序）：", ""]
+        for item in stat["outliers"]:
+            lines.append(f"- `{item['case_id']}`：{item['values']}（离散度 {item['spread']}）")
+    return lines
+
+
 def render_markdown(summary: dict[str, Any]) -> str:
     l1 = summary["layer_1_decision"]
     l2 = summary["layer_2_search"]
@@ -812,9 +912,14 @@ def render_markdown(summary: dict[str, Any]) -> str:
         lines.append(f"| 第 2 层 · 搜索参数 | 不适用 | {l2['reason']} |")
     if l3["status"] == "computed":
         lines.append(
-            f"| 第 3 层 · 声明的硬要求 | {l3['identical']}/{l3['declared_in_all_compared_runs']} = "
-            f"{_pct(l3['identical_rate'])} | 三轮都交付了的用例中，声明的硬要求和偏好都相同的比例"
-            f"（只看硬要求 {l3['hard_identical']}） |"
+            f"| 第 3 层 · 声明的硬要求 | {l3['hard_identical']}/"
+            f"{l3['declared_in_all_compared_runs']} = {_pct(l3['hard_identical_rate'])} | "
+            "三轮都交付了的用例中，声明的硬要求集合相同的比例；硬要求改变可行性，设门禁 |"
+        )
+        lines.append(
+            f"| 第 3 层 · 声明的偏好（只报告） | {l3['soft_identical']}/"
+            f"{l3['declared_in_all_compared_runs']} = {_pct(l3['soft_identical_rate'])} | "
+            f"偏好集合相同的比例；偏好只改排序，不设门禁（硬要求和偏好都相同 {l3['identical']}） |"
         )
     else:
         lines.append(f"| 第 3 层 · 声明的硬要求 | 不适用 | {l3['reason']} |")
@@ -835,6 +940,8 @@ def render_markdown(summary: dict[str, Any]) -> str:
     lines += _render_layer_3(l3)
     lines.append("")
     lines += _render_layer_4(l4)
+    lines.append("")
+    lines += _render_process(summary["process_spread"])
     lines += [
         "",
         "## 局限",
@@ -845,7 +952,8 @@ def render_markdown(summary: dict[str, Any]) -> str:
         "- 第 4 层是关键词规则，不一致用例里会混有漏判；"
         "精确版要 runner 把 `open_questions` 结构化落盘。",
         "- 第 3 层要报告带 `declared_requirements`（2026-09-06 起的 runner）；"
-        "多轮集里「办成与否不一致」的根因正在这一层。",
+        "多轮集里「办成与否不一致」的根因正在这一层。偏好没有证据字段，模型在推断而不是引用，所以只报告。",
+        "- 四层跟着工具表走，工具表变了层要重定；过程指标只报离散度，不判相同。",
         "- 一致不等于对：`consistent_but_differs_from_reference` 那一桶要单独看。",
         "",
         "## 输入指纹",

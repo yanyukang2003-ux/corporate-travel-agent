@@ -42,6 +42,7 @@ def main() -> int:
     (args.output / "REPORT.md").write_text(render_markdown(summary), encoding="utf-8")
     l1 = summary["layer_1_decision"]
     l2 = summary["layer_2_search"]
+    l3 = summary["layer_3_declared_requirements"]
     l4 = summary["layer_4_clarification"]
     print(f"第 1 层 终局决策一致 {l1['consistent']}/{l1['cases']}")
     if l2["status"] == "computed":
@@ -52,6 +53,14 @@ def main() -> int:
         )
     else:
         print(f"第 2 层 不适用：{l2['reason']}")
+    if l3["status"] == "computed":
+        print(
+            f"第 3 层 声明的硬要求一致 {l3['hard_identical']}/"
+            f"{l3['declared_in_all_compared_runs']}（偏好一致 {l3['soft_identical']}，"
+            f"两者都一致 {l3['identical']}）"
+        )
+    else:
+        print(f"第 3 层 不适用：{l3['reason']}")
     if l4["status"] == "computed":
         print(
             f"第 4 层 追问目标核心事实一致 {l4['identical_core_fact_sets']}/"

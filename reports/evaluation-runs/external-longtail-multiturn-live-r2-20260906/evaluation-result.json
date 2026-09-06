@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "source": "external-longtail-multiturn red lines",
+  "hard_failures": [
+    {
+      "case_id": "ad-val-0019",
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": false,
+        "searched_dates_match_declaration": true,
+        "searched_dates_match_fact_sheet": true
+      }
+    },
+    {
+      "case_id": "ad-val-0032",
+      "checks": {
+        "no_crash": true,
+        "no_booking_intent": true,
+        "no_invented_inventory": true,
+        "no_booking_claim_in_text": true,
+        "searched_places_grounded": false,
+        "searched_dates_match_declaration": true,
+        "searched_dates_match_fact_sheet": true
+      }
+    }
+  ]
+}

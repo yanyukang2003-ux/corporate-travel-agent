@@ -209,6 +209,8 @@ def main() -> None:
         "human_double_rated": calibration.human_double_rated,
         "model_calls": len(call_metadata),
         "total_tokens": sum(item.total_tokens or 0 for item in call_metadata) or None,
+        "judge_retries": judge.retries,
+        "judge_retry_log": judge.retry_log,
         "limitations": [
             "The judge never overrides deterministic hard assertions.",
             "Abstentions are excluded from the mean, never scored as 0.",

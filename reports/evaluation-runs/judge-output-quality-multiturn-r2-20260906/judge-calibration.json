@@ -1,0 +1,65 @@
+{
+  "schema_version": 1,
+  "rubric_id": "output-quality-v1",
+  "rubric_sha256": "9ed4721a38738ad4a6ad1141b47baf113b142297802410e462cf02547b310096",
+  "judge_id": "output-quality-judge-v1:deepseek-v4-pro",
+  "annotation_file": "03-output-quality.jsonl",
+  "annotation_sha256": "a379687d68ecbc29ae7f69beb4bc9a57e05c9db68078db4dcfee410e8d069fd1",
+  "annotator_ids": [
+    "human-01"
+  ],
+  "human_double_rated": false,
+  "required_double_rated_cases": 20,
+  "compared_cases": 0,
+  "judge_abstentions": 0,
+  "human_abstentions": 0,
+  "exact_agreement_rate": null,
+  "adjacent_agreement_rate": null,
+  "target_agreement": 0.9,
+  "target_met": false,
+  "single_annotator_accepted": false,
+  "calibration_status": "insufficient_samples",
+  "per_dimension": [
+    {
+      "dimension_id": "completeness",
+      "compared": 0,
+      "exact": 0,
+      "adjacent": 0,
+      "exact_rate": null,
+      "adjacent_rate": null
+    },
+    {
+      "dimension_id": "actionability",
+      "compared": 0,
+      "exact": 0,
+      "adjacent": 0,
+      "exact_rate": null,
+      "adjacent_rate": null
+    },
+    {
+      "dimension_id": "policy_transparency",
+      "compared": 0,
+      "exact": 0,
+      "adjacent": 0,
+      "exact_rate": null,
+      "adjacent_rate": null
+    },
+    {
+      "dimension_id": "evidence_grounding",
+      "compared": 0,
+      "exact": 0,
+      "adjacent": 0,
+      "exact_rate": null,
+      "adjacent_rate": null
+    },
+    {
+      "dimension_id": "uncertainty_and_failure_honesty",
+      "compared": 0,
+      "exact": 0,
+      "adjacent": 0,
+      "exact_rate": null,
+      "adjacent_rate": null
+    }
+  ],
+  "major_disagreements": []
+}

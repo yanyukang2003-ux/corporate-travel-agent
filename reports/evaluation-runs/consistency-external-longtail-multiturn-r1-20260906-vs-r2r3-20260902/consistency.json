@@ -1,0 +1,1607 @@
+{
+  "runner_version": "run-consistency-v1",
+  "generated_at": "2026-09-06T19:25:06.506718+00:00",
+  "label": "跨批次：09-06 r1 对 09-02 r2/r3（同一提示词、同一事实表）",
+  "runs": [
+    {
+      "run_id": "external-longtail-multiturn-live-r1-20260906",
+      "path": "reports/evaluation-runs/external-longtail-multiturn-live-r1-20260906",
+      "report_sha256": "7298ee3183c5fd249fc944b21d3e5db1041cb7f4f1af25c863b51a73e50a2966",
+      "traces_sha256": "0d8ab991a25f74b90b6b958b77e910a39314eac12a688eb7825544e9c2d2222e",
+      "cases": 185,
+      "has_search_params": true,
+      "has_traces": true,
+      "has_turns": true,
+      "cases_with_successful_search_in_traces": 152
+    },
+    {
+      "run_id": "external-longtail-multiturn-live-r2-20260902",
+      "path": "reports/evaluation-runs/external-longtail-multiturn-live-r2-20260902",
+      "report_sha256": "a0b4a22fe697e48f5d85cf4a44e70e69901c6e6559858d6a1a0a0173cd890725",
+      "traces_sha256": "4aacc578405adf22cd44ed5553a4a8e5def1f129bedc11b596498811d6dee761",
+      "cases": 185,
+      "has_search_params": true,
+      "has_traces": true,
+      "has_turns": true,
+      "cases_with_successful_search_in_traces": 150
+    },
+    {
+      "run_id": "external-longtail-multiturn-live-r3-20260902",
+      "path": "reports/evaluation-runs/external-longtail-multiturn-live-r3-20260902",
+      "report_sha256": "613cc2fbc742f748eec909efd131742e1f12224ec206a58821ae282acf209785",
+      "traces_sha256": "03174478c52d4c350152add83be775a0a2b63160aa51a6cd4ab2fb087bbcbcdc",
+      "cases": 185,
+      "has_search_params": true,
+      "has_traces": true,
+      "has_turns": true,
+      "cases_with_successful_search_in_traces": 150
+    }
+  ],
+  "shared_cases": 185,
+  "layer_1_decision": {
+    "cases": 185,
+    "consistent": 175,
+    "consistent_rate": 0.9459,
+    "buckets": {
+      "consistent_and_matches_reference": 158,
+      "consistent_but_differs_from_reference": 9,
+      "mixed": 10,
+      "consistent_reference_disagrees": 8
+    },
+    "decision_field": "outcome",
+    "distribution": {
+      "external-longtail-multiturn-live-r1-20260906": {
+        "honest_failure": 47,
+        "completed": 133,
+        "out_of_scope": 4,
+        "stuck_clarifying": 1
+      },
+      "external-longtail-multiturn-live-r2-20260902": {
+        "honest_failure": 48,
+        "completed": 133,
+        "out_of_scope": 3,
+        "stuck_clarifying": 1
+      },
+      "external-longtail-multiturn-live-r3-20260902": {
+        "honest_failure": 46,
+        "completed": 135,
+        "out_of_scope": 3,
+        "stuck_clarifying": 1
+      }
+    },
+    "mixed_cases": [
+      {
+        "case_id": "ct-human-h20241029143455115600",
+        "decisions": [
+          "out_of_scope",
+          "out_of_scope",
+          "completed"
+        ]
+      },
+      {
+        "case_id": "ct-human-h20241029143606240237",
+        "decisions": [
+          "honest_failure",
+          "completed",
+          "completed"
+        ]
+      },
+      {
+        "case_id": "ct-human-h20241029143657365639",
+        "decisions": [
+          "honest_failure",
+          "completed",
+          "honest_failure"
+        ]
+      },
+      {
+        "case_id": "ct-human-h20241029143709097610",
+        "decisions": [
+          "completed",
+          "honest_failure",
+          "completed"
+        ]
+      },
+      {
+        "case_id": "ct-human-h20241029143722458026",
+        "decisions": [
+          "completed",
+          "honest_failure",
+          "honest_failure"
+        ]
+      },
+      {
+        "case_id": "ct-human-h20241029143730769592",
+        "decisions": [
+          "completed",
+          "honest_failure",
+          "honest_failure"
+        ]
+      },
+      {
+        "case_id": "ct-human-h20241029143732290071",
+        "decisions": [
+          "honest_failure",
+          "honest_failure",
+          "completed"
+        ]
+      },
+      {
+        "case_id": "ct-human-h20241029143736524841",
+        "decisions": [
+          "honest_failure",
+          "completed",
+          "completed"
+        ]
+      },
+      {
+        "case_id": "ad-val-0032",
+        "decisions": [
+          "completed",
+          "honest_failure",
+          "completed"
+        ]
+      },
+      {
+        "case_id": "ad-val-0036",
+        "decisions": [
+          "out_of_scope",
+          "completed",
+          "out_of_scope"
+        ]
+      }
+    ]
+  },
+  "layer_2_search": {
+    "status": "computed",
+    "mode": "parameters",
+    "compared_runs": [
+      "external-longtail-multiturn-live-r1-20260906",
+      "external-longtail-multiturn-live-r2-20260902",
+      "external-longtail-multiturn-live-r3-20260902"
+    ],
+    "skipped_runs": [],
+    "searched_in_all_compared_runs": 143,
+    "identical_after_dedup": 134,
+    "identical_rate_after_dedup": 0.9371,
+    "identical_before_dedup": 125,
+    "buckets": {
+      "identical": 134,
+      "searched_in_some_compared_runs_only": 4,
+      "dates_differ": 3,
+      "routes_differ": 6
+    },
+    "search_presence_mixed": 4,
+    "search_presence_mixed_cases": [
+      {
+        "case_id": "ct-human-h20241029143455115600",
+        "searched": [
+          false,
+          false,
+          true
+        ]
+      },
+      {
+        "case_id": "ct-human-h20241029143730769592",
+        "searched": [
+          true,
+          false,
+          false
+        ]
+      },
+      {
+        "case_id": "ad-val-0032",
+        "searched": [
+          true,
+          false,
+          true
+        ]
+      },
+      {
+        "case_id": "ad-val-0036",
+        "searched": [
+          false,
+          true,
+          false
+        ]
+      }
+    ],
+    "host_rejected_searches": {
+      "external-longtail-multiturn-live-r1-20260906": {
+        "rejected_search_attempts": 122,
+        "cases_with_rejected_attempt": 102
+      },
+      "external-longtail-multiturn-live-r2-20260902": {
+        "rejected_search_attempts": 116,
+        "cases_with_rejected_attempt": 92
+      },
+      "external-longtail-multiturn-live-r3-20260902": {
+        "rejected_search_attempts": 104,
+        "cases_with_rejected_attempt": 89
+      }
+    },
+    "differing_cases": [
+      {
+        "case_id": "ct-human-h20241029143522848652",
+        "kind": "dates_differ",
+        "per_run": {
+          "external-longtail-multiturn-live-r1-20260906": [
+            "transport | Shenzhen | Beijing | 2026-09-07"
+          ],
+          "external-longtail-multiturn-live-r2-20260902": [
+            "transport | Shenzhen | Beijing | 2026-09-03"
+          ],
+          "external-longtail-multiturn-live-r3-20260902": [
+            "transport | Shenzhen | Beijing | 2026-09-03"
+          ]
+        }
+      },
+      {
+        "case_id": "ct-human-h20241029143542560410",
+        "kind": "routes_differ",
+        "per_run": {
+          "external-longtail-multiturn-live-r1-20260906": [
+            "transport | Guangzhou | Nanjing | 2026-09-27",
+            "transport | Nanjing | Guangzhou | 2026-09-23"
+          ],
+          "external-longtail-multiturn-live-r2-20260902": [
+            "transport | Nanjing | Guangzhou | 2026-09-03"
+          ],
+          "external-longtail-multiturn-live-r3-20260902": [
+            "transport | Guangzhou | Nanjing | 2026-09-07",
+            "transport | Nanjing | Guangzhou | 2026-09-03"
+          ]
+        }
+      },
+      {
+        "case_id": "ct-human-h20241029143602442546",
+        "kind": "dates_differ",
+        "per_run": {
+          "external-longtail-multiturn-live-r1-20260906": [
+            "transport | Guangzhou | Shenzhen | 2026-09-13",
+            "transport | Shenzhen | Guangzhou | 2026-09-12"
+          ],
+          "external-longtail-multiturn-live-r2-20260902": [
+            "transport | Guangzhou | Shenzhen | 2026-09-06",
+            "transport | Shenzhen | Guangzhou | 2026-09-05"
+          ],
+          "external-longtail-multiturn-live-r3-20260902": [
+            "transport | Guangzhou | Shenzhen | 2026-09-06",
+            "transport | Shenzhen | Guangzhou | 2026-09-05"
+          ]
+        }
+      },
+      {
+        "case_id": "ct-human-h20241029143630351554",
+        "kind": "routes_differ",
+        "per_run": {
+          "external-longtail-multiturn-live-r1-20260906": [
+            "transport | Chengdu | Chongqing | 2026-09-11",
+            "transport | Chongqing | Chengdu | 2026-09-13"
+          ],
+          "external-longtail-multiturn-live-r2-20260902": [
+            "transport | Chengdu | Chongqing | 2026-09-23",
+            "transport | Chongqing | Chengdu | 2026-09-24"
+          ],
+          "external-longtail-multiturn-live-r3-20260902": [
+            "hotel | Chongqing | 2026-09-05 | 2026-09-07",
+            "transport | Chengdu | Chongqing | 2026-09-05"
+          ]
+        }
+      },
+      {
+        "case_id": "ct-human-h20241029143639901784",
+        "kind": "routes_differ",
+        "per_run": {
+          "external-longtail-multiturn-live-r1-20260906": [
+            "transport | Shanghai | Guangzhou | 2026-09-07",
+            "transport | Shanghai | Guangzhou | 2026-09-08",
+            "transport | Shanghai | Guangzhou | 2026-09-09",
+            "transport | Shanghai | Guangzhou | 2026-09-10",
+            "transport | Shanghai | Guangzhou | 2026-09-11",
+            "transport | Shanghai | Guangzhou | 2026-09-12",
+            "transport | Shanghai | Guangzhou | 2026-09-13"
+          ],
+          "external-longtail-multiturn-live-r2-20260902": [
+            "transport | Guangzhou | Shanghai | 2026-09-08",
+            "transport | Shanghai | Guangzhou | 2026-09-06"
+          ],
+          "external-longtail-multiturn-live-r3-20260902": [
+            "transport | Guangzhou | Shanghai | 2026-09-08",
+            "transport | Shanghai | Guangzhou | 2026-09-06"
+          ]
+        }
+      },
+      {
+        "case_id": "ct-human-h20241029143818664124",
+        "kind": "dates_differ",
+        "per_run": {
+          "external-longtail-multiturn-live-r1-20260906": [
+            "transport | Chongqing | Wuhan | 2026-09-12",
+            "transport | Wuhan | Chongqing | 2026-09-13"
+          ],
+          "external-longtail-multiturn-live-r2-20260902": [
+            "transport | Chongqing | Wuhan | 2026-09-05",
+            "transport | Wuhan | Chongqing | 2026-09-06"
+          ],
+          "external-longtail-multiturn-live-r3-20260902": [
+            "transport | Chongqing | Wuhan | 2026-09-05",
+            "transport | Wuhan | Chongqing | 2026-09-06"
+          ]
+        }
+      },
+      {
+        "case_id": "ad-val-0007",
+        "kind": "routes_differ",
+        "per_run": {
+          "external-longtail-multiturn-live-r1-20260906": [
+            "transport | LGA | PHX | 2027-02-28",
+            "transport | PHX | LGA | 2027-02-26"
+          ],
+          "external-longtail-multiturn-live-r2-20260902": [
+            "transport | EWR | PHX | 2027-02-28",
+            "transport | JFK | PHX | 2027-02-28",
+            "transport | LGA | PHX | 2027-02-28",
+            "transport | PHX | EWR | 2027-02-26",
+            "transport | PHX | JFK | 2027-02-26",
+            "transport | PHX | LGA | 2027-02-26"
+          ],
+          "external-longtail-multiturn-live-r3-20260902": [
+            "transport | LGA | PHX | 2027-02-28",
+            "transport | PHX | LGA | 2027-02-26"
+          ]
+        }
+      },
+      {
+        "case_id": "ad-val-0019",
+        "kind": "routes_differ",
+        "per_run": {
+          "external-longtail-multiturn-live-r1-20260906": [
+            "transport | Las Vegas | Phoenix | 2027-02-04",
+            "transport | Phoenix | Las Vegas | 2027-02-06"
+          ],
+          "external-longtail-multiturn-live-r2-20260902": [
+            "transport | LAS | PHX | 2027-02-04",
+            "transport | PHX | LAS | 2027-02-06"
+          ],
+          "external-longtail-multiturn-live-r3-20260902": [
+            "transport | LAS | PHX | 2027-02-04",
+            "transport | PHX | LAS | 2027-02-06"
+          ]
+        }
+      },
+      {
+        "case_id": "ad-val-0031",
+        "kind": "routes_differ",
+        "per_run": {
+          "external-longtail-multiturn-live-r1-20260906": [
+            "transport | Denver | New York | 2027-03-22",
+            "transport | New York | Denver | 2027-03-20"
+          ],
+          "external-longtail-multiturn-live-r2-20260902": [
+            "transport | Denver | New York | 2027-03-22",
+            "transport | New York | Denver | 2027-03-20"
+          ],
+          "external-longtail-multiturn-live-r3-20260902": [
+            "transport | DEN | JFK | 2027-03-22",
+            "transport | JFK | DEN | 2027-03-20"
+          ]
+        }
+      }
+    ]
+  },
+  "layer_3_declared_requirements": {
+    "status": "not_applicable",
+    "reason": "少于两轮带 declared_requirements（2026-09-06 之前的报告没有这个字段）",
+    "compared_runs": [
+      "external-longtail-multiturn-live-r1-20260906"
+    ]
+  },
+  "layer_4_clarification": {
+    "status": "computed",
+    "method": "keyword-rules-v1",
+    "compared_runs": [
+      "external-longtail-multiturn-live-r1-20260906",
+      "external-longtail-multiturn-live-r2-20260902",
+      "external-longtail-multiturn-live-r3-20260902"
+    ],
+    "asked_in_all_compared_runs": 177,
+    "core_facts": [
+      "date",
+      "origin",
+      "destination",
+      "arrive_by"
+    ],
+    "identical_core_fact_sets": 139,
+    "identical_core_rate": 0.7853,
+    "identical_fact_sets": 93,
+    "identical_rate": 0.5254,
+    "supplementary_only_disagreements": 46,
+    "question_presence_mixed": 3,
+    "first_action_known": 0,
+    "first_action_identical": 0,
+    "first_action_identical_rate": null,
+    "first_action_mixed_cases": [],
+    "per_fact": {
+      "date": {
+        "asked_in_any_run": 168,
+        "agree": 162,
+        "agree_rate": 0.9153
+      },
+      "origin": {
+        "asked_in_any_run": 12,
+        "agree": 168,
+        "agree_rate": 0.9492
+      },
+      "destination": {
+        "asked_in_any_run": 20,
+        "agree": 163,
+        "agree_rate": 0.9209
+      },
+      "arrive_by": {
+        "asked_in_any_run": 19,
+        "agree": 160,
+        "agree_rate": 0.904
+      },
+      "lodging": {
+        "asked_in_any_run": 55,
+        "agree": 130,
+        "agree_rate": 0.7345
+      },
+      "transport_mode": {
+        "asked_in_any_run": 34,
+        "agree": 144,
+        "agree_rate": 0.8136
+      },
+      "travelers": {
+        "asked_in_any_run": 0,
+        "agree": 177,
+        "agree_rate": 1.0
+      },
+      "budget": {
+        "asked_in_any_run": 7,
+        "agree": 170,
+        "agree_rate": 0.9605
+      },
+      "intent_confirm": {
+        "asked_in_any_run": 11,
+        "agree": 167,
+        "agree_rate": 0.9435
+      }
+    },
+    "core_disagreeing_cases": [
+      {
+        "case_id": "ct-human-h20241029143526214076",
+        "per_run": {
+          "external-longtail-multiturn-live-r1-20260906": {
+            "facts": [
+              "date",
+              "destination"
+            ],
+            "question": "我来帮你规划这趟北京到苏州的3天旅行。不过先说明一下：我这边能帮你查的是**交通和酒店**的实时库存，景点和美食推荐我可以结合常识给你建议，但具体行程安排（去哪些景点、吃什么）需要你自己定。\n\n先帮你查一下北京到苏州的交通。不过我需要确认一个关键信息：**你们打算哪天出发？** 这决定了我能查哪天的票。\n\n在等你回复的同时，我先说明一下苏州值得去的景点和美食，供你参考：\n\n**著名景点（3天可以这"
+          },
+          "external-longtail-multiturn-live-r2-20260902": {
+            "facts": [
+              "date"
+            ],
+            "question": "你们打算哪天从北京出发去苏州？3天行程的话，出发日期定了我就能帮你查车票/机票。"
+          },
+          "external-longtail-multiturn-live-r3-20260902": {
+            "facts": [
+              "date"
+            ],
+            "question": "你们计划哪天从北京出发去苏州呢？（比如这周五、下周一，或者具体日期）我好按日期帮你们查车票/机票。"
+          }
+        }
+      },
+      {
+        "case_id": "ct-human-h20241029143530430866",
+        "per_run": {
+          "external-longtail-multiturn-live-r1-20260906": {
+            "facts": [
+              "date"
+            ],
+            "question": "带父母去北京玩，我想先确认一下出发日期：您打算哪天从深圳出发、哪天返回呢？（比如\"9月10日出发，玩5天\"）"
+          },
+          "external-longtail-multiturn-live-r2-20260902": {
+            "facts": [
+              "date",
+              "destination",
+              "lodging",
+              "origin",
+              "transport_mode"
+            ],
+            "question": "我来帮您规划这趟深圳到北京的亲子游。先确认一下行程安排：\n\n- **出发地**：深圳\n- **目的地**：北京\n- **人数**：3人（您和父母）\n- **天数**：5天\n\n不过有几个关键信息我还需要向您确认，才能开始搜索：\n\n1. **出发日期**：您计划哪天出发？（比如\"9月10日出发\"）\n2. **交通偏好**：深圳到北京距离较远，您倾向坐飞机还是高铁？考虑到老人旅途不要太辛苦，飞机可能更省"
+          },
+          "external-longtail-multiturn-live-r3-20260902": {
+            "facts": [
+              "date"
+            ],
+            "question": "您还没有告诉我出发日期。请问您计划哪天从深圳出发去北京？（旅行天数5天，我可以据此帮您安排往返和行程节奏。）"
+          }
+        }
+      },
+      {
+        "case_id": "ct-human-h20241029143532210869",
+        "per_run": {
+          "external-longtail-multiturn-live-r1-20260906": {
+            "facts": [
+              "date"
+            ],
+            "question": "你打算哪天出发去北京？5天行程的话，回程日期也请一并告诉我（比如 9月10日出发、9月14日回）。"
+          },
+          "external-longtail-multiturn-live-r2-20260902": {
+            "facts": [
+              "date",
+              "origin"
+            ],
+            "question": "你打算哪天出发去北京？5天行程是从哪天开始算？（比如\"9月5日出发，玩到9月9日\"）"
+          },
+          "external-longtail-multiturn-live-r3-20260902": {
+            "facts": [
+              "date",
+              "origin"
+            ],
+            "question": "你打算哪天出发去北京？5天行程是从哪天开始算？（比如「9月5日出发」或「这周五出发」都行，我好按这个日期查车票/机票）"
+          }
+        }
+      },
+      {
+        "case_id": "ct-human-h20241029143533982475",
+        "per_run": {
+          "external-longtail-multiturn-live-r1-20260906": {
+            "facts": [
+              "date"
+            ],
+            "question": "您这趟是去巴塞罗那，中间在北京大兴机场附近停留三天。请问这三天具体是哪几天（比如几号到几号）？另外，您需要我帮您安排成都→北京、北京→巴塞罗那的交通，还是只想要北京大兴机场附近免费景点的推荐？"
+          },
+          "external-longtail-multiturn-live-r2-20260902": {
+            "facts": [
+              "date",
+              "intent_confirm"
+            ],
+            "question": "你这次主要是想让我帮你安排成都→北京→巴塞罗那的交通（含北京大兴机场附近三天的停留），还是只想要北京大兴机场附近免费景点的推荐？另外，北京停留的三天具体是哪几天（比如几号到几号）？"
+          },
+          "external-longtail-multiturn-live-r3-20260902": {
+            "facts": [
+              "lodging"
+            ],
+            "question": "抱歉，我需要先说明一下：您这条请求主要是想了解北京大兴机场附近有哪些**免费且交通便利的景点**，这属于旅游景点推荐，而不是我可以帮您安排的差旅预订（机票、酒店、火车票等）。\n\n不过我可以直接告诉您一些信息，同时说明我的边界：\n\n**大兴机场附近免费景点（供参考，非预订服务）：**\n\n1. **大兴机场本身** — 机场航站楼本身就是个\"景点\"，有\"凤凰展翅\"造型、中轴线景观、免税店和艺术装置，免"
+          }
+        }
+      },
+      {
+        "case_id": "ct-human-h20241029143542560410",
+        "per_run": {
+          "external-longtail-multiturn-live-r1-20260906": {
+            "facts": [
+              "arrive_by",
+              "date",
+              "lodging"
+            ],
+            "question": "明天是 2026-09-07。您要去广州玩 5 天，但您问的是\"好玩的地方\"——这是旅游景点推荐，不是差旅安排（订交通、订酒店）。\n\n我这边能帮您做的是：查南京到广州的交通、以及广州的酒店。景点游玩攻略不在我的能力范围内。\n\n不过我可以先帮您把交通和住宿查好。请问：\n\n1. 您需要我帮您订**南京→广州**的交通吗？如果需要，您希望哪天出发、大概几点到？\n2. 需要帮您订**广州的酒店**吗（5 "
+          },
+          "external-longtail-multiturn-live-r2-20260902": {
+            "facts": [
+              "date",
+              "lodging"
+            ],
+            "question": "回程日期：5天行程，是9月7日还是9月8日回南京？需要我帮你查返程票吗？\n住宿：需要我帮你订广州的酒店吗（9月3日入住，住几晚）？"
+          },
+          "external-longtail-multiturn-live-r3-20260902": {
+            "facts": [
+              "lodging"
+            ],
+            "question": "返程想坐哪个时刻的航班？\n是否需要我帮你订广州的酒店？"
+          }
+        }
+      },
+      {
+        "case_id": "ct-human-h20241029143543943871",
+        "per_run": {
+          "external-longtail-multiturn-live-r1-20260906": {
+            "facts": [
+              "date",
+              "destination",
+              "lodging",
+              "origin",
+              "transport_mode"
+            ],
+            "question": "我先确认一下这趟行程的关键信息，再帮你查交通和住宿。\n\n目前我理解到的：\n- **出发地**：成都\n- **目的地**：北京\n- **人数**：4人\n- **时长**：5天左右\n- **兴趣**：名校氛围（清华、北大等）+ 历史文化（故宫、长城、胡同等）\n\n在动手查票之前，有几个日期信息我还没法从你的话里确定，需要你告诉我：\n\n1. **出发日期**：你们打算哪天从成都出发？（比如 9月10日、下"
+          },
+          "external-longtail-multiturn-live-r2-20260902": {
+            "facts": [
+              "date",
+              "lodging",
+              "transport_mode"
+            ],
+            "question": "我先确认一下：这是一次从成都到北京的4人5天游玩行程，属于差旅安排，我可以帮你查交通和住宿。\n\n不过有几个关键信息需要你补充，我才能开始搜索：\n\n1. **出发日期**：你们打算哪天从成都出发？（5天行程，我需要知道具体日期才能查票）\n2. **住宿**：需要我帮忙订北京的酒店吗？（4人，5天）\n3. **交通偏好**：成都到北京，你们倾向坐高铁还是飞机？有没有\"必须直飞\"或\"必须高铁\"这类硬性要"
+          },
+          "external-longtail-multiturn-live-r3-20260902": {
+            "facts": [
+              "date"
+            ],
+            "question": "请问你们计划哪天从成都出发去北京？（比如「9月10号出发」或「下周三出发」都可以）"
+          }
+        }
+      },
+      {
+        "case_id": "ct-human-h20241029143602442546",
+        "per_run": {
+          "external-longtail-multiturn-live-r1-20260906": {
+            "facts": [
+              "lodging"
+            ],
+            "question": "是否需要我帮你订广州的酒店（2人、住1晚）？如需，请告诉我偏好的区域或价位。"
+          },
+          "external-longtail-multiturn-live-r2-20260902": {
+            "facts": [
+              "date",
+              "transport_mode"
+            ],
+            "question": "回程（9月6日周日 广州→深圳）航班无库存，是否改坐高铁/大巴，或由你们自行安排回程？\nGuangzhou→Shenzhen 这段没有可用机票。短途通常更适合高铁；系统目前查不了火车票，这一段需要你自己安排，或者告诉我换一个日期再搜。"
+          },
+          "external-longtail-multiturn-live-r3-20260902": {
+            "facts": [
+              "date"
+            ],
+            "question": "回程广州→深圳在9月6日（周日）没有查到可订的航班/车次，是否改到周一（9月7日）返回，或回程自行安排？\nGuangzhou→Shenzhen 这段没有可用机票。短途通常更适合高铁；系统目前查不了火车票，这一段需要你自己安排，或者告诉我换一个日期再搜。"
+          }
+        }
+      },
+      {
+        "case_id": "ct-human-h20241029143604280402",
+        "per_run": {
+          "external-longtail-multiturn-live-r1-20260906": {
+            "facts": [
+              "date"
+            ],
+            "question": "您说的\"端午假期三天\"具体是哪三天？2026年端午节是6月19日（周五），通常假期是6月19日—6月21日。是这个日期吗？还是您有别的安排？"
+          },
+          "external-longtail-multiturn-live-r2-20260902": {
+            "facts": [
+              "date"
+            ],
+            "question": "您说的\"端午假期三天\"具体是哪三天？2026年端午节是6月19日（周五），假期通常是6月19日-21日。您希望哪天从杭州出发去上海，第三天（6月21日）晚上19点前回到杭州，对吗？"
+          },
+          "external-longtail-multiturn-live-r3-20260902": {
+            "facts": [],
+            "question": "端午假期三天具体是哪三天出发？2026年端午节是6月19日（周五），三天假期通常是6月19日—6月21日。请问您是6月19日从杭州出发去上海，第三天（6月21日）晚上19点前返回杭州吗？"
+          }
+        }
+      },
+      {
+        "case_id": "ct-human-h20241029143625307702",
+        "per_run": {
+          "external-longtail-multiturn-live-r1-20260906": {
+            "facts": [
+              "date"
+            ],
+            "question": "您计划哪天从北京出发去上海？（停留3天，请告知出发日期，我好帮您查往返交通票）"
+          },
+          "external-longtail-multiturn-live-r2-20260902": {
+            "facts": [
+              "date",
+              "destination",
+              "origin"
+            ],
+            "question": "您具体哪天从北京出发去上海？停留3天是从哪天到哪天？告诉我出发日期，我就能帮您搜北京→上海的交通（高铁/航班）。"
+          },
+          "external-longtail-multiturn-live-r3-20260902": {
+            "facts": [
+              "date"
+            ],
+            "question": "请问你计划哪天从北京出发去上海？（停留3天，我需要出发日期才能查询交通和酒店）"
+          }
+        }
+      },
+      {
+        "case_id": "ct-human-h20241029143628653733",
+        "per_run": {
+          "external-longtail-multiturn-live-r1-20260906": {
+            "facts": [
+              "date",
+              "origin"
+            ],
+            "question": "您出发地是北京还是南京？（正文写\"从北京出发\"，但位置信息显示南京）。另外，请告诉我出发日期和返回日期，我好帮您查车票/机票。"
+          },
+          "external-longtail-multiturn-live-r2-20260902": {
+            "facts": [
+              "date"
+            ],
+            "question": "出发城市是北京还是南京？（你开头写\"当前位置南京\"，正文又写\"从北京出发\"，两者不一致）另外，3天行程具体哪天出发？"
+          },
+          "external-longtail-multiturn-live-r3-20260902": {
+            "facts": [
+              "date",
+              "origin"
+            ],
+            "question": "你的出发地是北京还是南京？（正文写\"从北京出发\"，但位置信息显示\"当前位置南京\"）另外，你计划哪天出发去上海？"
+          }
+        }
+      },
+      {
+        "case_id": "ct-human-h20241029143630351554",
+        "per_run": {
+          "external-longtail-multiturn-live-r1-20260906": {
+            "facts": [
+              "lodging"
+            ],
+            "question": "住宿是否需要我帮你订酒店（还是你们自己安排）？\n两天行程想侧重哪类：市区历史文化（磁器口/洪崖洞/三峡博物馆）还是凉快风景（南山/武隆仙女山）？"
+          },
+          "external-longtail-multiturn-live-r2-20260902": {
+            "facts": [
+              "date",
+              "lodging"
+            ],
+            "question": "我先确认一下：这是一次休闲旅行规划（成都→重庆，2人，2天），不是差旅订票。你希望我帮你安排交通和住宿吗？还是只需要行程建议（吃什么、玩什么）？\n\n不过我可以先帮你查一下成都到重庆的交通选项，方便你参考。请问你打算哪天出发、哪天返回？"
+          },
+          "external-longtail-multiturn-live-r3-20260902": {
+            "facts": [
+              "date"
+            ],
+            "question": "返程日期和大致时间还没定：是周日（9/7）当天回成都，还是周一（9/8）再回？定了我帮你搜返程票。"
+          }
+        }
+      },
+      {
+        "case_id": "ct-human-h20241029143632058747",
+        "per_run": {
+          "external-longtail-multiturn-live-r1-20260906": {
+            "facts": [
+              "date",
+              "lodging"
+            ],
+            "question": "您提到在北京转机、想安排一天行程，但有几个关键信息我还没法确定：1）转机的具体日期是哪天（几号到北京、几号离开）？2）是否需要我帮您安排重庆到北京、以及北京到下一站的机票/交通？3）住宿是否需要安排（还是当天转机不过夜）？"
+          },
+          "external-longtail-multiturn-live-r2-20260902": {
+            "facts": [
+              "date",
+              "destination"
+            ],
+            "question": "您这次是转机路过北京，想安排一天的城市游览。请问您需要我帮忙安排的是：1）重庆到北京的交通（以及后续转机离开北京的交通），还是 2）只帮您规划北京一天值得去的景点行程？另外，您转机去往的目的地是哪里、大概哪天到北京？"
+          },
+          "external-longtail-multiturn-live-r3-20260902": {
+            "facts": [
+              "arrive_by",
+              "date",
+              "lodging",
+              "transport_mode"
+            ],
+            "question": "您提到在北京转机、想安排一天行程探索景点，但这条请求里没有给出任何可搜索的差旅要素（出发/到达日期、航班或高铁班次、是否需要订酒店）。请问您需要我帮您安排的是：① 重庆—北京的交通（哪天出发、几点前要到北京）？还是 ② 北京当地的酒店？景点游览本身不在我的差旅搜索范围内，我可以帮您查交通和住宿，但具体\"最值得去的地方\"需要您自己定或另找攻略。"
+          }
+        }
+      },
+      {
+        "case_id": "ct-human-h20241029143706437033",
+        "per_run": {
+          "external-longtail-multiturn-live-r1-20260906": {
+            "facts": [
+              "date"
+            ],
+            "question": "您想哪天出发去重庆呢？（四天行程，往返都坐高铁）告诉我出发日期，我就能帮您查好往返高铁票并规划这四天的行程。"
+          },
+          "external-longtail-multiturn-live-r2-20260902": {
+            "facts": [
+              "date",
+              "destination",
+              "origin"
+            ],
+            "question": "您还没有告诉我具体的出发日期，所以我暂时无法搜索高铁票。不过我可以先把行程框架和预算帮您理清楚，等您告诉我出发日期，我立刻去查往返高铁票。\n\n先说明一下我目前掌握的信息和需要您确认的一点：\n\n**已明确的：**\n- 出发地：南京 → 目的地：重庆\n- 人数：2 人\n- 天数：4 天\n- 交通：必须高铁（G 字头）往返\n- 想去的景点：三峡博物馆、重庆动物园、朝天门、人民大礼堂\n- 想体验重庆本地饮"
+          },
+          "external-longtail-multiturn-live-r3-20260902": {
+            "facts": [
+              "date"
+            ],
+            "question": "您想去重庆玩四天，但还没有告诉我具体是哪一天出发。高铁往返的日期需要您先定下来，我才能帮您查票。\n\n请问您计划**哪一天从南京出发**去重庆？（比如 9月10日出发、9月13日返回，或者您方便的具体日期）"
+          }
+        }
+      },
+      {
+        "case_id": "ct-human-h20241029143832205713",
+        "per_run": {
+          "external-longtail-multiturn-live-r1-20260906": {
+            "facts": [],
+            "question": "您说的\"中秋节\"出发，是指 2026 年 9 月 25 日（周五，农历八月十五）当天从杭州飞广州吗？还是想提前一两天出发、在中秋假期里玩满五天？"
+          },
+          "external-longtail-multiturn-live-r2-20260902": {
+            "facts": [],
+            "question": "您说的\"中秋节\"出发，是指中秋节当天（2026年9月25日，周五）出发，还是想在中秋假期（9月25日-27日）的某一天出发？另外，两个孩子想去的海洋馆和动物园，您希望我帮您查一下广州有哪些推荐吗？"
+          },
+          "external-longtail-multiturn-live-r3-20260902": {
+            "facts": [
+              "date"
+            ],
+            "question": "您说的\"中秋节\"具体是哪一天出发？2026年中秋节是9月25日（周五），中秋假期通常是9月25日-27日。您希望哪天从杭州飞广州？"
+          }
+        }
+      },
+      {
+        "case_id": "ct-human-h20241029143834377206",
+        "per_run": {
+          "external-longtail-multiturn-live-r1-20260906": {
+            "facts": [
+              "arrive_by",
+              "date"
+            ],
+            "question": "请问您计划哪天出发去南京？当天有需要几点前到达的安排吗（比如会议时间）？"
+          },
+          "external-longtail-multiturn-live-r2-20260902": {
+            "facts": [
+              "date"
+            ],
+            "question": "我来帮您安排广州到南京的行程。不过我需要确认一下出发日期——您提到旅行天数1天，但没有说明具体哪一天出发。\n\n让我先确认一下：您计划哪天出发去南京？"
+          },
+          "external-longtail-multiturn-live-r3-20260902": {
+            "facts": [
+              "date"
+            ],
+            "question": "请问你们计划哪天出发去南京？需要哪天到达（比如某天上午前要到）？告诉我具体日期，我就能帮你们查广州到南京的交通。"
+          }
+        }
+      },
+      {
+        "case_id": "ct-human-h20241029143840382242",
+        "per_run": {
+          "external-longtail-multiturn-live-r1-20260906": {
+            "facts": [
+              "date",
+              "lodging",
+              "transport_mode"
+            ],
+            "question": "我先确认一下这趟行程的关键信息，然后帮你查交通。\n\n你提到\"3个人去北京玩5天\"，但还没有说**出发日期**和**返程日期**。这是规划旅程必须的信息。\n\n另外，关于\"体验历史文化\"，我可以帮你梳理北京5天的历史文化行程建议（故宫、长城、天坛、颐和园、胡同等），但**交通和住宿的预订**需要你告诉我具体日期。\n\n请问：\n\n1. **出发日期**是哪天？（比如\"9月10日出发\"）\n2. 需要我帮你*"
+          },
+          "external-longtail-multiturn-live-r2-20260902": {
+            "facts": [
+              "date",
+              "origin"
+            ],
+            "question": "您计划哪天从南京出发去北京？5天行程大概想从哪天开始（比如9月几号出发）？"
+          },
+          "external-longtail-multiturn-live-r3-20260902": {
+            "facts": [
+              "date",
+              "lodging"
+            ],
+            "question": "我来帮你规划这趟南京→北京的5天历史文化之旅。先确认一下：你提到\"旅行天数5天\"，但没有说具体出发日期。我需要知道出发日期才能搜索交通和住宿。\n\n另外，关于住宿——你是希望我帮你安排酒店，还是只规划交通和行程？\n\n先告诉我出发日期吧，这样我就能开始搜索了。"
+          }
+        }
+      },
+      {
+        "case_id": "ct-human-h20241029143846901147",
+        "per_run": {
+          "external-longtail-multiturn-live-r1-20260906": {
+            "facts": [
+              "arrive_by",
+              "date",
+              "lodging",
+              "transport_mode"
+            ],
+            "question": "我先确认一下这趟行程的关键信息，然后帮你查交通和住宿。\n\n不过有几个点需要先跟你对齐：\n\n1. **出发日期**：你打算哪天从南京出发去北京？（5天行程，我需要知道具体日期才能查票）\n2. **住宿**：5天4晚，需要我帮你安排北京的酒店吗？还是你自己订？\n3. **交通方式**：南京到北京，你倾向高铁还是飞机？有没有时间上的硬要求（比如必须几点前到）？\n\n你先把出发日期告诉我，我就能开始查票了。"
+          },
+          "external-longtail-multiturn-live-r2-20260902": {
+            "facts": [
+              "date"
+            ],
+            "question": "我需要先确认出发日期。您说\"去北京5天\"，但没有说明具体哪天出发。请问您计划哪天出发去北京？"
+          },
+          "external-longtail-multiturn-live-r3-20260902": {
+            "facts": [
+              "date",
+              "lodging"
+            ],
+            "question": "这趟北京5天行程，您希望哪天出发、哪天返回？另外住宿需要我帮您一起安排吗（还是您自己订）？"
+          }
+        }
+      },
+      {
+        "case_id": "ct-human-h20241029143900796443",
+        "per_run": {
+          "external-longtail-multiturn-live-r1-20260906": {
+            "facts": [
+              "date",
+              "destination",
+              "origin",
+              "transport_mode"
+            ],
+            "question": "您还没有告诉我具体的出发日期，所以我暂时无法查到高铁班次。不过我可以先把行程框架和需要您确认的信息整理好。\n\n**已明确的行程信息：**\n- 出发地：北京 → 目的地：苏州\n- 人数：2 人（您和女朋友）\n- 天数：4 天\n- 交通：往返都坐高铁（硬性要求）\n- 预算：尽量低（偏好）\n\n**需要您补充的信息：**\n1. **出发日期**：您打算哪天从北京出发？（例如\"9月10日出发\"或\"下周三出发"
+          },
+          "external-longtail-multiturn-live-r2-20260902": {
+            "facts": [
+              "date"
+            ],
+            "question": "请问您计划哪天从北京出发去苏州？（玩四天，往返都坐高铁，我会按预算尽量低来筛选）"
+          },
+          "external-longtail-multiturn-live-r3-20260902": {
+            "facts": [
+              "date"
+            ],
+            "question": "请问您计划哪天从北京出发去苏州？（玩四天，往返都坐高铁，我会按这个安排）"
+          }
+        }
+      },
+      {
+        "case_id": "ct-human-h20241029143906048411",
+        "per_run": {
+          "external-longtail-multiturn-live-r1-20260906": {
+            "facts": [
+              "date"
+            ],
+            "question": "你们打算哪天出发去上海呢？（比如这周五、下周一，或者具体日期）定下出发日期我就能帮你们查南京到上海的车票/机票了。"
+          },
+          "external-longtail-multiturn-live-r2-20260902": {
+            "facts": [
+              "date"
+            ],
+            "question": "请问您计划哪天出发去上海？（例如：9月5日出发，玩3天）"
+          },
+          "external-longtail-multiturn-live-r3-20260902": {
+            "facts": [
+              "budget",
+              "date",
+              "destination",
+              "lodging"
+            ],
+            "question": "我先确认一下：您是从南京出发去上海玩3天，3个人，预算5000以内，偏好现代繁华的地方。不过您还没有告诉我出发日期和返回日期，这决定了我能查到哪些实际的车票/机票。\n\n在您补充日期之前，我先说明一下我能帮您做的：\n\n1. **交通**：南京→上海（去程）、上海→南京（返程），我可以查高铁/航班的实际班次和价格。\n2. **住宿**：您提到\"玩3天\"，如果需要我帮您订酒店，请告诉我；如果只是行程建议"
+          }
+        }
+      },
+      {
+        "case_id": "ct-human-h20241029143913181191",
+        "per_run": {
+          "external-longtail-multiturn-live-r1-20260906": {
+            "facts": [
+              "lodging"
+            ],
+            "question": "这趟是问南京的景点推荐，不是要我帮你订车票/酒店。请问你需要我帮你安排苏州到南京的往返交通（或住宿）吗？还是只想听景点推荐？"
+          },
+          "external-longtail-multiturn-live-r2-20260902": {
+            "facts": [
+              "arrive_by",
+              "date",
+              "intent_confirm",
+              "lodging"
+            ],
+            "question": "这趟是问南京的景点推荐，不是要我帮你订车票/酒店，对吧？如果是想让我安排苏州到南京的往返交通和住宿，告诉我你们打算哪个周末出发、大概几点到南京，我就能帮你查票。"
+          },
+          "external-longtail-multiturn-live-r3-20260902": {
+            "facts": [
+              "transport_mode"
+            ],
+            "question": "这趟是问南京的景点推荐，不是要我帮你订车票或酒店。请问你需要我帮你查苏州到南京的交通（高铁/火车）吗？还是只想先了解南京有哪些值得逛的江南水乡景点？"
+          }
+        }
+      },
+      {
+        "case_id": "ad-val-0002",
+        "per_run": {
+          "external-longtail-multiturn-live-r1-20260906": {
+            "facts": [
+              "date"
+            ],
+            "question": "What date do you need to be in New York for the wedding?"
+          },
+          "external-longtail-multiturn-live-r2-20260902": {
+            "facts": [
+              "arrive_by",
+              "date"
+            ],
+            "question": "What date is the wedding in New York? (And if you need to arrive by a certain time that day, please let me know.)"
+          },
+          "external-longtail-multiturn-live-r3-20260902": {
+            "facts": [
+              "arrive_by",
+              "date"
+            ],
+            "question": "I'll search for flights from Denver (DEN) to New York LaGuardia (LGA). But first, I need to know the date of the wedding — that's the one thing I can't derive from your message.\n\nCould you tell me the"
+          }
+        }
+      },
+      {
+        "case_id": "ad-val-0004",
+        "per_run": {
+          "external-longtail-multiturn-live-r1-20260906": {
+            "facts": [
+              "arrive_by",
+              "date"
+            ],
+            "question": "What date does the pioneer festival take place, and do you need to arrive by a specific time that day?"
+          },
+          "external-longtail-multiturn-live-r2-20260902": {
+            "facts": [
+              "arrive_by",
+              "date"
+            ],
+            "question": "What date does the pioneer festival take place (and do you need to arrive by a specific time that day)?"
+          },
+          "external-longtail-multiturn-live-r3-20260902": {
+            "facts": [
+              "date"
+            ],
+            "question": "What date does the pioneer festival take place (or what date do you need to arrive in Detroit by)?"
+          }
+        }
+      },
+      {
+        "case_id": "ad-val-0007",
+        "per_run": {
+          "external-longtail-multiturn-live-r1-20260906": {
+            "facts": [
+              "date",
+              "destination",
+              "transport_mode"
+            ],
+            "question": "Hello David! I'm here to help arrange your corporate travel. Where are you headed, and what are the details — dates, destinations, and any preferences (like direct flights only, or a preference for tr"
+          },
+          "external-longtail-multiturn-live-r2-20260902": {
+            "facts": [],
+            "question": "Hello David! I'm here to help with your corporate travel arrangements. What trip can I help you plan?"
+          },
+          "external-longtail-multiturn-live-r3-20260902": {
+            "facts": [
+              "date",
+              "destination",
+              "transport_mode"
+            ],
+            "question": "Hello David! I'm here to help you plan your corporate travel. Where are you headed, and what are the details — dates, destinations, and any preferences (like direct flights only, or a preference for t"
+          }
+        }
+      },
+      {
+        "case_id": "ad-val-0008",
+        "per_run": {
+          "external-longtail-multiturn-live-r1-20260906": {
+            "facts": [],
+            "question": "Hello Gary! I'm here to help with your corporate travel arrangements. What trip can I help you plan?"
+          },
+          "external-longtail-multiturn-live-r2-20260902": {
+            "facts": [
+              "destination"
+            ],
+            "question": "Hello Gary! I'm here to help you plan your corporate travel. Where are you headed, and what are the details of your trip?"
+          },
+          "external-longtail-multiturn-live-r3-20260902": {
+            "facts": [
+              "destination"
+            ],
+            "question": "Hello Gary! I'm here to help you plan your corporate travel. Where are you headed, and what are the details of your trip?"
+          }
+        }
+      },
+      {
+        "case_id": "ad-val-0010",
+        "per_run": {
+          "external-longtail-multiturn-live-r1-20260906": {
+            "facts": [
+              "date",
+              "destination",
+              "origin"
+            ],
+            "question": "I'd be happy to help you book a flight, Anna. To search for real options, I need to know a few details about your trip:\n\n1. **Where are you flying from and to?** (origin and destination cities)\n2. **W"
+          },
+          "external-longtail-multiturn-live-r2-20260902": {
+            "facts": [
+              "arrive_by",
+              "date",
+              "origin"
+            ],
+            "question": "I'd be happy to help you book a flight, Anna. To search for options, I need to know a few details about your trip:\n\n1. **Where are you flying from and to?**\n2. **What date do you need to travel?** (An"
+          },
+          "external-longtail-multiturn-live-r3-20260902": {
+            "facts": [
+              "arrive_by",
+              "date",
+              "origin"
+            ],
+            "question": "I'd be happy to help you book a flight, Anna. To search for options, I'll need a few details about your trip:\n\n1. **Where are you flying from and to?**\n2. **What date do you need to travel?** (and do "
+          }
+        }
+      },
+      {
+        "case_id": "ad-val-0014",
+        "per_run": {
+          "external-longtail-multiturn-live-r1-20260906": {
+            "facts": [],
+            "question": "Hello Jennifer! I'm here to help you plan your corporate travel. What trip can I help you arrange?"
+          },
+          "external-longtail-multiturn-live-r2-20260902": {
+            "facts": [
+              "arrive_by",
+              "date"
+            ],
+            "question": "Hello Jennifer! I'm here to help you plan your corporate travel. \n\nWhat trip can I help you arrange? Please share the details — where you're headed, dates, and any preferences (like direct flights onl"
+          },
+          "external-longtail-multiturn-live-r3-20260902": {
+            "facts": [],
+            "question": "Hello Jennifer! I'm here to help with your corporate travel arrangements. What trip can I help you plan?"
+          }
+        }
+      },
+      {
+        "case_id": "ad-val-0016",
+        "per_run": {
+          "external-longtail-multiturn-live-r1-20260906": {
+            "facts": [
+              "date"
+            ],
+            "question": "I can search for flights from SFO to JFK, but I need to know your travel date before I can look up inventory. Could you tell me which day you'd like to fly?"
+          },
+          "external-longtail-multiturn-live-r2-20260902": {
+            "facts": [
+              "arrive_by",
+              "date"
+            ],
+            "question": "I can search for flights from SFO to JFK, but I need to know when you're traveling. What date do you want to fly, and do you need to arrive by a specific time?"
+          },
+          "external-longtail-multiturn-live-r3-20260902": {
+            "facts": [
+              "arrive_by",
+              "date"
+            ],
+            "question": "I can search for flights from SFO to JFK, but I need to know when you're traveling. What date do you want to fly, and do you need to arrive by a specific time?"
+          }
+        }
+      },
+      {
+        "case_id": "ad-val-0017",
+        "per_run": {
+          "external-longtail-multiturn-live-r1-20260906": {
+            "facts": [
+              "arrive_by",
+              "date"
+            ],
+            "question": "I can help with that, but I need a couple of details to search real inventory:\n\n1. **Travel date** — when do you want to fly? (And do you need to arrive by a certain time that day?)\n2. **Return** — is"
+          },
+          "external-longtail-multiturn-live-r2-20260902": {
+            "facts": [
+              "date"
+            ],
+            "question": "Which day would you like to fly from Houston (HOU) to Denver (DEN)?"
+          },
+          "external-longtail-multiturn-live-r3-20260902": {
+            "facts": [
+              "arrive_by",
+              "date"
+            ],
+            "question": "I can help with that. Let me search for flights from Houston (HOU) to Denver (DEN).\n\nBefore I search, I need to know the date you want to travel. Do you have a specific date in mind, or a deadline you"
+          }
+        }
+      },
+      {
+        "case_id": "ad-val-0018",
+        "per_run": {
+          "external-longtail-multiturn-live-r1-20260906": {
+            "facts": [
+              "date"
+            ],
+            "question": "What date would you like to travel from ORD to SFO?"
+          },
+          "external-longtail-multiturn-live-r2-20260902": {
+            "facts": [
+              "date"
+            ],
+            "question": "What date would you like to travel from ORD to SFO?"
+          },
+          "external-longtail-multiturn-live-r3-20260902": {
+            "facts": [
+              "arrive_by",
+              "date"
+            ],
+            "question": "I can help with that, but I need to know when you're traveling. What date do you need to arrive in SFO, and is there a specific time you need to be there by?"
+          }
+        }
+      },
+      {
+        "case_id": "ad-val-0019",
+        "per_run": {
+          "external-longtail-multiturn-live-r1-20260906": {
+            "facts": [
+              "date",
+              "destination"
+            ],
+            "question": "I can help with that, but I need to know where the meeting is and when you need to be there. Could you tell me:\n\n1. **Destination city** — where is the meeting?\n2. **Date and time** — when do you need"
+          },
+          "external-longtail-multiturn-live-r2-20260902": {
+            "facts": [
+              "arrive_by",
+              "date",
+              "destination"
+            ],
+            "question": "I can help search for flights, but I need a few details to find the right options:\n\n1. **Destination** — where is the meeting? (city/airport)\n2. **Date** — when do you need to be there? (and do you ne"
+          },
+          "external-longtail-multiturn-live-r3-20260902": {
+            "facts": [
+              "date",
+              "destination"
+            ],
+            "question": "I can help search for flights, but I need a few details to find the right options:\n\n1. **Destination** — where is the meeting? (Which city/airport?)\n2. **Meeting date and time** — when do you need to "
+          }
+        }
+      },
+      {
+        "case_id": "ad-val-0025",
+        "per_run": {
+          "external-longtail-multiturn-live-r1-20260906": {
+            "facts": [],
+            "question": "I'm here to help with your corporate travel. What trip can I arrange for you?"
+          },
+          "external-longtail-multiturn-live-r2-20260902": {
+            "facts": [
+              "date",
+              "destination"
+            ],
+            "question": "I'm ready to help you plan your corporate trip, Patrick. What's the itinerary you have in mind — where are you headed, and on what dates?"
+          },
+          "external-longtail-multiturn-live-r3-20260902": {
+            "facts": [],
+            "question": "I'm here to help with your corporate travel. What trip can I arrange for you, Patrick?"
+          }
+        }
+      },
+      {
+        "case_id": "ad-val-0033",
+        "per_run": {
+          "external-longtail-multiturn-live-r1-20260906": {
+            "facts": [
+              "arrive_by",
+              "date"
+            ],
+            "question": "What date do you need to travel from SFO to HOU, and is there a time you need to arrive by (e.g., a meeting)?"
+          },
+          "external-longtail-multiturn-live-r2-20260902": {
+            "facts": [
+              "date"
+            ],
+            "question": "What date would you like to fly from SFO to HOU?"
+          },
+          "external-longtail-multiturn-live-r3-20260902": {
+            "facts": [
+              "arrive_by",
+              "date"
+            ],
+            "question": "What date do you need to fly from SFO to HOU, and do you need to arrive by a specific time (e.g., for a meeting)?"
+          }
+        }
+      },
+      {
+        "case_id": "ad-val-0034",
+        "per_run": {
+          "external-longtail-multiturn-live-r1-20260906": {
+            "facts": [
+              "date"
+            ],
+            "question": "What date do you want to fly from OAK to IAD?"
+          },
+          "external-longtail-multiturn-live-r2-20260902": {
+            "facts": [
+              "arrive_by",
+              "date"
+            ],
+            "question": "I can help with that, but I need to know when you're traveling. What date do you need to arrive at IAD (Washington Dulles), and is there a specific time you need to be there by?"
+          },
+          "external-longtail-multiturn-live-r3-20260902": {
+            "facts": [
+              "arrive_by",
+              "date"
+            ],
+            "question": "I can help with that, but I need to know when you need to travel. What date do you need to arrive at IAD (Washington Dulles), and is there a specific time you need to be there by?"
+          }
+        }
+      },
+      {
+        "case_id": "ad-val-0036",
+        "per_run": {
+          "external-longtail-multiturn-live-r1-20260906": {
+            "facts": [],
+            "question": "This looks like a personal leisure trip (visiting Madame Tussauds with friends), not corporate travel. I can only help arrange business travel. Is there a work-related trip I can help you with instead"
+          },
+          "external-longtail-multiturn-live-r2-20260902": {
+            "facts": [
+              "date",
+              "origin"
+            ],
+            "question": "Could you tell me your departure city and travel dates? Also, is this a business trip or a personal trip with friends?"
+          },
+          "external-longtail-multiturn-live-r3-20260902": {
+            "facts": [],
+            "question": "This looks like a personal leisure trip (visiting Madame Tussauds with friends), which is outside what I can arrange. I handle corporate travel only. Is there a business trip I can help you with inste"
+          }
+        }
+      },
+      {
+        "case_id": "ad-val-0037",
+        "per_run": {
+          "external-longtail-multiturn-live-r1-20260906": {
+            "facts": [
+              "arrive_by",
+              "date",
+              "destination",
+              "transport_mode"
+            ],
+            "question": "I'm Linda Smith — nice to meet you. I can help you plan corporate travel: flights, trains, and hotels for your business trips.\n\nWhat trip can I help you arrange? For example, where are you headed, on "
+          },
+          "external-longtail-multiturn-live-r2-20260902": {
+            "facts": [],
+            "question": "I'm Linda's travel assistant. What trip can I help you plan?"
+          },
+          "external-longtail-multiturn-live-r3-20260902": {
+            "facts": [],
+            "question": "I'm Linda Smith — nice to meet you. I'm your corporate travel assistant. What trip can I help you arrange?"
+          }
+        }
+      },
+      {
+        "case_id": "ad-val-0039",
+        "per_run": {
+          "external-longtail-multiturn-live-r1-20260906": {
+            "facts": [
+              "date",
+              "destination",
+              "transport_mode"
+            ],
+            "question": "Hi Gary! I'm here to help arrange your corporate travel. Where are you headed, and what are the details — dates, cities, and any preferences (like direct flights only, or a preference for train vs. fl"
+          },
+          "external-longtail-multiturn-live-r2-20260902": {
+            "facts": [],
+            "question": "Hi Gary! I'm here to help arrange your corporate travel. What trip can I help you plan?"
+          },
+          "external-longtail-multiturn-live-r3-20260902": {
+            "facts": [
+              "date",
+              "destination"
+            ],
+            "question": "Hi Gary! I'm here to help with your corporate travel. Where are you headed, and what are the details — dates, times, and any preferences?"
+          }
+        }
+      },
+      {
+        "case_id": "ad-val-0041",
+        "per_run": {
+          "external-longtail-multiturn-live-r1-20260906": {
+            "facts": [],
+            "question": "I'm Raymond's travel assistant. What trip can I help you arrange?"
+          },
+          "external-longtail-multiturn-live-r2-20260902": {
+            "facts": [],
+            "question": "I'm Raymond Thompson. How can I help with your corporate travel today?"
+          },
+          "external-longtail-multiturn-live-r3-20260902": {
+            "facts": [
+              "arrive_by",
+              "date",
+              "transport_mode"
+            ],
+            "question": "Hi Raymond, I can help arrange your corporate travel. Could you tell me where you're headed, the dates, and any preferences (e.g., direct flights only, prefer train, must arrive by a certain time)?"
+          }
+        }
+      },
+      {
+        "case_id": "ad-val-0042",
+        "per_run": {
+          "external-longtail-multiturn-live-r1-20260906": {
+            "facts": [
+              "destination"
+            ],
+            "question": "Hello Sharon! I'm here to help you plan your corporate travel. Where are you headed, and what are the details of your trip?"
+          },
+          "external-longtail-multiturn-live-r2-20260902": {
+            "facts": [
+              "date",
+              "destination",
+              "transport_mode"
+            ],
+            "question": "Hello Sharon! I'm here to help you plan your corporate travel. Where are you headed, and what are the details — dates, times, and any preferences (like direct flights only or a preference for train vs"
+          },
+          "external-longtail-multiturn-live-r3-20260902": {
+            "facts": [
+              "destination"
+            ],
+            "question": "Hello Sharon! I'm here to help you plan your corporate travel. Where are you headed, and what are the details of your trip?"
+          }
+        }
+      }
+    ]
+  },
+  "process_spread": {
+    "llm_calls": {
+      "status": "computed",
+      "label": "模型调用次数",
+      "threshold": 4,
+      "cases": 185,
+      "zero_spread": 91,
+      "median_spread": 1,
+      "max_spread": 4,
+      "over_threshold": 1,
+      "outliers": [
+        {
+          "case_id": "ct-human-h20241029143639901784",
+          "values": [
+            7,
+            3,
+            3
+          ],
+          "spread": 4
+        }
+      ],
+      "per_run_total": {
+        "external-longtail-multiturn-live-r1-20260906": 632,
+        "external-longtail-multiturn-live-r2-20260902": 625,
+        "external-longtail-multiturn-live-r3-20260902": 609
+      }
+    },
+    "search_count": {
+      "status": "computed",
+      "label": "成功搜索次数",
+      "threshold": 2,
+      "cases": 185,
+      "zero_spread": 166,
+      "median_spread": 0,
+      "max_spread": 5,
+      "over_threshold": 10,
+      "outliers": [
+        {
+          "case_id": "ct-human-h20241029143639901784",
+          "values": [
+            7,
+            2,
+            2
+          ],
+          "spread": 5
+        },
+        {
+          "case_id": "ct-human-h20241029143730769592",
+          "values": [
+            4,
+            0,
+            0
+          ],
+          "spread": 4
+        },
+        {
+          "case_id": "ad-val-0007",
+          "values": [
+            2,
+            6,
+            2
+          ],
+          "spread": 4
+        },
+        {
+          "case_id": "ct-human-h20241029143455115600",
+          "values": [
+            0,
+            0,
+            2
+          ],
+          "spread": 2
+        },
+        {
+          "case_id": "ad-val-0002",
+          "values": [
+            2,
+            4,
+            4
+          ],
+          "spread": 2
+        },
+        {
+          "case_id": "ad-val-0003",
+          "values": [
+            2,
+            4,
+            3
+          ],
+          "spread": 2
+        },
+        {
+          "case_id": "ad-val-0014",
+          "values": [
+            4,
+            2,
+            2
+          ],
+          "spread": 2
+        },
+        {
+          "case_id": "ad-val-0032",
+          "values": [
+            2,
+            0,
+            2
+          ],
+          "spread": 2
+        },
+        {
+          "case_id": "ad-val-0036",
+          "values": [
+            0,
+            2,
+            0
+          ],
+          "spread": 2
+        },
+        {
+          "case_id": "ad-val-0039",
+          "values": [
+            5,
+            3,
+            3
+          ],
+          "spread": 2
+        }
+      ],
+      "per_run_total": {
+        "external-longtail-multiturn-live-r1-20260906": 318,
+        "external-longtail-multiturn-live-r2-20260902": 311,
+        "external-longtail-multiturn-live-r3-20260902": 313
+      }
+    },
+    "rejected_searches": {
+      "status": "not_applicable",
+      "label": "被宿主拒掉的搜索次数",
+      "threshold": 3
+    },
+    "rounds": {
+      "status": "computed",
+      "label": "对话轮数",
+      "threshold": 1,
+      "cases": 185,
+      "zero_spread": 180,
+      "median_spread": 0,
+      "max_spread": 1,
+      "over_threshold": 5,
+      "outliers": [
+        {
+          "case_id": "ct-human-h20241029143447759844",
+          "values": [
+            2,
+            2,
+            1
+          ],
+          "spread": 1
+        },
+        {
+          "case_id": "ct-human-h20241029143455115600",
+          "values": [
+            1,
+            1,
+            2
+          ],
+          "spread": 1
+        },
+        {
+          "case_id": "ct-human-h20241029143542560410",
+          "values": [
+            2,
+            1,
+            1
+          ],
+          "spread": 1
+        },
+        {
+          "case_id": "ct-human-h20241029143630351554",
+          "values": [
+            1,
+            2,
+            1
+          ],
+          "spread": 1
+        },
+        {
+          "case_id": "ad-val-0036",
+          "values": [
+            1,
+            2,
+            1
+          ],
+          "spread": 1
+        }
+      ],
+      "per_run_total": {
+        "external-longtail-multiturn-live-r1-20260906": 358,
+        "external-longtail-multiturn-live-r2-20260902": 359,
+        "external-longtail-multiturn-live-r3-20260902": 357
+      }
+    }
+  }
+}
