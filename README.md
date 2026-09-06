@@ -221,11 +221,12 @@ AirDialogue 46）：单轮红线探针 `examples/run_external_longtail_probe.py`
 多轮续问 `run_external_longtail_live_multiturn.py` 给每条配事实表由脚本化模拟旅行者逐轮交出，
 量"能不能办成"：185 条三轮 completion^3 84.0%，并产出盲评输入 `judge-inputs.jsonl`
 （`reports/evaluation-runs/external-longtail-*-3x-20260902/`，协议 §3.3）。
-三轮重跑的**一致性**另算（比决策不比文本：终局决策 / 搜索参数 / 声明的硬要求 / 追问目标四层；第 3 层
-的数据自 2026-09-06 起由 runner 落盘在每条用例的 `declared_requirements` 和每轮的 `loop`，2026-09-02
-的报告没有，要用 v4 提示词重跑一次才有数）：`examples/run_consistency_evaluation.py` 从现有报告零计费算出，D19 终局决策
-一致 172/185、搜索参数去重后一致 139/143、追问核心事实一致 139/177，D18 终局一致 290/300
-（`reports/evaluation-runs/consistency-external-longtail-*-20260906/`，协议 §6.7）。
+三轮重跑的**一致性**另算（比决策不比文本：终局决策 / 搜索参数 / 声明的硬要求 / 追问目标四层，外加不设门禁的
+过程离散度）：`examples/run_consistency_evaluation.py` 从现有报告零计费算出。2026-09-06 带第 3 层的 185 × 3
+重跑：终局决策一致 174/185、搜索参数去重后一致 138/143、**声明的硬要求一致 129/137**（偏好只有 85/137，只报告）、
+追问核心事实一致 136/179；completion^3 86.0%；三轮裁判均分 4.07 / 3.92 / 4.00（未校准）。终局摇摆 11 条里 6 条
+根因是"必须高铁"要不要声明成硬约束，规则待定（`reports/evaluation-runs/consistency-external-longtail-multiturn-3x-v2-20260906/`，
+协议 §6.7，HANDOFF §59）。
 
 D13 继续覆盖真实 Provider 的选择与报价重验路径。它固定执行一次 Duffel Test Mode
 搜索，再对一个合规方案执行一次 `GET /air/offers/{offer_id}`；允许报价保持不变，或在
