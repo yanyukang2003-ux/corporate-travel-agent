@@ -276,8 +276,8 @@ Judge 实现约束（`evaluation/judge.py`）：
 |---|---|---|
 | 1 · 终局决策 | `outcome` / `state` 三轮相同；与参照（离线替身终态 / 事实表）并列报，"一致但错"单独一桶 | `report.json` |
 | 2 · 搜索参数 | 去重后的搜索签名集合 `(kind, origin, destination, 旅行者给的到达日)` 相同；拆窗和被拒的重复搜索不算差异；宿主 `ToolInputError` 拒掉的尝试不算搜了 | `report.json` 的 `searches`，没有则 `traces.jsonl` 成功搜索步骤的 `input_hash` |
-| 3 · 声明的硬要求 | `propose_options` 声明的硬要求与偏好相同 | **runner 尚未落盘，待补** |
-| 4 · 追问目标 | 第一轮追问问的核心事实（日期 / 出发地 / 目的地 / 到达时限）集合相同；附带事实只在带问号的句子里算 | `turns[0].question`，关键词规则 `keyword-rules-v1`（粗版） |
+| 3 · 声明的硬要求 | `propose_options` 声明并被宿主接受的硬要求与偏好相同（只看硬要求另报一个数） | 每条用例的 `declared_requirements` 与每轮的 `turns[].loop`（2026-09-06 起 `case_record` / `turn_snapshot` 落盘，来自 `loop_decision_snapshot`）；2026-09-02 的报告没有，记 `not_applicable` |
+| 4 · 追问目标 | 第一轮追问问的核心事实（日期 / 出发地 / 目的地 / 到达时限）集合相同；附带事实只在带问号的句子里算；另比第一轮终局动作（问 / 交付 / 越界）是否相同 | `turns[0].question`，关键词规则 `keyword-rules-v1`（粗版）；终局动作来自 `turns[0].loop.final_action`（2026-09-06 起） |
 
 执行器 `examples/run_consistency_evaluation.py`（逻辑在 `evaluation/consistency.py`）读现有报告，
 零计费，输出目录必须事先不存在；`consistency.json` 记每轮输入的 SHA-256。首次结果

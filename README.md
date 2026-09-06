@@ -221,8 +221,9 @@ AirDialogue 46）：单轮红线探针 `examples/run_external_longtail_probe.py`
 多轮续问 `run_external_longtail_live_multiturn.py` 给每条配事实表由脚本化模拟旅行者逐轮交出，
 量"能不能办成"：185 条三轮 completion^3 84.0%，并产出盲评输入 `judge-inputs.jsonl`
 （`reports/evaluation-runs/external-longtail-*-3x-20260902/`，协议 §3.3）。
-三轮重跑的**一致性**另算（比决策不比文本：终局决策 / 搜索参数 / 追问目标三层，第 3 层"交付时声明
-的硬要求"待 runner 落盘）：`examples/run_consistency_evaluation.py` 从现有报告零计费算出，D19 终局决策
+三轮重跑的**一致性**另算（比决策不比文本：终局决策 / 搜索参数 / 声明的硬要求 / 追问目标四层；第 3 层
+的数据自 2026-09-06 起由 runner 落盘在每条用例的 `declared_requirements` 和每轮的 `loop`，2026-09-02
+的报告没有，要用 v4 提示词重跑一次才有数）：`examples/run_consistency_evaluation.py` 从现有报告零计费算出，D19 终局决策
 一致 172/185、搜索参数去重后一致 139/143、追问核心事实一致 139/177，D18 终局一致 290/300
 （`reports/evaluation-runs/consistency-external-longtail-*-20260906/`，协议 §6.7）。
 

@@ -2,8 +2,8 @@
 
 **日期：** 2026-09-06  
 **工作区：** `/Users/yukangyan/Downloads/corporate-travel-agent`  
-**分支：** `semantic-entrypoint-and-judge`（§46–§56 已提交到 `2950d21`；§57 随本轮两次提交）  
-**目的：** 换 session 续作入口。**读 §1、§2、§30、§38、§46、§55、§57 就能接上**，其余章节是历史记录，按需查。
+**分支：** `semantic-entrypoint-and-judge`（§46–§57 已提交到 `d549f84`；§58 随本轮提交）  
+**目的：** 换 session 续作入口。**读 §1、§2、§30、§38、§46、§55、§57、§58 就能接上**，其余章节是历史记录，按需查。
 
 ---
 
@@ -4778,11 +4778,64 @@ run_consistency_evaluation.py × 2                          零计费，报告�
 
 ---
 
-*交接更新 2026-09-06（§57）。*
+## 58. 2026-09-06（第二轮）：第 3 层的数据——runner 落盘"交付时声明了什么"，重跑前的准备
 
-**新 session 读七节：§1 现状，§57 三轮一致性（比决策不比文本；第 3 层待重跑），§56 架构整改（分层守卫、类型检查、协作对象、应用工厂、评测包、`AGENT_RUNNING`、请求真源），§30 架构方案，§38 工具循环出口，§46–§48 真实链路复跑，§55 订好之后的追踪与变更。**
+**一句话：** §57 的第 3 层（交付时声明的硬要求与偏好）之所以算不了，是 runner 从来没把它写进报告。
+本轮让单轮和多轮两个 runner 共用的 `case_record` 每条用例落盘 `declared_requirements`，每一轮的
+`turn_snapshot` 落盘一份循环决策快照 `loop`；一致性模块接上第 3 层，第 4 层多比一项"第一轮终局
+动作"。**没有发起计费调用**——185 × 3 的重跑是下一步，要另行确认。pytest **906** 全过（+4），
+ruff、mypy、分层守卫全过。
+
+### 58.0 先说名词
+
+| 词 | 大白话 |
+|---|---|
+| 交付时声明 | 模型用 `propose_options` 交方案时一并说的"旅行者的硬要求 / 偏好"（如 `train_only`、`prefer_train`），只认词表里的名字，被宿主接受后写进当前请求版本 |
+| 终局动作 | 一轮循环最后选的出口：`ask_traveler`（问）/ `propose_options`（交付）/ 落成越界记 `out_of_scope`；循环没收敛记 None |
+| 循环决策快照 | `loop_decision_snapshot(task)`：终局动作、声明的硬要求与偏好、未决问题、本轮工具序列、被宿主拒掉的工具调用。只读任务，不改它 |
+
+### 58.1 改了什么
+
+| 文件 | 改了什么 |
+|---|---|
+| `agent/orchestrator/intake.py` | 每次循环结束多记一个只读字段 `metadata["agentic_final_action"]`（成功路径记 `outcome.kind`，循环没收敛记 None）。**出口工具本来就不进 `agentic_transcript`**，而且已有测试按 `transcript[-1]` 取最后一次搜索，所以不能往里追加。这个字段不喂回模型（`ConversationLedger` 只读 `task.messages`），不进 API 公开视图；模型行为逐字未变 |
+| `evaluation/external_longtail.py` | 新增 `loop_decision_snapshot`；`case_record` 落盘 `loop` 和 `declared_requirements = {declared, hard, soft}`（单轮 D18、探针、多轮 D19 都经它）；`turn_snapshot` 每轮带 `loop`；`summarize_multiturn` 多报 `declared_hard_constraints` / `declared_soft_preferences` / `final_actions` 三个分布 |
+| `evaluation/consistency.py` | 第 3 层 `declared_requirements_consistency`：只看三轮都交付了的用例，比 `(硬要求集合, 偏好集合)`，桶分 `identical / hard_differ / soft_differ / both_differ / declared_in_some_runs_only`，另报"只看硬要求相同"和逐名字的一致数；第 4 层多比第一轮终局动作。旧报告没有这些字段就记 `not_applicable` |
+| `tests/test_external_longtail_multiturn.py` | +2：剧本模型交付时声明 `train_only` + `prefer_train`，记录里能读到；只问不交付的一轮 `declared=False` |
+| `tests/test_evaluation_consistency.py` | +2：合成三轮验第 3 层的桶、逐名字一致、第一轮动作一致；没有字段的旧报告记 `not_applicable` |
+| `docs/evaluation-protocol.md` §6.7、`README.md` | 第 3 层那一行改成"已落盘，旧报告不适用" |
+
+### 58.2 验收
+
+```
+pytest 全量（排除 test_postgres_live）                 906 全过（902 → 906）
+ruff check src tests examples migrations              全过
+mypy                                                  120 个文件无错误
+离线多轮 smoke（--offline --limit-per-source 2，$0）   报告里 final_actions={'ask_traveler': 4}，每轮带 loop，写到 scratchpad 未入库
+```
+
+离线替身只会开口问，永远不交付，所以离线只能验"字段写进去了"，验不了"声明被记下来"；后者由剧本
+模型的单测守着。
+
+### 58.3 没做 / 要注意
+
+- **185 × 3 的重跑没有跑。** 命令与上次一致（`run_external_longtail_live_multiturn.py`，
+  `--confirm-billable-model-calls --confirm-external-test-calls`），**必须仍用 v4 提示词**，新开
+  三个报告目录，跑完用 `run_consistency_evaluation.py` 出第 3 层。上次上界 $3.24，实际约 21 元，
+  r1 单独约 40 分钟、r2/r3 并行。
+- 第 4 层的精确版仍然没有：`ask_traveler` 只有一句自由文本，没有"缺哪件事"的结构化字段；加字段等于改
+  工具表，会改模型行为，和提示词改动一起放到重跑之后。
+- `agentic_final_action` 是 metadata 里的新键。旧任务没有它，快照读到 None；载荷版本没升（可选键）。
+- `ruff format --check` 在 `intake.py` 和评测包里会报早就存在的格式差异，CI 只跑 `ruff check`；本轮没有
+  重排别人的代码。
+
+---
+
+*交接更新 2026-09-06（§58）。*
+
+**新 session 读八节：§1 现状，§58 第 3 层的数据已落盘（重跑待确认），§57 三轮一致性（比决策不比文本），§56 架构整改（分层守卫、类型检查、协作对象、应用工厂、评测包、`AGENT_RUNNING`、请求真源），§30 架构方案，§38 工具循环出口，§46–§48 真实链路复跑，§55 订好之后的追踪与变更。**
 其余是历史记录，按需查。
 **§30 是常读章节；产品入口和出口自由度以 §38 为准；架构决策以 `docs/adr/` 为准（0005–0010 是 §56 那轮）。**
 
 *沟通标准见 `AGENTS.md`：先解释名词再用，先给结论再给细节，诚实优先于漂亮。*
-*本轮见 §57；上一轮 §56（架构整改）；再上 §55（订后追踪）；再上 §54（300 条三轮 + 多轮续问 + Judge 185）；再上 §53（外部数据集 + 300 条探针）；再上 §52（降本降延迟）；再上 §51（函数级过程记录）；再上 §50（方案切换与理由）；再上 §49（过程记录）；再上 §48（四条工程债）；再上 §47（英文月份 + 重试上限）；再上 §46（真实链路复跑）；再上 §45（溯源）；再上 §44（政策分档）；再上 §43（评分过程）；再上 §42（前端两栏）；再上 §41（能力边界与长尾）；再上 §40；再上 §39；再上 §38；再上 §37–§31；再上 §29；A–I 见 §19–§22。*
+*本轮见 §58；上一轮 §57（三轮一致性）；再上 §56（架构整改）；再上 §55（订后追踪）；再上 §54（300 条三轮 + 多轮续问 + Judge 185）；再上 §53（外部数据集 + 300 条探针）；再上 §52（降本降延迟）；再上 §51（函数级过程记录）；再上 §50（方案切换与理由）；再上 §49（过程记录）；再上 §48（四条工程债）；再上 §47（英文月份 + 重试上限）；再上 §46（真实链路复跑）；再上 §45（溯源）；再上 §44（政策分档）；再上 §43（评分过程）；再上 §42（前端两栏）；再上 §41（能力边界与长尾）；再上 §40；再上 §39；再上 §38；再上 §37–§31；再上 §29；A–I 见 §19–§22。*
