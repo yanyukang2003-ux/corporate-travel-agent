@@ -268,6 +268,22 @@ Judge 实现约束（`evaluation/judge.py`）：
 
 主稳定性指标为 `pass_power_3` 和 `mixed_run_rate`；`pass_at_3` 只能反映可恢复上限，不能替代稳定通过率。
 
+**2026-09-06 追加：一致性另算，比决策不比文本。** `pass_power_3` 量的是三轮都通过判据；判据是
+红线时（D18）它几乎饱和，说的是宿主不变量而不是模型行为。重跑三次真正该量的是同一句话三次
+是不是做了同样的事。沙箱库存轮次间会变、追问措辞天然会变，逐字比只会量到噪声，所以按决策比：
+
+| 层 | 比什么 | 数据 |
+|---|---|---|
+| 1 · 终局决策 | `outcome` / `state` 三轮相同；与参照（离线替身终态 / 事实表）并列报，"一致但错"单独一桶 | `report.json` |
+| 2 · 搜索参数 | 去重后的搜索签名集合 `(kind, origin, destination, 旅行者给的到达日)` 相同；拆窗和被拒的重复搜索不算差异；宿主 `ToolInputError` 拒掉的尝试不算搜了 | `report.json` 的 `searches`，没有则 `traces.jsonl` 成功搜索步骤的 `input_hash` |
+| 3 · 声明的硬要求 | `propose_options` 声明的硬要求与偏好相同 | **runner 尚未落盘，待补** |
+| 4 · 追问目标 | 第一轮追问问的核心事实（日期 / 出发地 / 目的地 / 到达时限）集合相同；附带事实只在带问号的句子里算 | `turns[0].question`，关键词规则 `keyword-rules-v1`（粗版） |
+
+执行器 `examples/run_consistency_evaluation.py`（逻辑在 `evaluation/consistency.py`）读现有报告，
+零计费，输出目录必须事先不存在；`consistency.json` 记每轮输入的 SHA-256。首次结果
+`reports/evaluation-runs/consistency-external-longtail-*-20260906/`：D19 终局决策一致 172/185、
+搜索参数去重后一致 139/143、追问核心事实一致 139/177；D18 终局一致 290/300。
+
 ### 6.8 业务结果
 
 前面 6.1–6.7 全部量的是"模型和系统干得怎么样"。这一节量的是另一件事：**这东西对
