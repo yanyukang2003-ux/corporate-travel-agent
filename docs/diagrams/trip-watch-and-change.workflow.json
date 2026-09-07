@@ -1,0 +1,349 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "订后跟踪与变更处置",
+    "locale": "zh-CN",
+    "quality_profile": "showcase",
+    "views": [
+      {
+        "id": "passive",
+        "label": "被动跟踪",
+        "focus": [
+          "confirmed",
+          "register",
+          "poll",
+          "push",
+          "assess",
+          "observe"
+        ],
+        "note": "下单确认后登记观察；worker 到点轮询和企业侧推送都进同一个确定性影响评估。"
+      },
+      {
+        "id": "dispose",
+        "label": "变更处置",
+        "focus": [
+          "assess",
+          "change_task",
+          "replan",
+          "notice"
+        ],
+        "note": "三档判定：开改期任务、只通知、只记录；改期任务在同一趟差旅下重走规划到交接。"
+      },
+      {
+        "id": "active",
+        "label": "旅行者主动",
+        "focus": [
+          "traveler",
+          "change_task",
+          "cancel"
+        ],
+        "note": "会议改期和航变自述直接落事件；取消整趟差旅就停观察，退改由人去办。"
+      }
+    ]
+  },
+  "lanes": [
+    {
+      "id": "sources",
+      "label": "动态来源 · 企业侧 / 旅行者"
+    },
+    {
+      "id": "watch",
+      "label": "差旅跟踪 · 观察与确定性评估"
+    },
+    {
+      "id": "trip",
+      "label": "差旅聚合 · 改期任务"
+    },
+    {
+      "id": "exception",
+      "label": "通知与取消",
+      "variant": "exception"
+    }
+  ],
+  "phases": [
+    {
+      "id": "register_phase",
+      "label": "登记",
+      "fromCol": 0,
+      "toCol": 1
+    },
+    {
+      "id": "track_phase",
+      "label": "跟踪",
+      "fromCol": 2,
+      "toCol": 2
+    },
+    {
+      "id": "assess_phase",
+      "label": "评估",
+      "fromCol": 3,
+      "toCol": 3,
+      "variant": "emphasis"
+    },
+    {
+      "id": "dispose_phase",
+      "label": "处置",
+      "fromCol": 4,
+      "toCol": 5,
+      "variant": "dashed"
+    }
+  ],
+  "groups": [
+    {
+      "id": "change_group",
+      "label": "改期任务重走全流程",
+      "lane": "trip",
+      "fromCol": 4,
+      "toCol": 5,
+      "variant": "emphasis"
+    }
+  ],
+  "mainPath": [
+    "confirmed",
+    "register",
+    "poll",
+    "assess",
+    "change_task",
+    "replan"
+  ],
+  "semanticChecks": {
+    "allowedRoots": [
+      "confirmed",
+      "push",
+      "traveler"
+    ],
+    "allowedTerminals": [
+      "replan",
+      "notice",
+      "cancel",
+      "observe"
+    ],
+    "requiredEdges": [
+      {
+        "from": "assess",
+        "to": "change_task"
+      },
+      {
+        "from": "assess",
+        "to": "notice"
+      },
+      {
+        "from": "assess",
+        "to": "observe"
+      }
+    ]
+  },
+  "nodes": [
+    {
+      "id": "confirmed",
+      "lane": "watch",
+      "col": 0,
+      "type": "backend",
+      "label": "下单确认",
+      "sublabel": "差旅进入 BOOKED",
+      "width": 110
+    },
+    {
+      "id": "register",
+      "lane": "watch",
+      "col": 1,
+      "type": "database",
+      "label": "登记观察对象",
+      "sublabel": "每段票号与起降时刻",
+      "tag": "起飞前 48 h 起",
+      "width": 130
+    },
+    {
+      "id": "poll",
+      "lane": "watch",
+      "col": 2,
+      "type": "backend",
+      "label": "到点问动态源",
+      "sublabel": "worker 领租约后查询",
+      "tag": "6 h → 1 h → 15 min",
+      "width": 130
+    },
+    {
+      "id": "push",
+      "lane": "sources",
+      "col": 2,
+      "type": "external",
+      "label": "企业侧推送",
+      "sublabel": "HMAC 签名推送",
+      "width": 140
+    },
+    {
+      "id": "traveler",
+      "lane": "sources",
+      "col": 5,
+      "type": "external",
+      "label": "旅行者报变更",
+      "sublabel": "聊天或表单 · 日期引原话",
+      "width": 150
+    },
+    {
+      "id": "assess",
+      "lane": "watch",
+      "col": 3,
+      "type": "security",
+      "label": "确定性影响评估",
+      "sublabel": "到场时限 − 缓冲 · 接驳时间",
+      "width": 150
+    },
+    {
+      "id": "observe",
+      "lane": "watch",
+      "col": 4,
+      "type": "database",
+      "label": "只记观察",
+      "sublabel": "不重复通知 · 排下次检查",
+      "width": 150
+    },
+    {
+      "id": "change_task",
+      "lane": "trip",
+      "col": 4,
+      "type": "backend",
+      "label": "开改期任务",
+      "sublabel": "同一趟差旅 · 原任务不动",
+      "width": 150
+    },
+    {
+      "id": "replan",
+      "lane": "trip",
+      "col": 5,
+      "type": "backend",
+      "label": "重走规划到交接",
+      "sublabel": "政策 · 审批 · 重验 · 确认",
+      "tag": "REBOOKED",
+      "width": 150
+    },
+    {
+      "id": "notice",
+      "lane": "exception",
+      "col": 4,
+      "type": "messagebus",
+      "label": "发件箱通知",
+      "sublabel": "延误但来得及 → 企业侧",
+      "width": 140
+    },
+    {
+      "id": "cancel",
+      "lane": "exception",
+      "col": 5,
+      "type": "security",
+      "label": "取消差旅",
+      "sublabel": "停观察 · 退改由人办",
+      "tag": "CANCELLED",
+      "width": 150
+    }
+  ],
+  "edges": [
+    {
+      "id": "e_confirm_register",
+      "from": "confirmed",
+      "to": "register",
+      "variant": "emphasis",
+      "role": "main"
+    },
+    {
+      "id": "e_register_poll",
+      "from": "register",
+      "to": "poll",
+      "label": "到点领取",
+      "role": "main",
+      "variant": "emphasis"
+    },
+    {
+      "id": "e_poll_assess",
+      "from": "poll",
+      "to": "assess",
+      "label": "航班动态",
+      "variant": "emphasis",
+      "role": "main"
+    },
+    {
+      "id": "e_push_assess",
+      "from": "push",
+      "to": "assess",
+      "label": "不经 worker，直接评估",
+      "variant": "dashed",
+      "role": "branch"
+    },
+    {
+      "id": "e_assess_change",
+      "from": "assess",
+      "to": "change_task",
+      "label": "REBOOK_REQUIRED",
+      "variant": "emphasis",
+      "role": "main"
+    },
+    {
+      "id": "e_assess_notice",
+      "from": "assess",
+      "to": "notice",
+      "label": "NOTIFY_ONLY",
+      "role": "branch"
+    },
+    {
+      "id": "e_assess_observe",
+      "from": "assess",
+      "to": "observe",
+      "label": "NO_CHANGE",
+      "role": "branch"
+    },
+    {
+      "id": "e_change_replan",
+      "from": "change_task",
+      "to": "replan",
+      "label": "复用原请求",
+      "role": "main",
+      "variant": "emphasis"
+    },
+    {
+      "id": "e_traveler_change",
+      "from": "traveler",
+      "to": "change_task",
+      "label": "会议改期 / 航变自述",
+      "role": "branch"
+    },
+    {
+      "id": "e_traveler_cancel",
+      "from": "traveler",
+      "to": "cancel",
+      "label": "这趟不去了",
+      "role": "branch",
+      "variant": "dashed"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "观察节奏与入口",
+      "items": [
+        "第一次检查排在最早一段起飞前 48 h，越近越密，最密 15 min 一次，落地后停",
+        "worker 按到点时间领取并写租约；没接动态源时一趟都不领",
+        "企业侧推送验 HMAC-SHA256，可只带票号，同一班机上每趟差旅都算数"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "预防措施：确定性、可复核",
+      "items": [
+        "评估只看事实，结论带理由；取消、赶不上到场时限减缓冲、接驳不足才开改期",
+        "改期任务只平移被改那一段，被取消的票排除在候选外；改期中的差旅不再领取",
+        "交接前重验报价，涨价或售罄要重新确认；审批主题一变旧审批失效"
+      ]
+    },
+    {
+      "dot": "slate",
+      "title": "边界与留痕",
+      "items": [
+        "系统不改签、不退票、不付钱；退改由人去官方平台办",
+        "会议改期日期必须逐字引用旅行者原话；聊天变更最多两轮，读不出来就问",
+        "每次非重复观察都记审计事件；通知与改期事件经发件箱至少一次投递"
+      ]
+    }
+  ]
+}

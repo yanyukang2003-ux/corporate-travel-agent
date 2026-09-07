@@ -11,3 +11,6 @@ dist/
 data/runtime/
 
 .DS_Store
+
+# archify visual-check artifacts (screenshots/QA json with local paths)
+docs/diagrams/*.visual-check.*

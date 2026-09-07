@@ -63,7 +63,7 @@ flowchart TD
     ORCH --> AUDIT["Task / Audit Repository"]
 ```
 
-LLM 端口只允许做意图抽取、受控查询调整和事实解释。它不能输出政策批准结论，也不能构造库存 ID。自然语言输出先经过严格 Pydantic schema，再由应用层重新检查必填字段、时区、时间顺序和硬约束冲突。结构化输出实现依据 [OpenAI Structured Outputs 官方指南](https://developers.openai.com/api/docs/guides/structured-outputs)。
+模型的输出只有工具调用及其参数：把对话翻译成搜索参数（航段、最晚到达时刻、逐字引用的日期原话）、决定下一步动作（再搜、提问、交付、判越界）、从本轮真实搜到的库存里挑方案并写推荐理由、按固定词表声明旅行者的硬要求与偏好，以及订后把变更原话读成一条变更请求。它读到的每条库存都已由确定性代码贴好政策结论；它不能构造库存 ID，也没有任何写工具。参数进入领域层前由各工具入口逐项校验（`agent/tool_loop.py`），适配器走 OpenAI 兼容的 function calling（`tool_choice=auto`）。
 
 LLM 与 Provider 端口共享任务级调用预算。调用前先预留名额，失败调用同样计数；达到 12 次后进入 `TOOL_BUDGET_EXHAUSTED`，不会再触发外部调用或创建交接意图。API 的 `tool_budget` 字段返回上限、已用、剩余和有序调用记录。
 

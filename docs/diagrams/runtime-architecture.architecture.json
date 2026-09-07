@@ -1,0 +1,404 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "企业差旅 Agent 运行时架构",
+    "locale": "zh-CN",
+    "quality_profile": "showcase",
+    "viewBox": [
+      1300,
+      640
+    ],
+    "views": [
+      {
+        "id": "main-path",
+        "label": "主路径",
+        "focus": [
+          "frontend",
+          "api",
+          "orchestrator",
+          "toolloop",
+          "llm",
+          "providers",
+          "suppliers",
+          "core"
+        ],
+        "note": "员工原话进来，模型只挑只读工具，库存与合规由确定性代码把关，方案回到员工自己下单。"
+      },
+      {
+        "id": "trust",
+        "label": "外部依赖与边界",
+        "focus": [
+          "frontend",
+          "api",
+          "llm",
+          "suppliers",
+          "enterprise",
+          "providers"
+        ],
+        "note": "密钥只在服务端进程；外部 SaaS 只读；企业侧出入站都带 HMAC-SHA256 签名。"
+      },
+      {
+        "id": "persistence",
+        "label": "持久化与后台",
+        "focus": [
+          "orchestrator",
+          "postgres",
+          "rawstore",
+          "workers",
+          "enterprise"
+        ],
+        "note": "任务、审计、发件箱同一事务落库；worker 靠 Postgres 租约领取重试、观察和投递。"
+      },
+      {
+        "id": "evidence",
+        "label": "证据链",
+        "focus": [
+          "orchestrator",
+          "core",
+          "postgres",
+          "rawstore",
+          "workers"
+        ],
+        "note": "状态迁移、审计事件、工具调用记录与发件箱事件同一事务落库；供应商原文进 WORM 存储并带哈希；出站通知按 event_id 可追。"
+      }
+    ]
+  },
+  "components": [
+    {
+      "id": "frontend",
+      "type": "frontend",
+      "label": "React 前端",
+      "sublabel": "三类角色工作台",
+      "pos": [
+        40,
+        224
+      ],
+      "size": [
+        136,
+        68
+      ],
+      "brand": "react"
+    },
+    {
+      "id": "api",
+      "type": "backend",
+      "label": "FastAPI 应用",
+      "sublabel": "路由 · 鉴权 · 授权",
+      "pos": [
+        248,
+        224
+      ],
+      "size": [
+        136,
+        68
+      ],
+      "brand": "fastapi"
+    },
+    {
+      "id": "orchestrator",
+      "type": "backend",
+      "label": "工作流编排器",
+      "sublabel": "状态机 · 预算 · 审计",
+      "pos": [
+        460,
+        224
+      ],
+      "size": [
+        136,
+        68
+      ]
+    },
+    {
+      "id": "toolloop",
+      "type": "backend",
+      "label": "工具循环",
+      "sublabel": "每轮只挑只读工具",
+      "pos": [
+        692,
+        224
+      ],
+      "size": [
+        136,
+        68
+      ]
+    },
+    {
+      "id": "llm",
+      "type": "external",
+      "label": "OpenAI 兼容模型",
+      "sublabel": "deepseek-v4-pro",
+      "pos": [
+        1116,
+        84
+      ],
+      "size": [
+        136,
+        68
+      ],
+      "brand": "deepseek"
+    },
+    {
+      "id": "providers",
+      "type": "backend",
+      "label": "库存 Provider",
+      "sublabel": "适配器 · 沙箱守卫",
+      "pos": [
+        900,
+        224
+      ],
+      "size": [
+        136,
+        68
+      ]
+    },
+    {
+      "id": "suppliers",
+      "type": "external",
+      "label": "Duffel · LiteAPI",
+      "sublabel": "航班沙箱 / 酒店沙箱",
+      "pos": [
+        1116,
+        224
+      ],
+      "size": [
+        136,
+        68
+      ]
+    },
+    {
+      "id": "postgres",
+      "type": "database",
+      "label": "PostgreSQL",
+      "sublabel": "任务 · 审计 · 发件箱",
+      "brand": "postgresql",
+      "pos": [
+        460,
+        384
+      ],
+      "size": [
+        136,
+        68
+      ]
+    },
+    {
+      "id": "core",
+      "type": "backend",
+      "label": "规划器 + 政策引擎",
+      "sublabel": "可行性 · 合规 · 分档",
+      "pos": [
+        692,
+        384
+      ],
+      "size": [
+        136,
+        68
+      ]
+    },
+    {
+      "id": "rawstore",
+      "type": "database",
+      "label": "WORM 原文存储",
+      "sublabel": "原始响应 · 哈希校验",
+      "pos": [
+        900,
+        384
+      ],
+      "size": [
+        136,
+        68
+      ]
+    },
+    {
+      "id": "enterprise",
+      "type": "external",
+      "label": "企业侧系统",
+      "sublabel": "OA / 费控 / 航班动态",
+      "pos": [
+        40,
+        524
+      ],
+      "size": [
+        136,
+        68
+      ]
+    },
+    {
+      "id": "workers",
+      "type": "backend",
+      "label": "后台 worker",
+      "sublabel": "重试 · 观察 · 投递",
+      "pos": [
+        460,
+        524
+      ],
+      "size": [
+        136,
+        68
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "浏览器 · 短期 Bearer 会话",
+      "wraps": [
+        "frontend"
+      ],
+      "pad": 14
+    },
+    {
+      "kind": "region",
+      "label": "本系统进程 · API + worker（同一代码库，PROCESS_ROLE 区分）",
+      "wraps": [
+        "api",
+        "orchestrator",
+        "toolloop",
+        "providers",
+        "postgres",
+        "core",
+        "rawstore",
+        "workers"
+      ],
+      "pad": 18
+    },
+    {
+      "kind": "security-group",
+      "label": "外部 SaaS · 服务端持密钥 · 只读调用",
+      "wraps": [
+        "llm",
+        "suppliers"
+      ],
+      "pad": 14
+    },
+    {
+      "kind": "security-group",
+      "label": "企业侧 · HMAC-SHA256 双向验签",
+      "wraps": [
+        "enterprise"
+      ],
+      "pad": 14
+    }
+  ],
+  "connections": [
+    {
+      "id": "ui-to-api",
+      "from": "frontend",
+      "to": "api",
+      "label": "HTTPS",
+      "variant": "emphasis"
+    },
+    {
+      "id": "api-to-orch",
+      "from": "api",
+      "to": "orchestrator",
+      "label": "工作流操作",
+      "variant": "emphasis"
+    },
+    {
+      "id": "orch-to-loop",
+      "from": "orchestrator",
+      "to": "toolloop",
+      "label": "AGENT_RUNNING",
+      "variant": "emphasis"
+    },
+    {
+      "id": "loop-to-llm",
+      "from": "toolloop",
+      "to": "llm",
+      "label": "选下一个工具",
+      "variant": "dashed",
+      "fromSide": "top",
+      "toSide": "left",
+      "via": [
+        [
+          760,
+          118
+        ]
+      ]
+    },
+    {
+      "id": "loop-to-providers",
+      "from": "toolloop",
+      "to": "providers",
+      "label": "查库存",
+      "variant": "emphasis"
+    },
+    {
+      "id": "providers-to-suppliers",
+      "from": "providers",
+      "to": "suppliers",
+      "label": "HTTPS 只读",
+      "variant": "emphasis"
+    },
+    {
+      "id": "orch-to-core",
+      "from": "orchestrator",
+      "to": "core",
+      "label": "规划 · 政策判定"
+    },
+    {
+      "id": "orch-to-db",
+      "from": "orchestrator",
+      "to": "postgres",
+      "label": "同一事务落库",
+      "labelDy": 24
+    },
+    {
+      "id": "providers-to-raw",
+      "from": "providers",
+      "to": "rawstore",
+      "label": "原始响应写入",
+      "labelDy": 24
+    },
+    {
+      "id": "workers-to-db",
+      "from": "workers",
+      "to": "postgres",
+      "label": "租约领取 · 未发事件"
+    },
+    {
+      "id": "workers-to-enterprise",
+      "from": "workers",
+      "to": "enterprise",
+      "label": "发件箱 webhook · HMAC",
+      "variant": "dashed"
+    },
+    {
+      "id": "enterprise-to-api",
+      "from": "enterprise",
+      "to": "api",
+      "label": "航班动态推送 / 审批回调",
+      "variant": "dashed"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "主路径：从原话到方案",
+      "items": [
+        "POST /agentic/trip-tasks 发起，任务进入 AGENT_RUNNING",
+        "模型每轮只从 5 个只读工具里挑；搜到的库存先贴政策结论再喂回",
+        "propose_options 后规划器分档 → 选方案 → 重验 → 审批 → 交接，员工自己去官方平台下单"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "硬边界与信任边界",
+      "items": [
+        "不下单不付款：工具表无写操作；Duffel 只收 duffel_test_ 令牌，live 开关为 true 直接拒启",
+        "政策由确定性代码判，模型只读；ref_id 必须来自本轮真实搜索，日期逐字引用原话",
+        "密钥只在服务端，不进 Prompt / 审计；企业侧出入站 webhook 均 HMAC-SHA256 验签；浏览器持短期 Bearer 会话"
+      ]
+    },
+    {
+      "dot": "slate",
+      "title": "运行形态与可替换件",
+      "items": [
+        "PROCESS_ROLE=api 不起后台线程；worker / all 起重试与差旅观察调度器，靠 Postgres 租约互斥",
+        "DATABASE_URL 为空退回内存仓储；TRAVEL_PROVIDER=mock 用冻结演示库存；FLIGHT_STATUS_SOURCE=none 不领观察",
+        "工具预算每任务 20 次；供应商即时 3 次、LLM 2 次；熔断 60 s；延迟重试 60 / 180 / 600 s 由 worker 领取"
+      ]
+    }
+  ]
+}
